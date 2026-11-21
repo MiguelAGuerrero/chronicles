@@ -165,6 +165,32 @@ source.
 - **Apple Voice Memos**: search reaches transcripts. Source:
   https://support.apple.com/guide/iphone/search-for-or-rename-a-recording-iph0e546e6ec/27/ios/27 . **Verified**.
 
+### File a moment into a group as it is kept (Honour, Return)
+
+- **Google Keep** (web): select the note, More, then "Add label" or "Change labels"; under "Label note" check a label
+  or enter a name and Create; "You'll see the label at the bottom of the note." Source:
+  https://support.google.com/keep/answer/6191044 . **Verified** (it says nothing of a recent or suggested label).
+- **Google Keep** (Android, iOS): typing # in a note offers existing labels to apply or a new one to create. Source:
+  from memory, unverified (2016 launch coverage; the support page covers only the menu). **Unverified**.
+- **Day One** (iOS): while writing, More above the keyboard, then Tag: type a new tag or choose an existing one;
+  hashtags in the text can become tags; no recent tags (a forum request). Source: from memory, unverified (the help
+  page's host is blocked from cloud sessions). **Unverified**.
+- **Pinterest** (mobile): Save, then choose a board or Create board, each time; on desktop a one-click save suggests a
+  board with a chevron to change it. Source: from memory, unverified (host blocked). **Unverified**.
+- **Adobe Lightroom Classic**: "Set as Target Collection", then B adds the selected photos to it; the Quick
+  Collection is the default target. Source: from memory, unverified (host blocked). **Unverified**. A remembered
+  target, one key per photo: the model for "the last thread first".
+- **Adobe Lightroom** (mobile): an album's Camera icon captures straight into that album; "Auto add from device" per
+  album. Source: from memory, unverified (host blocked). **Unverified**. A sequence mode: the album is chosen before
+  the shutter.
+- **Cam Albums, TidyCam, AlbumCamera** (iOS, third-party cameras): choose an album first, and every shot is saved
+  into it until another is chosen. Source: from memory, unverified (App Store listings, host blocked).
+  **Unverified**. The plainest "keep threading" mode; it puts a choice before the shutter.
+- **Google Photos** Group Camera: a review screen after the shot, "Add" contributes it to the shared album. Source:
+  from memory, unverified (host blocked). **Unverified**.
+- **Chronicles** (decision 0253): after the moment is kept, Thread on the Add to this moment pill, one tap, the
+  thread last added to first; nothing asked before the shutter, no mode.
+
 ### Record a walk: start, pause, stop (Honour)
 
 - **AllTrails**: Record, then pause and resume, Finish to save; photos taken during the recording are placed on the

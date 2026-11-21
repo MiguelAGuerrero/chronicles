@@ -1,0 +1,256 @@
+<title>Thread at capture mock-up</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: a sheet of before/after phone pairs, one band per screen state; the phones use the app's own tokens. */
+:root {
+  --page: #f6f5f2; --paper: #ffffff; --text: #1d2430; --soft: #596273; --rule: #e3e0da; --tag: #c2410c;
+  /* The app's tokens (src/components/ui.tsx theme), used only inside the drawn phones */
+  --app-bg: #f4f2ee; --app-surface: #ffffff; --app-ink: #1d2430; --app-muted: #596273; --app-line: #e3e0da; --app-edge: #8a857d;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-head: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --s: 0.7;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #15181d; --paper: #1d2128; --text: #e8e6e1; --soft: #a3abb8; --rule: #2e333c; --tag: #f08a5d; color-scheme: dark } }
+:root[data-theme="dark"] { --page: #15181d; --paper: #1d2128; --text: #e8e6e1; --soft: #a3abb8; --rule: #2e333c; --tag: #f08a5d; color-scheme: dark }
+body { background: var(--page); color: var(--text); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; display: grid; gap: 40px; }
+h1, h2 { font-family: var(--f-head); text-wrap: balance; margin: 0; }
+h1 { font-size: 30px; line-height: 1.15; }
+h2 { font-size: 21px; }
+p { margin: 0; max-width: 68ch; }
+.lede { display: grid; gap: 10px; }
+.meta { color: var(--soft); font-size: 13px; }
+.calls { display: grid; gap: 4px; padding: 14px 16px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; max-width: 68ch; }
+.calls b { font-weight: 600; }
+.band { display: grid; gap: 14px; border-top: 1px solid var(--rule); padding-top: 24px; }
+.pair { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+figure { margin: 0; display: grid; gap: 10px; width: calc(390px * var(--s)); min-width: 0; }
+figcaption { font-size: 13px; color: var(--soft); display: grid; gap: 4px; }
+figcaption .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tag); font-weight: 600; }
+figcaption .choice { color: var(--text); }
+.frame { width: calc(390px * var(--s)); height: calc(844px * var(--s)); overflow: hidden; border-radius: 14px; border: 1px solid var(--rule); background: var(--app-bg); position: relative; }
+.frame.narrow { width: calc(320px * var(--s)); }
+.phone { width: 390px; height: 844px; transform: scale(var(--s)); transform-origin: 0 0; position: absolute; inset: 0 auto auto 0; font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; color: var(--app-ink); }
+.narrow .phone { width: 320px; }
+.phone > img.shot { position: absolute; inset: 0; width: 390px; height: 844px; max-width: none; }
+.legend { font-size: 13px; color: var(--soft); max-width: 68ch; }
+/* The drawn app parts */
+.pill { position: absolute; background: var(--app-ink); color: #fff; border-radius: 28px; padding: 10px 4px 4px; display: grid; justify-items: center; gap: 6px; }
+.pill .label { font-size: 15px; font-weight: 600; padding: 0 10px; }
+.pill .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.btn { width: 44px; height: 44px; border-radius: 999px; background: rgba(255,255,255,0.15); display: grid; place-items: center; }
+.btn svg { width: 20px; height: 20px; fill: #fff; }
+.btn.new { outline: 2px dashed #f2b38f; outline-offset: 2px; }
+.cap { position: absolute; background: var(--app-ink); color: #fff; border-radius: 28px; padding: 4px 4px 4px 14px; display: flex; align-items: center; gap: 8px; }
+.cap .t { font-size: 15px; font-weight: 600; line-height: 1.2; }
+.cap .nm { min-height: 44px; display: grid; place-items: center; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,0.15); font-size: 15px; font-weight: 700; white-space: nowrap; }
+.toast { position: absolute; background: var(--app-ink); color: #fff; border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; }
+.scrim { position: absolute; inset: 0; background: rgba(20,24,32,0.7); padding: 56px 12px 24px; display: flex; }
+.card { background: var(--app-surface); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.head { display: flex; align-items: center; justify-content: space-between; }
+.title { font-size: 17px; font-weight: 700; }
+.x { width: 44px; height: 44px; display: grid; place-items: center; font-size: 22px; }
+.input { background: var(--app-bg); border: 1px solid var(--app-edge); border-radius: 12px; min-height: 48px; padding: 0 12px; display: flex; align-items: center; font-size: 16px; color: var(--app-muted); }
+.input.typed { color: var(--app-ink); }
+.input .caret { width: 1.5px; height: 20px; background: var(--app-ink); margin-left: 1px; }
+.rows { display: grid; gap: 6px; }
+.r { min-height: 56px; border: 1px solid var(--app-line); border-radius: 12px; padding: 8px 12px; display: grid; gap: 2px; align-content: center; }
+.r .n { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.r .n svg { width: 16px; height: 16px; fill: var(--app-ink); flex: none; }
+.r .s { font-size: 13px; color: var(--app-muted); }
+.r.dim { opacity: 0.45; }
+.r.pic { grid-template-columns: 56px 1fr; column-gap: 12px; align-items: center; padding: 8px; }
+.thumb { width: 56px; height: 56px; border-radius: 8px; grid-row: span 2; }
+.mur1 { background: linear-gradient(135deg, #e85d3f 0 30%, #2f6db5 30% 55%, #f3c64b 55% 75%, #3a9a6a 75%); }
+.mur2 { background: radial-gradient(circle at 30% 40%, #f3c64b 0 18%, transparent 19%), linear-gradient(160deg, #6b3fa0 0 45%, #e0477a 45% 70%, #222 70%); }
+.mur3 { background: repeating-linear-gradient(45deg, #1f8a8a 0 8px, #f0e3c4 8px 16px); }
+.mur4 { background: linear-gradient(90deg, #b8b2a7, #8f8a80); }
+.over { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--app-muted); padding: 4px 4px 0; }
+.foot { display: flex; gap: 8px; justify-content: flex-end; }
+.b2 { min-height: 44px; padding: 0 18px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+.b2.pri { background: var(--app-ink); color: #fff; }
+.b2.sec { border: 1px solid var(--app-edge); color: var(--app-ink); }
+.said { font-size: 14px; color: var(--app-ink); background: var(--app-bg); border-radius: 10px; padding: 10px 12px; }
+.kb { position: absolute; left: 0; right: 0; bottom: 0; height: 300px; background: #d1d4da; display: grid; place-items: center; color: #5b616b; font-size: 14px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2z"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M4 4h11l-2 2H6v12h12v-7l2-2v11H4V4zm15.3-1.3 2 2L12 14H10v-2l9.3-9.3z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10.6 13.4a1 1 0 0 1 0-1.4l3.5-3.5a1 1 0 1 1 1.4 1.4L12 13.4a1 1 0 0 1-1.4 0zM8.5 18.4a3.5 3.5 0 0 1-2.5-6l2.1-2.1 1.4 1.4-2.1 2.1a1.5 1.5 0 0 0 2.1 2.1l2.1-2.1 1.4 1.4-2.1 2.1a3.5 3.5 0 0 1-2.4 1.1zm7.4-4.7-1.4-1.4 2.1-2.1a1.5 1.5 0 0 0-2.1-2.1l-2.1 2.1L11 8.8l2.1-2.1a3.5 3.5 0 1 1 4.9 4.9l-2.1 2.1z"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="lede">
+    <h1>Thread a moment as it is kept</h1>
+    <p>Each band shows today's screen from the web build at 390 × 844 beside the change, drawn at the same size with the app's colours and words. It is the look of entry G11 (decision 0253), from your /investigate of Nov 21: murals and graffiti grouped on the walk, with no scrolling back.</p>
+    <div class="calls">
+      <span><b>Your calls:</b> Thread on the after-capture pill · the card opens on the thread last added to, with a search · one tap per capture, no mode · a thread still needs two moments, this walk's offered with their pictures, then an optional name.</span>
+    </div>
+    <p class="meta">Dashed outline: what is new. Pictures in the picker rows are coloured stand-ins for your photos. Native has never been run; these are the web build's sizes.</p>
+  </header>
+
+  <section class="band">
+    <h2>1. Right after a capture</h2>
+    <div class="pair">
+      <figure>
+        <div class="frame"><div class="phone"><img class="shot" src="before-pill.png" alt="Today: the Add to this moment pill with camera, mic, note and close, left of the capture stack"></div></div>
+        <figcaption><span class="k">Today</span>Shot 95-stacks-pill: camera, mic, note, ×.</figcaption>
+      </figure>
+      <figure>
+        <div class="frame"><div class="phone">
+          <img class="shot" src="before-pill.png" alt="">
+          <div class="pill" style="left:61px; top:551px; width:244px;">
+            <span class="label">Add to this moment</span>
+            <div class="row">
+              <span class="btn"><svg><use href="#i-cam"/></svg></span>
+              <span class="btn"><svg><use href="#i-mic"/></svg></span>
+              <span class="btn"><svg><use href="#i-note"/></svg></span>
+              <span class="btn new"><svg><use href="#i-link"/></svg></span>
+              <span class="btn"><svg><use href="#i-x"/></svg></span>
+            </div>
+          </div>
+        </div></div>
+        <figcaption><span class="k">After</span>Thread, the link mark, before ×. Spoken "Add this moment to a thread". The label and the other buttons are unchanged (MS6).<span class="choice">Choice: Thread sits before ×, so "Not now" stays last.</span></figcaption>
+      </figure>
+      <figure>
+        <div class="frame narrow"><div class="phone">
+          <img class="shot" src="before-pill.png" alt="" style="left:-70px">
+          <div class="pill" style="left:24px; top:507px; width:200px;">
+            <span class="label">Add to this moment</span>
+            <div class="row">
+              <span class="btn"><svg><use href="#i-cam"/></svg></span>
+              <span class="btn"><svg><use href="#i-mic"/></svg></span>
+              <span class="btn"><svg><use href="#i-note"/></svg></span>
+              <span class="btn new"><svg><use href="#i-link"/></svg></span>
+              <span class="btn"><svg><use href="#i-x"/></svg></span>
+            </div>
+          </div>
+        </div></div>
+        <figcaption><span class="k">After, 320 px</span>Five buttons do not fit on one row left of the stack: three, then Thread and ×. Every target stays 44 px.</figcaption>
+      </figure>
+    </div>
+    <p class="legend">Rests on MS2 as decision 0253 amends it. It does not: add a count, a colour or a sound; ask anything before the shutter; replace the editor that opens first (0240).</p>
+  </section>
+
+  <section class="band">
+    <h2>2. With Group captures on</h2>
+    <div class="pair">
+      <figure>
+        <div class="frame"><div class="phone">
+          <img class="shot" src="before-pill.png" alt="">
+          <div style="position:absolute; left:104px; top:545px; width:208px; height:94px; background:#eeeae4"></div>
+          <div class="cap" style="left:40px; top:575px; width:265px;">
+            <span class="t">Adding to this moment</span>
+            <span class="nm">New moment</span>
+          </div>
+        </div></div>
+        <figcaption><span class="k">Today (drawn)</span>"Adding to this moment" and New moment (MS19, MS21).</figcaption>
+      </figure>
+      <figure>
+        <div class="frame"><div class="phone">
+          <img class="shot" src="before-pill.png" alt="">
+          <div style="position:absolute; left:104px; top:545px; width:208px; height:94px; background:#eeeae4"></div>
+          <div class="cap" style="left:40px; top:567px; width:265px;">
+            <span class="t">Adding to this moment</span>
+            <span class="btn new"><svg><use href="#i-link"/></svg></span>
+            <span class="nm">New moment</span>
+          </div>
+        </div></div>
+        <figcaption><span class="k">After</span>Thread between the words and New moment; the words wrap to two lines. It threads the open moment, every piece with it.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="band">
+    <h2>3. Thread tapped: the card</h2>
+    <div class="pair">
+      <figure>
+        <div class="frame"><div class="phone"><img class="shot" src="before-card-threads.png" alt="Today: Add to a thread with A new thread and the threads by place and date"></div></div>
+        <figcaption><span class="k">Today</span>From the viewer's More, with no thread yet (taken as the card fades in, so the journal shows through). With threads, they follow A new thread, headed by place and date; this step has no search.</figcaption>
+      </figure>
+      <figure>
+        <div class="frame"><div class="phone">
+          <img class="shot" src="before-pill.png" alt="">
+          <div class="scrim"><div class="card">
+            <div class="head"><span class="title">Add to a thread</span><span class="x">✕</span></div>
+            <div class="input" style="outline:2px dashed #f2b38f; outline-offset:2px">Search threads and moments</div>
+            <div class="over">Last added to</div>
+            <div class="rows">
+              <div class="r" style="outline:2px dashed #f2b38f; outline-offset:2px"><span class="n"><svg><use href="#i-link"/></svg>Murals</span><span class="s">a few moments, since November</span></div>
+              <div class="r"><span class="n">A new thread</span><span class="s">Choose a second moment to join this one with</span></div>
+              <div class="r"><span class="n"><svg><use href="#i-link"/></svg>Compliments</span><span class="s">several moments, since September</span></div>
+              <div class="r"><span class="n"><svg><use href="#i-link"/></svg>Fox Point, Oct 20</span><span class="s">a couple of moments, since October</span></div>
+            </div>
+          </div></div>
+        </div></div>
+        <figcaption><span class="k">After</span>The thread you last added to is first, under "Last added to": one tap adds the mural. Then A new thread, then the rest, newest first.<span class="choice">Choice: the search box is closed until tapped, so the keys do not cover the first row.</span></figcaption>
+      </figure>
+      <figure>
+        <div class="frame"><div class="phone">
+          <img class="shot" src="before-pill.png" alt="">
+          <div class="scrim" style="padding-bottom:312px"><div class="card">
+            <div class="head"><span class="title">Add to a thread</span><span class="x">✕</span></div>
+            <div class="input typed">mur<span class="caret"></span></div>
+            <div class="over">Threads</div>
+            <div class="rows">
+              <div class="r"><span class="n"><svg><use href="#i-link"/></svg>Murals</span><span class="s">a few moments, since November</span></div>
+            </div>
+            <div class="over">Moments</div>
+            <div class="rows">
+              <div class="r pic"><span class="thumb mur2"></span><span class="n">mural behind the laundromat</span><span class="s">Fox Point, Nov 2 · From Sunday morning walk</span></div>
+            </div>
+          </div></div>
+          <div class="kb">keyboard</div>
+        </div></div>
+        <figcaption><span class="k">After, searching</span>"mur" finds the thread by its name and a moment by its words. A moment chosen here starts a new thread of the two.</figcaption>
+      </figure>
+    </div>
+    <p class="legend">The size of a thread is said in words, as today ("a few moments"). The mark is the link icon of a thread you made (0105). Nothing is named or suggested for you.</p>
+  </section>
+
+  <section class="band">
+    <h2>4. The first mural of a series: A new thread</h2>
+    <div class="pair">
+      <figure>
+        <div class="frame"><div class="phone"><img class="shot" src="before-card-moments.png" alt="Today: Join it with another moment, rows of words and dates, photos shown as the word Photo"></div></div>
+        <figcaption><span class="k">Today</span>Notes only in this test's data. A photo with no caption reads "Photo" here, with no picture, and nothing from the walk you are on is offered.</figcaption>
+      </figure>
+      <figure>
+        <div class="frame"><div class="phone">
+          <img class="shot" src="before-pill.png" alt="">
+          <div class="scrim"><div class="card">
+            <div class="head"><span class="title">Join it with another moment</span><span class="x">✕</span></div>
+            <div class="input">Search words, places or dates</div>
+            <div class="rows">
+              <div class="r pic" style="outline:2px dashed #f2b38f; outline-offset:2px"><span class="thumb mur1"></span><span class="n">Photo</span><span class="s">Nov 21 · From Saturday afternoon walk</span></div>
+              <div class="r pic"><span class="thumb mur3"></span><span class="n">Photo</span><span class="s">Nov 21 · From Saturday afternoon walk</span></div>
+              <div class="r"><span class="n">the bakery smelled like cardamom</span><span class="s">Nov 21 · From Saturday afternoon walk</span></div>
+              <div class="r pic"><span class="thumb mur2"></span><span class="n">mural behind the laundromat</span><span class="s">Fox Point, Nov 2 · From Sunday morning walk</span></div>
+              <div class="r pic"><span class="thumb mur4"></span><span class="n">Video</span><span class="s">Fox Point, Oct 20 · From Tuesday evening walk</span></div>
+            </div>
+          </div></div>
+        </div></div>
+        <figcaption><span class="k">After</span>This walk's moments first, newest first; a photo or video shows its small picture beside its place and time, never alone. A note or memo keeps its words.</figcaption>
+      </figure>
+      <figure>
+        <div class="frame"><div class="phone">
+          <img class="shot" src="before-pill.png" alt="">
+          <div class="scrim" style="padding-bottom:312px"><div class="card" style="flex:none; align-self:flex-end">
+            <div class="head"><span class="title">Connected</span><span class="x">✕</span></div>
+            <div class="said">The two moments are a thread now.</div>
+            <div class="input typed" style="outline:2px dashed #f2b38f; outline-offset:2px">Murals<span class="caret"></span></div>
+            <div class="foot"><span class="b2 sec">Leave it unnamed</span><span class="b2 pri">Done</span></div>
+          </div></div>
+          <div class="kb">keyboard</div>
+        </div></div>
+        <figcaption><span class="k">After, naming</span>Once the two are joined, an optional name field ("Name this thread" until typed in). Empty is fine: the thread is headed by place and date as today.<span class="choice">Choice: the words "Leave it unnamed" and "The two moments are a thread now."</span></figcaption>
+      </figure>
+    </div>
+    <p class="legend">A thread still needs two kept moments (0104, OT6); there is no thread of one and no mode that captures into a thread. A third mural then takes two taps: Thread, then "Murals" under Last added to.</p>
+  </section>
+</div>
