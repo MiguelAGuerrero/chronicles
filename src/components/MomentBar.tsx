@@ -15,6 +15,7 @@ import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
 import { NewNotePage } from './notePage/NewNotePage';
+import { AddToThread } from './threads/AddToThread';
 import type { NotePageHandle } from './notePage/NotePage';
 import { SpaceLine } from './SpaceLine';
 import { useEditAfterCapture } from './edit/EditOffer';
@@ -91,6 +92,8 @@ export function CaptureRow(props: {
   const { cap, toast, setToast } = props;
   // The note's page, begun at the pencil's tap (NP1), keyed so each opens fresh; `into` is the open moment it joins (MS2, MS4).
   const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
+  // Thread on the pill (thread at capture CT1, CT3): the moment Add to a thread is open for.
+  const [threading, setThreading] = useState<string | null>(null);
   const noteOpen = page != null;
   const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
   const pageRef = useRef<NotePageHandle>(null);
@@ -180,6 +183,7 @@ export function CaptureRow(props: {
           onPhoto={() => void cap.takePhoto(momentPill.target()).then(kept)}
           onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
           onNote={() => openNote(momentPill.target())}
+          onThread={setThreading}
         />
         {toast && (
           <LiftIn testID={`${p}-toast`} style={styles.toast} accessibilityLiveRegion="polite">
@@ -233,6 +237,19 @@ export function CaptureRow(props: {
         <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
 
+      {/* Add to a thread for the moment just made (CT3), in the app's Modal. */}
+      <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => setThreading(null)}>
+        {threading && (
+          <AddToThread
+            moment={{ id: threading }}
+            onClose={() => setThreading(null)}
+            onDone={(text, ok) => {
+              setThreading(null);
+              setToast(ok ? 'Added to a thread' : text);
+            }}
+          />
+        )}
+      </Modal>
       <Modal visible={noteOpen} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && (
           <NewNotePage

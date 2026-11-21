@@ -40,18 +40,19 @@ async function run(h) {
 
   // Before a moment is kept nothing about threads is drawn, and the stack is as it was (CT11).
   const stack = await names('[data-testid=moment-photo], [data-testid=moment-voice], [data-testid=moment-note]');
-  check.todo((await pg.locator('[data-testid=add-thread], [data-testid=add-to-thread]').count()) === 0 && stack.length === 3,
+  check((await pg.locator('[data-testid=add-thread], [data-testid=add-to-thread]').count()) === 0 && stack.length === 3,
     `CT11: before a capture no Thread and no card are drawn, the stack's three in place (${stack.join(', ')})`);
 
   // The first mural: the pill now carries Thread, before ×, one row at 390 px (CT1).
   const pill1 = await photo('[data-testid=moment-photo]');
   const labels = pill1 ? await names('[data-testid=add-to-moment] [role=button]') : [];
-  check.todo(pill1 && labels.join('|') === 'Add a photo to this moment|Add a voice memo to this moment|Add a note to this moment|Add this moment to a thread|Not now',
+  check(pill1 && labels.join('|') === 'Add a photo to this moment|Add a voice memo to this moment|Add a note to this moment|Add this moment to a thread|Not now',
     `CT1: after a capture the pill offers camera, mic, note, Thread and ×, in that order (${labels.join(', ')})`);
-  const label = pill1 ? await pg.$eval('[data-testid=add-to-moment]', (e) => e.innerText.trim()) : '';
+  // Its words are the first line; the icons' glyphs follow in innerText.
+  const label = pill1 ? (await pg.$eval('[data-testid=add-to-moment]', (e) => e.innerText)).split('\n')[0].trim() : '';
   const tBox = await box('[data-testid=add-thread]');
   const xBox = await box('[data-testid=add-dismiss]');
-  check.todo(label === 'Add to this moment' && !!tBox && !!xBox && Math.abs(tBox.y - xBox.y) < 2 && tBox.w >= 44 && tBox.h >= 44,
+  check(label === 'Add to this moment' && !!tBox && !!xBox && Math.abs(tBox.y - xBox.y) < 2 && tBox.w >= 44 && tBox.h >= 44,
     `CT1: the pill's words are unchanged and its five 44 pt buttons sit in one row at 390 px (${JSON.stringify([label, tBox, xBox])})`);
   await shot(pg, 'ct-01-pill-390');
   // A first mural cannot be threaded alone (OT6): the card offers only A new thread, and its list has nothing else yet.
@@ -62,21 +63,22 @@ async function run(h) {
   await pg.click('[data-testid=add-thread]').catch(() => {});
   const card = await there('[data-testid=add-to-thread]', 5000);
   const keysClosed = card ? await pg.evaluate(() => document.activeElement?.getAttribute('data-testid') !== 'add-thread-search') : false;
-  check.todo(card && keysClosed && (await pg.locator('[data-testid=add-new-thread]').count()) === 1,
+  check(card && keysClosed && (await pg.locator('[data-testid=add-new-thread]').count()) === 1,
     'CT3, CT5: Thread opens Add to a thread over the screen, its search closed, A new thread first with no thread yet');
+  await pg.waitForTimeout(800);
   await shot(pg, 'ct-02-card-empty');
   await pg.click('[data-testid=add-new-thread]').catch(() => {});
   await pg.waitForTimeout(600);
   const rows = await pg.locator('[data-testid=add-moment-row]').count();
   const pic = await pg.locator('[data-testid=add-moment-row] [data-testid=row-picture]').count();
   const rowText = rows ? await pg.locator('[data-testid=add-moment-row]').first().innerText() : '';
-  check.todo(rows === 1 && pic === 1 && /Photo/.test(rowText) && /[A-Z][a-z]{2} \d/.test(rowText),
+  check(rows === 1 && pic === 1 && /Photo/.test(rowText) && /[A-Z][a-z]{2} \d/.test(rowText),
     `CT7: the other mural is offered with its small picture beside "Photo" and its date line (${rows}, ${pic}, ${JSON.stringify(rowText)})`);
   await shot(pg, 'ct-03-new-thread');
   if (rows) await pg.locator('[data-testid=add-moment-row]').first().click();
   const named = await there('[data-testid=thread-name]', 5000);
   const said = named ? await pg.locator('[data-testid=add-to-thread]').innerText() : '';
-  check.todo(named && /Connected/.test(said) && /The two moments are a thread now\./.test(said) && (await pg.locator('[data-testid=thread-name-skip]').count()) === 1,
+  check(named && /Connected/.test(said) && /The two moments are a thread now\./.test(said) && (await pg.locator('[data-testid=thread-name-skip]').count()) === 1,
     `CT8: once two are joined the card says so and offers an optional name, Leave it unnamed beside Done (${JSON.stringify(said.slice(0, 120))})`);
   if (named) {
     await pg.fill('[data-testid=thread-name]', 'Murals');
@@ -86,10 +88,10 @@ async function run(h) {
   await gone('[data-testid=add-to-thread]', 5000);
   const toast1 = await there('text=Added to a thread', 4000);
   let s = await stored(pg);
-  check.todo(s.threads.length === 1 && s.threads[0].name === 'Murals' && s.members.length === 2,
+  check(s.threads.length === 1 && s.threads[0].name === 'Murals' && s.members.length === 2,
     `CT8, CT10: a thread of the two murals, named Murals as typed (${JSON.stringify(s.threads.map((t) => t.name))}, ${s.members.length})`);
-  check.todo(toast1 && (await pg.locator('text=Added to a thread').count()) === 1, 'CT9: "Added to a thread" is said once, with no count');
-  check.todo(await there('[data-testid=add-to-moment]', 3000) && (await pg.locator('[data-testid=moment-photo]:not([aria-disabled=true])').count()) === 1,
+  check(toast1 && (await pg.locator('text=Added to a thread').count()) === 1, 'CT9: "Added to a thread" is said once, with no count');
+  check(await there('[data-testid=add-to-moment]', 3000) && (await pg.locator('[data-testid=moment-photo]:not([aria-disabled=true])').count()) === 1,
     'CT3: once the card is gone the pill and the shutter are back as they were');
 
   // The third mural: Thread, then "Last added to" (two taps, CT4).
@@ -98,7 +100,8 @@ async function run(h) {
   await there('[data-testid=add-to-thread]', 5000);
   const lastHead = await there('text=Last added to', 3000);
   const lastName = lastHead ? await pg.locator('[data-testid=add-last-thread]').innerText().catch(() => '') : '';
-  check.todo(lastHead && /Murals/.test(lastName) && /moments, since/.test(lastName) && !/\d/.test(lastName), `CT4: the card opens on "Last added to", the Murals thread first, its size in words (${JSON.stringify(lastName)})`);
+  check(lastHead && /Murals/.test(lastName) && /moments, since/.test(lastName) && !/\d/.test(lastName), `CT4: the card opens on "Last added to", the Murals thread first, its size in words (${JSON.stringify(lastName)})`);
+  await pg.waitForTimeout(800);
   await shot(pg, 'ct-05-last-added');
   // The search, typed into, finds the thread by its name and a moment by its words (CT5).
   await pg.click('[data-testid=add-thread-search]').catch(() => {});
@@ -106,23 +109,25 @@ async function run(h) {
   await pg.waitForTimeout(300);
   const foundThreads = await pg.locator('[data-testid=add-thread-row]').count();
   const noLast = (await pg.locator('text=Last added to').count()) === 0;
-  check.todo(foundThreads === 1 && noLast && (await there('text=Threads', 1000)), `CT5: "mur" finds the Murals thread under Threads, no "Last added to" while searching (${foundThreads})`);
+  check(foundThreads === 1 && noLast && (await there('text=Threads', 1000)), `CT5: "mur" finds the Murals thread under Threads, no "Last added to" while searching (${foundThreads})`);
   await pg.fill('[data-testid=add-thread-search]', 'zzzz');
   await pg.waitForTimeout(300);
-  check.todo(await there('text=Nothing matches.', 2000), 'CT5: a search that finds nothing says so in words');
+  check(await there('text=Nothing matches.', 2000), 'CT5: a search that finds nothing says so in words');
   await shot(pg, 'ct-06-search-none');
   await pg.fill('[data-testid=add-thread-search]', '');
   await pg.waitForTimeout(300);
   if (await there('[data-testid=add-last-thread]', 2000)) await pg.click('[data-testid=add-last-thread]');
   await gone('[data-testid=add-to-thread]', 5000);
   s = await stored(pg);
-  check.todo(s.threads.length === 1 && s.members.length === 3, `CT4, CT10: the third mural joined Murals in two taps (${s.members.length})`);
+  check(s.threads.length === 1 && s.members.length === 3, `CT4, CT10: the third mural joined Murals in two taps (${s.members.length})`);
   // Thread again on the same moment: the thread holding it is shown and cannot be tapped (CT4, CT9).
   await pg.click('[data-testid=add-thread]').catch(() => {});
   await there('[data-testid=add-to-thread]', 5000);
+  // The rows come once the moments are read: wait for the row, not only the card.
+  await there('[data-testid=add-last-thread]', 5000);
   const inIt = await pg.locator('[data-testid=add-last-thread][aria-disabled=true]').count();
   const inItText = inIt ? await pg.locator('[data-testid=add-last-thread]').innerText() : '';
-  check.todo(inIt === 1 && /This moment is in it/.test(inItText), `CT4: a thread the moment is in says so and cannot be tapped (${JSON.stringify(inItText)})`);
+  check(inIt === 1 && /This moment is in it/.test(inItText), `CT4: a thread the moment is in says so and cannot be tapped (${JSON.stringify(inItText)})`);
   await pg.click('[data-testid=add-to-thread-close]').catch(() => {});
   await gone('[data-testid=add-to-thread]', 3000);
 
@@ -131,7 +136,7 @@ async function run(h) {
   await pg.waitForTimeout(500);
   const t320 = await box('[data-testid=add-thread]');
   const p320 = await box('[data-testid=add-photo]');
-  check.todo(!!t320 && !!p320 && t320.y > p320.y + 20 && t320.w >= 44, `CT1: at 320 px Thread wraps below the first three (${JSON.stringify([p320, t320])})`);
+  check(!!t320 && !!p320 && t320.y > p320.y + 20 && t320.w >= 44, `CT1: at 320 px Thread wraps below the first three (${JSON.stringify([p320, t320])})`);
   await shot(pg, 'ct-07-pill-320');
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(300);
@@ -151,18 +156,19 @@ async function run(h) {
   await pg.waitForTimeout(600);
   const walkRows = await pg.locator('[data-testid=add-moment-row]').count();
   const firstWalkRow = walkRows ? await pg.locator('[data-testid=add-moment-row]').first().innerText() : '';
-  check.todo(walkRows === 4 && /From /.test(firstWalkRow), `CT6: the walk being made is offered, newest first, its photo first and from its walk (${walkRows}, ${JSON.stringify(firstWalkRow)})`);
+  check(walkRows === 4 && /From /.test(firstWalkRow), `CT6: the walk being made is offered, newest first, its photo first and from its walk (${walkRows}, ${JSON.stringify(firstWalkRow)})`);
+  await pg.waitForTimeout(800);
   await shot(pg, 'ct-08-walk-moments');
   if (walkRows) await pg.locator('[data-testid=add-moment-row]').first().click();
   if (await there('[data-testid=thread-name-skip]', 4000)) await pg.click('[data-testid=thread-name-skip]');
   await gone('[data-testid=add-to-thread]', 5000);
   s = await stored(pg);
-  check.todo(s.threads.length === 2 && s.threads.some((t) => t.name === null), `CT6, CT8: a second thread of the walk's two photos, left unnamed (${s.threads.length})`);
+  check(s.threads.length === 2 && s.threads.some((t) => t.name === null), `CT6, CT8: a second thread of the walk's two photos, left unnamed (${s.threads.length})`);
   // Its thread is listed while the walk is open: Thread on the second photo shows it as the one last added to.
   await pg.click('[data-testid=add-thread]').catch(() => {});
   await there('[data-testid=add-to-thread]', 5000);
   const walkLast = await pg.locator('[data-testid=add-last-thread]').innerText().catch(() => '');
-  check.todo(/This moment is in it/.test(walkLast), `CT6: a thread made of the open walk's moments is listed (${JSON.stringify(walkLast)})`);
+  check(/This moment is in it/.test(walkLast), `CT6: a thread made of the open walk's moments is listed (${JSON.stringify(walkLast)})`);
   await pg.click('[data-testid=add-to-thread-close]').catch(() => {});
   await c.close();
 
@@ -179,7 +185,13 @@ async function run(h) {
   await gp.click('[data-testid=note-done]');
   const line = await gp.waitForSelector('[data-testid=adding-moment]', { timeout: 5000 }).then(() => true, () => false);
   const lineNames = line ? await gp.$$eval('[data-testid=adding-moment] [role=button]', (bs) => bs.map((b) => b.getAttribute('aria-label'))) : [];
-  check.todo(line && lineNames.join('|') === 'Add this moment to a thread|Start a new moment', `CT2: with grouping on, the line offers Thread, then New moment (${lineNames.join(', ')})`);
+  check(line && lineNames.join('|') === 'Add this moment to a thread|Start a new moment', `CT2: with grouping on, the line offers Thread, then New moment (${lineNames.join(', ')})`);
+  // The words on one line above Thread and New moment (the owner's call while building, Nov 21; the canvas's GroupStacked).
+  const lines = line ? await gp.$eval('[data-testid=adding-moment] > div', (e) => { const r = e.getBoundingClientRect(); return Math.round(r.height / (parseFloat(getComputedStyle(e).lineHeight) || 19)); }).catch(() => 0) : 0;
+  const tY = line ? await gp.$eval('[data-testid=adding-moment] [data-testid=add-thread]', (e) => ({ y: e.getBoundingClientRect().y })).catch(() => null) : null;
+  const wY = line ? await gp.$eval('[data-testid=adding-moment] > div', (e) => e.getBoundingClientRect().bottom).catch(() => null) : null;
+  check(lines === 1 && !!tY && wY != null && tY.y >= wY, `CT2: "Adding to this moment" is one line, above Thread and New moment (${lines}, ${JSON.stringify([wY, tY])})`);
+  await gp.waitForTimeout(800);
   await shot(gp, 'ct-09-grouping');
   await g.c.close();
 }

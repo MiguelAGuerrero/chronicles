@@ -7,7 +7,7 @@ import { test } from 'node:test';
 type Api = { pillPerRow: (room: number) => number };
 const load = (): Promise<Api> => import('../../momentPill/row' as string).then((m) => m as unknown as Api, () => ({}) as Api);
 
-test('CT1: five buttons in one row at 390 px, three then two where they do not fit (320 px)', { todo: 'test first' }, async () => {
+test('CT1: five buttons in one row at 390 px, three then two where they do not fit (320 px)', async () => {
   const api = await load();
   // The room left of the stack: the window less the pills' left (16 + 12) and right (16 + 56 + 12) insets.
   assert.equal(api.pillPerRow(390 - 28 - 84), 5, 'at 390 px the five fit');

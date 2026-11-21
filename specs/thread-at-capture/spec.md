@@ -36,6 +36,9 @@ Open: none (the keep-threading mode is a later question, after use; the brief's 
 Drawing: https://claude.ai/artifact/LopMYhJDtvUrVEGFrViKce (docs/mockups/threading-at-capture/)
 Approved: with G11, "Approve as drawn (Recommended)" (the owner, 2026-11-21)
 
+While building (Nov 21) the grouping line could not be built as drawn (three lines, not two); both shapes were drawn on
+the canvas and the owner chose "Stack it (Recommended)": the words above Thread and New moment.
+
 ## How adjacent apps do it
 
 - **Adobe Lightroom Classic**: "Set as Target Collection", then B adds the selected photos to it. Source: from memory, unverified (host blocked). **Unverified**. The model for "Last added to": a remembered target, one action.
@@ -46,7 +49,7 @@ Approved: with G11, "Approve as drawn (Recommended)" (the owner, 2026-11-21)
 ## Criteria
 
 1. **CT1** (the owner's task: "thread a moment at the point of capture") After a moment is kept on the walk screen or on Navigate's ready screen, the Add to this moment pill offers a fifth button, Thread: the link icon, before ×, spoken "Add this moment to a thread", one tap. The pill's words ("Add to this moment") and its other buttons are unchanged, with no count, colour or sound (MS6). At 390 px the five sit in one row; where they do not fit left of the stack (320 px) they wrap three, then two, every target 44 pt; at every width camera, mic and note keep the first row in that order, Thread and × after them. **Finding:** someone told only "put this photo with your other murals" finds Thread on the pill that appeared after the shot, by the link icon threads already wear (0105).
-2. **CT2** (Group captures) With Group captures on, the "Adding to this moment" line offers Thread between its words and New moment; it threads the open moment.
+2. **CT2** (Group captures) With Group captures on, the "Adding to this moment" line offers Thread, then New moment, below its words, which stay on one line (the owner's call while building, Nov 21: beside both buttons they took three lines at 390 px; the canvas's GroupStacked); it threads the open moment.
 3. **CT3** (the card) Thread opens Add to a thread for the whole moment (every piece with it), over the whole screen, in the app's Modal (no Modal over a Modal on these screens). The card covers the capture stack while it is open (the approved drawing); Close is one tap and gives the stack and the pill back as they were, and the card never opens by itself.
 4. **CT4** (the last thread) With no search, the card opens on "Last added to": the owner's thread whose newest membership is the latest, one tap to add the moment; then A new thread; then the other threads, newest moment first. Nothing new is stored to know it. With no thread yet, A new thread comes first. A thread the moment is already in shows "This moment is in it" and cannot be tapped. Each thread row says its size in words ("a few moments, since November", `threads/lines.ts`), never a numeral.
 5. **CT5** (search) A field, "Search threads and moments", closed until tapped (no keyboard at open), finds threads by their name or their heading's words and moments by their words, place or date, under "Threads" and "Moments". A moment chosen there starts a new thread of the two. Nothing found says "Nothing matches." in words.

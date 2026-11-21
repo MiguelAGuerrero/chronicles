@@ -15,14 +15,14 @@ const api = picker as unknown as {
 const m = (thread_id: string, moment_id: string, added_at: number): Member => ({ thread_id, moment_id, added_at });
 const row = (id: string, title: string, latest: number, more: Partial<Row> = {}): Row => ({ id, title, words: null, latest, has: false, ...more });
 
-test('CT4: the thread last added to is the one whose newest membership is the latest, read from the members alone', { todo: 'test first' }, () => {
+test('CT4: the thread last added to is the one whose newest membership is the latest, read from the members alone', () => {
   const members = [m('murals', 'a', 10), m('murals', 'b', 10), m('compliments', 'c', 5), m('compliments', 'd', 30), m('gone', 'e', 99)];
   assert.equal(api.lastAddedTo(members, new Set(['murals', 'compliments'])), 'compliments', 'the newest membership wins, not the newest thread');
   assert.equal(api.lastAddedTo(members, new Set(['murals'])), 'murals', 'a thread not shown (dissolved, hidden) is never offered');
   assert.equal(api.lastAddedTo([], new Set()), null, 'no thread yet: nothing is first');
 });
 
-test('CT4: with no search the card opens on Last added to, then the other threads by their newest moment', { todo: 'test first' }, () => {
+test('CT4: with no search the card opens on Last added to, then the other threads by their newest moment', () => {
   const rows = [row('old', 'Fox Point, Oct 20', 100), row('murals', 'Murals', 50), row('new', 'Compliments', 300, { has: true })];
   const c = api.threadChoices(rows, { query: '', last: 'murals' });
   assert.equal(c.last?.id, 'murals');
@@ -33,7 +33,7 @@ test('CT4: with no search the card opens on Last added to, then the other thread
   assert.deepEqual(none.rest.map((r) => r.id), ['new', 'old', 'murals']);
 });
 
-test('CT5: the search finds a thread by its name or its heading words, and nothing else', { todo: 'test first' }, () => {
+test('CT5: the search finds a thread by its name or its heading words, and nothing else', () => {
   assert.equal(api.threadMatches({ title: 'Murals', words: null }, 'mur'), true, 'by its name, any case');
   assert.equal(api.threadMatches({ title: 'Fox Point, Oct 20', words: 'the painted wall behind the laundromat' }, 'laundromat'), true, 'by its first words');
   assert.equal(api.threadMatches({ title: 'Fox Point, Oct 20', words: null }, 'fox point'), true, 'by its place and date heading');

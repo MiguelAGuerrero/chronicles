@@ -7,6 +7,7 @@ import { walkClocks } from '../lib/pins';
 import { nextDayPartBoundary } from '../lib/resurface/context';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
+import { AddToThread } from '../components/threads/AddToThread';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
 import { perfCount } from '../lib/perfCount';
@@ -323,6 +324,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const openNote = (into: string | null, place: string | null = null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into, place }));
   const pageRef = useRef<NotePageHandle>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // Thread on the pill (thread at capture CT1, CT3): the moment Add to a thread is open for.
+  const [threading, setThreading] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
   // Read after the camera answers, which a render's `stopping` cannot be: no editor opens while the walk stops (audit 3).
   const stoppingNow = useRef(false);
@@ -1749,6 +1752,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             onNote={() => {
               openNote(momentPill.target());
             }}
+            onThread={setThreading}
           />
         )}
         {aheadLine && navigation.nav && !recordingVoice && (
@@ -2207,6 +2211,20 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
       <UndoToast style={{ top: insets.top + 64 }} />
+
+      {/* Add to a thread for the moment just made (CT3): the app's Modal, the only one up on this screen when the pill shows. */}
+      <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => setThreading(null)}>
+        {threading && (
+          <AddToThread
+            moment={{ id: threading }}
+            onClose={() => setThreading(null)}
+            onDone={(text, ok) => {
+              setThreading(null);
+              setToast(ok ? 'Added to a thread' : text);
+            }}
+          />
+        )}
+      </Modal>
 
       <Modal visible={noteOpen} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page && (
