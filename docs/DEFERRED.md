@@ -628,6 +628,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - [loop] **No Back from "Join it with another moment"** (thread-at-capture audit F6, older than the slice): only × closes the card; a mistaken A new thread means opening it again. Low.
 - [loop] **Add to a thread builds every moment's row at open** (thread-at-capture audit F7, cost, inferred): `found` maps every moment to a context line before any search, at open and on each keystroke; n is the library (thousands). Build rows only while searching or on the moment step. Low.
 - **A keep-threading mode** (decision 0253, the owner: after use): every capture on a walk joining a chosen thread until turned off, as Lightroom's camera into an album and the iOS album cameras do; amends 0104 and goes through `/vision` first.
+- [loop] **The editor of a capture kept while Add to a thread is open opens over the card** (found by the review of a duplicate build of G11, its audit 4, Nov 21): the card from the pill is a `Modal` (`src/app/walk.tsx` l.2216, `MomentBar.tsx` l.241) and `editAfter.open` (`walk.tsx` l.504, `MomentBar.tsx` l.133) does not close it, so a photo still being kept when Thread is tapped brings its `MediaEditor` Modal over the card; iOS refuses a Modal over a Modal. Close the card as the editor opens (the duplicate build's `cardFor` and a `setThreading(null)` beside each `editAfter.open`), with a test.
 
 ## Storage awareness (SA1-SA10, decision 0107)
 

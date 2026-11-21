@@ -289,17 +289,24 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Precedent: Relive, a route replayed as a video, "its photos popping up along the line" (unverified), and Polarsteps, "a trip drawn as a route with steps" (unverified), `docs/research/adjacent-apps.md`, "Replay a walk; moments on a map"; neither records where a photo with no place stands (not yet recorded).
   Otherwise: leave it where the path ends.
   Nov 20: the owner's yes, in person, 2026-11-20: "Place it by its time (Recommended)". Waits for a build.
-- **T52 [arch] A backup larger than one zip can hold (65,535 files or 4 GiB)** (2026-11-21)
-  Area: backup. Seen: the auditor's probe in the back-up-everything diff review (Nov 21): 70,000 `ZipPassThrough` entries written by fflate read back as 4,464, with no error; fflate 0.8.2 neither writes nor reads ZIP64 (`node_modules/fflate/lib/index.cjs` l.942, l.1887-1893). Today such a library is refused in words before the file is handed over ("This backup would be too large for one file, so it was not made.", back-up-everything audit 12, 13), so a person with a library of years cannot back up. Rests on: decision 0241 ("every walk, moment and file", one zip); the restore slice reads the same file.
-  Recommended: a ZIP64 writer and reader of our own over fflate's streams (the records past 65,535 entries and 4 GiB), held by a test that writes and reads back a file past both; no new dependency; the restore slice needs the reader too. /vision: no surface (the file and the words stay as they are).
-  Precedent: none checked (the auditor read fflate's source, not adjacent apps).
-  Otherwise: split a large backup into parts, each a plain zip with its own manifest naming the set (the page saying the file comes in parts); or leave the refusal.
 - **T54 [owner] Contents' switch closes the sheet as it flips** (2026-11-21)
   Area: memories. Seen: `src/components/chronicle/MemoriesScreen.tsx`, the menu's `onToggle`, closes the sheet before the setting flips; since `tend memories T53` the row is drawn as a switch, which promises a change in place, and the sheet is gone before its thumb moves: nothing shows or says what changed unless the slip was on screen (the auditor's F2 on T53, medium). Rests on: `.claude/rules/ui-patterns.md`, "a status that needs no action sits inline and is announced to a screen reader without moving focus" (F4); NN/g H1, visibility of system status; Layers and What I'm into keep their sheets up while a switch flips.
   Recommended: the sheet stays up when Bring moments back flips, the switch moving in place as in Layers; Close, the scrim or Escape leave as now, and the page behind changes as it does today. /vision: aligned (Return), no new surface: no count, colour or word.
   Otherwise: leave it (the slip's going is the sign).
   Nov 21: the owner's yes, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/4JQowNQ7kB8ZtfNH9zAYDN (docs/mockups/contents-switch-stays/): after a tap the sheet stays up, the switch drawn off and its note reading Off.
   Nov 21: the mock-up approved by the owner, "Approve as drawn (Recommended)" (decision 0252). It is built as drawn.
+- **T55 [owner] Add to a thread: two photos of the walk still open read alike but for their pictures** (2026-11-21)
+  Area: threads. Seen: a duplicate build of G11 (branch `tend/inbox-20261121-2258`, picture `capthread-05-moments`; its steward's S1 and its cold find, Nov 21), against main's thread-at-capture, whose card reads the same pool: every photo of the walk still open reads "Photo / Nov 21 · From Saturday night walk", since a walk still open has no place yet (`poolWithOpenWalks` takes `place` from `walk.area`); the cold find could not tell which row was "the mural from a minute ago". Rests on: VISION.md Always, "A moment carries its context: place, time, its walk … never … a bare thumbnail".
+  Recommended: a row of the walk still open says its time of day after its date ("Nov 21, 4:37 PM · From Saturday night walk"), as the responses sheet's entries do (`entryLine`); nothing else changes. /vision: aligned (Honour: a moment told by when it happened; no count, no new control).
+  Otherwise: "N minutes ago" for this walk's rows (a relative time, which changes while the card is open); or leave it, the pictures telling them apart.
+- **T56 [owner] Add to a thread: Escape or Back on "Join it with another moment" closes the whole card** (2026-11-21)
+  Area: threads. Seen: `src/app/walk.tsx` l.2216 and `src/components/MomentBar.tsx` l.241, the card's `Modal`, `onRequestClose={() => setThreading(null)}` (main's thread-at-capture); found as U2 by the UI review of a duplicate build of G11 (branch `tend/inbox-20261121-2258`). Changing one's mind on the second step means opening the card again from the pill, which may have gone. Rests on: NN/g H3, "a clearly marked 'emergency exit' to leave the unwanted action without having to go through an extended process" (`docs/research/ui-references.md`).
+  Recommended: Back and Escape on the moment step return to the threads step; on the threads step they close the card; × still closes from any step. The duplicate build did it with a `requestClose` handle on the card. /vision: no surface (nothing new is drawn).
+  Otherwise: leave it (× and Escape both close, as the viewer's sheets do).
+- **T57 [owner] Add to a thread: "This moment is in it" is dimmed with its row** (2026-11-21)
+  Area: threads. Seen: main's `src/components/threads/AddToThread.tsx` l.165, `style={[styles.row, r.has && styles.dim]}` (opacity 0.45 on the whole row); found as U3 by the UI review of a duplicate build of G11 (branch `tend/inbox-20261121-2258`): the line that says why the row cannot be tapped reads at about 2:1 on white. Rests on: opinion (WCAG 1.4.3 exempts inactive components), marked so; TK9/CT9's own words are the only reason given.
+  Recommended: dim the title and the link mark only, the line "This moment is in it" kept in the muted ink at 4.5:1. /vision: no surface.
+  Otherwise: leave it.
 
 ### From the road engine's audit (2026-11-18)
 
@@ -411,6 +418,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Instead: criteria 1, 2, 3, 7 and 8 alone (no "?" card, no page link, no split).
   Mock-up: https://claude.ai/artifact/B2rLDb6EvciUx6LaUFJVHC#artboard-MenuSwitches (docs/mockups/poi-hide-from-card/MenuSwitches.dc.html), approved "Approve as redrawn" (2026-11-21); the boards before it are the shapes it replaced.
   Done when: on the walk at 390 x 844 with Places on, a plaque's card opens its sheet in one tap, Plaques off takes the plaques off the map while the war memorial beside them stays, and a clock tower's sheet turns off clock towers and leaves the water tower's pin.
+  Nov 21: the owner's yes, in person ("Yes, queue it"), to build in a later `/tend inbox` run; this run built G11.
 - **G13 [M] Explore: each town's fixtures as a data set, read by the app** (2026-11-21) · Earn · no surface
   Area: explore, discovery. From: /investigate, the owner's ask (2026-11-21). Brief: docs/research/municipal-fixtures.md.
   Calls: an OpenStreetMap-first third pack in chronicles-data, Overture and Wikidata folded in at build; a visitor centre is the town's tourist office, an attraction's stays a find; the data set first, the card line and layer after with a mock-up; the list from Monday's count. Decision 0255 (amends 0225).
@@ -421,14 +429,21 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Payoff: the ground every later fixture screen stands on; known ahead for any town, been to or not. Cost: M; a data-repo slice (an extractor, a merge, a contract) and a small one here (the pin, an adapter); no native code. Reopens: explore, discovery. After it: the card's line and the map's layer (TF6-TF13), mock-up first.
   Instead: Overture read live with no pack (the brief's option B), patchy for tourist offices as measured.
   Open: the list of kinds (TF1), from Monday's osmKindCounts (chronicles-data's scheduled build, Nov 23), brought to the owner before the contract is fixed.
+- **G14 [M] Backup: one zip past 65,535 files or 4 GiB, by a ZIP64 writer and reader of our own** (2026-11-21) · Earn · no surface
+  Area: backup. From: T52, the owner's yes in person, Nov 21, "Own ZIP64 writer/reader (Recommended)" (decision 0256); the auditor's probe in the back-up-everything diff review (70,000 entries written by fflate 0.8.2 read back as 4,464).
+  Touches: decision 0241 ("every walk, moment and file", one plain zip, versioned), 0249; back-up-everything audit 12, 13 (the refusal this replaces); BK7 (room on the device, unchanged). No surface: the file's name, the page's words and the line beside the button stay.
+  The slice: 1. A backup of more than 65,535 entries is one zip whose every entry reads back whole, by our reader and by one system archive tool (checked first which). 2. A backup past 4 GiB in total, or holding one file past 4 GiB, does the same. 3. A backup within both limits is byte-for-byte what it is today (no ZIP64 records where none are needed). 4. Our reader reads a ZIP64 backup and a plain one alike, for the restore slice. 5. The refusal "This backup would be too large for one file" is gone; a phone without room still says so (BK7). 6. No new dependency: the records are written and read by a module of ours around fflate's streams, held by tests that write and read back a file past each limit (in memory or streamed to a temporary file, never committed). 7. Nothing a person sees changes.
+  Payoff: a library of years can be backed up at all; the restore slice gets its reader. Cost: M; `backup/shell.ts`, a new core module for the records, `backup/core.ts` (`ZIP_LIMITS` out); no native module beyond the file handle already used; the native write of a file past 4 GiB never run on a phone. Reopens: backup. After it: the restore slice reads the same file.
+  Instead: split a large backup into parts, each a plain zip with its own manifest (the owner chose against it).
 
 ### Last tend
 
-**Nov 21, `/tend inbox G11 yes` (the owner, in person), one build** (opened from `c670a35`; an inbox run: lenses 1-7 belong to a sweep and were not run).
-- G11, "Thread a moment as it is kept", built as `specs/thread-at-capture` (CT1-CT11, decision 0253): Thread on the Add to this moment pill and, stacked under its words, on the grouping line (the owner's call while building); Add to a thread opens on "Last added to", searches threads and moments, offers the walk still open with pictures, and names a new thread if the owner types a name. Tests first 11 of 11; the new `capthread` journey, `threads` and `stacks` green.
-- The review: the steward (S1, S3, S4 accepted, S2 to the owner), the cold find and the UI review (`thread-at-capture ui 1` fixed; U2, U4 to the owner; U3 recorded in 0253), the auditor (8: `thread-at-capture audit 1-4` fixed, three lows deferred, one record).
-- Lens 0, threads (no line before): E-threads-1 to 3 drafted, two amended by the steward, all three met provisionally by `capthread`'s checks; proposed, for the owner.
-- Native unverified: the card in a transparent Modal over the walk screen and Navigate, its keyboard, the rows' small copies (`docs/NATIVE_UNVERIFIED.md`).
+**Nov 21, `/tend inbox` with no answers typed: the owner answered in the run (build G11; T52 yes; G12 yes, queued); no build landed** (opened from `e0ddfce1`, its record published from `de41d6bd`; an inbox run: lenses 1-7 belong to a sweep and were not run).
+- G11 was built by this run as `threading-at-capture` (TK1-TK11, its review's 8 fixes) while another session built and published the same entry as thread-at-capture (CT1-CT11, `5212633b`..`de41d6bd`). The duplicate was not published: it stays on `tend/inbox-20261121-2258` for comparison, and main's build stands (the owner's call, in the run).
+- What the duplicate's review found that main's build lacks, read in main's code: T55 (this walk's photos read alike in the card: their time of day), T56 (Escape or Back on the moment step closes the whole card, NN/g H3), T57 ("This moment is in it" dimmed with its row, opinion), and a `[loop]` item in DEFERRED, "Threads the owner makes" (the editor of a capture kept while the card is open opens over it, a Modal over a Modal on iOS).
+- T52, "A backup larger than one zip can hold", the owner's yes: decision 0256 (a ZIP64 writer and reader of our own, no new dependency), its build shaped as G14 for a yes of its own. G12, "Hide a kind of place from its card", the owner's yes, noted: it waits for the next `/tend inbox`.
+- Still waiting for a build, each with the owner's yes: T11, T42, T43, T44, T45, T48, T49, T50, T51, T54, G12; G9 waits for the walk drawer sections slice. Open G entries: seven (G5, G7, G8, G9, G12, G13, G14), past decision 0129's three, every one the owner's own ask.
+- Nothing here has run on a phone.
 
 ### Open before the loop
 
