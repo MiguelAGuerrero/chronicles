@@ -11,6 +11,7 @@ import { useDistance } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
 import { PASS_SCALE, passNote, RangeSlider, walkNote } from './ExploreSettings';
 import { IntoRow } from './IntoRow';
+import { PageRow } from './PageRow';
 import { routeLeanings } from '../lib/routeLeanings';
 import { Icon } from './icons';
 import { LayersKey } from './LayersControl';
@@ -130,19 +131,7 @@ export function StartSettings(props: {
       {/* Your data (BK1, BK13; decisions 0241, 0248): the drawer's last row, its words in ink and a chevron, its second line
           saying what is there; a page pushed on the stack. Navigate goes to the page already up, never a second copy. */}
       <View style={styles.rule} />
-      <Pressable
-        testID="your-data-row"
-        accessibilityRole="button"
-        accessibilityLabel={`${YOUR_DATA}. ${YOUR_DATA_NOTE}`}
-        onPress={() => router.navigate('/your-data')}
-        style={({ pressed }) => [styles.dataRow, pressed && styles.pressed]}
-      >
-        <View style={styles.dataText}>
-          <Text style={styles.dataLabel} numberOfLines={1}>{YOUR_DATA}</Text>
-          <Text style={styles.sub}>{YOUR_DATA_NOTE}</Text>
-        </View>
-        <Icon name="chevron-forward" size={20} color={theme.ink} />
-      </Pressable>
+      <PageRow testID="your-data-row" label={YOUR_DATA} note={YOUR_DATA_NOTE} onOpen={() => router.navigate('/your-data?from=ready')} />
     </View>
   );
 }
@@ -162,9 +151,4 @@ const styles = StyleSheet.create({
   destText: { flex: 1, fontSize: 15, color: theme.ink },
   clear: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22, borderWidth: 1, borderColor: theme.edge },
   clearText: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  // 48 pt, the switch rows' height; the words and the chevron in ink, never muted (Found before quiet, decision 0167).
-  dataRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
-  dataText: { flex: 1, gap: 2 },
-  dataLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  pressed: { opacity: 0.7 },
 });

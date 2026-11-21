@@ -1,13 +1,16 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FORGET_CONFIRM, HINT_FORGET, HINT_HIDDEN, HINT_OFF, HINT_ON } from '../../lib/resurface/copy';
 import { LENS_LINE } from '../../lib/reactions/lens';
+import { YOUR_DATA, YOUR_DATA_NOTE } from '../../lib/backup/core';
 import { Modal } from '../Modal';
 import { Button, theme } from '../ui';
 
 /**
  * The journal's contents (chronicle journal JN21; MC8-MC10): Threads, Reactions (RX22), Hidden, the switch, and Forget my choices, which asks once, in the
- * same sheet (no second Modal), and says what will be offered again.
+ * same sheet (no second Modal), and says what will be offered again. Last, Your data's door from Chronicle (the owner, Nov 21; decision 0248,
+ * back-up-everything audit 11): the sheet closes and the page is pushed, the same page Walk settings opens.
  */
 export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () => void; onThreads: () => void; onReactions: () => void; onHidden: () => void; onToggle: () => void; onForget: () => void }) {
   const [confirming, setConfirming] = useState(false);
@@ -50,6 +53,18 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
               <Pressable testID="menu-forget" accessibilityRole="button" onPress={() => setConfirming(true)} style={styles.item}>
                 <Text style={styles.label}>Forget my choices</Text>
                 <Text style={styles.hint}>{HINT_FORGET}</Text>
+              </Pressable>
+              <Pressable
+                testID="menu-your-data"
+                accessibilityRole="button"
+                onPress={() => {
+                  close();
+                  router.navigate('/your-data?from=chronicle');
+                }}
+                style={styles.item}
+              >
+                <Text style={styles.label}>{YOUR_DATA}</Text>
+                <Text style={styles.hint}>{YOUR_DATA_NOTE}</Text>
               </Pressable>
               <Pressable testID="menu-close" accessibilityRole="button" onPress={close} style={styles.item}>
                 <Text style={[styles.label, { color: theme.muted }]}>Close</Text>

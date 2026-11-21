@@ -38,10 +38,30 @@ async function run(h) {
       tx.onerror = () => reject(tx.error);
     };
   }), { T, PHOTO });
-  // The pictures a cold find starts from (decision 0167): the app as it opens, then Navigate, then its bar pulled up.
+  // back-up-everything audit 11 (the owner, Nov 21: "Add a door in Chronicle"): from launch, Chronicle's Contents holds
+  // "Your data", which opens the same page; Back names Chronicle. The cold find's pictures carry neutral names (cf-N).
   await pg.goto(url);
   await pg.waitForTimeout(2500);
+  await shot(pg, 'cf-1');
   await shot(pg, 'backup-launch-390');
+  const contents = pg.locator('[data-testid=memories-menu]:visible');
+  if ((await contents.count()) === 1) await contents.click();
+  const entry = await pg.waitForSelector('[data-testid=menu-your-data]', { state: 'visible', timeout: 5000 }).then(() => true, () => false);
+  const entryText = entry ? (await pg.locator('[data-testid=menu-your-data]').innerText()).replace(/\s+/g, ' ').trim() : '';
+  // The sheet fades in: pictured once it has settled.
+  await pg.waitForTimeout(900);
+  await shot(pg, 'cf-2');
+  if (entry) await pg.click('[data-testid=menu-your-data]');
+  const fromChronicle = await pg.waitForSelector('[data-testid=your-data-page]', { state: 'visible', timeout: 8000 }).then(() => true, () => false);
+  await pg.waitForTimeout(400);
+  await shot(pg, 'cf-3');
+  check(entry && /Your data/.test(entryText) && fromChronicle, `BK13, back-up-everything audit 11: from launch, Chronicle's Contents holds "Your data" and it opens the page (${JSON.stringify(entryText)}, page ${fromChronicle})`);
+  const chronicleBack = pg.locator('[aria-label="Chronicle, back"]:visible');
+  const namedChronicle = (await chronicleBack.count()) > 0;
+  if (namedChronicle) await chronicleBack.first().click();
+  else await pg.locator('[aria-label="Go back"]:visible').first().click().catch(() => {});
+  const backHome = await pg.waitForSelector('[data-testid=your-data-page]', { state: 'hidden', timeout: 8000 }).then(() => true, () => false);
+  check(namedChronicle && backHome, `back-up-everything audit 18: Back from the page opened in Chronicle is named "Chronicle, back" and returns there (named ${namedChronicle}, back ${backHome})`);
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
   await pg.waitForTimeout(1200);
@@ -81,6 +101,19 @@ async function run(h) {
   check(/Not backed up yet/.test(pageText), `BK8: before any backup the line reads "Not backed up yet" (${JSON.stringify(pageText)})`);
   check(page && !/\d/.test(pageText), `BK9, back-up-everything audit 8: no size, count or numeral on the page (${JSON.stringify(pageText)})`);
   await shot(pg, 'backup-page-390');
+  // audit 19: what the file is, in ink; when the last one was made, quietly.
+  const colours = page ? await pg.evaluate(() => ({
+    line: getComputedStyle(document.querySelector('[data-testid=backup-file-line]')).color,
+    last: getComputedStyle(document.querySelector('[data-testid=backup-last]')).color,
+  })) : null;
+  check(!!colours && colours.line === 'rgb(29, 36, 48)' && colours.last === 'rgb(89, 98, 115)', `back-up-everything audit 19: the file's line in ink, the last backup's line muted (${JSON.stringify(colours)})`);
+  // audit 21: nothing downloads until the button is tapped.
+  let early = 0;
+  const countEarly = () => { early++; };
+  pg.on('download', countEarly);
+  await pg.waitForTimeout(1500);
+  pg.off('download', countEarly);
+  check(page && early === 0, `back-up-everything audit 21: no file leaves the page before the tap (${early} downloads)`);
 
   // BK10, BK12: one tap; the button says so while it works; the download is one zip.
   await pg.evaluate(() => { window.__slowMedia = true; });
@@ -120,11 +153,18 @@ async function run(h) {
   await shot(pg, 'backup-done-390');
 
   // BK1: Back returns to the drawer as it was, Walk settings still raised.
-  await pg.locator('[aria-label="Go back"]:visible').first().click().catch(() => {});
+  const navBack = pg.locator('[aria-label="Navigate, back"]:visible');
+  const namedNavigate = (await navBack.count()) > 0;
+  if (namedNavigate) await navBack.first().click();
+  else await pg.locator('[aria-label="Go back"]:visible').first().click().catch(() => {});
   const gone = await pg.waitForSelector('[data-testid=your-data-page]', { state: 'hidden', timeout: 8000 }).then(() => true, () => false);
   await pg.waitForTimeout(500);
   const raised = (await pg.locator('[data-testid=start-settings]:visible').count()) === 1;
   check(gone && raised, `BK1: Back returns to the drawer as it was (page gone ${gone}, Walk settings up ${raised})`);
+  check(namedNavigate, 'back-up-everything audit 18: Back from the page opened in Walk settings is named "Navigate, back"');
+  await pg.waitForTimeout(300);
+  const focusBack = await pg.evaluate(() => document.activeElement?.closest('[data-testid=your-data-row]') != null);
+  check(focusBack, 'back-up-everything audit 17: after Back, focus is on the "Your data" row again');
 
   // The same at 320 px: the row and the page whole.
   await pg.setViewportSize({ width: 320, height: 700 });
@@ -140,6 +180,6 @@ async function run(h) {
 
 module.exports = {
   name: 'backup',
-  covers: ['src/lib/backup/**', 'src/app/your-data.tsx', 'src/components/StartSettings.tsx', 'src/lib/export/index.web.ts'],
+  covers: ['src/lib/backup/**', 'src/app/your-data.tsx', 'src/components/StartSettings.tsx', 'src/components/PageRow.tsx', 'src/components/chronicle/MemoriesMenu.tsx', 'src/lib/export/index.web.ts'],
   run,
 };

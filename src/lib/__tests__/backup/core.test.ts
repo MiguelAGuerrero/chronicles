@@ -235,3 +235,15 @@ test('BK8, back-up-everything audit 22: nothing outside the page reads when the 
   assert.ok(notify.length > 3, 'the notifier\'s sources are found');
   for (const f of notify) assert.doesNotMatch(readFileSync(f, 'utf8'), /back ?up|backed/i, `${f} names backing up`);
 });
+
+test('back-up-everything audit 18: Back names the screen beneath, spoken on Android by the page\'s own Back, a title on iOS and the web', async () => {
+  const { yourDataBack } = await import('../../backup/core');
+  const { intoHeader } = await import('../../explore/intoPage');
+  assert.deepEqual(yourDataBack('ready'), { title: 'Navigate', spoken: 'Navigate, back' });
+  assert.deepEqual(yourDataBack('chronicle'), { title: 'Chronicle', spoken: 'Chronicle, back' });
+  assert.equal(yourDataBack(undefined), null);
+  assert.deepEqual(intoHeader(yourDataBack('ready'), true, 'android'), { backSpoken: 'Navigate, back' });
+  assert.deepEqual(intoHeader(yourDataBack('chronicle'), true, 'ios'), { headerBackTitle: 'Chronicle', headerBackButtonDisplayMode: 'default' });
+  assert.deepEqual(intoHeader(yourDataBack('ready'), false, 'web'), { headerBackTitle: 'Navigate', headerBackButtonDisplayMode: 'minimal' });
+  for (const h of [intoHeader(yourDataBack('ready'), true, 'ios'), intoHeader(yourDataBack('chronicle'), true, 'web')]) assert.notEqual(h.headerBackTitle, 'Back', 'never the word Back alone (HIG)');
+});

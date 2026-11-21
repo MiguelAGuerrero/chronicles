@@ -404,6 +404,16 @@ export const FAILED = 'The backup could not be made, and no file was kept. Try a
 export const TOO_LARGE = 'This backup would be too large for one file, so it was not made.';
 export const NO_SHARING = 'This phone has no way to share the file, so the backup was not made.';
 
+/**
+ * What Back names on the page (back-up-everything audit 18): the screen beneath, as What I'm into's does (WI20): Navigate
+ * from Walk settings, Chronicle from its Contents; a link straight to the page names none. `intoHeader` turns it into
+ * the platform's header (Android's own spoken Back, iOS's and the web's back title).
+ */
+export function yourDataBack(from: string | undefined): { title: string; spoken: string } | null {
+  const title = from === 'ready' ? 'Navigate' : from === 'chronicle' ? 'Chronicle' : null;
+  return title ? { title, spoken: `${title}, back` } : null;
+}
+
 /** "Last backup made October 3" (another year's with its year), or "Not backed up yet" (BK8). */
 export function lastLine(made: DateParts | null, thisYear: number): string {
   if (!made) return 'Not backed up yet';
