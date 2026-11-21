@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Thread a moment as it is kept (Thread on the Add to this moment pill, the card on \"Last added to\" with a search, this walk's moments with their pictures, an optional name; TK1-TK11, G11, decision 0253) | `tend/inbox-20261121-2258` | built from G11 by `/tend inbox` 2026-11-21; tests first |\n"
+    }
+  ]
+}

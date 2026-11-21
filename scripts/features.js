@@ -334,8 +334,8 @@ const FEATURES = [
     about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
     rule: 'threads',
     source: ['src/lib/threads/**', 'src/lib/refs.ts', 'src/components/threads/**'],
-    journeys: ['threads', 'responses'],
-    specs: ['owner-threads', 'moment-references', 'response-thread'],
+    journeys: ['threads', 'responses', 'capthread'],
+    specs: ['owner-threads', 'moment-references', 'response-thread', 'threading-at-capture'],
   },
   {
     name: 'notes',
@@ -572,6 +572,7 @@ const IN_PROGRESS = {
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
+  'threading-at-capture': { branch: 'tend/inbox-20261121-2258', since: '2026-11-21' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
