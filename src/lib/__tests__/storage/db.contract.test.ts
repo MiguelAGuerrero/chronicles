@@ -135,9 +135,9 @@ test('a write that throws rolls back on the writer, and the queue goes on', asyn
 test('MT11: the native store opens over node:sqlite, from an empty database and from one at user_version 22', async () => {
   const empty = nodeSqlite();
   assert.deepEqual(await makeSqliteDb(empty.open).listWalks(), []);
-  assert.equal(empty.userVersion(), 30); // 30: walk_line (where I've been WB14); 29: reaction (reactions RX28); 28: transcript (memo transcripts TX12); 27: capture.note_type (note types NY4); 26: outline_tile.hoods (neighborhood boundaries HB12); 25: body_format (note pages NP7)
+  assert.equal(empty.userVersion(), 31); // 31: atlas_area.outline_id, point_from (town identity TI10); 30: walk_line (where I've been WB14); 29: reaction (reactions RX28); 28: transcript (memo transcripts TX12); 27: capture.note_type (note types NY4); 26: outline_tile.hoods (neighborhood boundaries HB12); 25: body_format (note pages NP7)
   const old = nodeSqlite();
   await old.at22();
   assert.deepEqual(await makeSqliteDb(old.open).listWalks(), []);
-  assert.equal(old.userVersion(), 30);
+  assert.equal(old.userVersion(), 31);
 });

@@ -103,7 +103,7 @@ const PHILLY = fx.tiles.map((t) => outlineTileFrom(t.x, t.y, fx.release, 1, { di
 /** Philadelphia's label point in the map's z11 places, at City Hall. */
 const CITY_HALL: LngLat = [-75.1636, 39.9527];
 
-test('TI1: Philadelphia from every spot of a grid across it is one card, and the city you are in is "You\'re here"', { todo: 'test first' }, async () => {
+test('TI1: Philadelphia from every spot of a grid across it is one card, and the city you are in is "You\'re here"', async () => {
   const w = world(PHILLY);
   const spots: LngLat[] = [];
   for (let dx = -12; dx <= 12; dx += 3) for (let dy = -12; dy <= 12; dy += 3) spots.push([CITY_HALL[0] + dx / 85.2, CITY_HALL[1] + dy / 111.3]);
@@ -124,7 +124,7 @@ test('TI1: Philadelphia from every spot of a grid across it is one card, and the
 
 // ---- TI2, TI6: the border under the label decides
 
-test('TI2: a city label 9 km from the piece read, inside its border, is one town at its label; a same-named label outside it is a town of its own', { todo: 'test first' }, async () => {
+test('TI2: a city label 9 km from the piece read, inside its border, is one town at its label; a same-named label outside it is a town of its own', async () => {
   const label = km(9, 0);
   const w = world(tilesOf([{ id: 'big', name: 'Bigcity', around: HERE }, { id: 'big', name: 'Bigcity', around: label }]));
   const { cards, rows } = await rowAt(w, HERE, () => labels([{ name: 'Bigcity', at: label, cls: 'city' }]));
@@ -137,7 +137,7 @@ test('TI2: a city label 9 km from the piece read, inside its border, is one town
   assert.equal(named(other.cards, 'Bigcity').length, 2, 'the label outside the border is not that border\'s town');
 });
 
-test('TI6: a town-class label 5 km from the piece read, inside its border, is one card; no distance decides it', { todo: 'test first' }, async () => {
+test('TI6: a town-class label 5 km from the piece read, inside its border, is one card; no distance decides it', async () => {
   const label = km(5, 0);
   const w = world(tilesOf([{ id: 'twp', name: 'Big Township', around: HERE }, { id: 'twp', name: 'Big Township', around: label }]));
   const { cards } = await rowAt(w, HERE, () => labels([{ name: 'Big Township', at: label, cls: 'town' }]));
@@ -147,7 +147,7 @@ test('TI6: a town-class label 5 km from the piece read, inside its border, is on
 
 // ---- TI3: two towns of one name
 
-test('TI3: two cities of one name, you in A\'s border and B\'s label nearer: two cards, A is "You\'re here"', { todo: 'test first' }, async () => {
+test('TI3: two cities of one name, you in A\'s border and B\'s label nearer: two cards, A is "You\'re here"', async () => {
   const aLabel = km(5, 0);
   const bLabel = km(-4.5, 0);
   const w = world(tilesOf([
@@ -165,7 +165,7 @@ test('TI3: two cities of one name, you in A\'s border and B\'s label nearer: two
 
 // ---- TI4: your town past the read
 
-test('TI4: your town\'s label 13 km away, past the town read: it is listed, first and "You\'re here"', { todo: 'test first' }, async () => {
+test('TI4: your town\'s label 13 km away, past the town read: it is listed, first and "You\'re here"', async () => {
   const label = km(13, 0);
   const w = world(tilesOf([{ id: 'far', name: 'Longcity', around: HERE }, { id: 'far', name: 'Longcity', around: label }]));
   const { cards } = await rowAt(w, HERE, () => labels([{ name: 'Longcity', at: label, cls: 'city' }, { name: 'Smallville', at: km(-3, 2), cls: 'town' }]));
@@ -176,7 +176,7 @@ test('TI4: your town\'s label 13 km away, past the town read: it is listed, firs
 
 // ---- TI5: rows from reads at two spots
 
-test('TI5: a border-only row (read where the label was not fetched) and the label row (read later) are one card, at the label', { todo: 'test first' }, async () => {
+test('TI5: a border-only row (read where the label was not fetched) and the label row (read later) are one card, at the label', async () => {
   const label = km(9, 0);
   const far = km(-2, 0);
   const w = world(tilesOf([{ id: 'big', name: 'Bigcity', around: far, r: 3 }, { id: 'big', name: 'Bigcity', around: label }]));
@@ -196,7 +196,7 @@ test('TI5: a border-only row (read where the label was not fetched) and the labe
 
 // ---- TI7: what was listed before
 
-test('TI7: town rows of the code before are listed again, its neighborhood rows stand, and only the code just before is carried', { todo: 'test first' }, () => {
+test('TI7: town rows of the code before are listed again, its neighborhood rows stand, and only the code just before is carried', () => {
   const [own, presence] = ATLAS_CODE.split('.');
   const n = Number(own.slice(1));
   assert.equal(n, 16, 'a16: this slice\'s bump');
@@ -208,7 +208,7 @@ test('TI7: town rows of the code before are listed again, its neighborhood rows 
 
 // ---- TI8: placing is untouched
 
-test('TI8: placing joins as before (3 km), AREA_RULES is unchanged, and a town card counts the same walks', { todo: 'test first' }, () => {
+test('TI8: placing joins as before (3 km), AREA_RULES is unchanged, and a town card counts the same walks', () => {
   assert.equal(AREA_RULES, '5');
   const [x, y] = outlineTileOf(HERE);
   const set = outlineSet([{ key: outlineTileKey(x, y), z: 12, x, y, release: 't', read_at: 1, pieces: [{ id: 'c', name: 'Bigcity', polygons: square(HERE, 1) }], points: [] }]);
@@ -224,11 +224,16 @@ test('TI8: placing joins as before (3 km), AREA_RULES is unchanged, and a town c
 
 // ---- TI9: the reads it makes
 
-test('TI9: the second read asks only for the tiles of same-named labels not read, at most 12, and none when there are none', { todo: 'test first' }, async () => {
+test('TI9: the second read asks only for the tiles of same-named labels not read, at most 12, and none when there are none', async () => {
   const label = km(9, 0);
   const w = world(tilesOf([{ id: 'big', name: 'Bigcity', around: HERE }, { id: 'big', name: 'Bigcity', around: label }]));
   await rowAt(w, HERE, () => labels([{ name: 'Bigcity', at: label, cls: 'city' }, { name: 'Elsewhere', at: km(-8, 0), cls: 'town' }]));
-  assert.deepEqual(w.calls, [[HERE], [label]], 'under you, then under the one same-named label not read');
+  assert.deepEqual(w.calls, [[HERE], [HERE, label]], 'under you, then again with the one same-named label not read (the tile under you is kept, never fetched twice)');
+  // The label's tile adds a join, never a town of its own: a town there known by its border and its source's point is not listed.
+  const withPoint = world(tilesOf([{ id: 'big', name: 'Bigcity', around: HERE }, { id: 'big', name: 'Bigcity', around: label }, { id: 'o', name: 'Otherburg', around: km(9.6, 0.6), r: 0.3 }]).map((t) => (t.pieces.some((pc) => pc.id === 'o') ? { ...t, points: [{ id: 'o', at: km(9.6, 0.6) }] } : t)));
+  assert.equal(outlineTileOf(km(9.6, 0.6)).join(), outlineTileOf(label).join(), 'in the label\'s tile');
+  const seen = await rowAt(withPoint, HERE, () => labels([{ name: 'Bigcity', at: label, cls: 'city' }]));
+  assert.deepEqual(seen.rows.map((r) => r.name), ['Bigcity'], 'no Otherburg from the label\'s tile');
   // No label shares a border's name: one read.
   const w2 = world(tilesOf([{ id: 'big', name: 'Bigcity', around: HERE }]));
   await rowAt(w2, HERE, () => labels([{ name: 'Elsewhere', at: km(-8, 0), cls: 'town' }]));

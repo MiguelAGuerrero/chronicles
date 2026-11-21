@@ -2,7 +2,7 @@
 import { barWeight, PRESENCE_CARRIED, PRESENCE_CODE, subsetOf, type PresenceClass } from '../presence/presence';
 import { SUBTYPES } from '../discovery/subtypes';
 import { countsToward } from '../discovery/curation';
-import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
+import { coveredBy, inOutline, listable, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import type { RoadFeature } from '../streets';
@@ -41,8 +41,8 @@ import type { Pocket } from './pockets';
 // a14: small places (specs/small-places SP12, SP13): the bars keep counts and each small subset's share apart.
 // a15: Sights follow the switches (specs/sights-and-local-life SG12, decision 0201): the tally keeps every Sights place
 // under its kind, so a profile of a14 has none to drop; none carried.
-// a16: a city's label point is joined to its outline anywhere the town read reaches (`townJoinM`), so the outline read under you is no
-// second town (fix duplicate-city); neighborhood rows stand as under a15 (`CARRIED`).
+// a16: a town row keeps its border's identity, and a label is joined to a border by the border under it (specs/town-identity
+// TI2, TI5), so one town is one card; neighborhood rows stand as under a15 (`CARRIED`).
 const ATLAS_OWN = 'a16';
 /** A row's code: the atlas's own (`ATLAS_OWN`) and presence's (PR6), so a reclassification re-reads every row. */
 export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
@@ -51,10 +51,12 @@ export const ATLAS_CODE = `${ATLAS_OWN}.${PRESENCE_CODE}`;
  * TP10: the older rules a level's rows still stand under, because the change did not touch that level. None of a8's
  * (PK7: the bars changed at every level; PC13: community parks, at every level), nor of a9's (T9: park kinds, at every
  * level); the presence codes presence carries stand at every level under the atlas's own part (`PRESENCE_CARRIED`,
- * specs/presence-readers PS9: a9.p1 under a9.p2, now a10.p1 under a10.p2), so a bump of the atlas's own part carries none.
+ * specs/presence-readers PS9: a9.p1 under a9.p2, now a10.p1 under a10.p2), so a bump of the atlas's own part carries
+ * none of its own, but where it says so: a16 (town identity) carries a15's neighborhood rows (`A15`), and TI7's test fails at
+ * the next bump until that bump decides its own carry.
  */
 const CARRIED_PRESENCE = PRESENCE_CARRIED.map((c) => `${ATLAS_OWN}.${c}`);
-/** fix duplicate-city (a16): only the town read changed, so a neighborhood row of a15 stands, with the presence it carried. */
+/** Town identity (a16, TI7): only the town read changed, so a neighborhood row of a15 stands, with the presence it carried. */
 const A15 = [PRESENCE_CODE, ...PRESENCE_CARRIED].map((c) => `a15.${c}`);
 const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: [...CARRIED_PRESENCE, ...A15], town: CARRIED_PRESENCE };
 
@@ -218,6 +220,10 @@ export interface AtlasArea {
   read_at: number | null;
   failed_at: number | null;
   profile: AtlasProfile | null;
+  /** TI5: a town's border identity (the source's id), when the read knew its border; absent for none and on neighborhoods. */
+  outline_id?: string;
+  /** TI5: whether the town's point is the map's label (`map`) or one taken from its border (`outline`). */
+  point_from?: 'map' | 'outline';
 }
 
 export const atlasKey = (a: { level: string; name: string; at: LngLat }) =>
@@ -320,7 +326,7 @@ export const thinRing = (places: AtlasPlace[], centre: LngLat, within: Within = 
 /** New rows for the candidates no current row already stands for. */
 export function newRows(
   existing: AtlasArea[],
-  candidates: { level: string; name: string; at: LngLat; reachM: number }[],
+  candidates: { level: string; name: string; at: LngLat; reachM: number; outline_id?: string; point_from?: 'map' | 'outline' }[],
   build: string,
   now: number,
 ): AtlasArea[] {
@@ -329,8 +335,16 @@ export function newRows(
   for (const c of candidates) {
     if (c.level !== 'neighborhood' && c.level !== 'town') continue;
     const a = { level: c.level as AtlasLevel, name: c.name, at: c.at };
-    if ([...have, ...out].some((r) => sameArea(r, a))) continue;
-    out.push({ key: atlasKey(a), ...a, reachM: c.reachM, build, code: ATLAS_CODE, listed_at: now, read_at: null, failed_at: null, profile: null });
+    const id = c.level === 'town' ? c.outline_id : undefined;
+    const from = c.point_from ?? 'map';
+    // TI5: one town by its border: a label's row is added beside one taken from the border alone (it is shown instead), never
+    // the other way round.
+    const upgrades = (r: AtlasArea) => !!id && r.outline_id === id && r.point_from === 'outline' && from === 'map';
+    if ([...have, ...out].some((r) => !upgrades(r) && (sameArea(r, a) || (!!id && r.level === 'town' && r.outline_id === id)))) continue;
+    out.push({
+      key: atlasKey(a), ...a, reachM: c.reachM, build, code: ATLAS_CODE, listed_at: now, read_at: null, failed_at: null, profile: null,
+      ...(id ? { outline_id: id, point_from: from } : {}),
+    });
   }
   return out;
 }
@@ -351,11 +365,16 @@ export interface Listed {
  */
 export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, build: string | null, outlines: OutlineSet | null = null): Listed[] {
   const within = level === 'neighborhood' ? ATLAS_RULES.nearNeighborhoodM : ATLAS_RULES.nearTownM;
+  // TI4: the borders holding you, so your town is listed however far its label lies.
+  const holding = new Set(level === 'town' && outlines && coveredBy(outlines, from) ? outlines.towns.filter((t) => inOutline(from, t)).map((t) => t.id) : []);
+  // TI5: of the rows of one border, the one at the map's label stands for it.
+  const ordered = level === 'town' ? [...rows].sort((a, b) => (a.point_from === 'outline' ? 1 : 0) - (b.point_from === 'outline' ? 1 : 0)) : rows;
   const list: Listed[] = [];
-  for (const area of rows) {
+  for (const area of ordered) {
     if (area.level !== level || !rowCurrent(area, build) || (level === 'neighborhood' && isWard(area.name))) continue;
     const d = distanceM(area.at, from);
-    if (d > within || list.some((l) => sameArea(l.area, area))) continue;
+    const yours = !!area.outline_id && holding.has(area.outline_id);
+    if ((d > within && !yours) || list.some((l) => sameArea(l.area, area) || (!!area.outline_id && l.area.outline_id === area.outline_id))) continue;
     list.push({ area, distanceM: d, here: false });
   }
   list.sort((a, b) => a.distanceM - b.distanceM);
@@ -471,12 +490,18 @@ export function withNear(reads: NearRead[], read: NearRead): NearRead[] {
 }
 
 /**
- * fix duplicate-city: how far beyond an outline's box a same-named label in a tile not read is joined to it. The town read
- * reads the outlines under you only, and Philadelphia's City Hall lies up to 12 km from the piece read (its far north): with a
- * town's 3 km the outline was a second "Philadelphia". A city's label is its outline's anywhere the read reaches; a town's or a
- * village's within a town's reach, as placing joins them.
+ * TI2, TI4, TI5 (town identity): the town read's candidates, joined to the borders read: `first` under you, `set` with the
+ * tiles under the same-named labels too (`labelsToRead`), so the border under a label decides whether it is that border's
+ * town. A town known by its border alone is one of `first`'s (the label tiles add joins, never towns of their own); the town
+ * whose border holds you is kept however far its label lies; each carries its border's identity and where its point is from.
  */
-export const townJoinM = (c: PlaceCandidate): number => (c.reachM >= AREA_REACH_M.city ? ATLAS_RULES.nearTownM : AREA_REACH_M.town);
+export function townCandidates(cands: PlaceCandidate[], first: OutlineSet, set: OutlineSet, at: LngLat, reachM: number): (PlaceCandidate & { outline_id?: string; point_from: 'map' | 'outline' })[] {
+  const firstIds = new Set(first.towns.map((t) => t.id));
+  return withOutlines(cands, set)
+    .filter((c) => c.level === 'town' && listable(c, at) && (c.kind !== 'outline' || firstIds.has(c.outline!.id)))
+    .filter((c) => distanceM(c.at, at) <= reachM || (!!c.outline && inOutline(at, c.outline)))
+    .map((c) => ({ ...c, ...(c.outline ? { outline_id: c.outline.id } : {}), point_from: c.kind === 'outline' ? ('outline' as const) : ('map' as const) }));
+}
 
 /**
  * AT2: the town or city an area belongs to: the one whose outline holds it,
@@ -487,8 +512,18 @@ export const townJoinM = (c: PlaceCandidate): number => (c.reachM >= AREA_REACH_
 export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: OutlineSet | null = null): AtlasArea | null {
   const cands: PlaceCandidate[] = towns.map((t) => ({ level: 'town', name: t.name, at: t.at, reachM: t.reachM }));
   // withOutlines keeps each row's place in the list and adds outline-only towns after them.
-  // fix duplicate-city: joined as the town read joins them, so a city's label row is the one you are in.
-  const merged = withOutlines(cands, outlines, townJoinM);
+  // TI3, TI4: a row is joined to the border of its identity first, wherever its label lies; the rest as before.
+  const byId = new Map((outlines?.towns ?? []).map((t) => [t.id, t]));
+  const used = new Set<string>();
+  for (let i = 0; i < towns.length; i++) {
+    const t = towns[i].outline_id ? byId.get(towns[i].outline_id!) : undefined;
+    if (t && !used.has(t.id)) {
+      cands[i] = { ...cands[i], outline: t };
+      used.add(t.id);
+    }
+  }
+  const rest = outlines && used.size ? { ...outlines, towns: outlines.towns.filter((t) => !used.has(t.id)) } : outlines;
+  const merged = withOutlines(cands, rest);
   const pick = townAt(area.at, merged, outlines);
   const i = pick ? merged.indexOf(pick.c) : -1;
   return i >= 0 && i < towns.length ? towns[i] : null;

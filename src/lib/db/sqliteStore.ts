@@ -620,16 +620,18 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>, openWriter?: (
     putAtlasAreas(rows) {
       if (!rows.length) return Promise.resolve();
       return write(async (t) => {
-        await eachRow(t, 'INSERT OR REPLACE INTO atlas_area (key, level, name, lon, lat, reach_m, build, code, listed_at, read_at, failed_at, profile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          rows, (r) => [r.key, r.level, r.name, r.at[0], r.at[1], r.reachM, r.build, r.code, r.listed_at, r.read_at, r.failed_at, r.profile ? JSON.stringify(r.profile) : null]);
+        await eachRow(t, 'INSERT OR REPLACE INTO atlas_area (key, level, name, lon, lat, reach_m, build, code, listed_at, read_at, failed_at, profile, outline_id, point_from) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          rows, (r) => [r.key, r.level, r.name, r.at[0], r.at[1], r.reachM, r.build, r.code, r.listed_at, r.read_at, r.failed_at, r.profile ? JSON.stringify(r.profile) : null, r.outline_id ?? null, r.point_from ?? null]);
       });
     },
     async listAtlasAreas() {
-      type Row = { key: string; level: AtlasArea['level']; name: string; lon: number; lat: number; reach_m: number; build: string; code: string; listed_at: number; read_at: number | null; failed_at: number | null; profile: string | null };
+      type Row = { key: string; level: AtlasArea['level']; name: string; lon: number; lat: number; reach_m: number; build: string; code: string; listed_at: number; read_at: number | null; failed_at: number | null; profile: string | null; outline_id: string | null; point_from: AtlasArea['point_from'] | null };
       const rows = await (await conn()).getAllAsync<Row>('SELECT * FROM atlas_area');
       return rows.map((r) => ({
         key: r.key, level: r.level, name: r.name, at: [r.lon, r.lat] as [number, number], reachM: r.reach_m, build: r.build, code: r.code,
         listed_at: r.listed_at, read_at: r.read_at, failed_at: r.failed_at, profile: r.profile ? JSON.parse(r.profile) : null,
+        // TI10: a row without a border identity reads back with none, as the web keeps it.
+        ...(r.outline_id != null ? { outline_id: r.outline_id } : {}), ...(r.point_from != null ? { point_from: r.point_from } : {}),
       }));
     },
     putComplexes(rows) {

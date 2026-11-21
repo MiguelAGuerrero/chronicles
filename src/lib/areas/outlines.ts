@@ -166,23 +166,15 @@ export function boxDistanceM(p: LngLat, [w, s, e, n]: TownOutline['bbox']): numb
  * inside the outline (or lies beyond the tiles read, near it). An outline with
  * no label point is a town of its own, at the source's point, else the middle
  * of what was read.
- *
- * `joinM`: how far beyond the outline's box a label whose own tile was not read may still be joined to it: a town's
- * reach unless given (placing walks). The atlas gives a city's label the whole town read (`townJoinM`), so a city's label
- * in a tile not read is still its outline's (fix duplicate-city).
  */
-export function withOutlines(
-  candidates: PlaceCandidate[],
-  set: OutlineSet | null | undefined,
-  joinM: (c: PlaceCandidate) => number = () => AREA_REACH_M.town,
-): PlaceCandidate[] {
+export function withOutlines(candidates: PlaceCandidate[], set: OutlineSet | null | undefined): PlaceCandidate[] {
   if (!set || (!set.towns.length && !set.hoods?.length)) return candidates;
   const out = candidates.slice();
   for (const t of set.towns) {
     let matched = false;
     out.forEach((c, i) => {
       if (c.level !== 'town' || !sameName(c.name, t.name)) return;
-      const mine = inOutline(c.at, t) || (!coveredBy(set, c.at) && boxDistanceM(c.at, t.bbox) <= joinM(c));
+      const mine = inOutline(c.at, t) || (!coveredBy(set, c.at) && boxDistanceM(c.at, t.bbox) <= AREA_REACH_M.town);
       if (!mine) return;
       // Already joined to this outline: joining again changes nothing (neighborhood boundaries audit 2).
       if (c.outline?.id === t.id) {
@@ -200,7 +192,7 @@ export function withOutlines(
       // middle, listed twice (fix carousel-duplicates audits 1-3).
       let best = -1;
       out.forEach((c, i) => {
-        if (c.level !== 'town' || c.outline || !sameName(c.name, t.name) || boxDistanceM(c.at, t.bbox) > joinM(c)) return;
+        if (c.level !== 'town' || c.outline || !sameName(c.name, t.name) || boxDistanceM(c.at, t.bbox) > AREA_REACH_M.town) return;
         if (best < 0 || distanceM(c.at, outlineCentre(t)) < distanceM(out[best].at, outlineCentre(t))) best = i;
       });
       if (best >= 0) {
@@ -306,6 +298,30 @@ export function hoodAllowed(hood: PlaceCandidate, town: TownPick | null, set: Ou
  */
 export const listable = (c: PlaceCandidate, at: LngLat): boolean =>
   c.kind !== 'outline' || !!c.outline?.at || (!!c.outline && inOutline(at, c.outline));
+
+/**
+ * TI2, TI9 (town identity): the label points whose border tile a town read reads next, so the border under a label decides
+ * whether it is that border's town, never a distance. A town label whose own tile was not read and whose name is a town
+ * border's in the set; one point a tile, nearest the border first, at most `cap` tiles.
+ */
+export function labelsToRead(candidates: PlaceCandidate[], set: OutlineSet | null | undefined, cap = OUTLINE_TILES_MAX - 1): LngLat[] {
+  if (!set?.towns.length) return [];
+  const picked: { at: LngLat; d: number }[] = [];
+  for (const c of candidates) {
+    if (c.level !== 'town' || coveredBy(set, c.at)) continue;
+    const same = set.towns.filter((t) => sameName(t.name, c.name));
+    if (!same.length) continue;
+    picked.push({ at: c.at, d: Math.min(...same.map((t) => boxDistanceM(c.at, t.bbox))) });
+  }
+  picked.sort((a, b) => a.d - b.d);
+  const tiles = new Map<string, LngLat>();
+  for (const { at } of picked) {
+    const [x, y] = outlineTileOf(at);
+    const key = outlineTileKey(x, y);
+    if (!tiles.has(key) && tiles.size < cap) tiles.set(key, at);
+  }
+  return [...tiles.values()];
+}
 
 /** Candidates as stored with a read: without their outlines, which the outline cache keeps (TO12). */
 export const withoutOutlines = (cs: PlaceCandidate[]): PlaceCandidate[] => cs.map(({ outline: _o, hoodOutline: _h, ...c }) => c);

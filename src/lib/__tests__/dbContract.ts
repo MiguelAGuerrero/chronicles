@@ -911,7 +911,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(got.find((r) => r.key === 'A'), { ...atlasArea('A', 2), read_at: 5 });
     });
 
-    test('TI10 putAtlasAreas, listAtlasAreas: a town row\'s border identity round-trips; a row without one reads back with none; purgeDerived clears them', { todo: 'test first' }, async () => {
+    test('TI10 putAtlasAreas, listAtlasAreas: a town row\'s border identity round-trips; a row without one reads back with none; purgeDerived clears them', async () => {
       const db = await fresh();
       const town = { ...atlasArea('P', 1), outline_id: 'div-1', point_from: 'map' as const };
       const bare = atlasArea('Q', 1);
