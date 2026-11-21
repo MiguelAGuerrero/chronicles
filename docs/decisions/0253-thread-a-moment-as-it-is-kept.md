@@ -1,6 +1,6 @@
 # 0253. Thread a moment as it is kept: Thread on the after-capture pill, the last thread first
 
-Date: 2026-11-21 · Status: accepted, waits on G11's build · Area: captures, threads · Amends: 0123 (the pill's offer; MS2, MS21) · From: `/investigate threading-at-capture`
+Date: 2026-11-21 · Status: accepted, built in thread-at-capture · Area: captures, threads · Amends: 0123 (the pill's offer; MS2, MS21) · From: `/investigate threading-at-capture`
 
 ## Context
 The owner photographs murals and graffiti on walks and wants to group them. Threading one after the fact means
@@ -28,6 +28,10 @@ The owner's answers in person, Nov 21, each the recommended option unless said:
   optional name field lets the owner name the thread (empty is fine), so search finds it next time.
 
 ## Consequences
+- The pill wraps at 320 px, three then two (camera, mic and note on the first row; Thread and × below): an exception
+  to `.claude/rules/ui-patterns.md`'s "nothing wraps on a 320 px phone", drawn and approved (the canvas's PillAfter320).
+- While building (Nov 21) the grouping line could not keep its words to two lines beside Thread and New moment; the
+  owner chose "Stack it": the words above, Thread and New moment below, as the pill's label sits.
 - MS2's "nothing else to choose first" and MS21's line gain Thread; MS6's restraint holds (ink, no count, the pill's
   words unchanged). `specs/moment-stacks/spec.md` is amended when the slice is built.
 - Add to a thread reads the walk still open (`poolWithOpenWalks`, as the responses sheet does), so the viewer's entry

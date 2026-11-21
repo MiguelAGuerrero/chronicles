@@ -189,7 +189,8 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
           <Text style={styles.said} accessibilityLiveRegion="polite">The two moments are a thread now.</Text>
           <Text style={styles.label} nativeID="thread-name-label">Name this thread (optional)</Text>
           <TextInput
-            testID="thread-name"
+            testID="new-thread-name"
+            maxLength={40}
             value={name}
             onChangeText={setName}
             autoFocus
