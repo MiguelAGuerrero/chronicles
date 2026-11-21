@@ -31,6 +31,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** upgrade from a build before migration 15, open Explore's atlas, then force-quit and reopen it in airplane mode. **Expect:** the app opens; the atlas lists the areas near you with their tiles, and after the relaunch offline they show from the `atlas_area` cache (IndexedDB v13). (AT12)
 - [ ] **Do:** upgrade from a build before migration 17 with photos and videos kept, then edit one photo (a crop and a filter), tap Done and force-quit. **Expect:** the app opens; old photos and videos read back as their originals with no error (`capture.edit` null, JSON through `serializeEdit`/`parseEdit` on every capture read); the edited photo shows its edits in the viewer and the replay after the relaunch (no IndexedDB bump; Media editing). (ME21)
 - [ ] **Do:** upgrade from a build before migration 19, turn walkability on over Explore's map, then force-quit and reopen it in airplane mode over the same streets. **Expect:** the app opens; the layer draws, and after the relaunch offline it draws again from the `walk_tile` cache, ways as JSON (IndexedDB v16). (WK2)
+- [ ] **Do:** upgrade from a build before migration 31 with Explore used near a city, then open Explore inside that city more than 3 km from its centre, force-quit and reopen it. **Expect:** the app opens; the row lists the city once, first and "You're here", before and after the reopen (`atlas_area.outline_id`, `point_from`; TI5, TI10).
 
 ## Map layers and markers (MapLibre RN v11)
 

@@ -46,4 +46,13 @@ The narrow fix (branch `fix/duplicate-city`, 6ba318c) joined a city's label with
 
 ## Record
 
-Not built yet: the plan (`plan.md`) waits on the owner's review.
+- **Nov 21, built** (the owner's go-ahead, `/slice and /deploy`): TI1-TI10 tested first (`b430c07`), passing at `7192007`
+  (`src/lib/__tests__/explore/townIdentity.test.ts`; TI10 in `dbContract.ts`). TI1 holds on Overture's real
+  Philadelphia tiles from 81 spots, 1 card from each spot inside the city. Every wiring point was reverted once and seen
+  failing a test (the label tiles' read, `townOf` by id, `nearList`'s merge and your far town, the read's far town, the
+  label tiles adding no town, `newRows`' upgrade).
+- **Deferred** (`docs/DEFERRED.md`, "Explore atlas"): which walks a town's card counts, by its border, with placing by
+  identity (`[owner]`); a border-only town's point (`[loop]`).
+- **Native, never run on a device:** migration 31 and the two columns (`docs/NATIVE_UNVERIFIED.md`, Migrations).
+- **Not audited** (an audit runs only when the owner asks, decision 0074); the fix branch's auditor findings F1-F7 are
+  each answered by a criterion or a deferral above.

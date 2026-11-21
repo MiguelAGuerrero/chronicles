@@ -1,0 +1,68 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Migrations (SQLite, `db/migrations.ts` `MIGRATIONS`, tracked with `PRAGMA user_version`)"
+      ],
+      "body": "- [ ] **Do:** upgrade from a build before migration 31 with Explore used near a city, then open Explore inside that city more than 3 km from its centre, force-quit and reopen it. **Expect:** the app opens; the row lists the city once, first and \"You're here\", before and after the reopen (`atlas_area.outline_id`, `point_from`; TI5, TI10).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [owner] **Which walks a town's card counts, by its border** (town identity, decision 0248; the review's F7, the steward's S1-S3). `familiarity` matches the home's town areas by name within 3 km of the card's point, and placing (3 km join, `AREA_RULES` 5) puts a town area's point where the walk's town was decided (the label, or the middle of a border piece), so a walk far from Philadelphia's City Hall can leave its card \"New to you\". A wider distance would credit Kansas City, Kansas's walks to Missouri's card; the true rule is the card's border, with placing keeping the border's identity on `Area` (a placing-rules change that places every walk again).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] **A border-only town's point** (town identity, decision 0248): a town with no map label (Whitehall) still stands at the middle of the piece of border read when Overture's own point lies in a tile not read, so its card's distance is to that middle.\n"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "presence.md` l.17 still says"
+      ],
+      "body": "  Nov 21: `ATLAS_CODE` is `a16.p11` since town identity (decision 0248), `ATLAS_OWN` a16, which bears out naming the constants instead of the value.\n",
+      "target": "sha256:db2879429c12b5b3b97620d4fbb85ccd4c07613ae93b25735489d3b9ebc68c3c"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Town identity (one town",
+        "--reason",
+        "built; shipped by /deploy in this session"
+      ],
+      "target": "sha256:8527d2ddc55ec137d1ea63ee249f0f38e224b36e34ceb70460af030bdaba89b3"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Town identity (one town is one card on Explore's row however it was read: a label and the border under it are one town, rows of one border merge, your town leads however far its label; TI1-TI10, decision 0248, from /fix duplicate-city) | shipped 2026-11-21 (TI1-TI10 tested first; TI1 on Overture's real Philadelphia tiles; web verified by the e2e `carousel`, `atlas`; migration 31 native unverified) | the slice's commit on main | `specs/town-identity/spec.md` | no |\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Town identity (one town"
+      ],
+      "body": "| Town identity (one town is one card on Explore's row however it was read: a label and the border under it are one town, rows of one border merge, your town leads however far its label; TI1-TI10, decision 0248, from /fix duplicate-city) | built; web verified by the e2e (`carousel`, `atlas`); migration 31 native unverified | tests first `b430c07`, then the code `7192007`, 2026-11-21 (`check:test-first` 10 of 10); TI1 on Overture's real Philadelphia tiles | `specs/town-identity/spec.md` | no (the fix branch's auditor findings F1-F7 each answered by a criterion or a deferral) |\n",
+      "target": "sha256:58e538b464b611d4393c86a50d257b7b1a7dc52cc2247c48fa67b7bbfedb110c"
+    }
+  ]
+}

@@ -55,7 +55,10 @@ recording, and a recording bar brings a minimized walk back.
   through a Neighborhoods | Towns switch, as a grid of tiles nearest first,
   under a small map. The one you're in says "You're here": the town whose
   real border you are inside (town outlines: Overture's borders, decision
-  0083), by its label point only where no border is known. The map draws
+  0083), by its label point only where no border is known. Each town is one
+  card however and wherever it was read: a map label and the border under it
+  are one town, and your town leads even when its label is far (decision 0248).
+  The map draws
   it tinted and frames the whole town, the towns around in grey lines (town borders, decision 0088),
   as do a town's page, the walk screen (lines only), the replay and a day.
 - Each tile is the same picture at the same scale: an 800 m ring around the
@@ -642,6 +645,7 @@ recording, and a recording bar brings a minimized walk back.
 | Place search (Explore: a magnifier beside the title opens a labelled field; typing lists towns and cities from a GeoNames pack (bundled on a phone; on the web fetched from the app's own site on first search, so a page offline before its first search says "Search is unavailable."), nearest first, with region and country; a pick looks at the place, "Around <name>", Locate returns; nothing stored, nothing sent; GZ1-GZ19, decision 0184) | Built, web verified by the e2e (`placesearch`); native unverified; not audited |
 | Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |
 | Explore one level per row (near you the towns, yours leading and selected; a town's page its own card, then its neighborhoods; the title names the level, the back pill reads "Towns"; decision 0126, fix explore-town-scope) | Shipped 2026-11-10 (web verified by the e2e; native unverified) |
+| Town identity (one town is one card on the row however it was read: a label and the border under it are one town, rows of one border merge, your town leads however far its label; TI1-TI10, decision 0248, from /fix duplicate-city) | Shipped 2026-11-21 (web verified by unit tests on Overture's real Philadelphia tiles and the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |

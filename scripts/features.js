@@ -564,7 +564,6 @@ const IN_PROGRESS = {
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
-  'town-identity': { branch: 'slice/town-identity', since: '2026-11-20' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

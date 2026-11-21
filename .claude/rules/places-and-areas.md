@@ -53,7 +53,8 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     Overture's schema (`division_area` subtype `locality`, class not
     `maritime`; `division` points joined by `division_id`). `withOutlines`
     joins a label point to its outline when the point is inside it (or
-    beyond the tiles read, within 3 km), keeping the label point, so stars and
+    beyond the tiles read, within 3 km: placing's rule; Explore's town read reads
+    the border under the label instead, decision 0248), keeping the label point, so stars and
     keys stay put; an outline-only town gets Overture's point, else the
     middle of what was read.
   - **Reads:** z12 tiles under the points, at most 12 (`outlineTilesFor`),
