@@ -1,0 +1,79 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "A place offered after the moment (PO1-PO12, decision 0251)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** on a phone, on a walk with Places on, take a photo from the stack (not from a place's card) within a few metres of a named place you haven't found, without looking. **Expect:** after the camera closes, one ink line at the top asks \"Was this photo about …?\" with Yes and Leave it, no buzz and no sound, the capture buttons where they were; the place's pin wears a ring; Yes shows \"Found: …\" with Undo and the pin turns found; Undo makes it an ordinary mark again and the photo stays. (PO1, PO2, PO7, PO12, moment-assignment-fallback)\n",
+      "intro": "A moment kept within 30 m of unfound places, with Places on and not begun on a place's card, asks once whether it was about one (`explore/placeOffer.ts`, `useExplore`'s offer, the walk screen's `place-offer` and `found-line`). Checked on the web build only.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "A place offered after the moment (PO1-PO12, decision 0251)"
+      ],
+      "body": "- [ ] **Do:** on a phone, between two named places a few metres apart, take a photo, then tap one of the ringed pins, where the photo's own pin stands beside them. **Expect:** both pins wear the ring and write their names; the ringed pin takes the tap over the photo's pin (the native map's marker order is unverified: the web sets it with a z-index) and no card opens; the other pin is ordinary again. Walk on 60 m with another line up: it goes, nothing tied. (PO3, PO6, moment-assignment-fallback)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "A place offered after the moment (PO1-PO12, decision 0251)"
+      ],
+      "body": "- [ ] **Do:** on a phone, with the line up, turn VoiceOver (or TalkBack) on. **Expect:** the line is announced once as it appears, focus stays where it was, and the buttons are spoken \"Yes, this photo is about …\" and \"Leave it, keep this photo on its own\". (PO2, moment-assignment-fallback)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "A place offered after the moment (PO1-PO12, decision 0251)",
+        "--new"
+      ],
+      "body": "- Tying a moment to a place later, from its viewer, for a moment whose line went unanswered: offered to the owner (Nov 20) and not chosen. A moment left independent stays so; a capture from the place's card is the deliberate way.\n",
+      "intro": "What the place offer leaves out (decision 0251).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "A place offered after the moment (PO1-PO12, decision 0251)"
+      ],
+      "body": "- A reload while the line is up drops it unanswered: the moment stays independent and is never asked about after (the line is a state on the walk screen, as 0224's armed line was).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "A place offered after the moment (PO1-PO12, decision 0251)"
+      ],
+      "body": "- A moment kept from the recording bar or Chronicle's toolbar during a walk is never offered a place, even on return to the walk screen: those screens show no places (PO5).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "A place offered after the moment (PO1-PO12, decision 0251)"
+      ],
+      "body": "- [loop] From the UI review (Nov 20, low, U5, opinion): a place that is not a choice sits beside the choices with only the ring to tell them apart; dimming it was rejected (it changes the map for a walker who isn't answering). Reopen if a real walk shows slips.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| A place offered after the moment (a moment kept within 30 m of unfound places, with Places on and not begun on a place's card, asks once: \"Was this photo about Old Bridge?\", Yes or Leave it; several become choices on the map, ringed and named, a tap ties; \"Found\" with Undo; Leave it kept per walk; no buzz, no count, no time limit; PO1-PO12, decision 0251) | built; web only | tests first, then the code, merged with Capture at a place, 2026-11-20 | `specs/moment-assignment-fallback/spec.md` | no (UI review: 4 accepted, 2 rejected) |\n"
+    }
+  ]
+}
