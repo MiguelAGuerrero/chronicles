@@ -115,6 +115,10 @@ Routing inside a walk (`lib/nav`): walk me back, Route here, the route sources, 
     every fix and on every new trace heading. A test of heading reads the cone
     as drawn (`heading.test.ts`, the e2e's `heading 5`), with fixes that wander
     a few metres the same way for several seconds, never clean lines only.
+  - **The web's cone turns with the map** (fix nav-heading, the owner's iPhone, Nov 21): it is a DOM element turned
+    by `rotate(<heading>)` inside the puck, a maplibre `Marker` with `rotationAlignment: 'map'`, so the turn is
+    from north on a map turned by two fingers. Square to the screen (maplibre's default) it was off by the
+    bearing: backwards at 180°. Native draws the cone as a polygon on the map (`coneGeoJSON`), turned already.
   - Errors are 6 s banners. "Finding a route" is a spinner pill with Cancel.
     Walk me back (`arrow-undo`) shows once you are more than 50 m from the
     start.

@@ -1301,7 +1301,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // Placed to the sub-pixel: MapLibre rounds a marker to a whole pixel otherwise, and a camera that follows the walker
     // puts the dot at the screen's middle, a half pixel on a screen of an odd width, rounded one way or the other from
     // frame to frame (the owner's iPhone, Nov 18: "after images"). A dot crossing a still map moves evenly too.
-    const marker = new Marker({ element: el, anchor: 'center', subpixelPositioning: true }).setLngLat([0, 0]).addTo(map);
+    // The puck turns with the map, so the cone's `rotate(<heading>)` inside it is from north, not from the screen's top:
+    // square to the screen, a map turned by two fingers drew the cone off by its bearing, backwards at 180° (fix
+    // nav-heading, the owner's iPhone, Nov 21). Flat to the screen whatever the tilt.
+    const marker = new Marker({ element: el, anchor: 'center', subpixelPositioning: true, rotationAlignment: 'map', pitchAlignment: 'viewport' }).setLngLat([0, 0]).addTo(map);
     puck.current = { marker, el, cone };
     if (replayOn) applyReplay(replayLast.current);
     else applyFrame(lastFrame.current);
