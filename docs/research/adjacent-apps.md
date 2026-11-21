@@ -270,6 +270,24 @@ Seen only as search summaries from a cloud session (Nov 20; the pages could not 
   (editorial guidance, and its terms forbid reuse of its data). Source: from memory, unverified; the terms from the
   research pass of Nov 17 (research_notes, state_city_nonprofit). **Unverified**.
 
+### Mark a town's staples: the tourist office, the hall, the library (Earn)
+
+- **Michelin town plans** (print): practical facilities, tourist information points, post offices, hospitals and police
+  among them, are marked with their own symbols beside the places of interest, and the red guides give each town's tourist
+  office address. Source: a bookseller's listing of a Michelin street plan and a guidebook review, read as search
+  summaries (Nov 21), not Michelin's own legend. **Unverified**.
+- **OpenStreetMap tagging** (the data, not an app): a town's or region's tourist office is `tourism=information` with
+  `information=office`; a visitor centre tied to one attraction is `information=visitor_centre`, and the wiki says the two
+  are not the same. Source: https://wiki.openstreetmap.org/wiki/Tag:information%3Doffice and
+  https://wiki.openstreetmap.org/wiki/Tag:information%3Dvisitor_centre, read as search summaries (Nov 21). **Unverified**.
+- **Apple Maps** (iOS): civic places (a town hall, a library, a post office, a station) are drawn on the base map with
+  their own glyphs at the zooms they fit, with no switch and no list. Source: from memory, unverified (`specs/town-fixtures`,
+  Nov 18). **Unverified**.
+- **AllTrails** (iOS, Android): a trailhead's facilities (parking, toilets, a visitor centre) are a row of words and glyphs
+  above its description. Source: from memory, unverified. **Unverified**.
+- **Foursquare / Swarm** (iOS): a town hall or a station is a place to check in to, counted and ranked. A counter-example
+  (VISION Never: tallies). Source: from memory, unverified. **Unverified**.
+
 ### Places that share a spot on the map (Earn)
 
 - **Leaflet.markercluster** (web map library): markers that stay together at the bottom zoom are spread out when
