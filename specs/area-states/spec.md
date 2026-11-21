@@ -123,4 +123,21 @@ by `scripts/tend.js` as it stood at `65b9e24f`); AS9 and audits 7, 9 and 13 read
 
 ## Record
 
-To come.
+Built 2026-11-21 under `/tend inbox G6 yes` on `tend/inbox-20261121-0137`, from `origin/main` 65b9e24f.
+
+- **Passed:** AS1-AS9, AS1b, AS1c, AS6b and area-states audit 1-13 (`arch/tend.test.ts`), each seen failing as a todo
+  first (`check:test-first area-states`: 9 of 9) and its wiring reverted once to see it fail; typecheck, lint, `npm
+  test`, `check:docs`. No journey covers `scripts/tend.js`; no screen changed.
+- **The replay** (AS8, G6's "Done when"): over the run log of Nov 11-19 and main's documents at `42d3ccd8`, walk-screen
+  reads `settling` ("waits on the owner: entries T42, T43, T44, T45, T48; Open before the loop: … "The walk screen's React
+  Compiler skips, and who takes their lines out" (medium) …"), the areas read rough captures, explore, replay and tabs,
+  settling the other six, unseen twenty-six; three of the seven areas swept twice or more are rough; the alarm counts
+  one unanswered entry (T11; the old count seven), the whole inbox 73 items; the reading is **in step**, not
+  "outgrowing its base". `node scripts/tend.js state --at 42d3ccd8` reads the same from git.
+- **On main today** (65b9e24f): rough captures, explore, map, replay, tabs and walk-screen (each by a 0229 reset since its
+  sweep), settling chronicle, deletion, navigation and presence; five of the eight areas swept twice or more are rough,
+  so the balance reads "outgrowing its base" by the share, as it should.
+- **The base it landed on** (AS5): `node scripts/tend.js base --spec area-states` names `arch`, which no sweep reads
+  (the loop's own process): no area of the app was made rougher; nothing in the app changed.
+- **Deferred:** G7's half of decision 0235; attributing DEFERRED's unattributed and unrated items (printed by the
+  balance, a triage's job).

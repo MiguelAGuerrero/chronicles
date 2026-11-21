@@ -1,0 +1,12 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Area states (the loop's own bookkeeping: an area's state is what is left open, computed by `scripts/tend.js`, with a three-sweep backstop and what waits on the owner kept settling; the balance reads rough as a share of the areas swept twice or more, the unseen apart, every item under \"Needs the owner\" read, an evolve after fourteen days without a loop-filed G; a shallow history refused; \"lands on a rough base\" for /slice; AS1-AS9, decisions 0235, 0250; from G6) | built; no surface | tests first, then the code, 2026-11-21 (`check:test-first` 9 of 9); replayed over the run log of Nov 11-19: walk-screen settling, the balance in step | `specs/area-states/spec.md` | the steward's plan review, 2026-11-21: 12 accepted before any code (area-states audit 1-13), 4 owner's answers (decision 0250) |\n"
+    }
+  ]
+}

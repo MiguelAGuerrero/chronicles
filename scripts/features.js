@@ -569,8 +569,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  // G6, built by /tend inbox G6 yes (decision 0235): the loop's area states and balance.
-  'area-states': { branch: 'tend/inbox-20261121-0137', since: '2026-11-21' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
