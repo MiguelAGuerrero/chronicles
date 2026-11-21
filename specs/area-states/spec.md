@@ -134,9 +134,10 @@ Built 2026-11-21 under `/tend inbox G6 yes` on `tend/inbox-20261121-0137`, from 
   settling the other six, unseen twenty-six; three of the seven areas swept twice or more are rough; the alarm counts
   one unanswered entry (T11; the old count seven), the whole inbox 73 items; the reading is **in step**, not
   "outgrowing its base". `node scripts/tend.js state --at 42d3ccd8` reads the same from git.
-- **On main today** (65b9e24f): rough captures, explore, map, replay, tabs and walk-screen (each by a 0229 reset since its
-  sweep), settling chronicle, deletion, navigation and presence; five of the eight areas swept twice or more are rough,
-  so the balance reads "outgrowing its base" by the share, as it should.
+- **On main today** (65b9e24f, after the diff review's fixes): rough captures, explore, map, replay, tabs and walk-screen
+  (each by a 0229 reset since its sweep) and presence (its line ships seven numbers against two mediums, so it cannot
+  show they were them: audit 15), settling chronicle, deletion and navigation; six of the eight areas swept twice or
+  more are rough, so the balance reads "outgrowing its base" by the share.
 - **The base it landed on** (AS5): `node scripts/tend.js base --spec area-states` names `arch`, which no sweep reads
   (the loop's own process): no area of the app was made rougher; nothing in the app changed.
 - **The diff review** (the auditor, Nov 21, one round; 2 high, 3 medium, 9 low): accepted 8, fixed behind their tests
