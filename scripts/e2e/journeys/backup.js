@@ -1,4 +1,4 @@
-// Your data (specs/back-up-everything, BK1, BK8-BK10, BK12, BK13; decisions 0241, 0247): Walk settings ends with a "Your
+// Your data (specs/back-up-everything, BK1, BK8-BK10, BK12, BK13; decisions 0241, 0248): Walk settings ends with a "Your
 // data" row; its page backs up everything into one zip that downloads; the zip's manifest, walk, trace, moments and a
 // photo's bytes match what the journey seeded; the page then says when. E2E_ONLY=backup runs it alone.
 const { strFromU8, unzipSync } = require('fflate');

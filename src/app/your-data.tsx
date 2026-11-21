@@ -10,7 +10,7 @@ import { useStore } from '../lib/useStore';
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 
 /**
- * Your data (`/your-data`; specs/back-up-everything, decisions 0241, 0247): pushed on the root stack from the foot of
+ * Your data (`/your-data`; specs/back-up-everything, decisions 0241, 0248): pushed on the root stack from the foot of
  * Walk settings, with the stack's Back. One line of what the file is and who can see it, one action, Back up
  * everything, and under it when the last file was made. No size, count, gauge or celebration; the file goes only where
  * the person sends it (the share sheet on a phone, a download on the web). Escape on the web goes back too.

@@ -127,7 +127,7 @@ export function StartSettings(props: {
         ))}
       </View>
 
-      {/* Your data (BK1, BK13; decisions 0241, 0247): the drawer's last row, its words in ink and a chevron, its second line
+      {/* Your data (BK1, BK13; decisions 0241, 0248): the drawer's last row, its words in ink and a chevron, its second line
           saying what is there; a page pushed on the stack. Navigate goes to the page already up, never a second copy. */}
       <View style={styles.rule} />
       <Pressable

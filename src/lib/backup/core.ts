@@ -12,7 +12,7 @@ import { SPACE } from '../space/core';
 import { thinThreads } from '../threads/rules';
 
 /**
- * The whole-app backup (specs/back-up-everything, decisions 0241, 0247): one plain zip of every walk, trace, moment,
+ * The whole-app backup (specs/back-up-everything, decisions 0241, 0248): one plain zip of every walk, trace, moment,
  * piece's file and kept row, with the person's choices. This module is its format, what is in it, the reader that
  * reads every version ever written into today's rows, and the page's words. Nothing here reads a clock or a store.
  */
@@ -382,7 +382,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 /** "chronicles-backup-2026-11-20.zip": the date only, no count, no size. */
 export const backupName = (d: DateParts) => `chronicles-backup-${d.year}-${pad(d.month)}-${pad(d.day)}.zip`;
 
-// The page's words (BK1, BK6-BK9, BK11; decision 0247).
+// The page's words (BK1, BK6-BK9, BK11; decision 0248).
 export const YOUR_DATA = 'Your data';
 export const YOUR_DATA_NOTE = 'Back up every walk and moment';
 export const BACK_UP = 'Back up everything';

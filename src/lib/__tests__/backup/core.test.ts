@@ -32,7 +32,7 @@ import { MIGRATIONS } from '../../db/migrations';
 import { META, META_FAMILIES } from '../../meta';
 import { SPACE } from '../../space/core';
 
-// The whole-app backup's format, its reader and its words (specs/back-up-everything, BK1-BK14; decisions 0241, 0247).
+// The whole-app backup's format, its reader and its words (specs/back-up-everything, BK1-BK14; decisions 0241, 0248).
 
 const root = join(__dirname, '..', '..', '..', '..');
 
