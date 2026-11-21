@@ -952,6 +952,20 @@ async function run(h) {
   });
   check(grouping?.order === 'threads reactions hidden | off | your-data | forget close' && grouping.drawnSwitch && /^Contents\b/.test(grouping.name) && /your data/i.test(grouping.name),
     `tend memories T53: Contents is grouped (the views, the switch drawn as one, Your data, Forget set apart before Close) and its spoken name covers Your data (${JSON.stringify(grouping)})`);
+  // tend memories audit 4: on the web the switch row is the one stop; its drawn switch takes no focus and is not heard,
+  // and nothing in the sheet that focus reaches is without a name (WCAG 2.2, 2.4.3 and 4.1.2).
+  const stops = await pg.evaluate(() => {
+    const sheet = document.querySelector('[data-testid=memories-menu-sheet]');
+    if (!sheet) return null;
+    const input = sheet.querySelector('[data-testid=menu-off] input');
+    const nameless = [...sheet.querySelectorAll('[tabindex], input, button, a[href]')]
+      .filter((e) => e.tabIndex >= 0 && !e.disabled)
+      .filter((e) => !(e.getAttribute('aria-label') || e.innerText.trim()))
+      .map((e) => e.outerHTML.slice(0, 60));
+    return { inputTab: input?.tabIndex ?? null, inputHidden: input?.closest('[aria-hidden=true]') ? true : false, nameless };
+  });
+  check(stops?.inputTab === -1 && stops.inputHidden && stops.nameless.length === 0,
+    `tend memories audit 4: Contents' switch is one stop on the web, its drawn switch neither focused nor heard, and every stop has a name (${JSON.stringify(stops)})`);
   await pg.click('[data-testid=menu-threads]').catch(() => {});
   const threadsUp = await there('[data-testid=threads-screen]', 5000);
   const rail = await shown('[data-testid=threads-rail]');
