@@ -43,7 +43,9 @@ import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/
 import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
-import { type ChecklistItem, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
+import { type ChecklistItem, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, placesSurface, POCKET_ALERT_NOTE, readyDest } from '../lib/explore/explore';
+import { ReadyPlaceCard } from '../components/walk/ReadyPlaceCard';
+import { useOpenInMaps } from '../components/OpenInMapsButton';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -824,11 +826,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
   // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
   const preview = options && placesOn && loaded ? loaded.rangeM : null;
+  // What the places do here (ready-map-places): before Start, the ready map's Places while it is in front (RQ1-RQ8); on a
+  // walk, its own layers, the place it walks to kept with Places off (RQ18; the owner, Nov 21).
+  const destKey = navigation.nav?.dest.kind === 'find' ? navigation.nav.dest.placeKey ?? null : null;
+  const surface = placesSurface({ walkOpen: !!walk, walkPlaces: placesOn, readyPlaces: ready.placesOn, readyActive: ready.inFront, destKey });
   const explore = useExplore({
     walkId: walk?.id ?? null,
-    places: placesOn,
+    surface,
+    onlyAt: navigation.nav?.dest.at ?? null,
     storefronts: storefrontsOn,
-    here: live.here,
+    here: walk ? live.here : ready.fix,
     riding: live.riding,
     fixes,
     captures: captures,
@@ -850,6 +857,24 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const openMark = markOpen ? explore.itemOf(markOpen) : null;
   const openMarkNamed = !!openMark && (explore.revealed.has(openMark.key) || explore.found.has(openMark.key));
   const openMarkReach = openMark && markReach?.key === openMark.key && !explore.found.has(openMark.key) ? reachLine(markReach.near) : null;
+  /** A place's card, on the walk or the ready map (RQ6): found, its moments (CA11, RQ13); else whether it can be reached (RQ16). */
+  const openPlace = (id: string) => {
+    setMarkOpen(id);
+    const item = explore.itemOf(id);
+    // A found place's card lists the moments taken here and offers the row again (CA11, CA12).
+    if (item && explore.found.has(id)) {
+      setMarkMoments(null);
+      // The moments' words are said from the screen's clock, as its pins' are (tend map audit 29).
+      explore.momentsAt(id, item.at, pinNow).then(
+        (got) => setMarkMoments({ key: id, lines: got }),
+        () => setMarkMoments({ key: id, lines: [] }),
+      );
+    } else if (item) reach.ask(id, item.at, setMarkReach);
+  };
+  // The walk's place card: with Places on, or for the place the walk goes to (RQ18, which amends MD8 for that one place).
+  const markCardOn = !!walk && surface.card === 'walk' && (placesOn || openMark?.key === surface.only);
+  // Open in Maps from the ready card; a maps app that won't open is said on the ready screen's banner.
+  const readyMaps = useOpenInMaps(ready.mapsFailed);
   // The place a card capture was begun for, by key, so its find is recorded when the moment is kept (CA2-CA4), even if
   // the walker has moved on and the place has left the list meanwhile.
   const cardPlaces = useRef(new Map<string, ChecklistItem>());
@@ -1352,7 +1377,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} now={pinNow} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={bearing.set} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
+        <WalkMap
+          {...ready.mapProps}
+          now={pinNow}
+          borders={ready.bordersOn ? borders : null}
+          ref={mapRef}
+          onBearingChange={bearing.set}
+          scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }}
+          // MD11's other half (ready-map-places RQ1-RQ6): the "?" within the range around you, each opening the ready card.
+          discoveries={explore.pins}
+          spreadMarks
+          onDiscoveryPress={(id) => openPlace(id)}
+        />
       ) : (
       <WalkMap
         {...drawn}
@@ -1406,16 +1442,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setSpot(null);
           setMemory(null);
           setGapOpen(null);
-          setMarkOpen(id);
-          const item = explore.itemOf(id);
-          // A found place's card lists the moments taken here and offers the row again (CA11, CA12).
-          if (item && explore.found.has(id)) {
-            setMarkMoments(null);
-            explore.momentsAt(id, item.at, Date.now()).then(
-              (got) => setMarkMoments({ key: id, lines: got }),
-              () => setMarkMoments({ key: id, lines: [] }),
-            );
-          } else if (item) reach.ask(id, item.at, setMarkReach);
+          openPlace(id);
         }}
         marks={marks}
         ring={ring}
@@ -1454,6 +1481,29 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {!walk ? (
         <>
           {ready.overlay}
+          {openMark && surface.card === 'ready' && (
+            // A place's card before Start (ready-map-places RQ6, RQ7, RQ13, RQ15, RQ16): where the walk's cards stand.
+            <ReadyPlaceCard
+              title={openMarkNamed ? `${openMark.name} · ${kindOf(openMark.kind).label}` : 'A place to find'}
+              away={ready.fix ? `${formatDistance(distanceM(ready.fix, openMark.at))} away.` : ''}
+              reach={openMarkReach}
+              moments={openMarkFound ? (markMoments?.key === openMark.key ? markMoments.lines : []) : null}
+              maps={{ at: openMark.at, label: openMarkNamed ? openMark.name : 'A place to find' }}
+              onDest={() => {
+                const m = openMark;
+                setMarkOpen(null);
+                ready.chooseDest(readyDest(m, openMarkNamed));
+              }}
+              onMaps={readyMaps}
+              onMoment={(mid) => {
+                const x = markMoments?.lines.find((l) => l.id === mid);
+                setMarkOpen(null);
+                if (x) ready.view([x.moment]);
+              }}
+              onClose={() => setMarkOpen(null)}
+              style={cardAt}
+            />
+          )}
           {/* The compass over Locate while the map is turned (CP2); the live walk has its own, below. */}
           <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('back')} right={at.edgeRight} focusAfter={readyLocateRef} />
         </>
@@ -1926,7 +1976,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         </Pressable>
       )}
 
-      {openMark && !spot && placesOn && (
+      {openMark && !spot && markCardOn && (
         // A place's card, in the spot card's place (E7, E8, E12).
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>

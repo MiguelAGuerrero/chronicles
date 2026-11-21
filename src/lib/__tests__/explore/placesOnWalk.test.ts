@@ -19,8 +19,11 @@ test('MD7: the pocket alert and its nudge need Places on, the setting on, and no
 });
 
 test('MD8: capturing for a place needs Places on: with it off there is no place card', () => {
-  // Since capture-at-a-place the card itself carries the capture row; it shows only with Places on.
-  assert.match(src('src/app/walk.tsx'), /\{openMark && !spot && placesOn && \(/);
+  // Since capture-at-a-place the card itself carries the capture row; it shows only with Places on, or (ready-map-places
+  // RQ18, the owner's amendment of Nov 21) for the one place the walk goes to.
+  const w = src('src/app/walk.tsx');
+  assert.match(w, /\{openMark && !spot && markCardOn && \(/);
+  assert.match(w, /const markCardOn = !!walk && surface\.card === 'walk' && \(placesOn \|\| openMark\?\.key === surface\.only\);/);
 });
 
 test('MD17: storefront streets are remembered while Places or Storefronts is on, never otherwise', async () => {
@@ -54,9 +57,11 @@ test('MD11: the ready map draws the ring while Places is on', () => {
 });
 
 // ready-map-places: MD11's other half, the "?" on the ready map, never built (its test above checks the ring only).
-test('MD11: the ready map draws the "?" too: its map is given the places\' pins and their taps', { todo: 'test first' }, () => {
+test('MD11: the ready map draws the "?" too: its map is given the places\' pins and their taps', () => {
   const w = src('src/app/walk.tsx');
-  const ready = w.slice(w.indexOf('<WalkMap {...ready.mapProps}'), w.indexOf('<WalkMap {...ready.mapProps}') + 1200);
+  const at = w.indexOf('{...ready.mapProps}');
+  assert.ok(at > 0, 'the ready WalkMap is found');
+  const ready = w.slice(at, at + 1200);
   assert.ok(/discoveries=\{explore\.pins\}/.test(ready) && /onDiscoveryPress=/.test(ready), 'the ready WalkMap has discoveries and onDiscoveryPress');
 });
 

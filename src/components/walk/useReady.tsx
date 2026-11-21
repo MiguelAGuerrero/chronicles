@@ -17,6 +17,8 @@ import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
+import { placesReadState } from '../../lib/explore/exploreRun';
+import { useStore } from '../../lib/useStore';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { getLastFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
@@ -144,6 +146,7 @@ export function useReady(props: {
     if (state !== 'placed') return;
     if (placedMoments([c]).length) setMoments((prev) => upsertMoment(prev, c));
   }, []);
+  const mapsFailed = useCallback(() => setMomentError({ message: 'Couldn’t open a maps app.' }), []);
   const onMomentError = useCallback((e: { message: string; openSettings?: boolean }) => setMomentError(e), []);
   // tend map audit 12: a quiet notice is no alert, so a screen reader hears it through a hidden live region kept mounted
   // on web (react-native-web's announceForAccessibility does nothing) and the call on a phone. Locate's refusal and
@@ -199,6 +202,8 @@ export function useReady(props: {
 
   // Map layers (ML3-ML9): around you; Places, on by default here, draws the range ring while the bar is up (MD11).
   const layers = useLayers();
+  // RQ17: the last read for places, said on the Places row while it reads or after it failed.
+  const placesRead = useStore(placesReadState, (v) => v);
   const ring = up && layers.on.places && fix ? { center: fix, radiusM: settings.rangeM } : null;
   // The ring is framed in the map left above the raised bar (audit 1), refit as it appears or changes.
   const raisedH = raisedHeight(screenH, BAR_H + at.insets.bottom);
@@ -290,7 +295,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton ref={locateRef} busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <LayersControl map="navigate" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: range(settings.rangeM) })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
+      <LayersControl map="navigate" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: range(settings.rangeM), placesRead: layers.on.places ? placesRead : null })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 
@@ -348,7 +353,21 @@ export function useReady(props: {
       />
     </>
   );
-  return { mapProps, overlay, bordersOn: !!layers.on.borders };
+  return {
+    mapProps,
+    overlay,
+    bordersOn: !!layers.on.borders,
+    // Places on the ready map (ready-map-places RQ1-RQ8): the walk screen's places hook reads around this fix while
+    // Places is on and this screen is in front, and its "?" open the ready card, whose Set as destination is this.
+    fix,
+    placesOn: !!layers.on.places,
+    inFront: active && focused,
+    chooseDest,
+    /** A found place's moment, opened in this screen's viewer (RQ13). */
+    view: (cs: Faced[]) => setViewing(cs),
+    /** Open in Maps from a place's card failed: said on this screen's banner. */
+    mapsFailed,
+  };
 }
 
 const styles = StyleSheet.create({

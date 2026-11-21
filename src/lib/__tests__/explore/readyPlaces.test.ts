@@ -28,7 +28,7 @@ const east = (m: number): LngLat => [O[0] + m / (111320 * Math.cos((O[1] * Math.
 const item = (key: string, m: number, o: Partial<ChecklistItem> = {}): ChecklistItem => ({ key, area_key: 'a', name: key, category: 'history', kind: 'monuments', at: east(m), generic: false, ...o });
 const before = (o: Partial<SurfaceIn> = {}): SurfaceIn => ({ walkOpen: false, walkPlaces: false, readyPlaces: true, readyActive: true, destKey: null, ...o });
 
-test('RQ2: before Start, the places shown are visibleMarks around the ready fix within the range', { todo: 'test first' }, async () => {
+test('RQ2: before Start, the places shown are visibleMarks around the ready fix within the range', async () => {
   const m = await explore();
   assert.ok(m.placesSurface, 'placesSurface exists');
   const s = m.placesSurface(before());
@@ -39,14 +39,14 @@ test('RQ2: before Start, the places shown are visibleMarks around the ready fix 
   assert.deepEqual(shown.map((x) => [x.item.key, x.state]), [['capitol', 'named'], ['statue', 'unknown']]);
 });
 
-test('RQ4: with Places off before Start, placesSurface draws nothing and reads nothing', { todo: 'test first' }, async () => {
+test('RQ4: with Places off before Start, placesSurface draws nothing and reads nothing', async () => {
   const m = await explore();
   assert.ok(m.placesSurface, 'placesSurface exists');
   const s = m.placesSurface(before({ readyPlaces: false }));
   assert.deepEqual([s.places, s.reads, s.card, s.only], [false, false, null, null]);
 });
 
-test('RQ5: before Start, a read is allowed only while the ready screen is in front', { todo: 'test first' }, async () => {
+test('RQ5: before Start, a read is allowed only while the ready screen is in front', async () => {
   const m = await explore();
   assert.ok(m.placesSurface, 'placesSurface exists');
   assert.equal(m.placesSurface(before()).reads, true);
@@ -57,7 +57,7 @@ test('RQ5: before Start, a read is allowed only while the ready screen is in fro
   assert.match(hook, /surface\.reads/, 'useExplore gates its reads on the surface, not on a walk alone');
 });
 
-test('RQ8: before Start, placesSurface never alerts and gives the ready card, never the walk\'s capture card', { todo: 'test first' }, async () => {
+test('RQ8: before Start, placesSurface never alerts and gives the ready card, never the walk\'s capture card', async () => {
   const m = await explore();
   assert.ok(m.placesSurface, 'placesSurface exists');
   const s = m.placesSurface(before());
@@ -68,7 +68,7 @@ test('RQ8: before Start, placesSurface never alerts and gives the ready card, ne
   assert.deepEqual([w.places, w.reads, w.alerts, w.card, w.only], [true, true, true, 'walk', null]);
 });
 
-test('RQ9: a walk opened from the ready map takes the walk\'s layers, not the ready map\'s', { todo: 'test first' }, async () => {
+test('RQ9: a walk opened from the ready map takes the walk\'s layers, not the ready map\'s', async () => {
   const m = await explore();
   assert.ok(m.placesSurface, 'placesSurface exists');
   // Places on before Start, off on the walk (MD3): the walk draws nothing, but still reads (checklists build on every walk).
@@ -76,7 +76,7 @@ test('RQ9: a walk opened from the ready map takes the walk\'s layers, not the re
   assert.deepEqual([w.places, w.reads, w.alerts, w.card, w.only], [false, true, false, null, null]);
 });
 
-test('RQ14: Set as destination from a ready "?" is a find destination with the place\'s key', { todo: 'test first' }, async () => {
+test('RQ14: Set as destination from a ready "?" is a find destination with the place\'s key', async () => {
   const m = await explore();
   assert.ok(m.readyDest, 'readyDest exists');
   const it = item('capitol', 10, { name: 'Virginia State Capitol' });
@@ -84,7 +84,7 @@ test('RQ14: Set as destination from a ready "?" is a find destination with the p
   assert.deepEqual(m.readyDest(it, true), { at: it.at, label: 'Virginia State Capitol', kind: 'find', placeKey: 'capitol' });
 });
 
-test('RQ18: on a walk to a place with Places off, placesSurface draws only that place, with its card', { todo: 'test first' }, async () => {
+test('RQ18: on a walk to a place with Places off, placesSurface draws only that place, with its card', async () => {
   const m = await explore();
   assert.ok(m.placesSurface && m.destinationMark, 'placesSurface and destinationMark exist');
   const s = m.placesSurface(before({ walkOpen: true, walkPlaces: false, destKey: 'mansion' }));
@@ -102,7 +102,7 @@ test('RQ18: on a walk to a place with Places off, placesSurface draws only that 
   assert.equal(m.placesSurface(before({ destKey: 'mansion' })).only, null);
 });
 
-test('RQ17: the Places note says reading or not available while a ready read runs or failed, never a count', { todo: 'test first' }, async () => {
+test('RQ17: the Places note says reading or not available while a ready read runs or failed, never a count', async () => {
   const { layerNotes } = (await import('../../layers/notes')) as unknown as { layerNotes: (s: Record<string, unknown>) => Record<string, string | null> };
   const base = { walkability: 'off', storefrontsReading: false, storefrontsFailed: false, placesRange: '100 m' };
   assert.equal(layerNotes({ ...base, placesRead: 'reading' }).places, 'Reading…');
@@ -111,7 +111,7 @@ test('RQ17: the Places note says reading or not available while a ready read run
   for (const r of ['reading', 'failed', null]) assert.ok(!/\d+ (places|left)/.test(String(layerNotes({ ...base, placesRead: r }).places)));
 });
 
-test('RQ11: no copy in ReadyPlaceCard or the ready map\'s wiring says how many, left or nearby to find', { todo: 'test first' }, () => {
+test('RQ11: no copy in ReadyPlaceCard or the ready map\'s wiring says how many, left or nearby to find', () => {
   const card = src('src/components/walk/ReadyPlaceCard.tsx');
   assert.ok(card, 'ReadyPlaceCard exists');
   const copy = [card, src('src/components/walk/useReady.tsx')].join('\n').replace(/\/\/.*$/gm, '');

@@ -84,7 +84,9 @@ test('tap-to-capture-places audit 2: a place more than 60 m away offers capture 
 
 test('tap-to-capture-places audit 3: with Places off there is no place card to capture from', () => {
   const walk = readFileSync(join(__dirname, '../../../app/walk.tsx'), 'utf8');
-  assert.match(walk, /\{openMark && !spot && placesOn && \(/);
+  // But for the one place the walk goes to (ready-map-places RQ18, the owner, Nov 21): no other card opens with Places off.
+  assert.match(walk, /\{openMark && !spot && markCardOn && \(/);
+  assert.match(walk, /const markCardOn = !!walk && surface\.card === 'walk' && \(placesOn \|\| openMark\?\.key === surface\.only\);/);
 });
 
 test('tap-to-capture-places audit 4: a place found some other way is not found again', () => {

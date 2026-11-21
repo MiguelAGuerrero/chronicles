@@ -368,6 +368,12 @@ recording, and a recording bar brings a minimized walk back.
   you are on and the dead-zone pill. The layers are the walk's own, off at every walk's start. A place you pass within a few metres (4-20 m, 8 by
   default, a setting in the walk's options, always there) is named in the replay as passed without stopping, never counted (decision 0224), and
   only within the spans Places was on.
+- **Places on the ready map** (ready-map-places RQ1-RQ18, Nov 21, after the owner saw nothing in Capitol Square, Richmond): Navigate's map
+  before Start, with Places on (its default there), draws the "?" within your range around you by the walk's rule (nearest 8, named within
+  60 m), reading the area once if it was never read; the Places row says "Reading…" or "Not available now" meanwhile. A tap opens the
+  place's card where the walk's cards stand: its name or "A place to find", how far, whether it may not be reachable, "Moments here" for a
+  found one, **Set as destination** and Open in Maps; no capture row and no pocket alert before Start. Start walks there with every layer
+  off, but the place you walk to stays drawn, with its capture row, and is named on the way bar within 60 m.
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
   Its pin wears a small bell on every map while the reminder is set.
@@ -390,8 +396,8 @@ recording, and a recording bar brings a minimized walk back.
 #### Map layers and walkability (before and during)
 
 - **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Storefronts, Town
-  borders and Where I've been, and on Explore's map **Places** (decision 0230: the "?" and dots for places worth the stop, on by default; Navigate's and the walk's maps do not list
-  it, and an area's card says only its kinds, never what is waiting). Each draws something over the base map and shows its own legend while on. All but Places start off, so a fresh map is nearly clear; the button is outlined, and its glyph
+  borders and Where I've been, and **Places** (decisions 0230, 0234: the "?" and dots for places worth the stop; on by default on Explore's map
+  and Navigate's before Start, off at every walk's start; an area's card says only its kinds, never what is waiting). Each draws something over the base map and shows its own legend while on. All but Places start off, so a fresh map is nearly clear; the button is outlined, and its glyph
   and a firmer edge say a layer is on. One setting for every map, kept across launches.
 - **Where I've been** (decision 0222) draws your earlier walks near the map, each its walked line in one muted sage green under today's
   trace: the same tone however often a street was walked, with no date and no count. Rides and gaps you didn't keep stay breaks.

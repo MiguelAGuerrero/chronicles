@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** On Navigate before Start, in a town, with Places on (its default there). **Expect:** the \"?\" within your range around you; a tap opens its card, above the bar and left of the capture stack, with \"Set as destination\" and Open in Maps, and the stack still takes one tap. (RQ1, RQ6, RQ15)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** Tap \"Set as destination\" on a ready map \"?\", then Start. **Expect:** the walk routes there with every layer off; only that place is drawn, its card has the capture row, and it is named on the way bar within 60 m. (RQ7, RQ9, RQ14, RQ18)\n"
+    }
+  ]
+}

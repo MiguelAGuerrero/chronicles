@@ -4,6 +4,7 @@ import { outlines } from '../areas/outlineReader';
 import { withOutlines, withoutOutlines } from '../areas/outlines';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
+import { createStore } from '../store';
 import { fetchTiles } from '../discovery/tileFetch';
 import { placesArchive } from '../discovery/archive';
 import { boundsOf } from '../geo';
@@ -98,3 +99,9 @@ export const exploreHold = queue.hold;
 
 /** The bounds a walk's items are read in: the read's reach around where you are. */
 export const itemBounds = (at: LngLat) => boundsOf([at], EXPLORE_RULES.readM)!;
+
+/**
+ * The last read for places, as the Layers panel says it (ready-map-places RQ17): reading, failed, or neither. Set by the walk
+ * screen's places hook, read by the ready map's panel, which renders before that hook.
+ */
+export const placesReadState = createStore<'reading' | 'failed' | null>(null);

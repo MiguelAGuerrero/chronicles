@@ -11,6 +11,7 @@ import { DEFAULT_OFF, foundRows, keepTheLows, passedNames, SUBTYPES } from '../d
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
+import type { Waypoint } from '../nav/types';
 import { spansCover, type Spans } from './placesSpans';
 import { numberWord } from '../resurface/lines';
 
@@ -406,6 +407,52 @@ export function visibleMarks(o: {
     out.push({ item, state: d <= EXPLORE_RULES.revealM || o.revealed.has(item.key) ? 'named' : 'unknown' });
   }
   return out;
+}
+
+/**
+ * What the walk screen's places do (ready-map-places RQ4-RQ9, RQ18): the one decision of when the "?" are drawn, when an
+ * area is read for them, whether the pocket alert may fire, and which card a pin opens. Before Start the ready map's own
+ * Places setting (`map_layers`) rules, and only while the ready screen is in front; on a walk, the walk's layers (MD3), with
+ * the place it walks to kept when Places is off (`only`, the owner, Nov 21).
+ */
+export interface PlacesSurface {
+  /** Every "?" within the range is drawn. */
+  places: boolean;
+  /** An area not yet read for this build may be read (the walk's queue and failure wait). */
+  reads: boolean;
+  /** The pocket alert may fire: a walk's, never the ready map's (RQ8). */
+  alerts: boolean;
+  /** The card a pin opens: the walk's (with its capture row) or the ready map's (RQ6), or none. */
+  card: 'walk' | 'ready' | null;
+  /** A walk with Places off still draws this one place, its destination (RQ18). */
+  only: string | null;
+}
+
+export function placesSurface(o: { walkOpen: boolean; walkPlaces: boolean; readyPlaces: boolean; readyActive: boolean; destKey: string | null }): PlacesSurface {
+  if (!o.walkOpen) {
+    const on = o.readyPlaces && o.readyActive;
+    return { places: on, reads: on, alerts: false, card: on ? 'ready' : null, only: null };
+  }
+  // Checklists build on every walk (E2), Places on or not.
+  if (o.walkPlaces) return { places: true, reads: true, alerts: true, card: 'walk', only: null };
+  return { places: false, reads: true, alerts: false, card: o.destKey ? 'walk' : null, only: o.destKey };
+}
+
+/**
+ * The one place a walk with Places off still draws (RQ18): its destination, at any distance, named as a "?" is (within 60 m
+ * or once revealed), found when found; nothing when the key is not among the items.
+ */
+export function destinationMark(o: { items: ChecklistItem[]; key: string | null; here: LngLat | null; found: Set<string>; revealed: Set<string> }): ShownMark[] {
+  const item = o.key ? o.items.find((x) => x.key === o.key) : undefined;
+  if (!item) return [];
+  if (o.found.has(item.key)) return [{ item, state: 'found' }];
+  const near = !!o.here && distanceM(o.here, item.at) <= EXPLORE_RULES.revealM;
+  return [{ item, state: near || o.revealed.has(item.key) ? 'named' : 'unknown' }];
+}
+
+/** "Set as destination" from a ready "?" (RQ14): the place itself, so the walk names it as it is revealed (E12). */
+export function readyDest(item: ChecklistItem, named: boolean): Waypoint {
+  return { at: item.at, label: named ? item.name : 'A place to find', kind: 'find', placeKey: item.key };
 }
 
 /** The unfound places within 60 m of a capture at `at`, whatever their kind, nearest first (E8, E18). */

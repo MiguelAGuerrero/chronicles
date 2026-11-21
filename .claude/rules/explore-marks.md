@@ -111,6 +111,15 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
     20 faint ones within range of the route ahead; the route's areas are read
     first (`routeProbes`, every 500 m).
+  - **Places on the ready map** (ready-map-places RQ1-RQ18, Nov 21): one decision, `placesSurface` (`explore.ts`), says what the
+    walk screen's places do: before Start, the ready map's Places (`map_layers`) while that screen is in front (`useReady`'s
+    `inFront`) draws and reads, never alerts, and a pin opens `ReadyPlaceCard` (Set as destination, `readyDest`: `kind: 'find'`
+    with its key; Open in Maps; reach; "Moments here"; no capture row); on a walk, its own layers, and with Places off the place
+    it walks to (`only`, `destinationMark`, its items read around it, `onlyAt`) keeps its pin and its card with the capture row
+    (`markCardOn`; it amends MD8 and tap-to-capture audit 3 for that one place). `useExplore` takes `surface`, never a bare
+    `places`; its reads run on `surface.reads` (every walk, E2; the ready map as above), never on `walkId` alone. The read's
+    state is `placesReadState` (`exploreRun.ts`), which the ready panel's Places row says (RQ17): the ready map renders before
+    the hook. **Trap:** the card's moments are worded from `pinNow`, never `Date.now()` in render (React Compiler purity).
   - **Finding** (0155, TC1, TC5; capture-at-a-place CA1-CA12, decisions 0246, 0247): a capture never finds a place by itself. A
     place's card at any distance, a "?" included except on a ride (R12) (`cardCapture`, `explore/placeCard.ts`; decision 0247,
     fix poi-any-distance: a place is a point, and a long bridge's far end is still the bridge; its line never says "here"),

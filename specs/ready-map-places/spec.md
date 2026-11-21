@@ -113,3 +113,17 @@ own map draws its "?" from the area profile (`app/(tabs)/explore.tsx`), a separa
 - The live walk: unchanged; its layers still start off (MD3).
 - A find without a walk, a capture row on the ready card, and any change to what a find stores.
 - Places along a destination's route before Start (the walk's `routeMarks`): a later slice if wanted.
+
+## Record
+
+- **Built** on `slice/ready-map-places`: tests first in `48e039b` (ten unit todos, MD11's other half, the `readyplaces`
+  journey's checks), then the code. Unit tests: `src/lib/__tests__/explore/readyPlaces.test.ts` (RQ2, RQ4, RQ5, RQ8,
+  RQ9, RQ11, RQ14, RQ17, RQ18) and `explore/placesOnWalk.test.ts` (MD11's "?"); the `readyplaces` journey (RQ1, RQ3,
+  RQ6, RQ7, RQ10, RQ12-RQ16, RQ18).
+- **Changed from the plan:** the read's state is a small store, `placesReadState` (`exploreRun.ts`), a seventh source
+  file: the ready map's Layers panel renders before the places hook, so the state could not be passed down. The card
+  is a dialog by role and name, never `aria-modal` (which would hide the capture stack beside it from a screen reader,
+  against RQ15); the journey checks that. The card's moments are worded from the screen's `pinNow`. The journey is its
+  own file, not a section of `marks`.
+- **Amended, by the owner's RQ18:** MD8's test and tap-to-capture-places audit 3 now allow the walk's one place to
+  keep its card with Places off; every other place still has none (both tests keep the rule's text).

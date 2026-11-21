@@ -15,7 +15,9 @@ import {
   pocketAlert,
   alertedFor,
   alertKeys,
+  destinationMark,
   EXPLORE_RULES,
+  type PlacesSurface,
   readCentre,
   retryAllowed,
   revealedKeys,
@@ -28,7 +30,7 @@ import {
   rememberStorefronts,
 } from './explore';
 import { placesArchive } from '../discovery/archive';
-import { exploreBuild, exploreBusy, exploreHold, exploreRead, itemBounds } from './exploreRun';
+import { exploreBuild, exploreBusy, exploreHold, exploreRead, itemBounds, placesReadState } from './exploreRun';
 import { facesToRead, foundFaces } from './foundFace';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
 
@@ -48,8 +50,13 @@ const alertedByWalk = new Map<string, Set<string>>();
 
 export function useExplore(opts: {
   walkId: string | null;
-  /** Places is on for this walk (decision 0234): the "?" within range, the pocket alert, the place's card. */
-  places: boolean;
+  /**
+   * What the places do on this screen (`placesSurface`, ready-map-places): on a walk, its Places layer (decision 0234) and the
+   * place it walks to (RQ18); before Start, the ready map's Places while it is in front (RQ1-RQ8).
+   */
+  surface: PlacesSurface;
+  /** Where the walk's destination place stands, so it is loaded wherever it is (RQ18). */
+  onlyAt?: LngLat | null;
   /** Storefronts is on for this walk: storefront streets are remembered (MD17). */
   storefronts: boolean;
   here: LngLat | null;
@@ -71,6 +78,8 @@ export function useExplore(opts: {
   const [settings, setSettings] = useState<ExploreSettings>(DEFAULT_SETTINGS);
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [routeItems, setRouteItems] = useState<ChecklistItem[]>([]);
+  // The walked-to place's own items, read around it once a walk keeps it with Places off (RQ18).
+  const [onlyItems, setOnlyItems] = useState<ChecklistItem[]>([]);
   const [found, setFound] = useState<Set<string> | null>(null);
   // Which moment found each place, so its pin wears that moment's glyph (decision 0172, O26).
   const [finds, setFinds] = useState<{ key: string; capture_id: string }[]>([]);
@@ -135,19 +144,25 @@ export function useExplore(opts: {
     if (got && mounted.current) setItems(got);
   }, []);
 
+  /** What `rememberStorefronts` reads (MD17): the drawn places and the Storefronts layer. */
+  const latestFlags = () => ({ places: latest.current.surface.places, storefronts: latest.current.storefronts });
   // One read at a time, a failed one waiting 2 min and 100 m (E5); every walk, quiet or not (E2).
   const failed = useRef<{ at: LngLat; t: number } | null>(null);
   const checkedAt = useRef<LngLat | null>(null);
   const readAt = useCallback(async (centre: LngLat, stop: () => boolean = () => false): Promise<boolean> => {
     // Storefront streets only while Places or Storefronts is on (MD17); checklists on every walk.
-    const r = await exploreRead(centre, { remember: rememberStorefronts(latest.current) }, () => !mounted.current || stop());
+    // RQ17: the Places row says a read is under way, or failed.
+    placesReadState.set('reading');
+    const r = await exploreRead(centre, { remember: rememberStorefronts(latestFlags()) }, () => !mounted.current || stop());
     if (!mounted.current) return false;
     if (!r.ok) {
       // tend explore audit 13: a read its caller stopped is no failure, so it sets no failure's wait.
       if (!r.stopped) failed.current = { at: centre, t: Date.now() };
+      placesReadState.set(r.stopped ? null : 'failed');
       return false;
     }
     failed.current = null;
+    placesReadState.set(null);
     await loadKnown();
     latest.current.onAreas();
     return true;
@@ -166,33 +181,52 @@ export function useExplore(opts: {
       // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
       await placesArchive.refresh();
       let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
-      if (!centre && rememberStorefronts(latest.current) && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
+      if (!centre && rememberStorefronts(latestFlags()) && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
         const rows = await db.listLandings().catch(() => []);
         // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
         if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
       }
       if (!centre) return false;
-      if (rememberStorefronts(latest.current)) sweptAt.current.push(centre);
+      if (rememberStorefronts(latestFlags())) sweptAt.current.push(centre);
       return readAt(centre);
     });
     if (read) await loadItems(fix);
   }, [loadKnown, loadItems, readAt]);
 
-  const { here, places } = opts;
+  const { here, surface } = opts;
+  const places = surface.places;
+  const only = surface.only;
   const riding = !!opts.riding;
+  // RQ5: reads and loads follow the surface: every walk (E2), and the ready map while its Places is on and it is in front.
+  const reads = surface.reads;
   useEffect(() => {
-    if (!here || !opts.walkId) return;
+    if (!here || !reads) return;
     if (!itemsAt.current || distanceM(itemsAt.current, here) >= RELOAD_M) loadItems(here).catch(() => {});
     if (riding) return;
     if (checkedAt.current && distanceM(checkedAt.current, here) < CHECK_M) return;
     checkedAt.current = here;
     maybeRead(here).catch(() => {});
-  }, [here, riding, opts.walkId, loadItems, maybeRead]);
+  }, [here, riding, reads, loadItems, maybeRead]);
+  // RQ18: the place a walk with Places off walks to, read around it once, wherever it is.
+  // Keyed by the place and its numbers, so a new array of the same place never reads again.
+  const onlyLon = only ? opts.onlyAt?.[0] ?? null : null;
+  const onlyLat = only ? opts.onlyAt?.[1] ?? null : null;
+  useEffect(() => {
+    if (!only || onlyLon == null || onlyLat == null) {
+      const t = setTimeout(() => setOnlyItems((r) => (r.length ? [] : r)), 0);
+      return () => clearTimeout(t);
+    }
+    let alive = true;
+    db.checklistItemsIn(itemBounds([onlyLon, onlyLat])).then((got) => alive && mounted.current && setOnlyItems(got), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [only, onlyLon, onlyLat]);
 
   // Switched on: check at once, so storefront streets a read skipped come in now, not 25 m on.
   useEffect(() => {
     const at = latest.current.here;
-    if (!(places || opts.storefronts) || !at || latest.current.riding) return;
+    if (!(places || opts.storefronts) || !at || latest.current.riding || !latest.current.surface.reads) return;
     checkedAt.current = at;
     maybeRead(at).catch(() => {});
   }, [places, opts.storefronts, maybeRead]);
@@ -239,12 +273,12 @@ export function useExplore(opts: {
     return () => clearTimeout(t);
   }, [places, items, opts.fixes]);
   useEffect(() => {
-    if (!places || !here || !items.length || riding) return;
+    if ((!places && !only) || !here || !items.length || riding) return;
     const fresh = [...revealedKeys(items, [here])].filter((k) => !revealed.has(k));
     if (!fresh.length) return;
     const t = setTimeout(() => setRevealed((r) => new Set([...r, ...fresh])), 0);
     return () => clearTimeout(t);
-  }, [places, here, riding, items, revealed]);
+  }, [places, only, here, riding, items, revealed]);
 
   // A capture finds a place only when it was begun on the place's card (TC1, CA2-CA4): its stamp carries the place, and
   // the walk screen hands the kept moment here. Nothing is armed, so a cancelled capture leaves nothing waiting (CA7).
@@ -281,8 +315,13 @@ export function useExplore(opts: {
   const rangeM = opts.previewRangeM ?? settings.rangeM;
   const foundSet = useMemo(() => found ?? new Set<string>(), [found]);
   const shown = useMemo(
-    () => (places ? visibleMarks({ items, here, rangeM, found: foundSet, hidden: settings.hidden, revealed }) : []),
-    [places, items, here, rangeM, settings.hidden, foundSet, revealed],
+    () =>
+      places
+        ? visibleMarks({ items, here, rangeM, found: foundSet, hidden: settings.hidden, revealed })
+        : only
+          ? destinationMark({ items: [...items, ...onlyItems], key: only, here, found: foundSet, revealed })
+          : [],
+    [places, only, items, onlyItems, here, rangeM, settings.hidden, foundSet, revealed],
   );
   const onTheWay = useMemo(() => {
     if (!places || !opts.route) return [];
@@ -293,10 +332,11 @@ export function useExplore(opts: {
   const previewing = opts.previewRangeM != null;
   useEffect(() => {
     const alerted = alertedFor(alertedByWalk, opts.walkId);
-    const { mark, nudge } = pocketAlert({ places, haptic: settings.haptic, riding, previewing, nearKeys: alertKeys(shown), alerted });
+    // RQ8: the ready map never alerts; a walk alerts only with Places on (MD7).
+    const { mark, nudge } = pocketAlert({ places: surface.alerts, haptic: settings.haptic, riding, previewing, nearKeys: alertKeys(shown), alerted });
     for (const k of mark) alerted.add(k);
     if (nudge) feedback('nudge');
-  }, [places, settings.haptic, riding, previewing, shown, opts.walkId]);
+  }, [surface.alerts, settings.haptic, riding, previewing, shown, opts.walkId]);
 
   // The found places on the map wear the glyph of the moment that found each (O26): this walk's captures, else read.
   const shownFound = useMemo(() => new Set(shown.filter((s) => s.state === 'found').map((s) => s.item.key)), [shown]);
@@ -326,7 +366,7 @@ export function useExplore(opts: {
     ];
   }, [shown, onTheWay, faces]);
 
-  const byKey = useMemo(() => new Map([...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems]);
+  const byKey = useMemo(() => new Map([...onlyItems, ...routeItems, ...items].map((i) => [i.key, i])), [items, routeItems, onlyItems]);
   const itemOf = useCallback((key: string) => byKey.get(key) ?? null, [byKey]);
 
   return { pins, settings, revealed, found: foundSet, itemOf, keptAtPlace, momentsAt };
