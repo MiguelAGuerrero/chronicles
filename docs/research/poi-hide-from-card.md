@@ -45,7 +45,7 @@ on the map.
 
 Chosen on purpose, the owner's to revisit: What I'm into's one way in (0192, Q2: a push from the drawer's row); a find
 shows whatever its kind (explore-marks, "The Explore tab honours What I'm into"); a "?" is not named until 60 m (E7).
-Never seen on a phone: the card, the bottom-sheet menu over the walk map, Undo's line.
+Never seen on a phone: the card, the switch sheet over the walk map.
 
 ## How adjacent apps do it
 
@@ -83,7 +83,10 @@ Asked in this run, Nov 21 (AskUserQuestion; the answers verbatim where the owner
    the sub category too. It's not just let's say historical monuments. Let's say I got tired of just getting notified of
    plaques. I should be able to distinctly hide clocks, but keep the rest of historical monuments." Redrawn (board
    "Reshaped"): a subtype's card offers "Hide plaques" and "Hide all monuments and memorials". Asked again: the owner
-   chose "Redraw" and declined the follow-up asking what to change. **Open.**
+   chose "Redraw" and declined the follow-up asking what to change, then said: "mark up a different way, like a title
+   subtitle of the point of interest where the subtitle is a kind, and the title is the cat[egory]". Redrawn (board
+   "Redrawn", `MenuSwitches.dc.html`): More opens "Show on the map", the kind as a title row and its subtype as a
+   subtitle row, each a switch acting at once, no Undo slab. Answer: "Approve as redrawn" (recommended).
 2. **What Hide switches off.** Offered: the card's own kind (recommended), always the parent kind, the whole heading.
    Answer: the card's own kind. With answer 1, a subtype's card also offers its parent kind.
 3. **"Show less like this" and "Not this one".** Offered: kind only for now (recommended), add Not this one, add Not this
@@ -97,63 +100,59 @@ Written: decision 0254 (amends 0191's plan row for towers; 0192's one way in is 
 
 ## The recommendation
 
-Shape A as reshaped by the owner, with E. **Size M**: ten criteria over about nine source files, no native module.
+Shape A as reshaped and redrawn by the owner (switches, title and subtitle), with E. **Size M**: nine criteria over about nine source files, no native module.
 
 ```
 ## Vision
 Idea: Quickly hide points of interest from a place's card, by its category, with quick access to the settings from the map.
 Verb: earn (the walker notices more of what they came for when what they never stop for leaves the map)
-Touches: Always, "Restraint in motion, colour and copy"; Never, "Ratings, reviews, stars, 'best of', rankings of places" (a "show less" weighting would rank; left out), "Tallies such as '12 of 87'" (the Undo line names the kind, never how many went), "A capture behind a menu, a drawer or an extra tap" (the capture row stays first, untouched); decisions 0115 ("kinds filter what you see, never what exists"), 0192 (What I'm into's page, one way in), 0191 (subtypes), 0230 (no list of what is left).
+Touches: Always, "Restraint in motion, colour and copy"; Never, "Ratings, reviews, stars, 'best of', rankings of places" (a "show less" weighting would rank; left out), "Tallies such as '12 of 87'" (the sheet names the kind, never how many places it holds), "A capture behind a menu, a drawer or an extra tap" (the capture row stays first, untouched); decisions 0115 ("kinds filter what you see, never what exists"), 0192 (What I'm into's page, one way in), 0191 (subtypes), 0230 (no list of what is left).
 Verdict: aligned
 Shape: as asked, without "show less" (nothing is ranked) and without "not this one" for now (the owner's call).
 Precedent: Google Discover's card More ("Not interested in [Topic]", "Don't show content from [Source]"), verified; YouTube's More ("Not interested", "Don't recommend channel"), verified; OsmAnd's POI overlay in Configure map, unverified.
-Criteria: Hide names a kind in words and never a count; hiding a kind hides only unfound places, a find stays; the switch hidden from a card is the same switch What I'm into shows, and turning it back on there brings the places back; nothing on the card is coloured or celebrates; a "?" card's menu never names the place; the capture row stays first and one tap.
+Criteria: the sheet names a kind in words and never a count; hiding a kind hides only unfound places, a find stays; the switch hidden from a card is the same switch What I'm into shows, and turning it back on there brings the places back; nothing on the card is coloured or celebrates; a "?" card's menu never names the place; the capture row stays first and one tap.
 Open: none (the look is asked separately).
 ```
 
-The slice:
+The slice (as approved, Nov 21):
 
-1. An unfound place's card on the walk has More (…) at its top right, in ink, 44 pt, spoken "More"; the kind is a muted
-   line of its own under the name (no "·" in the title).
-2. More opens the bottom-sheet menu (as a moment's, `components/Modal`): "Hide <kind>" with a quiet second line, "What
-   I'm into", Cancel. Words lowercase mid-sentence ("Hide monuments and memorials").
-3. A place of a subtype offers both "Hide <subtype>" (its parent stays) and "Hide all <parent kind>".
-4. Hide turns that switch off through the settings What I'm into saves (`withKind`, `saveSettings`), closes the card and
-   the menu, and every unfound place of that kind (or its subtypes, for a kind) leaves the walk's map at once; the page
-   shows the switch off.
-5. A slab in the place offer's look says "<Kind> hidden from the map." with Undo and Close, announced politely, and stays
-   until used or dismissed; Undo turns the same switch back on and the places return.
-6. A "?" card's menu names its kind and never the place's name; its line still says to walk within 60 m.
-7. A found place's card has no Hide.
-8. "What I'm into" from the menu opens the page from the walk (Back reads "Walk"), at the card's kind's row.
-9. No count, number or accent colour in the menu, the slab or the card; the capture row is unchanged and first.
-10. "Water and clock towers" becomes two subtypes under Buildings and structures, "Clock towers" and "Water towers", each
-    its own switch, both on by default; a reader who had "Water and clock towers" off keeps both off.
+1. An unfound place's card on the walk has More (…) at its top right, in ink, 44 pt, spoken "More"; under the name a
+   muted line names its kind and, when it has one, its subtype ("Monuments and memorials · Plaques").
+2. More opens a sheet, "Show on the map" with Done: the kind as a title row with its switch, its subtype (when it has
+   one) as an indented subtitle row with its switch, then "What I’m into ›".
+3. Each switch is the one What I'm into shows (`withKind`, `saveSettings`) and acts at once, the sheet staying up: the
+   subtype off hides only that subtype, the kind off hides the kind and its subtypes; the map behind follows at once.
+4. A "?" card's sheet names its kind and subtype, never the place.
+5. A found place's card has no More.
+6. "What I’m into ›" opens the page from the walk (Back reads "Walk") at that kind's row.
+7. Done, a tap on the dimmed map, Back and Escape close the sheet (only while the walk is focused).
+8. No count, number or accent colour in the sheet or the card; the capture row unchanged and first.
+9. "Water and clock towers" becomes "Clock towers" and "Water towers", each a switch, both on by default; a reader who
+   had "Water and clock towers" off keeps both off.
 
 ## Done when
 
-On the walk at 390 x 844 with Places on, a reader opens a plaque's card, hides plaques in two taps, and sees the
-plaques leave the map while the war memorial beside them stays; Undo brings them back; a clock tower's card hides clock
-towers and leaves the water tower's pin.
+On the walk at 390 x 844 with Places on, a plaque's card opens its sheet in one tap, Plaques off takes the plaques off
+the map while the war memorial beside them stays, and a clock tower's sheet turns off clock towers and leaves the water
+tower's pin.
 
 ## What the slice will touch
 
-- Views: `src/app/walk.tsx` (the card's head, More, the slab), a new `src/components/walk/PlaceMenu.tsx` (the sheet,
-  after `MemoryMenu`), `src/components/IntoPage.tsx` and `src/app/into.tsx` (open at a row).
+- Views: `src/app/walk.tsx` (the card's head, More, the slab), a new `src/components/walk/PlaceKinds.tsx` (the sheet,
+  `components/Modal` and `SwitchRow`), `src/components/IntoPage.tsx` and `src/app/into.tsx` (open at a row).
 - Core: `src/lib/explore/placeCard.ts` (the menu's items and words, `hideChoices(kind)`), `src/lib/explore/explore.ts`
   (`parseHidden`: `towers` off carries to both new kinds), `src/lib/discovery/subtypes.ts`, `src/lib/discovery/types.ts`,
   `src/lib/presence/presence.ts` (the two subsets; `PRESENCE_CODE` p12), `src/lib/intoNav.ts` (a row to open at).
 - Tests: `src/lib/__tests__/explore/` (placeCard, explore, subtypes, intoPage); the golden tables if the split moves a
   class (`presence` readers).
-- Journeys: `walk` (the card, the menu, Hide and Undo, at 390 and 320), `marks`, `into`, `subtypes`; pictures of every
+- Journeys: `walk` (the card, the sheet, each switch, at 390 and 320), `marks`, `into`, `subtypes`; pictures of every
   state for the review.
 - Run first: `npm run check:affected`; `E2E_ONLY=walk`, `marks`, `into`, `subtypes`.
 - Native: none new; the Modal over the walk map and the slab are new on a phone (`docs/NATIVE_UNVERIFIED.md`).
 
 ## Open for the owner
 
-- The look: the owner asked for a redraw of the mock-up (Nov 21) and has not yet said what to change. The build waits.
-- Whether a found place's card keeps More with only "What I'm into" (drawn with the redraw).
+None: the look was approved as redrawn (Nov 21); a found card has no More, as the approved drawing shows.
 
 ## Engineering unknowns
 
