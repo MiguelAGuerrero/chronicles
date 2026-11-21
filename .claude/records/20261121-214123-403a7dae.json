@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T11"
+      ],
+      "body": "  Nov 21: the owner's yes to this reshaped shape, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/WmMWziwYizjMhvJzaXzBrM (docs/mockups/recording-bar-mic-pencil/): the bar at 390 px with the time alone, a memo recording in place, and at 320 px a choice: the chevron left out (recommended) or the red dot.\n",
+      "target": "sha256:58debc3b05d59090b5133542f811f8949781dd1b661b756386fb4b4093e4a320"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T54"
+      ],
+      "body": "  Nov 21: the owner's yes, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/4JQowNQ7kB8ZtfNH9zAYDN (docs/mockups/contents-switch-stays/): after a tap the sheet stays up, the switch drawn off and its note reading Off.\n",
+      "target": "sha256:cedffd757e9c1a536fc6afe01749da7abaabfddeadcb4317cdb155d153071f83"
+    }
+  ]
+}

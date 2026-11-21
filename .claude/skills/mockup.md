@@ -15,24 +15,28 @@ an approved look already showed, and work with no surface (`/vision` says **no s
 
 ## What it is
 
-One private page published with the Artifact tool (load `artifact-design` first), kept in the repo as
-`docs/mockups/<id>/index.html` with its pictures beside it; `<id>` is a short kebab-case name of the change
-(`contents-switch-stays`), the slice's slug for a spec, since an entry's number is given only when it is filed. The page holds, for each screen the change touches:
+One private Design canvas made with the Artifact tool (`quickstart`, intent `design`, which names the Design type;
+follow that type's instructions), one artboard per picture, kept in the repo as `docs/mockups/<id>/` (the canvas's
+`canvas.json`, its `.dc.html` artboards and the before pictures); `<id>` is a short kebab-case name of the change
+(`contents-switch-stays`), the slice's slug for a spec, since an entry's number is given only when it is filed. Upload
+the pictures and the app's icon font (`@expo/vector-icons`' `Ionicons.ttf`, so a glyph is the app's own) as the
+canvas's assets. The page holds, for each screen the change touches:
 
 1. **Before:** today's screen, a picture of the real build at 390 x 844 (`E2E_SHOTS`, the journey's `shot()`, at
    device scale 1), named by its shot.
-2. **After:** the change drawn at the same size beside it, in HTML and CSS with the app's tokens
+2. **After:** the change drawn at the same size beside it, over the before picture where only part of the screen
+   changes, in HTML and CSS with the app's tokens
    (`src/components/ui.tsx`, `theme`) and its real words (the copy modules, or the entry's quoted words). Draw only
    what the entry or plan says; a detail it leaves open is drawn as the recommended shape and named as a choice
    under the picture.
 3. **Every state the change touches:** the default, open, empty, the longest text it can meet, and 320 px wide where
    width matters.
 4. **Two shapes side by side** when there is a real choice, the recommended first and labelled so; otherwise one.
-5. **A short legend** under each picture: what changed, the rule or criterion it rests on, and what it does not do
+5. **A short legend** beside the pictures (a note on the canvas): what changed, the rule or criterion it rests on, and what it does not do
    (no count, no colour, no new control, where the gate said so).
 
-Publish the folder (`files`: `index.html` and the pictures), give the page a plain title ("Contents switch mock-up"), and keep
-its link. Commit the folder with whatever names it: the entry's record commit, or the spec.
+Give the canvas a plain title ("Contents switch mock-up") and an artboard title for each picture ("Today at 390 px",
+"Recommended at 320 px"), and keep its link. Commit the folder with whatever names it: the entry's record commit, or the spec.
 
 ## Where the approval is recorded
 
