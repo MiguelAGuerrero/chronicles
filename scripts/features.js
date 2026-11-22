@@ -129,8 +129,8 @@ const FEATURES = [
       'src/components/{StartSettings,HomeSheet,RecordingBar,SwitchRow,OpenWalk,Modal,ScreenError,SafeInsets,SafeInsets.web}.tsx',
       'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus,captureBand,safeInsets}.ts',
     ],
-    journeys: ['tabs', 'reload', 'launch', 'capturehome'],
-    specs: ['navigation-and-tabs', 'capture-from-chronicle'],
+    journeys: ['tabs', 'reload', 'launch', 'capturehome', 'barcaptures'],
+    specs: ['navigation-and-tabs', 'capture-from-chronicle', 'recording-bar-captures'],
   },
   {
     name: 'presence',
@@ -569,6 +569,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'recording-bar-captures': { branch: 'tend/inbox-20261122-0328', since: '2026-11-22' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },

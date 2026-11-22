@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| The recording bar keeps a memo and a note (T11: a mic and a pencil beside the bar's camera, the memo recording in place, the note's page over the tab; BC1-BC10, `specs/recording-bar-captures/spec.md`) | `tend/inbox-20261122-0328` | started 2026-11-22 by `/tend inbox`, the owner's \"T11 mic + pencil (Recommended)\"; tests first |\n"
+    }
+  ]
+}
