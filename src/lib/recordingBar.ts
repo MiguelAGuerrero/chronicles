@@ -66,6 +66,16 @@ export function barChevron(width: number, memo: boolean, paused = false): boolea
 }
 
 /**
+ * The line's gaps (tend tabs audit 63), as the drawings have them: below 360 px with the chevron and no dot, 4 between
+ * its parts and 6 on the right (Proposed320B); paused there, the glyph and no chevron, 8 and 10 (Paused320); from
+ * 360 px, and mid-memo at any width, 10 and 10.
+ */
+export function barLineGaps(width: number, memo: boolean, paused: boolean): { gap: number; right: number } {
+  if (memo || width >= 360) return { gap: 10, right: 10 };
+  return paused ? { gap: 8, right: 10 } : { gap: 4, right: 6 };
+}
+
+/**
  * Whether the line draws its red recording dot (T58): from 360 px wide; at 320 px it gives way to the chevron (the
  * drawing's Proposed320B). Paused, the pause glyph shows at every width in its place.
  */

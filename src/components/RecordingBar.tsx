@@ -17,7 +17,7 @@ import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/r
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { BAR_WAIT_MS, barCapturesOff, barChevron, barDot, barGoesBack, barMemoSaves, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
+import { BAR_WAIT_MS, barCapturesOff, barChevron, barDot, barGoesBack, barLineGaps, barMemoSaves, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
@@ -79,6 +79,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const chevron = barChevron(width, memoOn, pauses.some((p) => p.ended_at == null));
   // The red dot from 360 px; at 320 px it gives way to the chevron (T58).
   const dot = barDot(width);
+  // The line's gaps as the drawings have them, by width and state (tend tabs audit 63).
+  const gaps = barLineGaps(width, memoOn, pauses.some((p) => p.ended_at == null));
   // The pencil's page (BC4), the one the walk screen's pencil opens, over this tab.
   const [page, setPage] = useState<{ key: number } | null>(null);
   const pageRef = useRef<NotePageHandle>(null);
@@ -353,7 +355,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           accessibilityRole="button"
           accessibilityHint={memoOn ? undefined : 'Returns to the walk'}
           onPress={() => back(null)}
-          style={({ pressed }) => [styles.main, !dot && !memoOn && styles.mainNarrow, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.main, { gap: gaps.gap, paddingRight: gaps.right }, pressed && styles.pressed]}
         >
           {memoOn ? (
             // The memo's time beside a red dot (BC2); its name says it records, the walk's pause, and what a tap does (BC6).
@@ -474,8 +476,6 @@ const styles = StyleSheet.create({
   reminderText: { flex: 1, color: theme.ink, fontSize: 15, fontWeight: '600' },
   reminderSee: { color: theme.ink, fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 10, borderRadius: 12 },
-  // Below 360 px, with the chevron and no dot, the line's gaps as the drawing has them (Proposed320B; T58).
-  mainNarrow: { gap: 4, paddingRight: 6 },
   // The idle dot's white ring, so the red reads 3:1 on the bar's ink (recording-bar-captures ui 2; X1).
   memoDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },

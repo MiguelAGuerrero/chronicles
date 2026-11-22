@@ -104,3 +104,18 @@ test('tend tabs T58: at 320 px the bar keeps its chevron and leaves out the red 
   assert.equal(chevron(360, false, true), true);
   assert.equal(chevron(390, false, true), true);
 });
+
+// The run's review (Nov 22): regression tests, each written to fail before its fix.
+
+test('tend tabs audit 63: the line\'s gaps follow the drawings: 4 with the chevron below 360 px, 8 paused there, 10 elsewhere', () => {
+  const gaps = fn(bar, 'barLineGaps');
+  assert.ok(gaps, 'barLineGaps exists');
+  // Recording below 360 px: the chevron and no dot (Proposed320B: gap 4, 6 on the right).
+  assert.deepEqual(gaps(320, false, false), { gap: 4, right: 6 });
+  // Paused below 360 px: the glyph and no chevron (Paused320: gap 8, 10 on the right).
+  assert.deepEqual(gaps(320, false, true), { gap: 8, right: 10 });
+  // From 360 px, and mid-memo at any width: as before.
+  assert.deepEqual(gaps(390, false, false), { gap: 10, right: 10 });
+  assert.deepEqual(gaps(390, false, true), { gap: 10, right: 10 });
+  assert.deepEqual(gaps(320, true, false), { gap: 10, right: 10 });
+});
