@@ -516,7 +516,7 @@ async function fresh(h) {
       const barName = () => pg.locator('[data-testid=recording-numbers]').getAttribute('aria-label').catch(() => '');
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1 min|\d+ min|\d+:\d\d) · Paused$/.test(await barText()) && /^Walk paused, \d+[ \u00a0]m walked in /.test(await barName())
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1 min|\d+ min|\d+:\d\d)[ \u00a0]· Paused$/.test(await barText()) && /^Walk paused, \d+[ \u00a0]m walked in /.test(await barName())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=bar-stop]').count()) === 1,
         // tend tabs 18 (the lenses' auditor 3): this counted "stop", a testid the bar never carries, so its "no Stop" held
         // whatever the bar showed; the bar has its held Stop since decision 0048 (NV9's "It has no Stop" is stale).
@@ -547,7 +547,7 @@ async function fresh(h) {
       {
         const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
         const stats = await pg.locator('[data-testid=recording-stats]').evaluate((e) => e.textContent).catch(() => '');
-        check(offers === 0 && /^(?:< 1 min|\d+ min|\d+:\d\d) · Paused$/.test(stats),
+        check(offers === 0 && /^(?:< 1 min|\d+ min|\d+:\d\d)[ \u00a0]· Paused$/.test(stats),
           `ME23 fix edit-after-capture: closed, the editor leaves no Edit pill above the bar, the line still its time (the time alone since T11, BC6) (${offers}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).

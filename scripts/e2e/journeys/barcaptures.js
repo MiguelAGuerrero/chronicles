@@ -155,6 +155,9 @@ async function run(h) {
     const save = await box('[data-testid=bar-voice-save]');
     const stop = await box('[data-testid=recording-bar] [data-testid=bar-stop]');
     const noPencil = !(await shown('[data-testid=recording-bar] [data-testid=bar-note]'));
+    // recording-bar-captures ui 2 (the UI review's U4): the memo's red dot has the idle dot's white ring, 3:1 on the bar.
+    const ring = await pg.locator('[data-testid=bar-voice-dot]').evaluate((e) => { const st = getComputedStyle(e); return { w: st.borderTopWidth, c: st.borderTopColor }; }).catch(() => null);
+    check(!!ring && parseFloat(ring.w) >= 1 && ring.c === 'rgb(255, 255, 255)', `recording-bar-captures ui 2: the memo's red dot has a white ring (${JSON.stringify(ring)})`);
     await shot(pg, 'bc-04-memo-390');
     await pg.click('[data-testid=bar-voice-save]');
     const kept = await settle('voice', voices);
@@ -305,6 +308,30 @@ async function run(h) {
     await pg.click('[data-testid=pause-walk]');
     await pg.waitForSelector('[data-testid=resume-walk]', { timeout: 10000 });
     await minimize();
+    // recording-bar-captures ui 1 (the UI review's U2): paused, the time and " · Paused" keep their space between them.
+    const gap = await pg.evaluate(() => {
+      const n = document.querySelector('[data-testid=recording-bar] [data-testid=recording-numbers]');
+      const w = document.querySelector('[data-testid=recording-bar] [data-testid=recording-word]');
+      if (!n || !w) return null;
+      const r = document.createRange();
+      r.selectNodeContents(w);
+      const first = [...r.getClientRects()][0];
+      return first ? Math.round(first.left - n.getBoundingClientRect().right) : null;
+    });
+    const dotAt = await pg.evaluate(() => {
+      const w = document.querySelector('[data-testid=recording-bar] [data-testid=recording-word]');
+      if (!w || !w.firstChild) return null;
+      // Where the separator's dot is drawn, measured from the time's end.
+      const t = w.firstChild;
+      const i = t.textContent.indexOf('·');
+      const r = document.createRange();
+      r.setStart(t, i);
+      r.setEnd(t, i + 1);
+      const n = document.querySelector('[data-testid=recording-bar] [data-testid=recording-numbers]').getBoundingClientRect();
+      return Math.round(r.getBoundingClientRect().left - n.right);
+    });
+    await shot(pg, 'bc-09-paused-line-390');
+    check(gap != null && dotAt != null && dotAt >= 3, `recording-bar-captures ui 1: paused, a space stands between the time and " · Paused" (${JSON.stringify({ gap, dotAt })})`);
     const before = { voice: await count('voice'), text: await count('text') };
     await memo();
     await pg.click('[data-testid=bar-voice-save]');
@@ -319,6 +346,35 @@ async function run(h) {
     const text = await settle('text', before.text);
     await shot(pg, 'bc-08-paused-390');
     check(voice && text, `BC5: with the walk paused, the bar's memo and note join the walk (${JSON.stringify({ voice, text })})`);
+  });
+
+  // The diff review's regressions (Nov 22).
+  await step('audit 1', async () => {
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(1000);
+    const voices = await count('voice');
+    await memo();
+    await pg.click('[data-testid=outing-entry]');
+    await there('[data-testid=outing]', 8000);
+    const saved = await settle('voice', voices);
+    const stillOn = await pg.evaluate(() => !!document.querySelector('[data-testid=bar-voice-timer]'));
+    await pg.keyboard.press('Escape');
+    await pg.waitForSelector('[data-testid=outing]', { state: 'detached', timeout: 8000 }).catch(() => {});
+    await pg.waitForTimeout(800);
+    check(saved && !stillOn, `recording-bar-captures audit 1: a memo recording when Plan an outing opens over Explore is saved, the mic not left on under it (${JSON.stringify({ saved, stillOn })})`);
+  });
+  await step('audit 2', async () => {
+    await tabTo(pg, 'chronicle', 'walks');
+    await pg.waitForTimeout(1000);
+    const voices = await count('voice');
+    await memo();
+    await pg.click('[data-testid=section-days]');
+    await pg.waitForTimeout(1500);
+    const still = await shown('[data-testid=recording-bar] [data-testid=bar-voice-timer]');
+    const early = (await count('voice')) > voices;
+    if (still) await pg.click('[data-testid=bar-voice-save]');
+    const saved = await settle('voice', voices);
+    check(still && !early && saved, `recording-bar-captures audit 2: from Walks to Days mid-memo the memo keeps recording, then saves whole (${JSON.stringify({ still, early, saved })})`);
   });
 
   await c.close();

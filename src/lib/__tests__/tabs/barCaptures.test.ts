@@ -52,3 +52,36 @@ test('BC6: while a memo records the line says its time, and its name says the wa
   // Never a negative time from a clock read before the stamp.
   assert.equal((memo({ startedAt: 5_000, now: 4_000, paused: false }) as { time: string }).time, '0:00');
 });
+
+// The diff review (Nov 22): regression tests, each written to fail before its fix.
+
+test('recording-bar-captures audit 1: a memo is saved when a full-screen card folds the bar away (Plan an outing, the area card)', () => {
+  const saves = fn(bar, 'barMemoSaves');
+  assert.ok(saves, 'barMemoSaves exists');
+  assert.equal(saves({ memoOn: true, moved: false, captures: true, covered: true }), true);
+  assert.equal(saves({ memoOn: true, moved: false, captures: true, covered: false }), false);
+  assert.equal(saves({ memoOn: false, moved: true, captures: false, covered: true }), false);
+});
+
+test('recording-bar-captures audit 2: a change of Chronicle\'s section with the bar in sight keeps the memo recording', () => {
+  const saves = fn(bar, 'barMemoSaves');
+  assert.ok(saves, 'barMemoSaves exists');
+  // Walks to Days: the path is the same, the captures stay in sight.
+  assert.equal(saves({ memoOn: true, moved: false, captures: true, covered: false }), false);
+  // Another tab: saved.
+  assert.equal(saves({ memoOn: true, moved: true, captures: true, covered: false }), true);
+});
+
+test('recording-bar-captures audit 3: a memo recording where the bar holds no captures (Memories) is saved, however it began there', () => {
+  const saves = fn(bar, 'barMemoSaves');
+  assert.ok(saves, 'barMemoSaves exists');
+  assert.equal(saves({ memoOn: true, moved: false, captures: false, covered: false }), true);
+});
+
+test('recording-bar-captures audit 4: the mic and the pencil are off while the bar\'s Stop runs, as while a capture is kept', () => {
+  const off = fn(bar, 'barCapturesOff');
+  assert.ok(off, 'barCapturesOff exists');
+  assert.equal(off({ capturing: false, stopping: true }), true);
+  assert.equal(off({ capturing: true, stopping: false }), true);
+  assert.equal(off({ capturing: false, stopping: false }), false);
+});

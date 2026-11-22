@@ -17,7 +17,7 @@ import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/r
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { BAR_WAIT_MS, barChevron, barGoesBack, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
+import { BAR_WAIT_MS, barCapturesOff, barChevron, barGoesBack, barMemoSaves, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
@@ -160,6 +160,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // fired as it came, so dropping it unseen would lose it.
   const folded = useStore(tabsHidden, (h) => h);
   const covered = useStore(modalsUp, (n) => n > 0);
+  // Folded away by a card or covered by a Modal: the bar's captures are out of sight (a memo is saved, audit 1).
+  const hidden = folded || covered;
   const keyboard = useKeyboardHeight() > 0;
   const [active, setActive] = useState(() => AppState.currentState === 'active');
   useEffect(() => {
@@ -235,19 +237,19 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const discardMemo = async () => {
     if ((await cap.discardVoice()) === 'discarded' && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility('Voice memo discarded. Undo is available.');
   };
-  // Another tab, or another of Chronicle's sections, while a memo records: it is saved first (BC3). A screen over the
-  // tabs unmounts the bar, and `useCaptures` saves it then.
+  // A memo is saved first when the bar's captures leave sight (BC3; `barMemoSaves`): another tab, Memories, a card or
+  // sheet that folds the bar away, or a Modal over the tabs. A change of Chronicle's section keeps it (audit 2). A screen
+  // over the tabs unmounts the bar, and `useCaptures` saves it then.
   const saveRef = useRef(saveMemo);
   useEffect(() => {
     saveRef.current = saveMemo;
   });
-  const where = `${path}|${section}`;
-  const lastWhere = useRef(where);
+  const lastPath = useRef(path);
   useEffect(() => {
-    if (lastWhere.current === where) return;
-    lastWhere.current = where;
-    if (memoOn) void saveRef.current();
-  }, [where, memoOn]);
+    const moved = lastPath.current !== path;
+    lastPath.current = path;
+    if (barMemoSaves({ memoOn, moved, captures: showCaptures, covered: hidden })) void saveRef.current();
+  }, [path, memoOn, showCaptures, hidden]);
   // A reload or close of the web page mid-memo is warned of, as on Navigate's ready screen (BC3).
   useEffect(() => {
     if (!memoOn || Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -305,7 +307,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
 
   const line = (now: number) => recordingLine({ startedAt, pauses, now, distanceM });
   const memo = (now: number) => memoLine({ startedAt: memoStartedAt ?? now, now, paused });
-  const capturing = cap.busy != null;
+  const capturing = barCapturesOff({ capturing: cap.busy != null, stopping });
   return (
     <View>
     {cap.discarded && !memoOn && (
@@ -354,7 +356,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           {memoOn ? (
             // The memo's time beside a red dot (BC2); its name says it records, the walk's pause, and what a tap does (BC6).
             <>
-              <View style={styles.memoDot} />
+              <View testID="bar-voice-dot" style={styles.memoDot} />
               <Ticking testID="bar-voice-timer" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => memo(now).time} label={(now) => memo(now).label} />
             </>
           ) : (
@@ -373,7 +375,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
                 <Ticking testID="recording-numbers" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => line(now).time} label={(now) => line(now).label} />
                 {paused && (
                   <Text testID="recording-word" style={[styles.text, styles.word]} numberOfLines={1} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                    {' · Paused'}
+                    {/* A no-break space: a leading plain one is dropped at the start of its own item on the web (ui 1). */}
+                    {'\u00a0· Paused'}
                   </Text>
                 )}
               </View>
@@ -469,7 +472,8 @@ const styles = StyleSheet.create({
   reminderText: { flex: 1, color: theme.ink, fontSize: 15, fontWeight: '600' },
   reminderSee: { color: theme.ink, fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 10, borderRadius: 12 },
-  memoDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
+  // The idle dot's white ring, so the red reads 3:1 on the bar's ink (recording-bar-captures ui 2; X1).
+  memoDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },
   glyph: { alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },

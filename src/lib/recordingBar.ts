@@ -73,6 +73,21 @@ export function memoLine(o: { startedAt: number; now: number; paused: boolean })
   return { time, label: `Recording voice memo, ${time}${o.paused ? ', walk paused' : ''}. Saves it and returns to the walk` };
 }
 
+/**
+ * Whether a memo the bar records is saved now (BC3): when the bar's captures leave sight. Another tab (`moved`), a place
+ * where the bar holds no captures (Memories, however the memo began there; recording-bar-captures audit 3), or a
+ * full-screen card or sheet that folds the bar away (Plan an outing, the area card; audit 1). A change of Chronicle's
+ * section with the bar in sight is none of these: the memo goes on (audit 2).
+ */
+export function barMemoSaves(o: { memoOn: boolean; moved: boolean; captures: boolean; covered: boolean }): boolean {
+  return o.memoOn && (o.moved || !o.captures || o.covered);
+}
+
+/** The bar's mic and pencil (and camera) are off while a capture is kept and while its Stop runs (audit 4). */
+export function barCapturesOff(o: { capturing: boolean; stopping: boolean }): boolean {
+  return o.capturing || o.stopping;
+}
+
 /** The longest the bar's way back waits for its photo, and its Stop for a memo, then for the captures being kept. */
 export const BAR_WAIT_MS = 5000;
 
