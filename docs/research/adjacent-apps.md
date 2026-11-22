@@ -377,6 +377,24 @@ hosts were unreachable from the cloud session, so the app lines are from memory.
 - **Apple Maps** (iOS): with the card at the bottom raised, the map's centre sits in the part left above it. Source:
   from memory, unverified. **Unverified**.
 
+### Browse what is near from the map you walk on (Earn)
+
+Recorded for Explore in Navigate (`docs/research/explore-in-navigate.md`, Nov 22). support.alltrails.com and
+9to5google.com were unreachable from the cloud session; those lines rest on search summaries, not the pages.
+
+- **Apple Maps** (iOS 15 guide): nearby places start from the search card's "Find Nearby" categories over the one map;
+  "swipe up on the information card to see all results", and "drag the map to another area … then tap Search Here".
+  Source: https://support.apple.com/en-asia/guide/iphone/iphbaf51b2c0/15.0/ios (read Nov 22, partly as a summary).
+  **Verified**.
+- **Google Maps** (Android, iOS, 2024-25): the Explore tab's content is a sheet over the same map, which can be lowered
+  but not hidden; the tab itself stays (Explore, You, Contribute). Source: 9to5google, "Google Maps redesign sheets"
+  (Jan 21, 2025) and the bottom-bar redesign (Jul 31, 2024), from a search summary. **Unverified**.
+- **AllTrails** (iOS, Android): Explore (find trails, list or map) and Navigate (record an activity) are separate tabs;
+  a trail is followed by opening it from Explore and tapping Start, or from Navigate with "Add route". Source:
+  support.alltrails.com, "Understanding the AllTrails App" and "Using the Navigate feature", from a search summary.
+  **Unverified**. The split Chronicles leaves (0258): its Explore is the ground around you on foot, not a catalogue
+  you drive to.
+
 ### Bring the map back to north while following (Earn)
 
 - **Apple Maps** (iOS 27): "Tap [the Tracking Off button]. Your position is marked in the middle of the map. The top

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Alternative: the Explore control in the right column</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:Ion;src:url(/_blob/aae6466a2d470b30a23f96db84d55842) format("truetype")}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#1d2430}
+.ic{font-family:Ion;font-style:normal;line-height:1}
+.st{position:absolute;background:#fff}
+.edge{position:absolute;box-sizing:border-box;border-radius:50%;background:rgba(255,255,255,0.95);border:1px solid #8a857d;display:flex;align-items:center;justify-content:center;color:#1d2430;padding:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ece9e2">
+<div class="st" style="left: 107px; top: 268px; width: 6px; height: 230px"></div>
+<div class="st" style="left: 164px; top: 268px; width: 6px; height: 230px"></div>
+<div class="st" style="left: 221px; top: 268px; width: 6px; height: 230px"></div>
+<div class="st" style="left: 278px; top: 268px; width: 6px; height: 230px"></div>
+<div class="st" style="left: 335px; top: 268px; width: 6px; height: 230px"></div>
+<div class="st" style="left: 80px; top: 293px; width: 310px; height: 6px"></div>
+<div class="st" style="left: 80px; top: 350px; width: 310px; height: 6px"></div>
+<div class="st" style="left: 80px; top: 407px; width: 310px; height: 6px"></div>
+<div class="st" style="left: 80px; top: 464px; width: 310px; height: 6px"></div>
+<div style="position: absolute; left: 159px; top: 403px; width: 14px; height: 14px; border-radius: 50%; background: #1d3a5f; border: 2px solid #fff"></div>
+<button class="edge" aria-label="Back" style="left: 16px; top: 16px; width: 44px; height: 44px"><i class="ic" style="font-size: 22px">&#xf232;</i></button>
+<button class="edge" aria-label="Explore" aria-expanded="false" style="left: 324px; top: 456px; width: 44px; height: 44px"><i class="ic" style="font-size: 21px">&#xf284;</i></button>
+<button class="edge" aria-label="Locate" style="left: 324px; top: 512px; width: 44px; height: 44px"><i class="ic" style="font-size: 20px">&#xf3c1;</i></button>
+<button class="edge" aria-label="Note" style="left: 318px; top: 574px; width: 56px; height: 56px"><i class="ic" style="font-size: 24px">&#xf2b3;</i></button>
+<button class="edge" aria-label="Voice memo" style="left: 318px; top: 640px; width: 56px; height: 56px"><i class="ic" style="font-size: 24px">&#xf454;</i></button>
+<button class="edge" aria-label="Camera" style="left: 318px; top: 706px; width: 56px; height: 56px"><i class="ic" style="font-size: 24px">&#xf1db;</i></button>
+<button class="edge" aria-label="Layers" style="left: 28px; top: 680px; width: 44px; height: 44px"><i class="ic" style="font-size: 20px">&#xf3af;</i></button>
+<div style="position: absolute; left: 36px; top: 736px; font-size: 12px">100 m</div>
+<div style="position: absolute; left: 36px; top: 752px; width: 56px; height: 4px; border: 1px solid #1d2430; border-top: 0; box-sizing: border-box"></div>
+<div style="position: absolute; left: 0; top: 775px; width: 390px; height: 69px; box-sizing: border-box; background: #f4f2ee; border-top: 1px solid #e3e0da; display: flex; align-items: center; justify-content: space-between; padding: 0 16px">
+<div style="font-size: 18px; font-weight: 600">0:00 · 0 m</div>
+<button style="height: 48px; padding: 0 28px; border-radius: 24px; border: 0; background: #c2410c; color: #fff; font-size: 17px; font-weight: 700">Start</button>
+</div>
+<div style="position: absolute; left: 175px; top: 779px; width: 40px; height: 4px; border-radius: 2px; background: #b9b4ab"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

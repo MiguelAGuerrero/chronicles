@@ -1,0 +1,18 @@
+{"v":3,"createdOnFiles":{"v":1,"at":"2026-11-22T12:00:00Z"},"title":"Explore in Navigate mock-up","launch":{"view":"canvas"},"pages":[],"boards":{
+"Today-Navigate.dc.html":{"x":0,"y":0,"w":390,"h":844,"title":"Today: Navigate, ready, at 390 px"},
+"Today-Explore.dc.html":{"x":470,"y":0,"w":390,"h":844,"title":"Today: the Explore tab, at 390 px"},
+"Ready-closed.dc.html":{"x":0,"y":1224,"w":390,"h":844,"title":"Recommended: ready, Explore closed"},
+"Main.dc.html":{"x":470,"y":1224,"w":390,"h":844,"title":"Recommended: ready, Explore raised"},
+"Walking-sheet.dc.html":{"x":940,"y":1224,"w":390,"h":844,"title":"Recommended: walking, Explore raised"},
+"Full-card.dc.html":{"x":1410,"y":1224,"w":390,"h":844,"title":"Recommended: walking, an area's card at full height"},
+"Walking-320.dc.html":{"x":1880,"y":1224,"w":320,"h":700,"title":"Recommended: walking, Explore raised, at 320 px"},
+"Alt-column-button.dc.html":{"x":0,"y":2448,"w":390,"h":844,"title":"Alternative: the Explore control in the right column"},
+"Alt-capped.dc.html":{"x":470,"y":2448,"w":390,"h":844,"title":"Alternative: the card stops below the captures"}
+},
+"order":["Today-Navigate.dc.html","Today-Explore.dc.html","Ready-closed.dc.html","Main.dc.html","Walking-sheet.dc.html","Full-card.dc.html","Walking-320.dc.html","Alt-column-button.dc.html","Alt-capped.dc.html"],
+"notes":{
+"row1":{"x":0,"y":-260,"text":"Today: two tabs, two maps","kind":"title1","maxW":860},
+"row2":{"x":0,"y":964,"text":"Recommended: Explore is a sheet over the walk's own map","kind":"title1","maxW":2200},
+"row3":{"x":0,"y":2188,"text":"Alternatives","kind":"title1","maxW":860},
+"legend":{"x":940,"y":0,"w":560,"size":"s","fill":"gray","text":"What changes\n\n• The Explore tab goes; the tabs read Chronicle · Navigate (the owner, Nov 22).\n• On the walk screen, ready or walking, an \"Explore\" pill at the top right raises a full-width sheet over the walk's own map. It opens only on a tap.\n• Raised, the sheet holds Explore's title, search, Plan an outing and the row of area cards. The map above shows the selected area's ring and its name; the walker, the trace and the route stay drawn.\n• The strip stays below the sheet: Start, or the walk's time, distance and Pause, are always there.\n• The camera, mic and note ride above the sheet's top edge, one tap away at every height (VISION: Capture is one tap away). At full height they float at the right edge over the card, which leaves them room.\n• Walk to from the sheet sets the destination here (ready) or routes this walk (walking, NV10). Nothing leaves the screen.\n\nWhat it does not do\n\n• No count anywhere: presence is dots, familiarity in words, unfound places unnamed.\n• No list of places still to find; no new colour; the pill is ink, the accent stays Start's.\n• The sheet never rises by itself.\n\nChoices drawn as recommended: the pill's place (top right, mirroring the chevron); two heights (the row, and full for a card); the captures floating over the full card. The alternatives row shows the other two."}
+},"designSystems":[]}
