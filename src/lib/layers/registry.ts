@@ -79,7 +79,7 @@ export const LAYERS: readonly LayerDef[] = [
   },
   {
     // Places layer (specs/places-layer PL1, decision 0230; every map since decision 0234): the "?" and dots for places worth the
-    // stop, local information over the map, on by default on Explore and the ready map, off on a live walk (walkLayerDefaults).
+    // stop, local information over the map, on by default, and the live walk draws what the ready map shows (decision 0260).
     // Named for what it draws, never a task.
     id: 'places',
     name: 'Places',

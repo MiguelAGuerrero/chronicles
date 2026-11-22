@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Modes to layers"
+      ],
+      "body": "| Modes to layers (no Explore mode: the walk's own layers, Places and Storefronts, replace it; a walk starts with the layers the ready map shows, one setting everywhere (decision 0260 amends MD3, MD10), the ready bar's range and settings without a mode, passes counted within the spans Places was on; MD1-MD19, decision 0234) | built; web only | tests first, then the code, 2026-11-19 | `specs/modes-to-layers/spec.md` |  |\n",
+      "target": "sha256:a8f71ac27d71dcb154478d3d713de360f563ff15e35f5850402a6303be567089"
+    }
+  ]
+}

@@ -69,9 +69,9 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Explore** (slice 5, replaces scan and ambient; the spec is E1-E23 in the
   v1 tab; `explore/explore.ts` pure, `exploreRun.ts`, `useExplore.ts`,
   `settings.ts`).
-  - **A walk starts with every layer off, and there is no Explore mode** (decision 0234, modes-to-layers MD1-MD19; it
-    replaces 0031's mode and `explore_walk`, `start_mode`, which are retired and left unread). The walk's own layers
-    (`layers/walkShell.ts`, meta `walk_layers:<walk>`) start off every walk and are never carried to the next; the "?" marks, the range
+  - **There is no Explore mode** (decision 0234, modes-to-layers MD1-MD19; it replaces 0031's mode and `explore_walk`,
+    `start_mode`, which are retired and left unread). The walk draws the layers every map shares (`map_layers`, decision 0260:
+    it starts with what the ready map shows, and its switches are remembered); the "?" marks, the range
     ring, the place card and the pocket alert follow **Places**, the strip chip and the dead-zone pill follow **Storefronts**
     (`walk.tsx`: `placesOn`, `storefrontsOn`; `useExplore` takes `places` and `storefronts`). A find needs Places on, since
     the capture row is on a place's card (MD8). Turning Places on or off keeps its spans (`places_spans:<walk>`, `explore/placesSpans.ts`),

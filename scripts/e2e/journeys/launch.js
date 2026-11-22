@@ -464,8 +464,14 @@ async function fresh(h) {
       check(await pg.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false), 'Walk here on Explore starts a walk at once, recording (NV12, NV15)');
       const w = await openWalk(pg);
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');
-      check(w && nav && nav.walk_id === w.id && nav.dest.label === 'Your spot' && !(await metaOf(pg, `places_spans:${w.id}`)),
-        'it goes to that spot with no layer on (a walk starts quiet), and the drawer’s destination is not filled (NV12)');
+      // The walk keeps the layers every map shows (decision 0260): Places, on by default, opens the walk's span for its replay.
+      let spans = null;
+      for (let i = 0; i < 20 && !spans; i++) {
+        spans = w ? await metaOf(pg, `places_spans:${w.id}`) : null;
+        if (!spans) await pg.waitForTimeout(250);
+      }
+      check(w && nav && nav.walk_id === w.id && nav.dest.label === 'Your spot' && /^\[\[\d+,null\]\]$/.test(spans ?? ''),
+        `it goes to that spot with the layers Explore showed, Places on with its span (decision 0260), and the drawer’s destination is not filled (NV12; ${spans})`);
       await c.close();
     }
     {
@@ -676,7 +682,7 @@ async function fresh(h) {
     }
 
     {
-      // Start with a destination: the walk opens heading there with every layer off, Places turned on from its panel (NV25, decision 0234).
+      // Start with a destination: the walk opens heading there, Places turned on from its panel (NV25, decisions 0234, 0260).
       const { c, pg } = await freshPage('start-explore');
       await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
@@ -698,8 +704,13 @@ async function fresh(h) {
       // The walk opened with the ready bar's drawer up, over the Layers button: lower it first.
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(600);
+      // Places, on by default on every map, is on as the walk opens; switched off on the walk it is off for every map, and its span closes.
+      await switchLayer(pg, 'places', false);
+      await pg.waitForTimeout(400);
+      const offSpans = (await metaOf(pg, `places_spans:${w.id}`)) ?? '';
+      check(JSON.parse((await metaOf(pg, 'map_layers')) ?? '{}').places === false && !(await metaOf(pg, `walk_layers:${w.id}`)) && /^\[\[\d+,\d+\]\]$/.test(offSpans),
+        `Places switched off on the walk is the one setting every map keeps, its span closed for the replay (MD9, MD10, decision 0260; ${offSpans})`);
       await switchLayer(pg, 'places');
-      check(!!(await metaOf(pg, `walk_layers:${w.id}`)) && /\[\[\d+,null\]\]/.test((await metaOf(pg, `places_spans:${w.id}`)) ?? ''), 'turning Places on from the walk keeps its own layers and a span for the replay (MD9, MD10)');
       await pg.click('[data-testid=walk-summary]');
       await pg.waitForSelector('[data-testid=options-card]');
       check((await pg.locator('[data-testid=explore-walk]').count()) === 0 && (await pg.locator('[data-testid=options-card] [data-testid=layer-legend-places]').count()) === 1, 'the walk’s options card has no mode switch and shows Places in its layers key (MD2, MD13)');

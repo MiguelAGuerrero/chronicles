@@ -117,7 +117,6 @@ export const META_KEYS: Record<MetaKey, Exclude<Kept, 'carried'>> = {
 /** Every meta family: those kept per walk travel, read as `<family>:<walk id>`; a day's and a read's stay. */
 export const META_FAMILY_KEYS: Record<MetaFamily, Exclude<Kept, 'carried'>> = {
   explored: 'backup',
-  walk_layers: 'backup',
   places_spans: 'backup',
   walk_pass: 'backup',
   // The places left with Leave it on a walk (decision 0251): the walker's own answer, so it travels with the walk.

@@ -5,7 +5,7 @@ import type { LngLat } from '../types';
 import { LAYERS, type LayerDef } from './registry';
 
 /*
- * What is on (ML2, ML7): one value per layer, kept as one setting for every map. Built from the registry, so
+ * What is on (ML2, ML7): one value per layer, kept as one setting for every map, the live walk's included (decision 0260). Built from the registry, so
  * a layer added later gets its default and nothing already chosen moves.
  */
 
@@ -16,21 +16,10 @@ export function layerDefaults(layers: readonly LayerDef[] = LAYERS): LayerState 
 }
 
 /**
- * A live walk's layers (specs/modes-to-layers MD3, MD10, decision 0234): every layer off at the start of every walk, whatever
- * its default on the other maps, kept per walk (meta `walk_layers:<walk>`) and never carried to the next.
+ * The key a live walk's own layers were kept under from decision 0234 until 0260 (the walk now draws `map_layers`): no longer
+ * written, still removed with its walk.
  */
-export const walkLayerDefaults = (layers: readonly LayerDef[] = LAYERS): LayerState => Object.fromEntries(layers.map((l) => [l.id, false]));
 export const walkLayersKey = (walkId: string): string => `walk_layers:${walkId}`;
-export function decodeWalkLayers(raw: string | null, layers: readonly LayerDef[] = LAYERS): LayerState {
-  const out = walkLayerDefaults(layers);
-  try {
-    const v: unknown = raw ? JSON.parse(raw) : null;
-    if (typeof v === 'object' && v !== null && !Array.isArray(v)) for (const l of layers) if (typeof (v as Record<string, unknown>)[l.id] === 'boolean') out[l.id] = (v as Record<string, boolean>)[l.id];
-  } catch {
-    // junk reads as off
-  }
-  return out;
-}
 
 export const encodeLayers = (s: LayerState): string => JSON.stringify(s);
 

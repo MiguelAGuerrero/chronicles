@@ -798,7 +798,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const previewFit = useMemo(() => (navigation.preview ? boundsOf(navigation.preview.options.flatMap((o) => o.route.path), 30) : null), [navigation.preview]);
   const previewKey = previewFit ? 300000 + (Math.abs(Math.round((previewFit[0] + previewFit[1]) * 1e5)) % 99999) : 0;
   // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
-  // The walk's own layers (specs/modes-to-layers MD3, MD10): every one off at the start of every walk.
+  // The layers every map shares (decision 0260): the walk starts with what the ready map shows; a switch here is remembered.
   const layers = useWalkLayers(walk?.id ?? null);
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const storefronts = useStorefrontsLayer(live.here, !!layers.on.storefronts);
@@ -1024,7 +1024,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     };
   }, [walk, params.recall, resumed, screenFocused, routeNav]);
   // Places turned on for this walk: its pass distance is kept once, so a later setting never rewrites its replay (TC9); off, a
-  // place card that was open closes. (The spans it was on are kept by `walkLayers.set`, MD9.)
+  // place card that was open closes. (The spans it was on are kept by `walkLayers`, MD9.)
   useEffect(() => {
     if (!walk) return;
     if (!placesOn) {

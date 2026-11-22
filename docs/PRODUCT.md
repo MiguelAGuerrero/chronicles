@@ -361,7 +361,7 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
   directions, when Chronicles' route is wrong: in the blue bar, on a route
   that can't be found, beside Route here on the long-press
   card and in a pin's viewer. Navigation and the walk go on.
-- **No Explore mode** (decision 0234; a walk starts with every layer off, quiet as before). The walk's Layers panel lists **Places**: "?" marks
+- **No Explore mode** (decision 0234; a walk starts with the layers the ready map shows, and a switch on it is remembered for every map, decision 0260). The walk's Layers panel lists **Places**: "?" marks
   within range (60-300 m), with the range ring while the settings are up, an optional pocket alert (a double-tap once per place, on phones and
   browsers that can buzz; its row says it needs Places on), and a place's card carrying **Camera**, **Voice** and **Note**
   at any distance, a "?" too except on a ride (decisions 0246, 0247: a place is a point, and a long bridge's far end is still the bridge):

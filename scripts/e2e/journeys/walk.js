@@ -88,6 +88,8 @@ async function checks(h) {
     await shot(page, '00-home-empty');
     const held = await pressedScale(page, '[data-testid=start]');
     check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
+    // A walk starts with what the ready map shows (decision 0260): Places off here, so this walk starts quiet.
+    await h.switchLayer(page, 'places', false);
     // Start starts at once, in place (NV19, NV25, NR6).
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=walk-actions]');
@@ -106,7 +108,7 @@ async function checks(h) {
     await page.waitForTimeout(2500);
     await shot(page, '01-walk-start');
 
-    // Explore (v1 slice 5). A walk starts quiet: no "?" marks, no busy streets, though its checklist
+    // Explore (v1 slice 5). A walk with Places and Storefronts off is quiet: no "?" marks, no busy streets, though its checklist
     // is read in the background (E1, E2, E9).
     const placesRead = () => page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
@@ -129,7 +131,7 @@ async function checks(h) {
     // Settings, from the walk's options: the range previewed as a ring around you (E16, E20, E21).
     await page.click('[data-testid=walk-summary]');
     await page.waitForSelector('[data-testid=options-card]');
-    check((await page.locator('[data-testid=explore-walk]').count()) === 0 && (await page.locator('[data-testid=options-card] [data-testid=layer-legend-places]').count()) === 0, 'Places starts off on a new walk, and there is no Explore switch (MD2, MD3)');
+    check((await page.locator('[data-testid=explore-walk]').count()) === 0 && (await page.locator('[data-testid=options-card] [data-testid=layer-legend-places]').count()) === 0, 'Places, off on the ready map, is off on the walk, and there is no Explore switch (MD2, MD3, decision 0260)');
     // The range and what I’m into are in the drawer with Places off too (MD6); with Places on the ring shows while the drawer is up.
     check((await page.locator('[data-testid=range-slider]').count()) === 1, 'the drawer holds the range with Places off (MD6)');
     await page.keyboard.press('Escape');

@@ -17,7 +17,7 @@ async function arrive(h) {
 }
 
 async function checks(h) {
-  const { url, ctx, page, at, check, shot, glyph, walkMap, walkMarks, walkRoute, walkPts, routed, toStop } = h;
+  const { url, ctx, page, at, check, shot, glyph, walkMap, walkMarks, walkRoute, walkPts, routed, toStop, switchLayer } = h;
   await arrive(h);
     // The first walk's route, from the harness (the walk journey walked it).
     const route = walkRoute;
@@ -42,8 +42,11 @@ async function checks(h) {
     await routed(page, 40000);
     check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
-    // A walk from a star starts quiet (E1); reminders still come back on a quiet walk (the owner's call, after the audit).
-    check((await walkMarks().count()) === 0, 'a new walk starts quiet');
+    // A walk keeps the layers every map shares (decision 0260), Places on by default: switched off here, the walk is quiet,
+    // and reminders still come back on a quiet walk (the owner's call, after the audit).
+    await switchLayer(page, 'places', false);
+    await page.waitForTimeout(600);
+    check((await walkMarks().count()) === 0, 'with Places off, the walk draws no "?"');
     // A later walk passing the flagged capture brings it back, in front (R2, R3, R4).
     // At a walking pace: a jump would be dropped as a GPS glitch.
     for (let j = 1; j <= 26; j++) {

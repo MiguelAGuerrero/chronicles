@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { fakePorts } from '../fakes';
 
 // Modes to layers (specs/modes-to-layers MD1, MD2, MD10, MD12, MD13), written before the code. No Explore mode: Places is a
-// layer on every map; the live walk's layers belong to that walk and start off every time; the two saved settings are apart.
+// layer on every map. MD3 and MD10 as amended by decision 0260: every map, the live walk's included, shares one setting.
 
 const ROOT = join(__dirname, '../../../..');
 const src = (p: string) => readFileSync(join(ROOT, p), 'utf8');
@@ -17,30 +17,30 @@ test('MD1, MD13: every map lists Places, Explore, the ready map and the live wal
   assert.equal(LAYERS.find((l) => l.id === 'places')?.maps, undefined, 'Places is not limited to a map');
 });
 
-test('MD10: the live walk\'s layers all start off, Places included; the key is per walk', async () => {
-  const m = (await import('../../layers/state')) as unknown as { walkLayerDefaults?: () => Record<string, boolean>; walkLayersKey?: (id: string) => string; decodeWalkLayers?: (raw: string | null) => Record<string, boolean> };
-  assert.ok(m.walkLayerDefaults && m.walkLayersKey && m.decodeWalkLayers, 'the walk-layers helpers exist');
-  assert.ok(Object.values(m.walkLayerDefaults()).every((v) => v === false), 'every layer off');
+// MD3 and MD10 as amended by decision 0260 (fix walk-layers-remembered): the walk draws the one setting every map shares;
+// what is left of a walk's own is the key its layers were once kept under, removed with it, and its Places spans.
+test('MD10 (decision 0260): a walk keeps no layers of its own; the old per-walk key is still named for deletion', async () => {
+  const m = (await import('../../layers/state')) as unknown as { walkLayerDefaults?: unknown; decodeWalkLayers?: unknown; walkLayersKey: (id: string) => string };
+  assert.equal(m.walkLayerDefaults, undefined, 'no all-off defaults for a walk');
+  assert.equal(m.decodeWalkLayers, undefined, 'no per-walk setting is read');
   assert.equal(m.walkLayersKey('w1'), 'walk_layers:w1');
-  assert.equal(m.decodeWalkLayers(null).places, false);
-  assert.equal(m.decodeWalkLayers(JSON.stringify({ places: true })).places, true);
-  assert.equal(m.decodeWalkLayers('{not json').places, false);
 });
 
-test('MD10: a walk\'s layers start off for every walk, survive a resume, never reach the next, and leave the map setting alone', async () => {
-  const mod = (await import('../../layers/walkShell')) as { createWalkLayers?: (p: unknown) => { store: { get(): { on: Record<string, boolean> } }; begin(id: string): Promise<void>; set(id: string, on: boolean): Promise<void> } };
-  assert.ok(mod.createWalkLayers, 'createWalkLayers exists');
+test('MD10 (decision 0260): a walk starts with the maps\' setting, its switches are the maps\' setting, and the next walk keeps them', async () => {
+  const { createLayers } = await import('../../layers/shell');
+  const { createWalkLayers } = await import('../../layers/walkShell');
   const p = fakePorts();
-  const w = mod.createWalkLayers(p);
+  const maps = createLayers(p);
+  const w = createWalkLayers(p, maps);
+  await maps.set('borders', true);
   await w.begin('w1');
-  assert.ok(Object.values(w.store.get().on).every((v) => v === false), 'w1 starts all off');
-  await w.set('places', true);
-  assert.equal(JSON.parse((await p.db.getMeta('walk_layers:w1')) ?? '{}').places, true);
-  assert.equal(await p.db.getMeta('map_layers'), null, 'the map setting is not written');
+  assert.equal(maps.store.get().on.borders, true, 'w1 starts with what the ready map shows');
+  await maps.set('places', false);
+  assert.equal(JSON.parse((await p.db.getMeta('map_layers')) ?? '{}').places, false, 'kept as the one setting');
+  assert.equal(await p.db.getMeta('walk_layers:w1'), null, 'no per-walk setting is written');
   await w.begin('w2');
-  assert.equal(w.store.get().on.places, false, 'the next walk starts off');
-  await w.begin('w1');
-  assert.equal(w.store.get().on.places, true, 'a resumed walk keeps its own');
+  assert.equal(maps.store.get().on.places, false, 'the next walk keeps it');
+  assert.equal(maps.store.get().on.borders, true);
 });
 
 test('MD10: deleteWalk removes the walk\'s layers and spans; the three stores delete them', async () => {
@@ -63,12 +63,15 @@ test('MD2, MD12: no mode control, no Explore switch, no mode meta in the views, 
 });
 
 test('MD14: the layers write only meta: no walk, trace point, capture or find is touched, and a walk\'s layers go only with the walk', async () => {
+  const { createLayers } = await import('../../layers/shell');
   const { createWalkLayers } = await import('../../layers/walkShell');
   const p = fakePorts();
-  const w = createWalkLayers(p);
+  const maps = createLayers(p);
+  const w = createWalkLayers(p, maps);
   await w.begin('w1');
-  await w.set('places', true);
-  await w.set('places', false);
+  await maps.set('places', true);
+  await maps.set('places', false);
+  await new Promise((r) => setTimeout(r, 0));
   const calls = p.log.calls('db.');
   assert.ok(calls.length > 0, 'the shell wrote something');
   assert.ok(calls.every((c: string) => /^db\.(getMeta|setMeta)\b/.test(c)), `only meta is read or written (${[...new Set(calls)].join(', ')})`);

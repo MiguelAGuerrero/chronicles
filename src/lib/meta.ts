@@ -169,8 +169,6 @@ export const META = {
 export const META_FAMILIES = {
   // When Explore was first switched on for a walk recorded before decision 0234 (ms): its replay counts passes from then.
   explored: { owner: 'explore', codec: number },
-  // A live walk's own layers (JSON of booleans), every layer off at its start, removed with the walk (specs/modes-to-layers MD10).
-  walk_layers: { owner: 'map', codec: json<Record<string, boolean>>(isLayerState) },
   // The spans Places was on during a walk, [on, off|null] pairs as JSON: its replay counts passes only inside them (MD9).
   places_spans: { owner: 'explore', codec: json<unknown[]>((v): v is unknown[] => Array.isArray(v)) },
   // The pass-by distance (m) a walk was walked with, so a later setting never rewrites its replay (TC9).
