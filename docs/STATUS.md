@@ -295,18 +295,11 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Otherwise: leave it (the slip's going is the sign).
   Nov 21: the owner's yes, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/4JQowNQ7kB8ZtfNH9zAYDN (docs/mockups/contents-switch-stays/): after a tap the sheet stays up, the switch drawn off and its note reading Off.
   Nov 21: the mock-up approved by the owner, "Approve as drawn (Recommended)" (decision 0252). It is built as drawn.
-- **T55 [owner] Add to a thread: two photos of the walk still open read alike but for their pictures** (2026-11-21)
-  Area: threads. Seen: a duplicate build of G11 (branch `tend/inbox-20261121-2258`, picture `capthread-05-moments`; its steward's S1 and its cold find, Nov 21), against main's thread-at-capture, whose card reads the same pool: every photo of the walk still open reads "Photo / Nov 21 · From Saturday night walk", since a walk still open has no place yet (`poolWithOpenWalks` takes `place` from `walk.area`); the cold find could not tell which row was "the mural from a minute ago". Rests on: VISION.md Always, "A moment carries its context: place, time, its walk … never … a bare thumbnail".
-  Recommended: a row of the walk still open says its time of day after its date ("Nov 21, 4:37 PM · From Saturday night walk"), as the responses sheet's entries do (`entryLine`); nothing else changes. /vision: aligned (Honour: a moment told by when it happened; no count, no new control).
-  Otherwise: "N minutes ago" for this walk's rows (a relative time, which changes while the card is open); or leave it, the pictures telling them apart.
-- **T56 [owner] Add to a thread: Escape or Back on "Join it with another moment" closes the whole card** (2026-11-21)
-  Area: threads. Seen: `src/app/walk.tsx` l.2216 and `src/components/MomentBar.tsx` l.241, the card's `Modal`, `onRequestClose={() => setThreading(null)}` (main's thread-at-capture); found as U2 by the UI review of a duplicate build of G11 (branch `tend/inbox-20261121-2258`). Changing one's mind on the second step means opening the card again from the pill, which may have gone. Rests on: NN/g H3, "a clearly marked 'emergency exit' to leave the unwanted action without having to go through an extended process" (`docs/research/ui-references.md`).
-  Recommended: Back and Escape on the moment step return to the threads step; on the threads step they close the card; × still closes from any step. The duplicate build did it with a `requestClose` handle on the card. /vision: no surface (nothing new is drawn).
-  Otherwise: leave it (× and Escape both close, as the viewer's sheets do).
 - **T57 [owner] Add to a thread: "This moment is in it" is dimmed with its row** (2026-11-21)
   Area: threads. Seen: main's `src/components/threads/AddToThread.tsx` l.165, `style={[styles.row, r.has && styles.dim]}` (opacity 0.45 on the whole row); found as U3 by the UI review of a duplicate build of G11 (branch `tend/inbox-20261121-2258`): the line that says why the row cannot be tapped reads at about 2:1 on white. Rests on: opinion (WCAG 1.4.3 exempts inactive components), marked so; TK9/CT9's own words are the only reason given.
   Recommended: dim the title and the link mark only, the line "This moment is in it" kept in the muted ink at 4.5:1. /vision: no surface.
   Otherwise: leave it.
+  Nov 22: the owner's yes. A changed look filed before its mock-up (decision 0252), so not built in this run: the mock-up is drawn and its approval asked at the run's close. Mock-up: https://claude.ai/artifact/EZgND4JR3aXTF2qeg33W3x (docs/mockups/thread-row-in-it/): today's card beside the row with only its title and link mark faded, "This moment is in it" in the muted ink.
 
 ### From the road engine's audit (2026-11-18)
 
@@ -435,15 +428,16 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   The slice: 1. A backup of more than 65,535 entries is one zip whose every entry reads back whole, by our reader and by one system archive tool (checked first which). 2. A backup past 4 GiB in total, or holding one file past 4 GiB, does the same. 3. A backup within both limits is byte-for-byte what it is today (no ZIP64 records where none are needed). 4. Our reader reads a ZIP64 backup and a plain one alike, for the restore slice. 5. The refusal "This backup would be too large for one file" is gone; a phone without room still says so (BK7). 6. No new dependency: the records are written and read by a module of ours around fflate's streams, held by tests that write and read back a file past each limit (in memory or streamed to a temporary file, never committed). 7. Nothing a person sees changes.
   Payoff: a library of years can be backed up at all; the restore slice gets its reader. Cost: M; `backup/shell.ts`, a new core module for the records, `backup/core.ts` (`ZIP_LIMITS` out); no native module beyond the file handle already used; the native write of a file past 4 GiB never run on a phone. Reopens: backup. After it: the restore slice reads the same file.
   Instead: split a large backup into parts, each a plain zip with its own manifest (the owner chose against it).
+  Nov 22: the owner's yes ("Yes, queue it (Recommended)"); one build per run, so it waits for the next `/tend inbox` (this run built T56).
 
 ### Last tend
 
-**Nov 21, `/tend inbox` with no answers typed: the owner answered in the run (build G11; T52 yes; G12 yes, queued); no build landed** (opened from `e0ddfce1`, its record published from `de41d6bd`; an inbox run: lenses 1-7 belong to a sweep and were not run).
-- G11 was built by this run as `threading-at-capture` (TK1-TK11, its review's 8 fixes) while another session built and published the same entry as thread-at-capture (CT1-CT11, `5212633b`..`de41d6bd`). The duplicate was not published: it stays on `tend/inbox-20261121-2258` for comparison, and main's build stands (the owner's call, in the run).
-- What the duplicate's review found that main's build lacks, read in main's code: T55 (this walk's photos read alike in the card: their time of day), T56 (Escape or Back on the moment step closes the whole card, NN/g H3), T57 ("This moment is in it" dimmed with its row, opinion), and a `[loop]` item in DEFERRED, "Threads the owner makes" (the editor of a capture kept while the card is open opens over it, a Modal over a Modal on iOS).
-- T52, "A backup larger than one zip can hold", the owner's yes: decision 0256 (a ZIP64 writer and reader of our own, no new dependency), its build shaped as G14 for a yes of its own. G12, "Hide a kind of place from its card", the owner's yes, noted: it waits for the next `/tend inbox`.
-- Still waiting for a build, each with the owner's yes: T11, T42, T43, T44, T45, T48, T49, T50, T51, T54, G12; G9 waits for the walk drawer sections slice. Open G entries: seven (G5, G7, G8, G9, G12, G13, G14), past decision 0129's three, every one the owner's own ask.
-- Nothing here has run on a phone.
+**Nov 22, `/tend inbox T55 yes, T56 yes, T57 yes, G14 yes`, one build** (opened from `41a3438d`; an inbox run: lenses 1-7 belong to a sweep and were not run).
+- T56, "Escape or Back on 'Join it with another moment' closes the whole card", built as `tend threads T56`: Back and Escape on the moment step return to the threads, elsewhere they close; on the walk screen, Navigate and the viewer (`backFrom`, the card's `requestClose`).
+- The review (the auditor, one round): F2 accepted, fixed as `tend threads audit 1` (Back during a join's write waits for it); F1 deferred `[loop]` (Memories' card answers no Escape or Back), F3 deferred `[loop]` (Show more's page count carried back), and a visible Back on the step for an iPhone filed `[owner]` in DEFERRED (a new control, a mock-up first).
+- T55, "two photos of the walk still open read alike", leaves the inbox: already on main as thread-at-capture CT12 (decision 0257). T57, "'This moment is in it' is dimmed with its row": the owner's yes; a changed look filed before its mock-up, so its mock-up is drawn (https://claude.ai/artifact/EZgND4JR3aXTF2qeg33W3x, `docs/mockups/thread-row-in-it/`) and asked at the close; built by the next `/tend inbox` once approved. G14, the ZIP64 backup: the owner's yes, noted; it waits.
+- Lens 0, threads: E-threads-1 to 3 (ratified) met by capthread's checks, green in this run.
+- The e2e: capthread, threads. Nothing here has run on a phone.
 
 ### Open before the loop
 

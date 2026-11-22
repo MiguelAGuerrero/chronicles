@@ -1,0 +1,76 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T55",
+        "--reason",
+        "the owner's yes, already built on main as thread-at-capture CT12 (decision 0257): each row says its time of day"
+      ],
+      "target": "sha256:8b3e7fa1516b908e746e7a019ec33538c5e330d018fc1fa9c682bed85bf28599"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T56",
+        "--reason",
+        "the owner's yes, built in tend threads T56"
+      ],
+      "target": "sha256:9ecd3b7c0a438dd2710834fd914c21f937f28c6421435fcd219f1ec64f0e4495"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T57"
+      ],
+      "body": "  Nov 22: the owner's yes. A changed look filed before its mock-up (decision 0252), so not built in this run: the mock-up is drawn and its approval asked at the run's close. Mock-up: https://claude.ai/artifact/EZgND4JR3aXTF2qeg33W3x (docs/mockups/thread-row-in-it/): today's card beside the row with only its title and link mark faded, \"This moment is in it\" in the muted ink.\n",
+      "target": "sha256:9c7052c7862a86d0e2e8dc2e09f8de1668ddfaaacee33d129a029cb3f968d5fa"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G14"
+      ],
+      "body": "  Nov 22: the owner's yes (\"Yes, queue it (Recommended)\"); one build per run, so it waits for the next `/tend inbox` (this run built T56).\n",
+      "target": "sha256:e2fb0fbae00e1eea168e04429bf2cafae17e9f4ad5d780a3b3d9ef89952f8a0e"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes"
+      ],
+      "body": "- [loop] **Memories' Add to a thread answers no Escape or Back on any step** (the review of `tend threads T56`, its F1, Nov 22): `MemoriesScreen.tsx` l.714-724 draws the card with no Modal, no ref, no `BackHandler` and no key listener, so on the web Escape does nothing and Android's Back leaves Chronicle past the card; the walk screen, Navigate and the viewer step back since T56. Wire it as they are (`AddToThreadHandle.requestClose`), with an e2e check.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes"
+      ],
+      "body": "- [loop] **Going back from \"Join it with another moment\" keeps its Show more page count** (the review of `tend threads T56`, its F3, Nov 22): `limit` in `AddToThread.tsx` is shared by both steps, so after Show more and Back the threads' search lists several pages at once. Reset it to one page on the step back.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Threads the owner makes"
+      ],
+      "body": "- [owner] **No Back you can tap on \"Join it with another moment\"** (the review of `tend threads T56`, Nov 22): since T56, Escape and Android's Back go back a step, but an iPhone has neither, and the step offers only Close; NN/g H3 asks for \"a clearly marked 'emergency exit'\". A visible Back on the step is a new control and a changed look: a mock-up first (decision 0252), then the owner's call.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 22, `/tend inbox T55 yes, T56 yes, T57 yes, G14 yes`, one build** (opened from `41a3438d`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- T56, \"Escape or Back on 'Join it with another moment' closes the whole card\", built as `tend threads T56`: Back and Escape on the moment step return to the threads, elsewhere they close; on the walk screen, Navigate and the viewer (`backFrom`, the card's `requestClose`).\n- The review (the auditor, one round): F2 accepted, fixed as `tend threads audit 1` (Back during a join's write waits for it); F1 deferred `[loop]` (Memories' card answers no Escape or Back), F3 deferred `[loop]` (Show more's page count carried back), and a visible Back on the step for an iPhone filed `[owner]` in DEFERRED (a new control, a mock-up first).\n- T55, \"two photos of the walk still open read alike\", leaves the inbox: already on main as thread-at-capture CT12 (decision 0257). T57, \"'This moment is in it' is dimmed with its row\": the owner's yes; a changed look filed before its mock-up, so its mock-up is drawn (https://claude.ai/artifact/EZgND4JR3aXTF2qeg33W3x, `docs/mockups/thread-row-in-it/`) and asked at the close; built by the next `/tend inbox` once approved. G14, the ZIP64 backup: the owner's yes, noted; it waits.\n- Lens 0, threads: E-threads-1 to 3 (ratified) met by capthread's checks, green in this run.\n- The e2e: capthread, threads. Nothing here has run on a phone.\n"
+    }
+  ]
+}

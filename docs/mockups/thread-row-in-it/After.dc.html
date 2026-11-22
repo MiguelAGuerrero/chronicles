@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recommended: only the title fades</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#1d2430}a:hover{color:#596273}
+@font-face{font-family:"Ionicons";src:url("/_blob/04f5e27a41f98c83ad9e47d835765d56") format("truetype");}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; position: relative; background: #ffffff; font-family: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif">
+<img src="/_blob/2c8962146f3fd44af7708cf3d5fbadca" alt="" aria-hidden="true" style="width: 390px; height: 844px; display: block">
+<button type="button" disabled aria-disabled="true" aria-label="Murals, This moment is in it" style="position: absolute; left: 24px; top: 201px; width: 342px; height: 56px; box-sizing: border-box; margin: 0; padding: 8px 12px; border: 1px solid #e3e0da; border-radius: 12px; background: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 2px; text-align: left; cursor: default">
+<span style="display: flex; align-items: center; gap: 6px; opacity: 0.45">
+<span aria-hidden="true" style="font-family: Ionicons; font-size: 15px; color: #1d2430; line-height: 1">&#xf3b8;</span>
+<span style="color: #1d2430; font-size: 16px; font-weight: 600">Murals</span>
+</span>
+<span style="color: #596273; font-size: 13px">This moment is in it</span>
+</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
