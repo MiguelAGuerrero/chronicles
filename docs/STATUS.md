@@ -272,15 +272,11 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Otherwise: leave it (the slip's going is the sign).
   Nov 21: the owner's yes, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/4JQowNQ7kB8ZtfNH9zAYDN (docs/mockups/contents-switch-stays/): after a tap the sheet stays up, the switch drawn off and its note reading Off.
   Nov 21: the mock-up approved by the owner, "Approve as drawn (Recommended)" (decision 0252). It is built as drawn.
-- **T58 [owner] The recording bar at 320 px: nothing shows its line is the way back to the walk** (2026-11-22)
-  Area: tabs. Seen: `bc-02-explore-320` (the `barcaptures` journey): with the camera, the mic, the pencil and Stop, the line holds the red dot and "< 1 min" alone; the cold find (the `ux-reviewer` with the pictures and the task "go back to the walk I'm recording", nothing else) could not place it at 320 px and placed it at once at 390 px by the chevron (high, decision 0167). Rests on: decision 0167, "a task it cannot place … is a high finding however well the control tests"; decision 0051, the forward chevron as the bar's way back (U10). It reopens the owner's Nov 21 choice, "Approve, chevron left out at 320 (Recommended)", made before any cold find.
-  Recommended: at 320 px keep the chevron and leave out the red dot (the other shape drawn on Nov 21, Proposed320B); from 360 px both, as now; paused, the pause glyph at every width. /vision: aligned (Honour; no word, count or colour added).
-  Mock-up: https://claude.ai/artifact/WmMWziwYizjMhvJzaXzBrM#artboard-Proposed320B (docs/mockups/recording-bar-mic-pencil/)
-  Otherwise: leave it as approved, the line's spoken name ("… Return to the walk") its only sign.
 - **T59 [owner] The recording bar paused: "1 min · Pau…" at 390 px** (2026-11-22)
   Area: tabs. Seen: `bc-08-paused-390` (the `barcaptures` journey): with four buttons and the chevron, the line has about 100 px, and " · Paused" shrinks to "Pau…" (the UI review of recording-bar-captures, U1, medium). The paused bar with four buttons was in no drawing. Rests on: `.claude/rules/ui-patterns.md`, "content must not be lost"; tend tabs audit 57 lets the word alone shrink, which held when the line had room for it.
   Recommended: drop the visible " · Paused": the pause glyph (decision 0051, U10) shows it, a shape, not a colour, and the spoken name keeps "Walk paused"; the time stays whole and the chevron stays the way back. /vision: aligned (Honour; a word taken away, nothing added).
   Otherwise: leave the chevron out while paused, as mid-memo (the way back then unmarked while paused); or leave it shrinking.
+  Nov 22: the owner's yes, "Drop the word (Recommended)". Mock-up: https://claude.ai/artifact/WmMWziwYizjMhvJzaXzBrM#artboard-Paused390 (docs/mockups/recording-bar-mic-pencil/: PausedToday390 the build, Paused390 and Paused320 the change), approved "Approve as drawn (Recommended)" (decision 0252). Paused below 360 px the chevron already gives way to the glyph since `tend tabs T58` (the owner's "Chevron gives way (Recommended)"). One build per run, so it waits for the next `/tend inbox` (this run built T58).
 
 ### From the road engine's audit (2026-11-18)
 
@@ -416,20 +412,16 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 22, `/tend inbox`, one build** (opened from `0dda79f5`; an inbox run: lenses 1-7 belong to a sweep and were not run).
-- The owner's answers: build T11 now; G5, G7 and G8 yes, each noted on its entry to wait for the next `/tend inbox`.
-- T11, "Voice and note are two taps away while a walk is minimized, off Memories", built as the slice
-  recording-bar-captures (BC1-BC10, `specs/recording-bar-captures/spec.md`): the bar's mic and pencil beside its camera,
-  the memo recorded in place, the note's page over the tab, the line's time alone, the chevron from 360 px. Two states
-  the drawing had not shown (a discarded memo's Undo, the bar's words on their own line) drawn and approved by the owner
-  during the run, "Approve as drawn (Recommended)". Leaves the inbox.
-- The review: the steward's S1-S6 into the criteria; the cold find, the UI review and the auditor, one round: audit 1-4
-  and ui 1-2 fixed behind regression tests; four items deferred; two to the owner.
-- Entries filed: T58 (the bar's way back unmarked at 320 px, the cold find's high), T59 (paused, "1 min · Pau…").
-- The e2e: barcaptures (new), launch, tabs, capturehome, unsaved. Nothing here has run on a phone.
+**Nov 22, `/tend inbox T58 yes, T59 yes`, one build** (opened from `da9779a3`; an inbox run: lenses 1-7 belong to a sweep and were not run).
+- T58, "The recording bar at 320 px: nothing shows its line is the way back to the walk", built as `tend tabs T58`: the chevron at every width outside a memo, the red dot from 360 px, the drawing's gaps below 360 px. Building it found the paused bar at 320 px undrawn (the glyph and the chevron cut the time); the owner chose "Chevron gives way (Recommended)", drawn as Paused320: paused below 360 px the chevron gives way to the glyph. Leaves the inbox.
+- T59, "The recording bar paused: '1 min · Pau…' at 390 px": its mock-up drawn and approved by the owner, "Approve as drawn (Recommended)"; it waits for the next `/tend inbox` (one build per run).
+- The review (the auditor and the ux-reviewer, one round): `tend tabs audit 63` (the paused line's gaps), `64` (the journey checks the paused bar at 320 px), `65` (paused read once); the reviewer's "1:05" note rejected (the owner's hours format, decision 0243).
+- Open before the loop: BC6's words and the recording bar's rule, which still say the chevron is left out at 320 px.
+- Entries filed: none. The e2e: barcaptures, launch, tabs. Nothing here has run on a phone.
 
 ### Open before the loop
 
+- **BC6's words and the recording bar's rule after `tend tabs T58`** (Nov 22; the owner's yes to T58, "Keep chevron, drop dot (Recommended)", and "Chevron gives way (Recommended)" for the paused bar). What ships: the bar's chevron shows at every width outside a memo, the red dot from 360 px (`barChevron`, `barDot` in `lib/recordingBar`); paused below 360 px the chevron gives way to the pause glyph. Still to say by hand: `specs/recording-bar-captures/spec.md` BC6 says "at 320 px the chevron is left out, at 390 px it shows", and `.claude/rules/recording-bar.md` says `barChevron(width, memo)` "hides the chevron below 360 px".
 - **The contents' words after `tend memories T53`** (Nov 21; the owner's yes to T53). What ships: Chronicle's Contents holds Threads, Reactions and Hidden, then the switch Bring moments back drawn as a switch, then Your data, then Forget my choices set apart before Close, in four groups split by a hairline, and the sheet scrolls when taller than the screen. Still to say by hand: `specs/chronicle-journal/spec.md`'s ui 6 ("The switch drawn as a menu row is deferred": it is built) and JN21's list (no Reactions or Your data), and `.claude/rules/journal.md`'s "The contents" line (the old order, no Reactions or Your data).
 - **`specs/quality-of-life/spec.md` l.42 (QL13) says "until then the locale default shows"** (Nov 20). What ships: the units store starts at km until `loadUnits` reads meta at launch (`src/lib/units.ts` l.30-32, held by the unit test "QL13 regression: a fresh store starts at km, whatever the machine", so pure code and `npm test` never read the machine's locale), so a miles user's first frames say km. E-map-3 ("…in the units they chose … as soon as they choose them", proposed, decision 0244) favours the fix over new words: the app's instance sets the locale's default on import (filed `[loop]` in `docs/DEFERRED.md`, "Map, walk screen and motion polish") (the `/tend map` lenses' auditor 4; the diff review's steward 4).
 - **QL16's words and the map rule's "Distances in words" after `tend map 23`** (Nov 20; decision 0244, the owner's "Keep it in the map (Recommended)"). What ships: a view takes its distance formatters from `useDistance()` (`lib/useUnits`), bound to the units, or passes the units it holds; `destLine` and `passNote` take the units. Under the React Compiler (decision 0207) a view that only calls `useUnits()` is redrawn on a switch but keeps each line it memoized, so Explore's tile said "4.0 km away" while its spoken label said "2.5 mi away". Still saying the old: `specs/quality-of-life/spec.md` l.45, QL16 ("`useUnits()` in the components that format"); `.claude/rules/map.md` l.71, "Distances in words" (a line that builds a distance "better calls `formatDistance`, which also follows the units setting"), and `.claude/rules/tabs-and-home.md`'s units line ("`useUnits()` subscribes a component … calls `useUnits()` so it redraws"). The loop only adds to a rule file (0135) and never edits a spec (the `/tend map` lenses' auditor 2).

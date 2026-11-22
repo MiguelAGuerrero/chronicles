@@ -1,0 +1,37 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T58",
+        "--reason",
+        "the owner's yes, built in tend tabs T58"
+      ],
+      "target": "sha256:f9dac67ac7fe8e677b50c5d301558cf8d1d0dab972fd0c6f34e8d324375346cb"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T59"
+      ],
+      "body": "  Nov 22: the owner's yes, \"Drop the word (Recommended)\". Mock-up: https://claude.ai/artifact/WmMWziwYizjMhvJzaXzBrM#artboard-Paused390 (docs/mockups/recording-bar-mic-pencil/: PausedToday390 the build, Paused390 and Paused320 the change), approved \"Approve as drawn (Recommended)\" (decision 0252). Paused below 360 px the chevron already gives way to the glyph since `tend tabs T58` (the owner's \"Chevron gives way (Recommended)\"). One build per run, so it waits for the next `/tend inbox` (this run built T58).\n",
+      "target": "sha256:6260002a4ea8541fd401a987d68f59f9b6c3ee5013eb332acbe082c212763d59"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **BC6's words and the recording bar's rule after `tend tabs T58`** (Nov 22; the owner's yes to T58, \"Keep chevron, drop dot (Recommended)\", and \"Chevron gives way (Recommended)\" for the paused bar). What ships: the bar's chevron shows at every width outside a memo, the red dot from 360 px (`barChevron`, `barDot` in `lib/recordingBar`); paused below 360 px the chevron gives way to the pause glyph. Still to say by hand: `specs/recording-bar-captures/spec.md` BC6 says \"at 320 px the chevron is left out, at 390 px it shows\", and `.claude/rules/recording-bar.md` says `barChevron(width, memo)` \"hides the chevron below 360 px\".\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 22, `/tend inbox T58 yes, T59 yes`, one build** (opened from `da9779a3`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- T58, \"The recording bar at 320 px: nothing shows its line is the way back to the walk\", built as `tend tabs T58`: the chevron at every width outside a memo, the red dot from 360 px, the drawing's gaps below 360 px. Building it found the paused bar at 320 px undrawn (the glyph and the chevron cut the time); the owner chose \"Chevron gives way (Recommended)\", drawn as Paused320: paused below 360 px the chevron gives way to the glyph. Leaves the inbox.\n- T59, \"The recording bar paused: '1 min · Pau…' at 390 px\": its mock-up drawn and approved by the owner, \"Approve as drawn (Recommended)\"; it waits for the next `/tend inbox` (one build per run).\n- The review (the auditor and the ux-reviewer, one round): `tend tabs audit 63` (the paused line's gaps), `64` (the journey checks the paused bar at 320 px), `65` (paused read once); the reviewer's \"1:05\" note rejected (the owner's hours format, decision 0243).\n- Open before the loop: BC6's words and the recording bar's rule, which still say the chevron is left out at 320 px.\n- Entries filed: none. The e2e: barcaptures, launch, tabs. Nothing here has run on a phone.\n"
+    }
+  ]
+}
