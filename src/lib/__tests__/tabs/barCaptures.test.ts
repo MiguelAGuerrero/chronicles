@@ -146,3 +146,14 @@ test('tend tabs T59: paused, the bar draws the time alone, no " · Paused"; the 
   assert.doesNotMatch(src, /recording-word|· Paused/, 'the bar draws no word beside the time');
   assert.match(src, /testID="recording-paused"/, 'the pause glyph stays');
 });
+
+// The T59 review (auditor F2): test names still promised a drawn paused word after T59 took it away, for a later fix to
+// "restore".
+test('tend tabs audit 67: no test name in tabs/ promises a drawn paused word', async () => {
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const titles = readdirSync(__dirname).filter((f) => f.endsWith('.test.ts'))
+    .flatMap((f) => [...readFileSync(join(__dirname, f), 'utf8').matchAll(/^test\('((?:[^'\\]|\\.)*)'/gm)].map((m) => m[1]));
+  const stale = titles.filter((t) => /cuts the word|only the word|says Paused|its word apart/.test(t));
+  assert.deepEqual(stale, []);
+});

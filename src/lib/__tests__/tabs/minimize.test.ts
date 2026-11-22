@@ -23,7 +23,7 @@ test('NV9: the recording bar shows the time walked and the distance', () => {
   assert.match(r.label, /return to the walk/i);
 });
 
-test('NV9: paused, it says Paused, and paused time is not counted', () => {
+test('NV9: paused, its spoken name says so (the glyph since T59, no word drawn), and paused time is not counted', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 60_000, ended_at: null }], now: 125_000, distanceM: 1250 });
   // NV9's "Paused when paused": since T59 (the owner, Nov 22, "Drop the word") the glyph draws it and the label says it.
   assert.equal(r.text, '1 min · 1.3\u00a0km');
@@ -96,7 +96,7 @@ test('NV8: whoever keeps the open walk hears it start, pause, resume and stop', 
   assert.equal(n, 2);
 });
 
-test('tend tabs audit 17: paused, the line puts its time and distance first, so a narrow bar cuts the word, never the numbers', () => {
+test('tend tabs audit 17: paused, the line keeps its time and distance whole, no word after them since T59', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 9_000, distanceM: 18 });
   // Since T59 no word at all: the numbers alone, whole.
   assert.match(r.text, /^< 1 min · 18[ \u00a0]m$/);
@@ -152,7 +152,7 @@ test('tend tabs audit 56: the bar says the time it draws', () => {
 // The diff review's ux 1, a regression of tend tabs 21: at 320 px, paused, the bar's one line ("< 1 min · 18 m · Paused")
 // was cut inside its numbers ("< 1 min · 18…", the unit lost; "16…" for 168 m), since the numbers and the word were one
 // string under one ellipsis. tend tabs audit 17 promised the word goes first.
-test('tend tabs audit 57: the bar\'s line gives its numbers and its word apart, so only the word can shrink', () => {
+test('tend tabs audit 57: the bar\'s numbers are drawn whole and never shrink; paused, nothing is drawn beside them since T59', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 30_000, distanceM: 84 });
   assert.equal(r.numbers, '< 1 min · 84 m');
   // Since T59 the line draws no word paused: the numbers are the whole line.

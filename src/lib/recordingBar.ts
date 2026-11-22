@@ -34,7 +34,7 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
   text: string;
   /** The line's visible words since T11 (BC6): the time alone; the distance is in `label`. */
   time: string;
-  /** The time and the distance, drawn whole (tend tabs audit 57). */
+  /** The time and the distance, as one string; the bar draws `time` and speaks the distance in `label` (BC6). */
   numbers: string;
   label: string;
   paused: boolean;

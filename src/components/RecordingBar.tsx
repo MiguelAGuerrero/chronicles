@@ -42,7 +42,7 @@ const SAID_MS = 3000;
 
 /**
  * The recording bar (NV9): while a walk is open and minimized, just above the
- * tab bar on every tab. Elapsed time and distance (the pause glyph when paused, T59); a tap
+ * tab bar on every tab. The time walked, the distance in its spoken name (BC6), the pause glyph when paused (T59); a tap
  * returns to the walk; a held Stop (decision 0048) ends it. Its camera keeps a photo or video for the open
  * walk, placed as the walk's own captures are (the latest fix, else at stop),
  * paused or not, without opening the walk screen.
