@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T59",
+        "--reason",
+        "the owner's yes, built in tend tabs T59"
+      ],
+      "target": "sha256:b8792d9ac60df7659fd54e1590cbc922f4ce2c7e54adf7d2cab04419d3627996"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "BC6's words and the recording bar's rule after"
+      ],
+      "body": "  Nov 22 (`tend tabs T59`, the owner's \"Drop the word (Recommended)\", Paused390 approved): paused, the line now draws the pause glyph and the time alone, no \" · Paused\"; \"Walk paused\" stays in its spoken name. Also to say by hand: BC6's \"(\"12 min · Paused\" paused)\" and NV9's \"and Paused when paused\" (`specs/navigation-and-tabs/spec.md` l.48, now the glyph), and `.claude/rules/recording-bar.md`'s \"paused it reads \"1 min · Paused\" (numbers first, so a cut at 320 px takes the word)\"; the run added a line there saying so.\n",
+      "target": "sha256:df1d8a16807b688cd4456652456a8eebcce709f1d04385a1865620f82ab4cef6"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 22, `/tend inbox` (no answers typed; the owner chose T59 when asked), one build** (opened from `8ef4776e`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- T59, \"The recording bar paused: '1 min · Pau…' at 390 px\", built as `tend tabs T59`: paused, the line is the pause glyph, the time alone and the chevron, as Paused390 draws it; \"Walk paused\" stays in its spoken name. The checks that pinned the drawn word (NV9, `tend tabs` 17, 18, 21, audit 57, ME23's line, `recording-bar-captures ui 1`) now ask for its absence. Leaves the inbox.\n- Still waiting for a build with the owner's yes: T42, T43 (`[arch]`, a G entry to shape), T44, T45, T48, T49, T50, T51, T54; one a run.\n- Open before the loop: BC6's and NV9's words and the recording bar's rule, which still quote \" · Paused\" (noted on the T58 item).\n- Entries filed: none. The e2e: barcaptures, launch. Nothing here has run on a phone.\n"
+    }
+  ]
+}
