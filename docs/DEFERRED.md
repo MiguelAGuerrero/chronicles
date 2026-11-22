@@ -1134,3 +1134,10 @@ What the place offer leaves out (decision 0251).
 - A reload while the line is up drops it unanswered: the moment stays independent and is never asked about after (the line is a state on the walk screen, as 0224's armed line was).
 - A moment kept from the recording bar or Chronicle's toolbar during a walk is never offered a place, even on return to the walk screen: those screens show no places (PO5).
 - [loop] From the UI review (Nov 20, low, U5, opinion): a place that is not a choice sits beside the choices with only the ring to tell them apart; dimming it was rejected (it changes the map for a walker who isn't answering). Reopen if a real walk shows slips.
+
+## Recording bar captures
+
+- [loop] A memo discarded on the walk screen, Navigate's ready screen or the bar is never deleted when its screen goes within the Undo's five seconds: `useCaptures`' discard timer runs `dropTemp` inside a state updater, which never runs once unmounted, so the file (a blob on the web) stays (the diff review's F5; older than the slice, shared by every host).
+  - [loop] A memo under a second, ended by a tap on the bar's line, is dropped without "Too short, not kept": the walk screen opens and the bar is gone (the diff review's F6, low).
+  - [owner] The discarded memo's pill and the bar's words sit in flow above the bar, so the tab's content moves up while they show and back after (the UI review's U3, the auditor's UI note; as drawn and approved Nov 22). A fixed band the same height in both states would hold it still.
+  - [owner] Mid-memo the purple Save and the walk's Stop are both square stop glyphs, 50 px apart (the cold find, the auditor's UI note; as drawn, Memo390, and as the walk screen's capture stack). A tap on the walk's Stop only says "Hold to stop".

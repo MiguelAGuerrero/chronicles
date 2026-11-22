@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Recording bar captures (the recording bar on every tab but Memories holds a camera, a mic and a pencil beside its held Stop: a memo recorded in place, Discard and Save where the camera and the mic were, Undo above the bar, a note's page over the tab, each joined to the open walk; the line says the time alone, the chevron from 360 px, its words on a row of their own; BC1-BC10, from T11) | built; web only | tests first, then the code, 2026-11-22 | `specs/recording-bar-captures/spec.md` | review: 4 audit and 2 UI findings fixed, 2 deferred, 2 to the owner |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "The recording bar keeps a memo and a note"
+      ],
+      "target": "sha256:6ab327d0322ff07f3d657e259593da362ca69dfacb519f831504287b1cbb67c7"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Recording bar captures",
+        "--new"
+      ],
+      "body": "- [loop] A memo discarded on the walk screen, Navigate's ready screen or the bar is never deleted when its screen goes within the Undo's five seconds: `useCaptures`' discard timer runs `dropTemp` inside a state updater, which never runs once unmounted, so the file (a blob on the web) stays (the diff review's F5; older than the slice, shared by every host).\n- [loop] A memo under a second, ended by a tap on the bar's line, is dropped without \"Too short, not kept\": the walk screen opens and the bar is gone (the diff review's F6, low).\n- [owner] The discarded memo's pill and the bar's words sit in flow above the bar, so the tab's content moves up while they show and back after (the UI review's U3, the auditor's UI note; as drawn and approved Nov 22). A fixed band the same height in both states would hold it still.\n- [owner] Mid-memo the purple Save and the walk's Stop are both square stop glyphs, 50 px apart (the cold find, the auditor's UI note; as drawn, Memo390, and as the walk screen's capture stack). A tap on the walk's Stop only says \"Hold to stop\".\n"
+    }
+  ]
+}

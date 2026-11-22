@@ -88,7 +88,7 @@ async function run(h) {
     return { boxes, names };
   };
 
-  await step('BC1', async () => {
+  await step('bc1', async () => {
     const r = await row();
     const ordered = r.boxes.every((b, i) => !!b && (i === 0 || b.x > r.boxes[i - 1].x));
     const sized = r.boxes.every((b) => b && b.w >= 44 && b.h >= 44);
@@ -111,7 +111,7 @@ async function run(h) {
       wide: document.documentElement.scrollWidth <= window.innerWidth,
     };
   });
-  await step('BC6', async () => {
+  await step('bc6', async () => {
     const at390 = await line();
     await pg.setViewportSize({ width: 320, height: 700 });
     await pg.waitForTimeout(1000);
@@ -126,7 +126,7 @@ async function run(h) {
   });
 
   // BC10: the bar's words on a line of their own above the buttons, the buttons unmoved.
-  await step('BC10', async () => {
+  await step('bc10', async () => {
     await pg.setViewportSize({ width: 320, height: 700 });
     await pg.waitForTimeout(800);
     const before = await row();
@@ -145,7 +145,7 @@ async function run(h) {
   });
 
   // BC2: the memo records in place and joins the walk; the walk screen never opens.
-  await step('BC2', async () => {
+  await step('bc2', async () => {
     const from = urls.length;
     const before = await row();
     const voices = await count('voice');
@@ -177,7 +177,7 @@ async function run(h) {
   });
 
   // BC7: a memo or a note kept says nothing on the bar; nothing in the accent colour.
-  await step('BC7', async () => {
+  await step('bc7', async () => {
     const voices = await count('voice');
     await memo();
     await pg.click('[data-testid=bar-voice-save]');
@@ -194,7 +194,7 @@ async function run(h) {
   });
 
   // BC9: Discard sets the memo aside with the walk screen's pill above the bar; Undo keeps it.
-  await step('BC9', async () => {
+  await step('bc9', async () => {
     const voices = await count('voice');
     await memo();
     await pg.click('[data-testid=bar-voice-discard]');
@@ -210,7 +210,7 @@ async function run(h) {
   });
 
   // BC4: the pencil opens the note's page over the tab; words kept join the walk; an empty page keeps nothing.
-  await step('BC4', async () => {
+  await step('bc4', async () => {
     const from = urls.length;
     const notes = await count('text');
     await pg.click('[data-testid=bar-note]');
@@ -237,7 +237,7 @@ async function run(h) {
   });
 
   // BC3: leaving the tab mid-memo saves it; the web warns before a reload; the line saves, then returns; Stop refuses.
-  await step('BC3', async () => {
+  await step('bc3', async () => {
     let voices = await count('voice');
     await memo();
     const warns = await pg.evaluate(() => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
@@ -260,7 +260,7 @@ async function run(h) {
 
   // BC8 (E-tabs-9): from Chronicle's Walks, the photo, the memo and the note each one tap from the bar, each kept in the
   // open walk, the URL never /walk.
-  await step('BC8', async () => {
+  await step('bc8', async () => {
     await tabTo(pg, 'chronicle', 'walks');
     await pg.waitForTimeout(1000);
     const from = urls.length;
@@ -289,7 +289,7 @@ async function run(h) {
   });
 
   // BC1 on Memories: none of the three, as today (decision 0112).
-  await step('BC1 Memories', async () => {
+  await step('bc1 Memories', async () => {
     await tabTo(pg, 'chronicle', 'memories');
     // tabTo leaves Chronicle on the section it was last on; Memories is chosen by its own button.
     if (await shown('[data-testid=section-memories]')) await pg.click('[data-testid=section-memories]');
@@ -300,7 +300,7 @@ async function run(h) {
   });
 
   // BC5: paused, the bar's memo and note join the walk.
-  await step('BC5', async () => {
+  await step('bc5', async () => {
     await tabTo(pg, 'explore');
     await pg.waitForTimeout(800);
     await pg.click('[data-testid=recording-return]');

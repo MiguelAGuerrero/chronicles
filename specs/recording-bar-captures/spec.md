@@ -69,3 +69,36 @@ screen's memo does, so it is not a way the bar goes). S3 accepted (BC2, BC4: a f
 S4 accepted (BC9: the pill across tabs, and when the bar goes). S5 accepted (BC6: the memo's line, no chevron, its
 spoken name with the pause). S6 accepted (BC10: the order above the bar). Silent: the row at 200% text is the phone
 item T13's; react-native-web sizes text in px.
+
+## Record (Nov 22)
+
+Built from T11 (`/tend inbox`, the owner's "T11 mic + pencil (Recommended)"). Tests first: the unit tests (BC1, BC6)
+and the `barcaptures` journey (BC1-BC10) committed as todos and run failing on the build before (`1c3a7595`). Unit:
+`tabs/barCaptures.test.ts` (BC1, BC6, audit 1-4). Journey `barcaptures` (16 checks, BC1-BC10, audit 1-2, ui 1-2).
+`launch` (59), `tabs` (68), `capturehome` (26) and `unsaved` (43) green after it; launch's audit 55, 57, tend tabs 18,
+ME23 and NV8 checks read the approved look (the time drawn whole, the distance in the line's spoken name), none
+loosened. Typecheck, lint, `npm test` (3847).
+
+Cold find (the pictures and five tasks in the owner's words): the mic, Save, Undo and the pencil found; the way back at
+320 px not placed (high): the owner's Nov 21 choice (the chevron left out), put back to the owner as an inbox entry with
+the drawn alternative; the note's glyph read as "document" (low, rejected: the walk screen's and Navigate's note button
+wear the same glyph, siblings alike); two square stop glyphs mid-memo (medium, as drawn: `docs/DEFERRED.md`).
+
+UI review: U1 (paused at 390 px, "1 min · Pau…", medium; undrawn) to the owner as an inbox entry; U2 accepted
+(`recording-bar-captures ui 1`, the no-break space before " · Paused"); U3 deferred to the owner (the pill and the words
+in flow move the tab's content; as drawn); U4 accepted (`ui 2`, the memo dot's white ring, X1).
+
+Audit (the auditor, one round): F1 accepted (`recording-bar-captures audit 1`, a memo under a card is saved), F2
+accepted (`audit 2`, a change of section keeps the memo), F3 accepted (`audit 3`, a memo on Memories is saved), F4
+accepted (`audit 4`, the captures off while Stop runs); F5 deferred (`[loop]`, a discarded memo's file kept when its
+screen goes, older than the slice), F6 deferred (`[loop]`, a sub-second memo ended by the line says nothing). The
+launch and minimize checks were read as not loosened.
+
+Left tabs no rougher. Native never run on a device: the memo from a tab and the note's page over the tabs are items in
+`docs/NATIVE_UNVERIFIED.md`, "Navigation and tabs".
+
+`check:test-first` names all ten untested-first, wrongly: the tests-first commit (`1c3a7595`) held every assertion as a
+todo (`check.todo`, `{ todo: 'test first' }`), run failing on the build before, but the journey's step wrapper was
+labelled by the criterion (`step('BC1', …)`), and the checker reads a `step(` call naming an id as a real test, so each
+id reads as todo and real in one commit. The labels are lowercase since (`step('bc1', …)`), so they name no criterion;
+the history is left as it is.
