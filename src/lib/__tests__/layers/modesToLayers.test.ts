@@ -31,7 +31,7 @@ test('MD10 (decision 0260): a walk starts with the maps\' setting, its switches 
   const { createWalkLayers } = await import('../../layers/walkShell');
   const p = fakePorts();
   const maps = createLayers(p);
-  const w = createWalkLayers(p, maps);
+  const w = createWalkLayers(p, maps, async () => 12);
   await maps.set('borders', true);
   await w.begin('w1');
   assert.equal(maps.store.get().on.borders, true, 'w1 starts with what the ready map shows');
@@ -67,14 +67,15 @@ test('MD14: the layers write only meta: no walk, trace point, capture or find is
   const { createWalkLayers } = await import('../../layers/walkShell');
   const p = fakePorts();
   const maps = createLayers(p);
-  const w = createWalkLayers(p, maps);
+  await p.db.createWalk({ id: 'w1', started_at: 1, ended_at: null, title: null, epilogue: null, area: null, open: true, snapped_build: null } as never);
+  const w = createWalkLayers(p, maps, async () => 12);
   await w.begin('w1');
   await maps.set('places', true);
   await maps.set('places', false);
   await new Promise((r) => setTimeout(r, 0));
-  const calls = p.log.calls('db.');
+  const calls = p.log.calls('db.').filter((c: string) => !/^db\.createWalk\b/.test(c));
   assert.ok(calls.length > 0, 'the shell wrote something');
-  assert.ok(calls.every((c: string) => /^db\.(getMeta|setMeta)\b/.test(c)), `only meta is read or written (${[...new Set(calls)].join(', ')})`);
+  assert.ok(calls.every((c: string) => /^db\.(getMeta|setMeta|getWalk)\b/.test(c)), `only meta is written, and the walk only read (${[...new Set(calls)].join(', ')})`);
 });
 
 test('MD15: nothing on the walk, the ready map or the settings counts places or says what is left, and the "?" are never named', () => {

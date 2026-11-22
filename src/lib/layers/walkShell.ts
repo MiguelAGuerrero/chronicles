@@ -1,5 +1,6 @@
 // @layer shell
 import type { Ports } from '../ports/types';
+import { clampPass, walkPassKey } from '../explore/explore';
 import { placesSpansKey, decodeSpans, encodeSpans, toggleSpans } from '../explore/placesSpans';
 import type { Layers } from './shell';
 
@@ -8,8 +9,10 @@ import type { Layers } from './shell';
  * shares (`map_layers`, `./shell`), so what the ready map shows is what the walk starts with, and a switch on the walk is
  * remembered for every map and the next walk. What stays the walk's own is the spans Places was on during it
  * (`places_spans:<walk>`), which the replay counts passes within (MD9): opened as the walk opens with Places on, and kept
- * from every switch while it is open, whichever map made it. The factory takes its ports and the maps' layers so a Node test
- * runs it with fakes; the app's instance is `./walkIndex`.
+ * from every switch while it is open, whichever map made it, with the pass distance it is walked with (`walk_pass:<walk>`, TC9).
+ * Once the walk has ended or is gone nothing more is written for it (audit 2), whether or not the walk screen said so.
+ * The factory takes its ports, the maps' layers and the saved pass distance so a Node test runs it with fakes; the app's
+ * instance is `./walkIndex`.
  */
 
 export interface WalkLayers {
@@ -17,7 +20,7 @@ export interface WalkLayers {
   begin(walkId: string | null): Promise<void>;
 }
 
-export function createWalkLayers(p: Pick<Ports, 'db' | 'clock'>, maps: Pick<Layers, 'store' | 'load'>): WalkLayers {
+export function createWalkLayers(p: Pick<Ports, 'db' | 'clock'>, maps: Pick<Layers, 'store' | 'load'>, passM: () => Promise<number>): WalkLayers {
   let walkId: string | null = null;
   // Places as last kept for the open walk, so only a change is written.
   let places: boolean | null = null;
@@ -25,6 +28,15 @@ export function createWalkLayers(p: Pick<Ports, 'db' | 'clock'>, maps: Pick<Laye
   let queue: Promise<void> = Promise.resolve();
   const keep = (id: string, on: boolean) =>
     (queue = queue.then(async () => {
+      const walk = await p.db.getWalk(id).catch(() => null);
+      if (!walk || walk.ended_at != null) {
+        if (walkId === id) walkId = null;
+        return;
+      }
+      if (on && !(await p.db.getMeta(walkPassKey(id)).catch(() => null))) {
+        const m = await passM().catch(() => null);
+        if (m != null) await p.db.setMeta(walkPassKey(id), String(clampPass(m))).catch(() => {});
+      }
       const spans = decodeSpans(await p.db.getMeta(placesSpansKey(id)).catch(() => null));
       const after = toggleSpans(spans, on, p.clock.now());
       if (after !== spans) await p.db.setMeta(placesSpansKey(id), encodeSpans(after)).catch(() => {});

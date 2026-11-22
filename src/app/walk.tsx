@@ -1023,16 +1023,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
       offWaiting();
     };
   }, [walk, params.recall, resumed, screenFocused, routeNav]);
-  // Places turned on for this walk: its pass distance is kept once, so a later setting never rewrites its replay (TC9); off, a
-  // place card that was open closes. (The spans it was on are kept by `walkLayers`, MD9.)
+  // Places off: a place card that was open closes. (The spans it was on and the walk's pass distance, TC9, are kept by
+  // `walkLayers`, MD9, whichever map switched it.)
   useEffect(() => {
-    if (!walk) return;
-    if (!placesOn) {
-      setMarkOpen(null);
-      return;
-    }
-    const key = walkPassKey(walk.id);
-    db.getMeta(key).then((v) => (v ? undefined : loadSettings().then((s) => db.setMeta(key, String(clampPass(s.passM))))), () => {}).catch(() => {});
+    if (walk && !placesOn) setMarkOpen(null);
   }, [walk, placesOn]);
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
   // only, read again on returning to the front (an area looked at meanwhile, audit).

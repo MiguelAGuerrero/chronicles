@@ -846,7 +846,7 @@ async function createHarness() {
     await pg.waitForSelector('[data-testid=stop]', { timeout });
   };
   // Switches a map layer on (or off) through the Layers panel and closes the panel (specs/map-layers ML3-ML5): the layers all
-  // start off, so a journey that looks at one turns it on first.
+  // start off but Places, and the walk keeps what the ready map shows (decision 0260), so a journey sets the ones it looks at.
   const switchLayer = async (pg, id, wantOn = true) => {
     await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
     if (!(await pg.locator('[data-testid=layers-panel]').count())) await pg.click('[data-testid=layers]');

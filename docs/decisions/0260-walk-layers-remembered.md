@@ -21,6 +21,10 @@ across browsing and navigation.
 - **What stays the walk's own:** the spans Places was on during it (`places_spans:<walk>`, MD9), opened when the walk opens
   with Places on and kept from every switch while the walk is open, whichever map made it (`layers/walkShell.ts`).
 - `walk_layers:<walk>` is no longer written or backed up; the stores still delete an earlier walk's row with the walk.
+- Spans and the walk's pass distance (`walk_pass:<walk>`, TC9) are written only while the walk is open (not ended, not
+  deleted), whether the switch came from the walk, the ready map or Explore (fix audits 2, 3).
+- **Accepted trade-off (fix audit 4, low):** a walk open across the update draws `map_layers` from then on, so a walk that
+  had Places on in its own setting while the maps had it off loses its "?" at relaunch, and its span closes there.
 
 ## Consequences
 - MD3 ("a fresh walk starts with every layer off") and MD10's per-walk setting are amended; 0234's proposed VISION.md line
