@@ -164,8 +164,9 @@ export const AddToThread = forwardRef<AddToThreadHandle, AddToThreadProps>(funct
   // Back and Escape from the host (tend threads T56): the moment step returns to the threads; elsewhere the card closes.
   useImperativeHandle(ref, () => ({
     requestClose: () => {
-      if (backFrom(step) === 'threads') setStep('threads');
-      else props.onClose();
+      const to = backFrom(step, storing);
+      if (to === 'threads') setStep('threads');
+      else if (to === 'close') props.onClose();
     },
   }));
 

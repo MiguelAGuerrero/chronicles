@@ -60,8 +60,11 @@ export function threadChoices<R extends ThreadRow>(rows: readonly R[], o: { quer
 /**
  * What Back and Escape do on each step of Add to a thread (tend threads T56, NN/g H3): on "Join it with another moment"
  * they return to the threads, so a change of mind keeps the card; on the threads and the name step they close it (a
- * name typed is kept as it goes, thread-at-capture audit 3).
+ * name typed is kept as it goes, thread-at-capture audit 3). While a tap is being stored they do nothing (tend threads
+ * audit 1): the join goes on to its name step, and a step back meanwhile would flip the card twice.
  */
-export function backFrom(step: 'threads' | 'moment' | 'name'): 'threads' | 'close' {
+export function backFrom(step: 'threads' | 'moment' | 'name', storing = false): 'threads' | 'close' | 'stay' {
+  // Only the moment step waits on a write that moves it on; the name step's `storing` stays set and must still close.
+  if (storing && step === 'moment') return 'stay';
   return step === 'moment' ? 'threads' : 'close';
 }

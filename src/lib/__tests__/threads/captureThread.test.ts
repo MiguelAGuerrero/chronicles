@@ -65,3 +65,10 @@ test('tend threads T56: Back and Escape on "Join it with another moment" return 
   assert.equal(backFrom('threads'), 'close');
   assert.equal(backFrom('name'), 'close', 'the thread is made: Back leaves, the typed name kept (thread-at-capture audit 3)');
 });
+
+test('tend threads audit 1: Back while a new thread is being stored does nothing, so the card never flips back then on', () => {
+  const backFrom = (picker as unknown as { backFrom: (step: 'threads' | 'moment' | 'name', storing?: boolean) => 'threads' | 'close' | 'stay' }).backFrom;
+  assert.equal(backFrom('moment', true), 'stay', 'the join being written goes on to its name step');
+  assert.equal(backFrom('moment', false), 'threads');
+  assert.equal(backFrom('name', true), 'close', 'on the name step the thread is made: Back still closes');
+});
