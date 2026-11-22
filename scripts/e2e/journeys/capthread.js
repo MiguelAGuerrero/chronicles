@@ -161,6 +161,19 @@ async function run(h) {
   const inIt = await pg.locator('[data-testid=add-last-thread][aria-disabled=true]').count();
   const inItText = inIt ? await pg.locator('[data-testid=add-last-thread]').innerText() : '';
   check(inIt === 1 && /This moment is in it/.test(inItText), `CT4: a thread the moment is in says so and cannot be tapped (${JSON.stringify(inItText)})`);
+  // tend threads T57 (the owner's yes and approved mock-up, docs/mockups/thread-row-in-it/): only the title and the
+  // link mark fade; the line that says why the row cannot be tapped stays in the muted ink, at full strength.
+  await pg.waitForTimeout(800);
+  await shot(pg, 'ct-06b-in-it');
+  const faded = async (text) => pg.locator('[data-testid=add-last-thread]').getByText(text, { exact: true }).first().evaluate((el) => {
+    let o = 1;
+    for (let n = el; n && n.getAttribute?.('data-testid') !== 'add-to-thread'; n = n.parentElement) o *= Number(getComputedStyle(n).opacity);
+    return { opacity: Math.round(o * 100) / 100, color: getComputedStyle(el).color };
+  }).catch(() => null);
+  const inItLine = await faded('This moment is in it');
+  const inItTitle = await faded('Murals');
+  check(inItLine?.opacity === 1 && inItLine.color === 'rgb(89, 98, 115)' && inItTitle && inItTitle.opacity < 1,
+    `tend threads T57: on a thread the moment is in, only the title and mark fade; "This moment is in it" stays in the muted ink (${JSON.stringify([inItLine, inItTitle])})`);
   await pg.click('[data-testid=add-to-thread-close]').catch(() => {});
   await gone('[data-testid=add-to-thread]', 3000);
 

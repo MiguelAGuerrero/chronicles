@@ -178,9 +178,11 @@ export const AddToThread = forwardRef<AddToThreadHandle, AddToThreadProps>(funct
       accessibilityState={{ disabled: r.has || storing }}
       disabled={r.has || storing}
       onPress={() => void addTo(r.id)}
-      style={[styles.row, r.has && styles.dim]}
+      style={styles.row}
     >
-      <View style={styles.named}>
+      {/* A thread the moment is in (tend threads T57, its approved mock-up): only its title and mark fade; the line that
+          says why it cannot be tapped stays in the muted ink. */}
+      <View style={[styles.named, r.has && styles.dim]}>
         <ThreadMark kind="made" size={16} />
         <Text style={styles.name} numberOfLines={1}>{r.title}</Text>
       </View>
