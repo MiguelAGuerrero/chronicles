@@ -1,0 +1,64 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T11",
+        "--reason",
+        "the owner's yes, built in recording-bar-captures (BC1-BC10)"
+      ],
+      "target": "sha256:4113f4b6e6bc25d8bd760da9c03f43d2037b1a2cdb3fdec04480e476021b3f88"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] The recording bar at 320 px: nothing shows its line is the way back to the walk** (2026-11-22)\n  Area: tabs. Seen: `bc-02-explore-320` (the `barcaptures` journey): with the camera, the mic, the pencil and Stop, the line holds the red dot and \"< 1 min\" alone; the cold find (the `ux-reviewer` with the pictures and the task \"go back to the walk I'm recording\", nothing else) could not place it at 320 px and placed it at once at 390 px by the chevron (high, decision 0167). Rests on: decision 0167, \"a task it cannot place … is a high finding however well the control tests\"; decision 0051, the forward chevron as the bar's way back (U10). It reopens the owner's Nov 21 choice, \"Approve, chevron left out at 320 (Recommended)\", made before any cold find.\n  Recommended: at 320 px keep the chevron and leave out the red dot (the other shape drawn on Nov 21, Proposed320B); from 360 px both, as now; paused, the pause glyph at every width. /vision: aligned (Honour; no word, count or colour added).\n  Mock-up: https://claude.ai/artifact/WmMWziwYizjMhvJzaXzBrM#artboard-Proposed320B (docs/mockups/recording-bar-mic-pencil/)\n  Otherwise: leave it as approved, the line's spoken name (\"… Return to the walk\") its only sign.\n",
+      "number": "T58"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] The recording bar paused: \"1 min · Pau…\" at 390 px** (2026-11-22)\n  Area: tabs. Seen: `bc-08-paused-390` (the `barcaptures` journey): with four buttons and the chevron, the line has about 100 px, and \" · Paused\" shrinks to \"Pau…\" (the UI review of recording-bar-captures, U1, medium). The paused bar with four buttons was in no drawing. Rests on: `.claude/rules/ui-patterns.md`, \"content must not be lost\"; tend tabs audit 57 lets the word alone shrink, which held when the line had room for it.\n  Recommended: drop the visible \" · Paused\": the pause glyph (decision 0051, U10) shows it, a shape, not a colour, and the spoken name keeps \"Walk paused\"; the time stays whole and the chevron stays the way back. /vision: aligned (Honour; a word taken away, nothing added).\n  Otherwise: leave the chevron out while paused, as mid-memo (the way back then unmarked while paused); or leave it shrinking.\n",
+      "number": "T59"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G5"
+      ],
+      "body": "  Nov 22: the owner's yes (\"Yes, queue it (Recommended)\"); one build per run, so it waits for the next `/tend inbox` (this run built T11).\n",
+      "target": "sha256:91f5b4020e6009612fde3b05a2abc7f800343fccb8d869ebd9142aa2d9fee800"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G7"
+      ],
+      "body": "  Nov 22: the owner's yes (\"Yes, queue it (Recommended)\"); one build per run, so it waits for the next `/tend inbox` (this run built T11).\n",
+      "target": "sha256:2ea32116750d3f8f3e3253c5bebb3c32f4e076fa7d195e2ac07626e537d02d16"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G8"
+      ],
+      "body": "  Nov 22: the owner's yes (\"Yes, queue it\", over the recommended \"Not yet, after G7\"); one build per run, so it waits for the next `/tend inbox` (this run built T11).\n",
+      "target": "sha256:7917c96b1ea9918836444720b1bebbfc7f13e147f116a539999130fd56bf9ec6"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 22, `/tend inbox`, one build** (opened from `0dda79f5`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- The owner's answers: build T11 now; G5, G7 and G8 yes, each noted on its entry to wait for the next `/tend inbox`.\n- T11, \"Voice and note are two taps away while a walk is minimized, off Memories\", built as the slice\n  recording-bar-captures (BC1-BC10, `specs/recording-bar-captures/spec.md`): the bar's mic and pencil beside its camera,\n  the memo recorded in place, the note's page over the tab, the line's time alone, the chevron from 360 px. Two states\n  the drawing had not shown (a discarded memo's Undo, the bar's words on their own line) drawn and approved by the owner\n  during the run, \"Approve as drawn (Recommended)\". Leaves the inbox.\n- The review: the steward's S1-S6 into the criteria; the cold find, the UI review and the auditor, one round: audit 1-4\n  and ui 1-2 fixed behind regression tests; four items deferred; two to the owner.\n- Entries filed: T58 (the bar's way back unmarked at 320 px, the cold find's high), T59 (paused, \"1 min · Pau…\").\n- The e2e: barcaptures (new), launch, tabs, capturehome, unsaved. Nothing here has run on a phone.\n"
+    }
+  ]
+}

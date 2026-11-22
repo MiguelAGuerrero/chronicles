@@ -43,7 +43,7 @@ owner. Changed only through `npm run expectations`; a line's words, status and a
   Answer: "Ratify as proposed (Recommended)" (the owner, 2026-11-20)
 - E-tabs-9 [ratified 2026-11-20] A person who goes out to notice, using tabs, would reasonably expect a photo, a voice memo or a note, each one tap from the tab they are on while a walk records, to join that walk without leaving the tab.
   Amends: E-tabs-4
-  Check: pending "with a walk minimized, on Explore and Chronicle's sections, the camera, the mic and the note each one tap from the bar, each kept in the open walk, the URL never /walk"
+  Check: barcaptures:"BC8: from Chronicle's Walks the bar's photo, memo and note are each kept in the open walk, the URL never /walk ("
   Grounds: VISION "Who it is for"; VISION Always, "Capture is one tap away on every screen you walk or capture from"; adjacent-apps "Record a walk: start, pause, stop" (AllTrails: photos taken during the recording are placed on the line; unverified)
   Serves: Honour; upholds the Always line "Capture is one tap away on every screen you walk or capture from": the tabs a walk is minimized to are such screens
   Answer: "Ratify as proposed (Recommended)" (the owner, 2026-11-20)

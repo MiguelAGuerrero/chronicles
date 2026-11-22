@@ -187,30 +187,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T11 [owner] Voice and note are two taps away while a walk is minimized, off Memories** (2026-11-11)
-  Area: tabs. Seen: `tabs-2-recording-bar`, `probe-explore-minimized` (pictures): on Explore and Chronicle's other sections the
-  recording bar offers the camera only. Rests on: VISION.md Always, "Capture is one tap away on every screen you walk or capture
-  from", and Never, "A capture behind a menu, a drawer or an extra tap" (steward S2). NV9 (your call, Nov 1) settled the camera on
-  the bar; the voice memo and the note were never ruled.
-  Reshaped by the owner (Nov 21): a mic and a pencil beside the bar's camera (this entry's earlier Otherwise). More than one
-  commit, so not built in the run that reshaped it (`/tend` section 7): a plain yes builds it as one slice, held to these lines.
-  Recommended: [M] the mic and the pencil beside the bar's camera, each the same 44 pt ink-on-white button, hidden on Memories as
-  the camera is (the band has all three there). It extends NV9 and decisions 0048 and 0240 and reverses none. /vision (Nov 21):
-  aligned (Honour: the moment kept where it happened, joined to its walk), with no accent and no count on the bar.
-  The slice: 1. While a walk is open and minimized, recording or paused, the bar on every tab but Memories holds a mic and a pencil
-  beside its camera, each 44 pt with a spoken name; on Memories it holds none, as today. 2. The mic records in place: the bar shows
-  the memo's timer with Stop & save and Discard, as the walk screen does; the memo joins the open walk, placed as a walk capture
-  is, and the walk screen does not open. 3. Leaving the tab or tapping the bar while a memo records saves it first (`memoGate`);
-  the bar's Stop refuses under a memo, as today (0048). 4. The pencil opens the note the walk screen's pencil opens, on the tab it
-  was tapped from; saved, it joins the open walk; left empty, nothing is kept. 5. All three work while paused, as captures do.
-  6. At 320 px and the default text size the bar is one row (its time, camera, mic, pencil and Stop), nothing wrapped; the
-  distance stays in its spoken name. 7. No accent, count or confirmation of a routine save on the bar (matrix 20). 8. E-tabs-4's
-  check passes from Explore and from Chronicle's Walks.
-  Otherwise: the mic alone (the earlier Recommended); or record the camera as the bar's whole stack in VISION.md's Shapes; or
-  leave it.
-  Nov 20: E-tabs-4 (`docs/expectations/tabs.md`, drafted by `/tend tabs`, the owner's "Ratify as drafted", decision 0243) is this entry's expectation: "a photo, a voice memo or a note, each one tap from the tab they are on while a walk records, to join that walk without leaving the tab". Judged failed in that run, its check pending. It passes only with the mic and the note both on the bar (this entry's Otherwise), not with the Recommended's mic alone, which leaves the note two taps away; the Recommended stands as filed. Since decision 0240 the bar's photo opens its editor by itself, on the tab it was taken from.
-  Nov 21: the owner's yes to this reshaped shape, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/WmMWziwYizjMhvJzaXzBrM (docs/mockups/recording-bar-mic-pencil/): the bar at 390 px with the time alone, a memo recording in place, and at 320 px a choice: the chevron left out (recommended) or the red dot.
-  Nov 21: the mock-up approved by the owner, "Approve, chevron left out at 320 (Recommended)": the bar as drawn, the time alone on its line, and at 320 px the red dot kept and the chevron left out (decision 0252). It is built as drawn.
 - **T13 [phone] The tabs at the largest text size** (2026-11-11)
   Area: tabs. Seen: `probe-minimized-200pct` (the web at zoom 2, a rough stand-in: react-native-web sizes text in px): the section
   bar read "M… / W. / D.", the band lost Note off the screen, the bar's line read "0:07 …" (UX review U6; WCAG 1.4.4).
@@ -296,6 +272,15 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Otherwise: leave it (the slip's going is the sign).
   Nov 21: the owner's yes, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/4JQowNQ7kB8ZtfNH9zAYDN (docs/mockups/contents-switch-stays/): after a tap the sheet stays up, the switch drawn off and its note reading Off.
   Nov 21: the mock-up approved by the owner, "Approve as drawn (Recommended)" (decision 0252). It is built as drawn.
+- **T58 [owner] The recording bar at 320 px: nothing shows its line is the way back to the walk** (2026-11-22)
+  Area: tabs. Seen: `bc-02-explore-320` (the `barcaptures` journey): with the camera, the mic, the pencil and Stop, the line holds the red dot and "< 1 min" alone; the cold find (the `ux-reviewer` with the pictures and the task "go back to the walk I'm recording", nothing else) could not place it at 320 px and placed it at once at 390 px by the chevron (high, decision 0167). Rests on: decision 0167, "a task it cannot place … is a high finding however well the control tests"; decision 0051, the forward chevron as the bar's way back (U10). It reopens the owner's Nov 21 choice, "Approve, chevron left out at 320 (Recommended)", made before any cold find.
+  Recommended: at 320 px keep the chevron and leave out the red dot (the other shape drawn on Nov 21, Proposed320B); from 360 px both, as now; paused, the pause glyph at every width. /vision: aligned (Honour; no word, count or colour added).
+  Mock-up: https://claude.ai/artifact/WmMWziwYizjMhvJzaXzBrM#artboard-Proposed320B (docs/mockups/recording-bar-mic-pencil/)
+  Otherwise: leave it as approved, the line's spoken name ("… Return to the walk") its only sign.
+- **T59 [owner] The recording bar paused: "1 min · Pau…" at 390 px** (2026-11-22)
+  Area: tabs. Seen: `bc-08-paused-390` (the `barcaptures` journey): with four buttons and the chevron, the line has about 100 px, and " · Paused" shrinks to "Pau…" (the UI review of recording-bar-captures, U1, medium). The paused bar with four buttons was in no drawing. Rests on: `.claude/rules/ui-patterns.md`, "content must not be lost"; tend tabs audit 57 lets the word alone shrink, which held when the line had room for it.
+  Recommended: drop the visible " · Paused": the pause glyph (decision 0051, U10) shows it, a shape, not a colour, and the spoken name keeps "Walk paused"; the time stays whole and the chevron stays the way back. /vision: aligned (Honour; a word taken away, nothing added).
+  Otherwise: leave the chevron out while paused, as mid-memo (the way back then unmarked while paused); or leave it shrinking.
 
 ### From the road engine's audit (2026-11-18)
 
@@ -368,6 +353,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Instead: recolour the pill's icon and draw only the car ground as a flat smoothed tint (criteria 1, 3, 5, 7).
   Open: the hatch's look (density, angle, edge width), candidates side by side on the web build, the owner picking (decision 0235's review, I4: a look call is never the builder's).
   Done when: on the owner's scene re-shot (a navigated walk into car ground, Walkability and Storefronts on, the heads-up showing, 390 px), a reader who has not seen the legend can say which ground is built around cars and where the line points.
+  Nov 22: the owner's yes ("Yes, queue it (Recommended)"); one build per run, so it waits for the next `/tend inbox` (this run built T11).
 - **G7 [M] Tend: a budget for review, rotation onto unseen areas, an answer log, and no racing** (2026-11-19) · no surface · the owner's calls
   Area: process (tend). From: /investigate, the owner's ask (2026-11-19). Brief: docs/research/tend-process-review.md. After: G6 (rotation only raises the alarm until areas can leave rough).
   Calls: one review fix per fix; the whole inbox counted, the oldest asked first, 30-day expiry; a lease on process files and decision numbers at publish; no process stop share. Decision 0235.
@@ -377,6 +363,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Payoff: review stops outrunning the work it reviews; the unseen half of the app is swept; the owner's answers become data. Cost: M; scripts/tend.js, scripts/records.js, scripts/bookkeeping.js, four skill files. Reopens: tend, records. After it: walk notes, if the owner wants them (the brief's "Left out").
   Instead: only criteria 1, 3 and 7.
   Build beside decision 0236 (on main at bfb60fd): `npm run expectations -- ratify|decline --by owner` already records who answered for the owner's ratifications and refuses the proxy; criterion 3's `by` and `pick` cover the run log's other answers and share that vocabulary. Criterion 1's count reads commits as `commits --loop-only` now does, every agent commit by its trailers, revert-aware.
+  Nov 22: the owner's yes ("Yes, queue it (Recommended)"); one build per run, so it waits for the next `/tend inbox` (this run built T11).
 - **G8 [M] Walk notes: the owner's own walks steer the loop** (2026-11-20) · no surface · the owner's calls
   Area: process (tend). From: /investigate, the owner's ask (2026-11-20). Brief: docs/research/walk-notes.md.
   Calls: kept in the repository with places stripped; a free line, then prompts for what is missing; steers the lens, the sweeps and silence; a report line, no reminder. Decision 0238.
@@ -386,6 +373,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
   Precedent: diary studies (an entry just after the event, anchored to it); a dogfooding friction log; Strava's optional "How did that activity feel?" and Apple Journal's prompts (all unverified; docs/research/adjacent-apps.md, "Ask how it went, just after"). Departs from Strava: words, never a number.
   Payoff: the loop's priorities and expectations rest on real use, the one thing a local-only app cannot otherwise know. Cost: M; about eight files (a new skill, a new script and its test, `scripts/tend.js`, three skill files, the map); no native code. Reopens: tend. After it: "settled after three walks", once G6 computes states.
   Instead: criteria 1, 3 and 4 alone (notes kept, read by hand in each run's report).
+  Nov 22: the owner's yes ("Yes, queue it", over the recommended "Not yet, after G7"); one build per run, so it waits for the next `/tend inbox` (this run built T11).
 - **G9 [S] The walk's map keeps you above its raised drawer** (2026-11-20) · Earn · aligned
   Area: walk-screen, map. From: /investigate, the owner's ask (2026-11-20), the walk drawer's deferred item. Brief: docs/research/walk-map-under-drawer.md. After: the walk drawer sections slice (`claude/serene-sagan-lz8nzp`) reaches main.
   Calls: keep the walker centred in the map above the raised drawer (not an overview of the walk, not left as it is); one height, 60%, for every view of the drawer. No decision amended.
@@ -428,10 +416,17 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 22, `/tend inbox T57 yes`, one build** (opened from `ed66be51`; an inbox run: lenses 1-7 belong to a sweep and were not run).
-- T57, "Add to a thread: 'This moment is in it' is dimmed with its row", built as `tend threads T57` from its approved mock-up (`docs/mockups/thread-row-in-it/`, decision 0252): only the title and the link mark fade; the line stays in the muted ink at full strength; the row stays disabled. Its check is in the capthread journey (picture `ct-06b-in-it`), failing before the change.
-- The review (the auditor and the ux-reviewer, one round, with the pictures and the approved drawing): no finding. The faded row on a phone is a native item ("Owner threads").
-- Entries filed: none. The e2e: capthread. Nothing here has run on a phone.
+**Nov 22, `/tend inbox`, one build** (opened from `0dda79f5`; an inbox run: lenses 1-7 belong to a sweep and were not run).
+- The owner's answers: build T11 now; G5, G7 and G8 yes, each noted on its entry to wait for the next `/tend inbox`.
+- T11, "Voice and note are two taps away while a walk is minimized, off Memories", built as the slice
+  recording-bar-captures (BC1-BC10, `specs/recording-bar-captures/spec.md`): the bar's mic and pencil beside its camera,
+  the memo recorded in place, the note's page over the tab, the line's time alone, the chevron from 360 px. Two states
+  the drawing had not shown (a discarded memo's Undo, the bar's words on their own line) drawn and approved by the owner
+  during the run, "Approve as drawn (Recommended)". Leaves the inbox.
+- The review: the steward's S1-S6 into the criteria; the cold find, the UI review and the auditor, one round: audit 1-4
+  and ui 1-2 fixed behind regression tests; four items deferred; two to the owner.
+- Entries filed: T58 (the bar's way back unmarked at 320 px, the cold find's high), T59 (paused, "1 min · Pau…").
+- The e2e: barcaptures (new), launch, tabs, capturehome, unsaved. Nothing here has run on a phone.
 
 ### Open before the loop
 
