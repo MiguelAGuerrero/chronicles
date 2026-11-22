@@ -300,6 +300,7 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Recommended: dim the title and the link mark only, the line "This moment is in it" kept in the muted ink at 4.5:1. /vision: no surface.
   Otherwise: leave it.
   Nov 22: the owner's yes. A changed look filed before its mock-up (decision 0252), so not built in this run: the mock-up is drawn and its approval asked at the run's close. Mock-up: https://claude.ai/artifact/EZgND4JR3aXTF2qeg33W3x (docs/mockups/thread-row-in-it/): today's card beside the row with only its title and link mark faded, "This moment is in it" in the muted ink.
+  Nov 22: the mock-up approved by the owner, "Approve" (the pictures shown in the chat; decision 0252): only the title and the link mark fade, "This moment is in it" stays in the muted ink. It is built as drawn by the next `/tend inbox`.
 
 ### From the road engine's audit (2026-11-18)
 

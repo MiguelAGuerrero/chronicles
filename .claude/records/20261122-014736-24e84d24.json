@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T57"
+      ],
+      "body": "  Nov 22: the mock-up approved by the owner, \"Approve\" (the pictures shown in the chat; decision 0252): only the title and the link mark fade, \"This moment is in it\" stays in the muted ink. It is built as drawn by the next `/tend inbox`.\n",
+      "target": "sha256:86cd6b36042a9b5694923ae63452968651958bf705a58a53ea2ffb147d35a764"
+    }
+  ]
+}
