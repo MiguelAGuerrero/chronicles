@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] The \"Passing a place\" slider moved during a walk with Places off never reaches the walk's own `walk_pass`: `changeSettings` (`walk.tsx`) rewrites it only while Places is on, and the shell keeps one only when it is missing, so a walk that had Places on, then off, then the slider moved, then on again, is replayed at the old distance (TC9; on main before decision 0260; fix walk-layers-remembered round 2 F2, medium). Fix: write the open walk's `walk_pass` on a slider change whenever the walk has one, through `walkLayers` so its writes share one queue; with a unit test over the shell\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] A narrow race: the shell's `walk_pass` write as Places comes on (`layers/walkShell.ts`, reading `loadSettings`) can land after the drawer's newer write in the same few tens of ms and keep the old distance (fix walk-layers-remembered round 2 F3, low). Goes with the item above: one writer, one queue\n"
+    }
+  ]
+}

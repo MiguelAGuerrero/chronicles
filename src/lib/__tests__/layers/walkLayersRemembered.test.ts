@@ -122,3 +122,28 @@ test('fix walk-layers-remembered audit 3: Places turned on outside the walk scre
   await settle();
   assert.equal(await p.db.getMeta('walk_pass:w1'), '12', 'kept as the span opens, from the saved setting');
 });
+
+test('fix walk-layers-remembered audit 5: a failed read skips that write and keeps the walk; the next switch still opens its span', async () => {
+  const { p, maps, walk } = await make();
+  await maps.set('places', false);
+  await walk.begin('w1');
+  await settle();
+  await p.db.setMeta('walk_pass:w1', '16');
+  p.db.failNext('getWalk');
+  await maps.set('places', true);
+  await settle();
+  assert.equal(await p.db.getMeta('places_spans:w1'), null, 'the failed read writes nothing');
+  await maps.set('places', false);
+  await settle();
+  p.clock.advance(100);
+  await maps.set('places', true);
+  await settle();
+  assert.deepEqual(await spansOf(p, 'w1'), [[1100, null]], 'the walk is still kept: the next switch opens its span');
+  // A failed read of the walk's pass distance never overwrites the one it has.
+  await maps.set('places', false);
+  await settle();
+  p.db.failNext('getMeta');
+  await maps.set('places', true);
+  await settle();
+  assert.equal(await p.db.getMeta('walk_pass:w1'), '16');
+});

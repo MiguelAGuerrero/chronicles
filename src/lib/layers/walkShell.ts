@@ -28,16 +28,21 @@ export function createWalkLayers(p: Pick<Ports, 'db' | 'clock'>, maps: Pick<Laye
   let queue: Promise<void> = Promise.resolve();
   const keep = (id: string, on: boolean) =>
     (queue = queue.then(async () => {
-      const walk = await p.db.getWalk(id).catch(() => null);
+      // A read that fails skips this write and keeps the walk (audit 5): only a walk read as ended or gone is let go.
+      const walk = await p.db.getWalk(id).catch(() => undefined);
+      if (walk === undefined) return;
       if (!walk || walk.ended_at != null) {
         if (walkId === id) walkId = null;
         return;
       }
-      if (on && !(await p.db.getMeta(walkPassKey(id)).catch(() => null))) {
+      const pass = await p.db.getMeta(walkPassKey(id)).catch(() => undefined);
+      if (on && pass === null) {
         const m = await passM().catch(() => null);
         if (m != null) await p.db.setMeta(walkPassKey(id), String(clampPass(m))).catch(() => {});
       }
-      const spans = decodeSpans(await p.db.getMeta(placesSpansKey(id)).catch(() => null));
+      const raw = await p.db.getMeta(placesSpansKey(id)).catch(() => undefined);
+      if (raw === undefined) return;
+      const spans = decodeSpans(raw);
       const after = toggleSpans(spans, on, p.clock.now());
       if (after !== spans) await p.db.setMeta(placesSpansKey(id), encodeSpans(after)).catch(() => {});
     }));
