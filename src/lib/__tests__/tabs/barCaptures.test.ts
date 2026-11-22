@@ -119,3 +119,12 @@ test('tend tabs audit 63: the line\'s gaps follow the drawings: 4 with the chevr
   assert.deepEqual(gaps(390, false, true), { gap: 10, right: 10 });
   assert.deepEqual(gaps(320, true, false), { gap: 10, right: 10 });
 });
+
+test('tend tabs audit 65: the bar reads whether the walk is paused once, for its chevron, its gaps and its glyph alike', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const src = readFileSync(join(__dirname, '..', '..', '..', 'components', 'RecordingBar.tsx'), 'utf8');
+  assert.equal((src.match(/pauses\.some\(/g) ?? []).length, 1, 'one reading of the open pause');
+  assert.match(src, /barChevron\(width, memoOn, paused\)/);
+  assert.match(src, /barLineGaps\(width, memoOn, paused\)/);
+});

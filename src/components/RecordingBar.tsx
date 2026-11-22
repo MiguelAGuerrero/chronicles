@@ -76,11 +76,13 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const memoStartedAt = cap.voiceStartedAt;
   // The chevron at every width, never mid-memo (BC6, T58).
   const { width } = useWindowDimensions();
-  const chevron = barChevron(width, memoOn, pauses.some((p) => p.ended_at == null));
+  // Whether the walk is paused, read once for the chevron, the gaps and the glyph (tend tabs audit 65).
+  const paused = pauses.some((p) => p.ended_at == null);
+  const chevron = barChevron(width, memoOn, paused);
   // The red dot from 360 px; at 320 px it gives way to the chevron (T58).
   const dot = barDot(width);
   // The line's gaps as the drawings have them, by width and state (tend tabs audit 63).
-  const gaps = barLineGaps(width, memoOn, pauses.some((p) => p.ended_at == null));
+  const gaps = barLineGaps(width, memoOn, paused);
   // The pencil's page (BC4), the one the walk screen's pencil opens, over this tab.
   const [page, setPage] = useState<{ key: number } | null>(null);
   const pageRef = useRef<NotePageHandle>(null);
@@ -190,7 +192,6 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
 
   const startedAt = walk.started_at;
   const distanceM = live.distanceM;
-  const paused = pauses.some((p) => p.ended_at == null);
 
   // Asked now, of the stop under way from any bar of the walk, within its bound (tend tabs 12, audits 26, 28).
   const goesBack = (returningNow: boolean) => barGoesBack({ returning: returningNow, stop: barStop.get(), walkId: walk.id, now: Date.now() });
