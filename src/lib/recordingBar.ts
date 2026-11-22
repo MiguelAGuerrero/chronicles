@@ -56,11 +56,21 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
 }
 
 /**
- * Whether the bar's line draws its chevron (BC6, the owner's call at 320 px, Nov 21): with four buttons beside it, only
- * from 360 px wide, where "< 1 min" still has room beside it; never while a memo records (the drawing's Memo390).
+ * Whether the bar's line draws its chevron (BC6): at every width since T58 (the owner, Nov 22, after a cold find could not
+ * place the way back at 320 px without it); never while a memo records (the drawing's Memo390); and, paused below 360 px,
+ * it gives way to the pause glyph so the time stays whole (the owner, Nov 22, "Chevron gives way (Recommended)",
+ * the drawing's Paused320).
  */
-export function barChevron(width: number, memo: boolean): boolean {
-  return !memo && width >= 360;
+export function barChevron(width: number, memo: boolean, paused = false): boolean {
+  return !memo && !(paused && width < 360);
+}
+
+/**
+ * Whether the line draws its red recording dot (T58): from 360 px wide; at 320 px it gives way to the chevron (the
+ * drawing's Proposed320B). Paused, the pause glyph shows at every width in its place.
+ */
+export function barDot(width: number): boolean {
+  return width >= 360;
 }
 
 /**

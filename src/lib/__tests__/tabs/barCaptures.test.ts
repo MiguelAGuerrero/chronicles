@@ -29,11 +29,10 @@ test('BC6: the line\'s words are the time alone; the distance stays in its spoke
   assert.match(paused.label, /^Walk paused, 84[  ]m walked/);
 });
 
-test('BC6: the chevron shows from 360 px wide, never while a memo records', () => {
+test('BC6: the chevron shows on the line, never while a memo records', () => {
   const chevron = fn(bar, 'barChevron');
   assert.ok(chevron, 'barChevron exists');
-  assert.equal(chevron(320, false), false);
-  assert.equal(chevron(359, false), false);
+  // At 320 px too since T58 (the owner's yes, Nov 22): the dot gives way there, not the chevron (`tend tabs T58`).
   assert.equal(chevron(360, false), true);
   assert.equal(chevron(390, false), true);
   assert.equal(chevron(390, true), false);
@@ -84,4 +83,24 @@ test('recording-bar-captures audit 4: the mic and the pencil are off while the b
   assert.equal(off({ capturing: false, stopping: true }), true);
   assert.equal(off({ capturing: true, stopping: false }), true);
   assert.equal(off({ capturing: false, stopping: false }), false);
+});
+
+// T58 (the owner's yes, Nov 22, "Keep chevron, drop dot (Recommended)"): at 320 px the line keeps its chevron, the way
+// back the cold find could not place without it, and leaves out the red dot; from 360 px both. Paused, the glyph shows.
+test('tend tabs T58: at 320 px the bar keeps its chevron and leaves out the red dot; from 360 px both', () => {
+  const chevron = fn(bar, 'barChevron');
+  const dot = fn(bar, 'barDot');
+  assert.ok(chevron && dot, 'barChevron and barDot exist');
+  assert.equal(chevron(320, false), true);
+  assert.equal(chevron(359, false), true);
+  assert.equal(chevron(320, true), false);
+  assert.equal(dot(320), false);
+  assert.equal(dot(359), false);
+  assert.equal(dot(360), true);
+  assert.equal(dot(390), true);
+  // Paused below 360 px the chevron gives way to the pause glyph, so the time stays whole (the owner, Nov 22, Paused320).
+  assert.equal(chevron(320, false, true), false);
+  assert.equal(chevron(359, false, true), false);
+  assert.equal(chevron(360, false, true), true);
+  assert.equal(chevron(390, false, true), true);
 });

@@ -50,7 +50,7 @@ Memories, a journal whose open line keeps a moment in one tap (decisions 0112, 0
 recording, and a recording bar brings a minimized walk back. On every tab but Memories the bar holds a camera, a mic and
 a pencil beside its held Stop: a photo, a voice memo recorded in place (Discard and Save where the camera and the mic
 were, Undo above the bar) or a note's page over the tab, each joined to the walk without opening it. Its line says the
-time alone, the distance in its spoken name, with a chevron back to the walk from 360 px wide (T11, specs/recording-bar-captures).
+time alone, the distance in its spoken name, with a chevron back to the walk at every width, the red dot from 360 px (T11, T58, specs/recording-bar-captures).
 
 ### Explore (before)
 

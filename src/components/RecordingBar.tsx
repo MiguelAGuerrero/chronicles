@@ -17,7 +17,7 @@ import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/r
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { BAR_WAIT_MS, barCapturesOff, barChevron, barGoesBack, barMemoSaves, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
+import { BAR_WAIT_MS, barCapturesOff, barChevron, barDot, barGoesBack, barMemoSaves, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
@@ -74,9 +74,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // The memo records in place (BC2): the line shows its time, Discard and Save take the camera's and the mic's places.
   const memoOn = cap.voiceStartedAt != null;
   const memoStartedAt = cap.voiceStartedAt;
-  // The chevron only from 360 px, never mid-memo (BC6, the owner's call at 320 px).
+  // The chevron at every width, never mid-memo (BC6, T58).
   const { width } = useWindowDimensions();
-  const chevron = barChevron(width, memoOn);
+  const chevron = barChevron(width, memoOn, pauses.some((p) => p.ended_at == null));
+  // The red dot from 360 px; at 320 px it gives way to the chevron (T58).
+  const dot = barDot(width);
   // The pencil's page (BC4), the one the walk screen's pencil opens, over this tab.
   const [page, setPage] = useState<{ key: number } | null>(null);
   const pageRef = useRef<NotePageHandle>(null);
@@ -351,7 +353,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           accessibilityRole="button"
           accessibilityHint={memoOn ? undefined : 'Returns to the walk'}
           onPress={() => back(null)}
-          style={({ pressed }) => [styles.main, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.main, !dot && !memoOn && styles.mainNarrow, pressed && styles.pressed]}
         >
           {memoOn ? (
             // The memo's time beside a red dot (BC2); its name says it records, the walk's pause, and what a tap does (BC6).
@@ -367,7 +369,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
                   <Icon name="pause" size={16} color="#ffffff" />
                 </View>
               ) : (
-                <View style={styles.dot} />
+                dot && <View testID="recording-dot" style={styles.dot} />
               )}
               {/* The time alone, then " · Paused", which alone shrinks at 320 px (tend tabs audit 57); the distance is in
                   the label (BC6). */}
@@ -380,7 +382,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
                   </Text>
                 )}
               </View>
-              {/* Back into the walk, not "expand" (tabs audit U10); only from 360 px wide (BC6). */}
+              {/* Back into the walk, not "expand" (tabs audit U10), at every width (T58); never mid-memo (BC6). */}
               {chevron && (
                 <View testID="recording-go" style={styles.glyph}>
                   <Icon name="chevron-forward" size={20} color="#ffffff" />
@@ -472,6 +474,8 @@ const styles = StyleSheet.create({
   reminderText: { flex: 1, color: theme.ink, fontSize: 15, fontWeight: '600' },
   reminderSee: { color: theme.ink, fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 10, borderRadius: 12 },
+  // Below 360 px, with the chevron and no dot, the line's gaps as the drawing has them (Proposed320B; T58).
+  mainNarrow: { gap: 4, paddingRight: 6 },
   // The idle dot's white ring, so the red reads 3:1 on the bar's ink (recording-bar-captures ui 2; X1).
   memoDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },

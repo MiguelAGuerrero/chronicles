@@ -107,6 +107,7 @@ async function run(h) {
       whole: !!n && n.scrollWidth <= n.clientWidth + 1,
       name: n?.getAttribute('aria-label') ?? q('recording-return')?.getAttribute('aria-label') ?? null,
       chevron: !!q('recording-go'),
+      dot: !!q('recording-dot'),
       mids: ['recording-return', 'bar-photo', 'bar-voice', 'bar-note', 'bar-stop'].map((id) => mid(q(id))),
       wide: document.documentElement.scrollWidth <= window.innerWidth,
     };
@@ -121,8 +122,11 @@ async function run(h) {
     await pg.waitForTimeout(800);
     const oneRow = (l) => l.mids.every((m) => m != null && Math.abs(m - l.mids[0]) <= 2);
     check(oneRow(at390) && oneRow(at320) && at390.whole && at320.whole && at390.wide && at320.wide
-      && /^(< 1|\d+) min$/.test(at390.words ?? '') && at390.chevron && !at320.chevron && /walked in/.test(at390.name ?? ''),
-      `BC6: at 390 and 320 px the dot, the time alone, camera, mic, pencil and Stop share one row, the chevron only at 390, the distance in the spoken name (${JSON.stringify({ at390, at320 })})`);
+      && /^(< 1|\d+) min$/.test(at390.words ?? '') && at390.chevron && at390.dot && /walked in/.test(at390.name ?? ''),
+      `BC6: at 390 and 320 px the time alone, camera, mic, pencil and Stop share one row, the distance in the spoken name (${JSON.stringify({ at390, at320 })})`);
+    // tend tabs T58 (the owner's yes, Nov 22): at 320 px the chevron stays, the way back, and the red dot gives way.
+    check(at320.chevron && !at320.dot && at390.chevron && at390.dot && oneRow(at320) && at320.whole,
+      `tend tabs T58: at 320 px the bar keeps its chevron and leaves out the red dot, one row, the time whole; at 390 px both (${JSON.stringify({ at390, at320 })})`);
   });
 
   // BC10: the bar's words on a line of their own above the buttons, the buttons unmoved.
