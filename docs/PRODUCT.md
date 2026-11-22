@@ -47,7 +47,10 @@ Not hikers (no trails), not runners (no fitness tracking), not completionists
 The app is three tabs in one loop: Explore before, Navigate during,
 Chronicle after. The bar reads Chronicle, Explore, Navigate, and the app opens on Chronicle's
 Memories, a journal whose open line keeps a moment in one tap (decisions 0112, 0155). A walk screen opens over them while
-recording, and a recording bar brings a minimized walk back.
+recording, and a recording bar brings a minimized walk back. On every tab but Memories the bar holds a camera, a mic and
+a pencil beside its held Stop: a photo, a voice memo recorded in place (Discard and Save where the camera and the mic
+were, Undo above the bar) or a note's page over the tab, each joined to the walk without opening it. Its line says the
+time alone, the distance in its spoken name, with a chevron back to the walk from 360 px wide (T11, specs/recording-bar-captures).
 
 ### Explore (before)
 
@@ -455,7 +458,7 @@ recording, and a recording bar brings a minimized walk back.
     are one entry; Done ends it, as do two minutes without a piece. A voice note records in the toolbar, Stop in the
     mic's place. Any entry can carry **reactions** by choice (decision 0176): the face with a small plus by the composer's title (or at the end of the entry being written) opens Feeling (Happy, Neutral, Sad), Taste (Like, Dislike) and Thought (Question, Emphasis, Idea), named, just above the composer's tools, at most one of each; an entry kept today offers the same sign, and every entry's More has Reaction. They show under the entry's dateline, and the sign stays the face with a plus. In Memories each one there, and under the viewer's line, is a link to its lens ("Idea" opens Ideas; Back returns to the journal; decision 0177); elsewhere they are words. A reaction that could not be kept says "Not kept yet" in its panel. They are never asked for. Typing **@** references another moment, drawn on
     the page as that moment's card. Writing here starts no walk and no trace; with a walk minimized the entry is the
-    walk's, shows on the page at once, and the recording bar shows no camera on Memories. With nothing kept, Memories
+    walk's, shows on the page at once, and the recording bar shows no camera, mic or pencil on Memories. With nothing kept, Memories
     is today's date and the empty page.
   - **The line and the page**: while you write, the line offers **Open as a page**, which opens the note's page (below) on
     the same entry with what you typed already there; from an empty line it opens a new page. An entry a page wrote is

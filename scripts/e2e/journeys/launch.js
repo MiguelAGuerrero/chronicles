@@ -563,11 +563,12 @@ async function fresh(h) {
       await pg.click('[data-testid=walk-minimize]');
       await pg.waitForSelector('[data-testid=recording-stats]', { timeout: 10000 });
       await pg.waitForTimeout(2200);
+      // The distance, read from the line's spoken name since T11 (BC6): "Walk recording, 340 m walked in 2 min. …".
       const m = (t) => {
-        const r = /([\d.]+)[ \u00a0](km|m)$/.exec(t);
+        const r = /([\d.]+)[ \u00a0](km|m) walked/.exec(t ?? '');
         return r ? parseFloat(r[1]) * (r[2] === 'km' ? 1000 : 1) : NaN;
       };
-      const d0 = m(await barText());
+      const d0 = m(await barName());
       // Minimized, it keeps recording across the tabs, each with one live map and the bar (NV4, NV8, NV9).
       const onTabs = [];
       let perfA = null;
@@ -598,9 +599,9 @@ async function fresh(h) {
         check((b['render:memories'] ?? 0) > 0 && rate('render:memories') <= 0.3 && rate('render:bar') <= 1.2 && rate('render:walk') === 0,
           `tend tabs 17: minimized over Memories, only the bar follows the walk (memories ${rate('render:memories').toFixed(2)}/s of ${b['render:memories'] ?? 0}, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
       }
-      const d1 = m(await barText());
+      const d1 = m(await barName());
       check(onTabs.join(',') === 'chronicle:1:0,explore:1:1,chronicle:1:0', `the bar is on every tab, with one live map where there is a map; Chronicle's Memories has none (NV4, NV9, RM1: ${onTabs.join(', ')})`);
-      check(d1 > d0 + 100 && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
+      check(d1 > d0 + 100 && /^(?:< 1 min|\d+ min|\d+:\d\d)$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m, in its spoken name since T11)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');

@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, start a walk, minimize it to Explore, tap the recording bar's mic, speak for ten seconds with the screen on, then tap the purple Save; record another and switch to Chronicle mid-memo; lock the phone while a third records, then unlock and save it. **Expect:** each memo is a moment of the walk that plays back whole, the walk screen never opened; the one recorded through the lock keeps the words said while locked (the audio session from a tab, as on the walk screen) (BC2, BC3)\n- [ ] **Do:** on an iPhone and an Android phone, with a walk minimized, tap the bar's pencil, write a line, then Done; open it again and leave it empty with Done and with Android Back. **Expect:** the note's page slides up over the tab and its keyboard leaves the editor in view; the line is a moment of the walk; the empty page keeps nothing (BC4)\n"
+    }
+  ]
+}

@@ -38,7 +38,7 @@ async function run(h) {
     try {
       await fn();
     } catch (e) {
-      check(false, `${name}: the step ran to its end (${String(e).split('\n')[0]})`);
+      check(false, `The step ${name} ran to its end (${String(e).split('\n')[0]})`);
     }
   };
   const kinds = async () => (await momentsOf(pg, walk?.id)).map((m) => m.kind);

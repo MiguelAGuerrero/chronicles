@@ -305,7 +305,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
 
   const line = (now: number) => recordingLine({ startedAt, pauses, now, distanceM });
   const memo = (now: number) => memoLine({ startedAt: memoStartedAt ?? now, now, paused });
-  const busy = cap.busy != null;
+  const capturing = cap.busy != null;
   return (
     <View>
     {cap.discarded && !memoOn && (
@@ -390,17 +390,17 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           // Discard in the camera's place, Save in the mic's, the pencil's left empty, so Stop never moves (BC2).
           <>
             <BarRound id="bar-voice-discard" icon="trash-outline" label="Discard voice memo" onPress={() => void discardMemo()} disabled={cap.busy === 'voice'} />
-            <BarRound id="bar-voice-save" icon="stop" label="Stop and save voice memo" onPress={() => void saveMemo()} voice busyNow={cap.busy === 'voice'} disabled={cap.busy === 'voice'} />
+            <BarRound id="bar-voice-save" icon="stop" label="Stop and save voice memo" onPress={() => void saveMemo()} voice spinning={cap.busy === 'voice'} disabled={cap.busy === 'voice'} />
             <View style={styles.slot} pointerEvents="none" aria-hidden />
           </>
         ) : (
           <>
             {(showCaptures || cap.busy === 'photo') &&
               // Named as Memories' band names its camera with a walk open: the same job, the same name (tend tabs 3).
-              <BarRound id="bar-photo" icon="camera" label="Add to your walk: take a photo or video" onPress={() => void photo()} busyNow={cap.busy === 'photo'} disabled={busy} />}
+              <BarRound id="bar-photo" icon="camera" label="Add to your walk: take a photo or video" onPress={() => void photo()} spinning={cap.busy === 'photo'} disabled={capturing} />}
             {(showCaptures || cap.busy === 'voice') &&
-              <BarRound id="bar-voice" icon="mic" label="Add to your walk: record a voice memo" onPress={() => void startMemo()} busyNow={cap.busy === 'voice'} disabled={busy} />}
-            {showCaptures && <BarRound id="bar-note" icon="document-text" label="Add to your walk: write a note" onPress={() => setPage((p) => ({ key: (p?.key ?? 0) + 1 }))} disabled={busy} />}
+              <BarRound id="bar-voice" icon="mic" label="Add to your walk: record a voice memo" onPress={() => void startMemo()} spinning={cap.busy === 'voice'} disabled={capturing} />}
+            {showCaptures && <BarRound id="bar-note" icon="document-text" label="Add to your walk: write a note" onPress={() => setPage((p) => ({ key: (p?.key ?? 0) + 1 }))} disabled={capturing} />}
           </>
         )}
         {/* Stop from the bar itself, held as on the walk screen: a way out even when the walk screen
@@ -434,19 +434,19 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
 }
 
 /** A round 44 pt button of the bar, ink on white (BC1), or purple for the memo's Save, as on the walk screen (BC2). */
-function BarRound(o: { id: string; icon: IconName; label: string; onPress: () => void; busyNow?: boolean; disabled?: boolean; voice?: boolean }) {
+function BarRound(o: { id: string; icon: IconName; label: string; onPress: () => void; spinning?: boolean; disabled?: boolean; voice?: boolean }) {
   return (
     <Pressable
       testID={o.id}
       accessibilityRole="button"
       accessibilityLabel={o.label}
-      accessibilityState={{ busy: !!o.busyNow, disabled: !!o.disabled }}
+      accessibilityState={{ busy: !!o.spinning, disabled: !!o.disabled }}
       disabled={o.disabled}
       onPress={o.onPress}
       hitSlop={4}
       style={({ pressed }) => [styles.camera, o.voice && styles.voice, pressed && styles.pressed]}
     >
-      {o.busyNow ? <ActivityIndicator color={o.voice ? '#ffffff' : theme.ink} /> : <Icon name={o.icon} size={22} color={o.voice ? '#ffffff' : theme.ink} />}
+      {o.spinning ? <ActivityIndicator color={o.voice ? '#ffffff' : theme.ink} /> : <Icon name={o.icon} size={22} color={o.voice ? '#ffffff' : theme.ink} />}
     </Pressable>
   );
 }

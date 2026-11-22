@@ -24,9 +24,20 @@ paths:
   - **The bar's photo opens its editor by itself** (decision 0240, fix edit-after-capture; it superseded 0149's pill, which
     waited above the bar): once kept, `useEditAfterCapture` draws `MediaEditor` as a Modal of its own, on the tab the photo
     was taken from; Close keeps it as taken. Not while the walk is stopping from the bar (`barStopping`, tend tabs audit
-    19: the stop's replay would close it). The line keeps its time and distance; paused it reads "0:05 · 18 m · Paused"
+    19: the stop's replay would close it). The line keeps its time (the distance in its spoken name since T11); paused it reads "1 min · Paused"
     (numbers first, so a cut at 320 px takes the word). `tabsHidden`'s `barOfferUp` is set by nothing since; its readers
     (Explore's press hint, the storage notice's sight) wait to be removed (`docs/DEFERRED.md`).
+  - **The bar keeps a memo and a note** (T11, `specs/recording-bar-captures`, BC1-BC10): `bar-voice` and `bar-note` after
+    `bar-photo`, all three hidden on Memories (`barCaptures` in `lib/captureBand`). The memo is the bar's own
+    `useCaptures`: mid-memo the line is `bar-voice-timer` (no chevron), Discard (`bar-voice-discard`) and Save
+    (`bar-voice-save`) take the camera's and the mic's places, the pencil's place is an empty 44 pt slot so Stop never
+    moves. The bar is one instance in the tabs' layout, so a change of tab does not unmount it: a change of path or of
+    Chronicle's section saves the memo by an effect (`where`); a screen over the tabs unmounts the bar, and
+    `useCaptures` saves it then; `back()` saves it before the walk screen opens. Its words (`recording-said`) stand on
+    a row of their own above the buttons; the discarded memo's pill (`bar-voice-undo`) sits above the bar on the page's
+    ground. The line draws `recordingLine(...).time` (the time alone), its label the distance; `barChevron(width, memo)`
+    hides the chevron below 360 px. Its buttons are `BarRound`, a component: a `round()` helper called in render
+    tripped the React Compiler's ref rule on `photo` (it reads refs).
   - **The bar has its own Stop** (`bar-stop`, held as on the walk screen; a
     tap says to hold), beside its camera: a way out even when the walk screen
     can't be reached (the owner's quick fix, Nov 2). It refuses under a memo
