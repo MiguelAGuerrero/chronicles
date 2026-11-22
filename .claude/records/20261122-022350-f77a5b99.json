@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T57",
+        "--reason",
+        "the owner's yes, built in tend threads T57"
+      ],
+      "target": "sha256:b4919ed140f22df31ce94b2745ab2aa3b89ae81a3124d31be5ad47d647659ccf"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Owner threads"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, take a moment that is already in a thread, open Add to a thread on it (its pill's Thread, or the viewer's More), with VoiceOver and TalkBack on and then off. **Expect:** that thread's row shows its link mark and title faded, \"This moment is in it\" at full strength in the muted ink, the row's border not faded; a tap does nothing; the reader says the row is dimmed or disabled. On Android the faded mark draws whole. (tend threads T57)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 22, `/tend inbox T57 yes`, one build** (opened from `ed66be51`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- T57, \"Add to a thread: 'This moment is in it' is dimmed with its row\", built as `tend threads T57` from its approved mock-up (`docs/mockups/thread-row-in-it/`, decision 0252): only the title and the link mark fade; the line stays in the muted ink at full strength; the row stays disabled. Its check is in the capthread journey (picture `ct-06b-in-it`), failing before the change.\n- The review (the auditor and the ux-reviewer, one round, with the pictures and the approved drawing): no finding. The faded row on a phone is a native item (\"Owner threads\").\n- Entries filed: none. The e2e: capthread. Nothing here has run on a phone.\n"
+    }
+  ]
+}

@@ -295,12 +295,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
   Otherwise: leave it (the slip's going is the sign).
   Nov 21: the owner's yes, which now waits for its mock-up's approval (decision 0252). Mock-up: https://claude.ai/artifact/4JQowNQ7kB8ZtfNH9zAYDN (docs/mockups/contents-switch-stays/): after a tap the sheet stays up, the switch drawn off and its note reading Off.
   Nov 21: the mock-up approved by the owner, "Approve as drawn (Recommended)" (decision 0252). It is built as drawn.
-- **T57 [owner] Add to a thread: "This moment is in it" is dimmed with its row** (2026-11-21)
-  Area: threads. Seen: main's `src/components/threads/AddToThread.tsx` l.165, `style={[styles.row, r.has && styles.dim]}` (opacity 0.45 on the whole row); found as U3 by the UI review of a duplicate build of G11 (branch `tend/inbox-20261121-2258`): the line that says why the row cannot be tapped reads at about 2:1 on white. Rests on: opinion (WCAG 1.4.3 exempts inactive components), marked so; TK9/CT9's own words are the only reason given.
-  Recommended: dim the title and the link mark only, the line "This moment is in it" kept in the muted ink at 4.5:1. /vision: no surface.
-  Otherwise: leave it.
-  Nov 22: the owner's yes. A changed look filed before its mock-up (decision 0252), so not built in this run: the mock-up is drawn and its approval asked at the run's close. Mock-up: https://claude.ai/artifact/EZgND4JR3aXTF2qeg33W3x (docs/mockups/thread-row-in-it/): today's card beside the row with only its title and link mark faded, "This moment is in it" in the muted ink.
-  Nov 22: the mock-up approved by the owner, "Approve" (the pictures shown in the chat; decision 0252): only the title and the link mark fade, "This moment is in it" stays in the muted ink. It is built as drawn by the next `/tend inbox`.
 
 ### From the road engine's audit (2026-11-18)
 
@@ -433,12 +427,10 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 22, `/tend inbox T55 yes, T56 yes, T57 yes, G14 yes`, one build** (opened from `41a3438d`; an inbox run: lenses 1-7 belong to a sweep and were not run).
-- T56, "Escape or Back on 'Join it with another moment' closes the whole card", built as `tend threads T56`: Back and Escape on the moment step return to the threads, elsewhere they close; on the walk screen, Navigate and the viewer (`backFrom`, the card's `requestClose`).
-- The review (the auditor, one round): F2 accepted, fixed as `tend threads audit 1` (Back during a join's write waits for it); F1 deferred `[loop]` (Memories' card answers no Escape or Back), F3 deferred `[loop]` (Show more's page count carried back), and a visible Back on the step for an iPhone filed `[owner]` in DEFERRED (a new control, a mock-up first).
-- T55, "two photos of the walk still open read alike", leaves the inbox: already on main as thread-at-capture CT12 (decision 0257). T57, "'This moment is in it' is dimmed with its row": the owner's yes; a changed look filed before its mock-up, so its mock-up is drawn (https://claude.ai/artifact/EZgND4JR3aXTF2qeg33W3x, `docs/mockups/thread-row-in-it/`) and asked at the close; built by the next `/tend inbox` once approved. G14, the ZIP64 backup: the owner's yes, noted; it waits.
-- Lens 0, threads: E-threads-1 to 3 (ratified) met by capthread's checks, green in this run.
-- The e2e: capthread, threads. Nothing here has run on a phone.
+**Nov 22, `/tend inbox T57 yes`, one build** (opened from `ed66be51`; an inbox run: lenses 1-7 belong to a sweep and were not run).
+- T57, "Add to a thread: 'This moment is in it' is dimmed with its row", built as `tend threads T57` from its approved mock-up (`docs/mockups/thread-row-in-it/`, decision 0252): only the title and the link mark fade; the line stays in the muted ink at full strength; the row stays disabled. Its check is in the capthread journey (picture `ct-06b-in-it`), failing before the change.
+- The review (the auditor and the ux-reviewer, one round, with the pictures and the approved drawing): no finding. The faded row on a phone is a native item ("Owner threads").
+- Entries filed: none. The e2e: capthread. Nothing here has run on a phone.
 
 ### Open before the loop
 
