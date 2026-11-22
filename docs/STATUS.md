@@ -419,8 +419,9 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 **Nov 22, `/tend inbox` (no answers typed; the owner chose T59 when asked), one build** (opened from `8ef4776e`; an inbox run: lenses 1-7 belong to a sweep and were not run).
 - T59, "The recording bar paused: '1 min · Pau…' at 390 px", built as `tend tabs T59`: paused, the line is the pause glyph, the time alone and the chevron, as Paused390 draws it; "Walk paused" stays in its spoken name. The checks that pinned the drawn word (NV9, `tend tabs` 17, 18, 21, audit 57, ME23's line, `recording-bar-captures ui 1`) now ask for its absence. Leaves the inbox.
+- The review (the auditor and the ux-reviewer, one round): `tend tabs audit 66` (the journey reads the whole way back, paused, at 390 and 320 px), `67` (no test name or comment promises the drawn word); the auditor's F3 (BC6's and NV9's words) deferred to the open item below; the reviewer's U1 (the glyph alone may read as a Pause control) rejected as the owner's drawn call, with its suggestion kept: a cold find, "is your walk recording right now?".
 - Still waiting for a build with the owner's yes: T42, T43 (`[arch]`, a G entry to shape), T44, T45, T48, T49, T50, T51, T54; one a run.
-- Open before the loop: BC6's and NV9's words and the recording bar's rule, which still quote " · Paused" (noted on the T58 item).
+- Open before the loop: BC6's and NV9's words and the recording bar's rule, which still quote " · Paused" (noted on the T58 item). Native: the paused bar on a phone (`docs/NATIVE_UNVERIFIED.md`, Navigation and tabs).
 - Entries filed: none. The e2e: barcaptures, launch. Nothing here has run on a phone.
 
 ### Open before the loop
