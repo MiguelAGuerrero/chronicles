@@ -26,3 +26,12 @@ export function momentToast(kind: Capture['kind'], reason?: 'denied' | 'timeout'
 export function barCamera(path: string, section: string): boolean {
   return !(path.split('?')[0] === '/' && section === 'memories');
 }
+
+/** The captures the recording bar holds (BC1, from T11): the camera, the mic and the pencil, or none on Memories. */
+export type BarCapture = 'photo' | 'voice' | 'note';
+const BAR_CAPTURES: readonly BarCapture[] = ['photo', 'voice', 'note'];
+
+/** On every tab but Memories, all three; on Memories none, by the camera's rule (`barCamera`, decision 0112). */
+export function barCaptures(path: string, section: string): readonly BarCapture[] {
+  return barCamera(path, section) ? BAR_CAPTURES : [];
+}

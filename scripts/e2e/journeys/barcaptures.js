@@ -38,7 +38,7 @@ async function run(h) {
     try {
       await fn();
     } catch (e) {
-      check.todo(false, `${name}: the step ran to its end (${String(e).split('\n')[0]})`);
+      check(false, `${name}: the step ran to its end (${String(e).split('\n')[0]})`);
     }
   };
   const kinds = async () => (await momentsOf(pg, walk?.id)).map((m) => m.kind);
@@ -93,7 +93,7 @@ async function run(h) {
     const ordered = r.boxes.every((b, i) => !!b && (i === 0 || b.x > r.boxes[i - 1].x));
     const sized = r.boxes.every((b) => b && b.w >= 44 && b.h >= 44);
     await shot(pg, 'bc-01-explore-390');
-    check.todo(ordered && sized && r.names[1] === 'Add to your walk: record a voice memo' && r.names[2] === 'Add to your walk: write a note',
+    check(ordered && sized && r.names[1] === 'Add to your walk: record a voice memo' && r.names[2] === 'Add to your walk: write a note',
       `BC1: on Explore the bar holds the camera, the mic, the pencil and Stop in that order, each 44 px, the mic and the pencil named (${JSON.stringify(r)})`);
   });
 
@@ -120,7 +120,7 @@ async function run(h) {
     await pg.setViewportSize({ width: 390, height: 844 });
     await pg.waitForTimeout(800);
     const oneRow = (l) => l.mids.every((m) => m != null && Math.abs(m - l.mids[0]) <= 2);
-    check.todo(oneRow(at390) && oneRow(at320) && at390.whole && at320.whole && at390.wide && at320.wide
+    check(oneRow(at390) && oneRow(at320) && at390.whole && at320.whole && at390.wide && at320.wide
       && /^(< 1|\d+) min$/.test(at390.words ?? '') && at390.chevron && !at320.chevron && /walked in/.test(at390.name ?? ''),
       `BC6: at 390 and 320 px the dot, the time alone, camera, mic, pencil and Stop share one row, the chevron only at 390, the distance in the spoken name (${JSON.stringify({ at390, at320 })})`);
   });
@@ -139,7 +139,7 @@ async function run(h) {
     await pg.setViewportSize({ width: 390, height: 844 });
     await pg.waitForTimeout(3500);
     const xs = (r) => r.boxes.map((b) => b && b.x);
-    check.todo(said && /Hold to stop/.test(text) && !!words && after.boxes.every((b) => b && words.y + words.h <= b.y + 0.5)
+    check(said && /Hold to stop/.test(text) && !!words && after.boxes.every((b) => b && words.y + words.h <= b.y + 0.5)
       && JSON.stringify(xs(before)) === JSON.stringify(xs(after)),
       `BC10: at 320 px "Hold to stop" stands on its own line above the bar's buttons, which do not move (${JSON.stringify({ text, words, before: xs(before), after: xs(after) })})`);
   });
@@ -159,7 +159,7 @@ async function run(h) {
     await pg.click('[data-testid=bar-voice-save]');
     const kept = await settle('voice', voices);
     const [b0, b1, , b3] = before.boxes;
-    check.todo(timer && !!discard && !!save && !!stop && noPencil && Math.abs(discard.x + discard.w / 2 - (b0.x + b0.w / 2)) <= 2
+    check(timer && !!discard && !!save && !!stop && noPencil && Math.abs(discard.x + discard.w / 2 - (b0.x + b0.w / 2)) <= 2
       && Math.abs(save.x + save.w / 2 - (b1.x + b1.w / 2)) <= 2 && stop.x === b3.x && kept && !walkUrlSince(from) && !/\/walk$/.test(path()),
       `BC2: the mic records on Explore: the memo's time in the line, Discard in the camera's place, Save in the mic's, Stop unmoved; saved, the memo is in the walk and the walk screen never opened (${JSON.stringify({ timer, discard, save, stop, before: before.boxes, kept })})`);
     // Saved at once, a memo under a second is not kept, and the bar says so.
@@ -169,7 +169,7 @@ async function run(h) {
     await pg.click('[data-testid=bar-voice-save]');
     const short = await there('[data-testid=recording-said]:has-text("Too short, not kept")', 4000);
     await pg.waitForTimeout(1500);
-    check.todo(short && (await count('voice')) === n, `BC2: a memo saved at once is not kept, and the bar says "Too short, not kept" (${short})`);
+    check(short && (await count('voice')) === n, `BC2: a memo saved at once is not kept, and the bar says "Too short, not kept" (${short})`);
     await pg.waitForTimeout(3000);
   });
 
@@ -186,7 +186,7 @@ async function run(h) {
       return [s.color, s.backgroundColor, s.borderColor].some((v) => v === 'rgb(194, 65, 12)');
     }));
     const digitsOnly = await pg.locator('[data-testid=recording-bar]').innerText().catch(() => '');
-    check.todo(!said && !accent && !/\b\d+ (memos?|notes?|photos?)\b/i.test(digitsOnly),
+    check(!said && !accent && !/\b\d+ (memos?|notes?|photos?)\b/i.test(digitsOnly),
       `BC7: a memo kept says nothing on the bar, which has no accent colour and no count (${JSON.stringify({ said, accent, digitsOnly })})`);
   });
 
@@ -202,7 +202,7 @@ async function run(h) {
     await shot(pg, 'bc-05-discarded-390');
     await pg.click('[data-testid=bar-voice-undo]');
     const kept = await settle('voice', voices);
-    check.todo(pill && /Voice memo discarded/.test(words) && !!pillBox && !!barBox && pillBox.y + pillBox.h <= barBox.y + 0.5 && kept,
+    check(pill && /Voice memo discarded/.test(words) && !!pillBox && !!barBox && pillBox.y + pillBox.h <= barBox.y + 0.5 && kept,
       `BC9: Discard shows "Voice memo discarded" with Undo just above the bar, and Undo keeps the memo in the walk (${JSON.stringify({ words, pillBox, barBox, kept })})`);
   });
 
@@ -229,7 +229,7 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 8000 }).catch(() => {});
     await pg.waitForTimeout(1500);
     const emptyKept = (await count('text')) > n;
-    check.todo(page && kept && !emptyKept && !walkUrlSince(from) && (await shown('[data-testid=recording-bar]')),
+    check(page && kept && !emptyKept && !walkUrlSince(from) && (await shown('[data-testid=recording-bar]')),
       `BC4: the pencil opens the note's page over Explore; Done with words keeps a note in the walk, an empty page keeps nothing, the walk screen never opens (${JSON.stringify({ page, kept, emptyKept })})`);
   });
 
@@ -250,7 +250,7 @@ async function run(h) {
     await pg.click('[data-testid=recording-return]');
     const back = await there('[data-testid=walk-actions]', 10000);
     const savedByLine = await settle('voice', voices);
-    check.todo(warns && refused && !!refusedBox && stillWalking && savedByTab && back && savedByLine,
+    check(warns && refused && !!refusedBox && stillWalking && savedByTab && back && savedByLine,
       `BC3: mid-memo the web warns before a reload, Stop refuses ("A voice memo is recording. Save it first."), a change of tab saves the memo, and the line saves it, then opens the walk (${JSON.stringify({ warns, refused, stillWalking, savedByTab, back, savedByLine })})`);
     await minimize();
   });
@@ -281,7 +281,7 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 8000 }).catch(() => {});
     const text = await settle('text', before.text);
     await shot(pg, 'bc-07-walks-390');
-    check.todo(photo && voice && text && !walkUrlSince(from),
+    check(photo && voice && text && !walkUrlSince(from),
       `BC8: from Chronicle's Walks the bar's photo, memo and note are each kept in the open walk, the URL never /walk (${JSON.stringify({ photo, voice, text })})`);
   });
 
@@ -293,7 +293,7 @@ async function run(h) {
     await pg.waitForTimeout(1500);
     const none = !(await shown('[data-testid=recording-bar] [data-testid=bar-photo]')) && !(await shown('[data-testid=recording-bar] [data-testid=bar-voice]'))
       && !(await shown('[data-testid=recording-bar] [data-testid=bar-note]'));
-    check.todo(none && (await shown('[data-testid=recording-bar] [data-testid=bar-stop]')), `BC1: on Memories the bar holds no camera, mic or pencil, only Stop (${none})`);
+    check(none && (await shown('[data-testid=recording-bar] [data-testid=bar-stop]')), `BC1: on Memories the bar holds no camera, mic or pencil, only Stop (${none})`);
   });
 
   // BC5: paused, the bar's memo and note join the walk.
@@ -318,7 +318,7 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 8000 }).catch(() => {});
     const text = await settle('text', before.text);
     await shot(pg, 'bc-08-paused-390');
-    check.todo(voice && text, `BC5: with the walk paused, the bar's memo and note join the walk (${JSON.stringify({ voice, text })})`);
+    check(voice && text, `BC5: with the walk paused, the bar's memo and note join the walk (${JSON.stringify({ voice, text })})`);
   });
 
   await c.close();

@@ -1,8 +1,8 @@
 import type { Faced } from '../lib/moment';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { barCamera } from '../lib/captureBand';
+import { barCaptures } from '../lib/captureBand';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { useStore } from '../lib/useStore';
 import { useKeyboardHeight } from '../lib/threads/useKeyboardHeight';
@@ -17,16 +17,19 @@ import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/r
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { BAR_WAIT_MS, barGoesBack, barStopLeftMs, barStopping, recordingLine } from '../lib/recordingBar';
+import { BAR_WAIT_MS, barChevron, barGoesBack, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
 import { barReminderUp, barStop, barStops, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
-import { Icon } from './icons';
+import { Icon, type IconName } from './icons';
 import { useEditAfterCapture } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
+import { Modal } from './Modal';
+import { NewNotePage } from './notePage/NewNotePage';
+import type { NotePageHandle } from './notePage/NotePage';
 import { useOpenWalk } from './OpenWalk';
 import { Ticking } from './Ticking';
 import { HoldButton, theme } from './ui';
@@ -63,10 +66,20 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   }, []);
   // No Retry on the bar: a failure says where it is held (unsaved captures UN10).
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError, { retryShown: false, shortWords: true });
-  // On Memories the band's camera files into the walk: the bar shows none there (decision 0112).
+  // On Memories the journal's open line files into the walk: the bar shows no capture there (decision 0112); on every
+  // other tab the camera, the mic and the pencil (BC1, from T11).
   const path = usePathname();
   const section = useStore(chronicleSection.store, (x) => x);
-  const showCamera = barCamera(path, section);
+  const showCaptures = barCaptures(path, section).length > 0;
+  // The memo records in place (BC2): the line shows its time, Discard and Save take the camera's and the mic's places.
+  const memoOn = cap.voiceStartedAt != null;
+  const memoStartedAt = cap.voiceStartedAt;
+  // The chevron only from 360 px, never mid-memo (BC6, the owner's call at 320 px).
+  const { width } = useWindowDimensions();
+  const chevron = barChevron(width, memoOn);
+  // The pencil's page (BC4), the one the walk screen's pencil opens, over this tab.
+  const [page, setPage] = useState<{ key: number } | null>(null);
+  const pageRef = useRef<NotePageHandle>(null);
   // Once its photo or video is kept, the editor opens by itself (ME23 as decision 0240 amends it; it was 0149's pill).
   const editAfter = useEditAfterCapture(cap.captures);
   const editing = editAfter.editing;
@@ -179,6 +192,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (!goesBack(returning.current)) return;
     returning.current = true;
     try {
+      // A memo recording is saved first (BC3): the line, the reminder's See.
+      if (cap.voiceStartedAt != null) await cap.finishVoice();
       // The photo is kept first, so the walk screen shows it; never held for ever by a save that hangs.
       await settleWithin(keeping.current, RETURN_WAIT_MS);
       // Held to stop meanwhile: the stop goes alone, its replay over the tabs, not over a walk screen (tend tabs 12).
@@ -207,6 +222,39 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     // would take the editor with the bar (tend tabs audit 19; fix edit-after-capture audits 3, 5, 6).
     if (!returning.current && !wentBack.current && !barStopping(barStop.get(), walk.id, Date.now()) && !unsaved.hasEnded(walk.id)) editAfter.open(kept);
   };
+
+  const startMemo = async () => {
+    if (await cap.startVoice()) feedback('tap');
+  };
+  // Kept, it says nothing (BC7, matrix 20); under a second it is not kept, and the bar says so (BC2).
+  const saveMemo = async () => {
+    const r = await cap.finishVoice();
+    if (r === 'saved') feedback('tap');
+    else if (r === 'dropped') setSaid({ text: 'Too short, not kept' });
+  };
+  const discardMemo = async () => {
+    if ((await cap.discardVoice()) === 'discarded' && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility('Voice memo discarded. Undo is available.');
+  };
+  // Another tab, or another of Chronicle's sections, while a memo records: it is saved first (BC3). A screen over the
+  // tabs unmounts the bar, and `useCaptures` saves it then.
+  const saveRef = useRef(saveMemo);
+  useEffect(() => {
+    saveRef.current = saveMemo;
+  });
+  const where = `${path}|${section}`;
+  const lastWhere = useRef(where);
+  useEffect(() => {
+    if (lastWhere.current === where) return;
+    lastWhere.current = where;
+    if (memoOn) void saveRef.current();
+  }, [where, memoOn]);
+  // A reload or close of the web page mid-memo is warned of, as on Navigate's ready screen (BC3).
+  useEffect(() => {
+    if (!memoOn || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [memoOn]);
 
   // The bar's end of the walk: run once per walk, however many holds ask for it (tend tabs audit 53).
   const endWalk = async () => {
@@ -256,8 +304,21 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   };
 
   const line = (now: number) => recordingLine({ startedAt, pauses, now, distanceM });
+  const memo = (now: number) => memoLine({ startedAt: memoStartedAt ?? now, now, paused });
+  const busy = cap.busy != null;
   return (
     <View>
+    {cap.discarded && !memoOn && (
+      // The walk screen's pill, on the page's ground just above the bar, in flow so it covers no control (BC9).
+      <View style={styles.pillRow}>
+        <View testID="bar-discarded" style={styles.pill} accessibilityLiveRegion="polite">
+          <Text style={styles.pillText}>Voice memo discarded</Text>
+          <Pressable testID="bar-voice-undo" accessibilityRole="button" onPress={() => void cap.undoDiscard()} style={({ pressed }) => [styles.pillBtn, pressed && styles.pressed]}>
+            <Text style={styles.pillBtnText}>Undo</Text>
+          </Pressable>
+        </View>
+      </View>
+    )}
     <View testID="recording-bar" style={styles.bar}>
       {reminder && (
         // Above the line, which keeps its time and distance: the walk's reminder card, in the bar.
@@ -273,57 +334,75 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           <Text style={styles.reminderSee}>See</Text>
         </Pressable>
       )}
+      {said && (
+        // The bar's words on a line of their own, whole at 320 px, so the buttons never move (BC10, the owner, Nov 22):
+        // a refusal, "Hold to stop", "Too short, not kept", or where a failed capture is held (unsaved captures UN10).
+        <View style={styles.saidRow}>
+          <Text testID="recording-said" style={[styles.said, said.error && styles.error]} accessibilityLiveRegion="polite">
+            {said.text}
+          </Text>
+        </View>
+      )}
       <View style={styles.row}>
         <Pressable
           testID="recording-return"
           accessibilityRole="button"
-          accessibilityHint="Returns to the walk"
+          accessibilityHint={memoOn ? undefined : 'Returns to the walk'}
           onPress={() => back(null)}
           style={({ pressed }) => [styles.main, pressed && styles.pressed]}
         >
-          {/* Paused is a glyph, not only a grey dot (tabs audit U10). */}
-          {paused ? (
-            <View testID="recording-paused" style={styles.glyph}>
-              <Icon name="pause" size={16} color="#ffffff" />
-            </View>
+          {memoOn ? (
+            // The memo's time beside a red dot (BC2); its name says it records, the walk's pause, and what a tap does (BC6).
+            <>
+              <View style={styles.memoDot} />
+              <Ticking testID="bar-voice-timer" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => memo(now).time} label={(now) => memo(now).label} />
+            </>
           ) : (
-            <View style={styles.dot} />
-          )}
-          {said ? (
-            // A failure's or a refusal's words are whole at 320 px, unclamped, beside the camera too: the room line names
-            // where its Retry is (unsaved captures UN10), the saving line what to do (tend tabs audit 46).
-            <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={said.error ? undefined : 2} accessibilityLiveRegion="polite">
-              {said.text}
-            </Text>
-          ) : (
-            // The numbers whole, then " · Paused", which alone shrinks at 320 px (tend tabs audit 57); the label says it all.
-            <View testID="recording-stats" style={styles.line}>
-              <Ticking testID="recording-numbers" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => line(now).numbers} label={(now) => line(now).label} />
-              {paused && (
-                <Text testID="recording-word" style={[styles.text, styles.word]} numberOfLines={1} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                  {' · Paused'}
-                </Text>
+            <>
+              {/* Paused is a glyph, not only a grey dot (tabs audit U10). */}
+              {paused ? (
+                <View testID="recording-paused" style={styles.glyph}>
+                  <Icon name="pause" size={16} color="#ffffff" />
+                </View>
+              ) : (
+                <View style={styles.dot} />
               )}
-            </View>
+              {/* The time alone, then " · Paused", which alone shrinks at 320 px (tend tabs audit 57); the distance is in
+                  the label (BC6). */}
+              <View testID="recording-stats" style={styles.line}>
+                <Ticking testID="recording-numbers" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => line(now).time} label={(now) => line(now).label} />
+                {paused && (
+                  <Text testID="recording-word" style={[styles.text, styles.word]} numberOfLines={1} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                    {' · Paused'}
+                  </Text>
+                )}
+              </View>
+              {/* Back into the walk, not "expand" (tabs audit U10); only from 360 px wide (BC6). */}
+              {chevron && (
+                <View testID="recording-go" style={styles.glyph}>
+                  <Icon name="chevron-forward" size={20} color="#ffffff" />
+                </View>
+              )}
+            </>
           )}
-          {/* Back into the walk, not "expand" (tabs audit U10): the label stays "Return to the walk". */}
-          <View testID="recording-go" style={styles.glyph}>
-            <Icon name="chevron-forward" size={20} color="#ffffff" />
-          </View>
         </Pressable>
-        {(showCamera || cap.busy === 'photo') && <Pressable
-          testID="bar-photo"
-          accessibilityRole="button"
-          // Named as Memories' band names its camera with a walk open: the same job, the same name (tend tabs 3).
-          accessibilityLabel="Add to your walk: take a photo or video"
-          accessibilityState={{ busy: cap.busy === 'photo', disabled: cap.busy != null }}
-          disabled={cap.busy != null}
-          onPress={photo}
-          hitSlop={4}
-          style={({ pressed }) => [styles.camera, pressed && styles.pressed]}
-        >
-          {cap.busy === 'photo' ? <ActivityIndicator color={theme.ink} /> : <Icon name="camera" size={22} color={theme.ink} />}
-        </Pressable>}
+        {memoOn ? (
+          // Discard in the camera's place, Save in the mic's, the pencil's left empty, so Stop never moves (BC2).
+          <>
+            <BarRound id="bar-voice-discard" icon="trash-outline" label="Discard voice memo" onPress={() => void discardMemo()} disabled={cap.busy === 'voice'} />
+            <BarRound id="bar-voice-save" icon="stop" label="Stop and save voice memo" onPress={() => void saveMemo()} voice busyNow={cap.busy === 'voice'} disabled={cap.busy === 'voice'} />
+            <View style={styles.slot} pointerEvents="none" aria-hidden />
+          </>
+        ) : (
+          <>
+            {(showCaptures || cap.busy === 'photo') &&
+              // Named as Memories' band names its camera with a walk open: the same job, the same name (tend tabs 3).
+              <BarRound id="bar-photo" icon="camera" label="Add to your walk: take a photo or video" onPress={() => void photo()} busyNow={cap.busy === 'photo'} disabled={busy} />}
+            {(showCaptures || cap.busy === 'voice') &&
+              <BarRound id="bar-voice" icon="mic" label="Add to your walk: record a voice memo" onPress={() => void startMemo()} busyNow={cap.busy === 'voice'} disabled={busy} />}
+            {showCaptures && <BarRound id="bar-note" icon="document-text" label="Add to your walk: write a note" onPress={() => setPage((p) => ({ key: (p?.key ?? 0) + 1 }))} disabled={busy} />}
+          </>
+        )}
         {/* Stop from the bar itself, held as on the walk screen: a way out even when the walk screen
             can't be reached (the owner, Nov 2). */}
         <HoldButton
@@ -344,14 +423,45 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       {editing && (
         <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
       )}
+      {/* The note's page the walk screen's pencil opens, over this tab; kept, it joins the walk (BC4). Nothing is said
+          when it is kept (BC7). */}
+      <Modal visible={!!page} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
+        {page && <NewNotePage key={page.key} reactable ref={pageRef} cap={cap} into={null} onWalk camera onClose={() => setPage(null)} />}
+      </Modal>
     </View>
     </View>
   );
 }
 
+/** A round 44 pt button of the bar, ink on white (BC1), or purple for the memo's Save, as on the walk screen (BC2). */
+function BarRound(o: { id: string; icon: IconName; label: string; onPress: () => void; busyNow?: boolean; disabled?: boolean; voice?: boolean }) {
+  return (
+    <Pressable
+      testID={o.id}
+      accessibilityRole="button"
+      accessibilityLabel={o.label}
+      accessibilityState={{ busy: !!o.busyNow, disabled: !!o.disabled }}
+      disabled={o.disabled}
+      onPress={o.onPress}
+      hitSlop={4}
+      style={({ pressed }) => [styles.camera, o.voice && styles.voice, pressed && styles.pressed]}
+    >
+      {o.busyNow ? <ActivityIndicator color={o.voice ? '#ffffff' : theme.ink} /> : <Icon name={o.icon} size={22} color={o.voice ? '#ffffff' : theme.ink} />}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   bar: { backgroundColor: theme.ink, paddingVertical: 6, paddingLeft: 6, paddingRight: 10, gap: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  // Four buttons beside the line: 6 between them, as drawn (BC6).
+  row: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  saidRow: { maxWidth: 640, width: '100%', alignSelf: 'center', paddingHorizontal: 10, paddingTop: 4 },
+  said: { color: '#ffffff', fontSize: 14, fontWeight: '600', lineHeight: 19 },
+  pillRow: { flexDirection: 'row', justifyContent: 'flex-end', backgroundColor: theme.bg, paddingVertical: 6, paddingHorizontal: 10 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingLeft: 14, paddingRight: 6 },
+  pillText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
+  pillBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
+  pillBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   reminder: {
     flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 12, borderRadius: 12, backgroundColor: theme.surface,
     maxWidth: 640, width: '100%', alignSelf: 'center',
@@ -359,6 +469,7 @@ const styles = StyleSheet.create({
   reminderText: { flex: 1, color: theme.ink, fontSize: 15, fontWeight: '600' },
   reminderSee: { color: theme.ink, fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 10, borderRadius: 12 },
+  memoDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },
   glyph: { alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
@@ -368,5 +479,7 @@ const styles = StyleSheet.create({
   error: { fontSize: 14 },
   stop: { width: 44, height: 44, minHeight: 44, paddingHorizontal: 0, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
+  voice: { backgroundColor: '#6b21a8' },
+  slot: { width: 44, height: 44 },
   pressed: { opacity: 0.8 },
 });

@@ -417,7 +417,8 @@ async function fresh(h) {
       const seen = await pg.evaluate(() => {
         const s = document.querySelector('[data-testid=recording-stats]');
         const n = document.querySelector('[data-testid=recording-numbers]') ?? s;
-        return s && n ? { text: s.textContent, numbers: n.textContent, whole: n.scrollWidth <= n.clientWidth + 1, wide: document.documentElement.scrollWidth <= window.innerWidth } : null;
+        // Since T11 (BC6) the line draws the time alone; the distance is in its spoken name.
+        return s && n ? { text: s.textContent, numbers: n.textContent, name: n.getAttribute('aria-label'), whole: n.scrollWidth <= n.clientWidth + 1, wide: document.documentElement.scrollWidth <= window.innerWidth } : null;
       });
       if (shotName) await h.shot(pg, shotName);
       await c.close();
@@ -427,21 +428,21 @@ async function fresh(h) {
       const km = (t) => { const m = /([\d.]+)[ \u00a0](km|m)\b/.exec(t ?? ''); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
       const run = await barLine({ label: 'hour-km', minutes: 65, meters: 1500, shotName: 'diff-bar-hour-km-explore-320' });
       const rest = await barLine({ label: 'hour-km-paused', minutes: 65, meters: 1500, paused: true, shotName: 'diff-bar-hour-km-paused-explore-320' });
-      check(!!run && !!rest && /^1:0[56] · [\d.]+[ \u00a0]km/.test(run.numbers) && km(run.numbers) >= 1000 && run.whole && rest.whole && /^1:0[56] · [\d.]+[ \u00a0]km/.test(rest.numbers) && run.wide && rest.wide,
-        `tend tabs audit 55: at 320 px past the hour the bar reads "1:05 · 1.5 km", hours:minutes, its distance whole, recording and paused (${JSON.stringify({ run, rest })})`);
+      check(!!run && !!rest && /^1:0[56]$/.test(run.numbers) && km(run.name) >= 1000 && run.whole && rest.whole && /^1:0[56]$/.test(rest.numbers) && km(rest.name) >= 1000 && run.wide && rest.wide,
+        `tend tabs audit 55, as T11 draws it (BC6): at 320 px past the hour the bar reads "1:05", hours:minutes, whole, its distance in its spoken name, recording and paused (${JSON.stringify({ run, rest })})`);
     }
     // tend tabs audit 57 (the diff review's ux 1): paused at 320 px the numbers stay whole and only " · Paused" shrinks.
     {
       const cases = [
-        { label: 'min-84m', minutes: 0.5, meters: 84, want: /^< 1 min · 8\d[ \u00a0]m$/, shotName: 'diff-bar-minute-paused-explore-320' },
-        { label: 'min-276ft', minutes: 0.5, meters: 84, miles: true, want: /^< 1 min · \d+[ \u00a0]ft$/ },
-        { label: '9min-750m', minutes: 9, meters: 750, want: /^9 min · \d+[ \u00a0]m$/ },
-        { label: '12min-1.3km', minutes: 12, meters: 1300, want: /^12 min · 1\.\d[ \u00a0]km$/ },
+        { label: 'min-84m', minutes: 0.5, meters: 84, want: /^< 1 min$/, said: /, 8\d[ \u00a0]m walked/, shotName: 'diff-bar-minute-paused-explore-320' },
+        { label: 'min-276ft', minutes: 0.5, meters: 84, miles: true, want: /^< 1 min$/, said: /, \d+[ \u00a0]ft walked/ },
+        { label: '9min-750m', minutes: 9, meters: 750, want: /^9 min$/, said: /, \d+[ \u00a0]m walked/ },
+        { label: '12min-1.3km', minutes: 12, meters: 1300, want: /^12 min$/, said: /, 1\.\d[ \u00a0]km walked/ },
       ];
       const seen = [];
       for (const k of cases) seen.push({ k: k.label, ...(await barLine({ ...k, label: `paused-${k.label}`, paused: true })) });
-      check(seen.every((x, i) => x.whole && x.wide && cases[i].want.test(x.numbers ?? '') && /· Paused$/.test(x.text ?? '')),
-        `tend tabs audit 57: paused at 320 px the bar's numbers are drawn whole, only " · Paused" shrinks (${JSON.stringify(seen)})`);
+      check(seen.every((x, i) => x.whole && x.wide && cases[i].want.test(x.numbers ?? '') && cases[i].said.test(x.name ?? '') && /· Paused$/.test(x.text ?? '')),
+        `tend tabs audit 57, as T11 draws it (BC6): paused at 320 px the bar's time is drawn whole, only " · Paused" shrinks, the distance in its spoken name (${JSON.stringify(seen)})`);
     }
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).
     {
@@ -511,13 +512,15 @@ async function fresh(h) {
       await pg.waitForTimeout(600);
       // The line's text as drawn, its numbers and its word apart since tend tabs audit 57 (one string, no break between).
       const barText = () => pg.locator('[data-testid=recording-stats]').evaluate((e) => e.textContent);
+      // Since T11 (BC6) the distance is in the line's spoken name, not its words.
+      const barName = () => pg.locator('[data-testid=recording-numbers]').getAttribute('aria-label').catch(() => '');
       const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
       const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
-      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m · Paused$/.test(await barText())
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^(?:< 1 min|\d+ min|\d+:\d\d) · Paused$/.test(await barText()) && /^Walk paused, \d+[ \u00a0]m walked in /.test(await barName())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=bar-stop]').count()) === 1,
         // tend tabs 18 (the lenses' auditor 3): this counted "stop", a testid the bar never carries, so its "no Stop" held
         // whatever the bar showed; the bar has its held Stop since decision 0048 (NV9's "It has no Stop" is stale).
-        `tend tabs 18: minimized, a recording bar sits just above the tab bar: time, distance, Paused, and its held Stop (NV9, 0048: "${await barText()}")`);
+        `tend tabs 18: minimized, a recording bar sits just above the tab bar: time, Paused (the distance in its spoken name since T11, BC6), and its held Stop (NV9, 0048: "${await barText()}", "${await barName()}")`);
       // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
       const liveMaps = await pg.locator('canvas.maplibregl-canvas').count();
       check(liveMaps <= 1, `at most one live map with the walk minimized (NV4: ${liveMaps})`);
@@ -544,8 +547,8 @@ async function fresh(h) {
       {
         const offers = await pg.locator('[data-testid=bar-edit-offer], [data-testid=capture-edit]').count();
         const stats = await pg.locator('[data-testid=recording-stats]').evaluate((e) => e.textContent).catch(() => '');
-        check(offers === 0 && /^(?:< 1 min|\d+ min|\d+:\d\d) · \d+[ \u00a0]m · Paused$/.test(stats),
-          `ME23 fix edit-after-capture: closed, the editor leaves no Edit pill above the bar, the line still its time and distance (${offers}, "${stats}")`);
+        check(offers === 0 && /^(?:< 1 min|\d+ min|\d+:\d\d) · Paused$/.test(stats),
+          `ME23 fix edit-after-capture: closed, the editor leaves no Edit pill above the bar, the line still its time (the time alone since T11, BC6) (${offers}, "${stats}")`);
       }
       // A tap on the bar returns to the walk, where the photo is pinned (NV9).
       await pg.click('[data-testid=recording-return]');

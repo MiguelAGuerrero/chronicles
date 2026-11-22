@@ -160,9 +160,10 @@ test('tend tabs audit 57: the bar\'s line gives its numbers and its word apart, 
   assert.equal(on.numbers, '9 min · 750 m');
   assert.equal(on.word, null);
   assert.equal(on.text, on.numbers);
-  // The wiring: the numbers never shrink; the word, apart and hidden from a screen reader (the label says it), does.
+  // The wiring: the time drawn never shrinks; the word, apart and hidden from a screen reader (the label says it), does.
+  // Since T11 (BC6, the owner's drawing) the line draws the time alone, the distance in its label.
   const bar = readFileSync(join(__dirname, '..', '..', '..', 'components', 'RecordingBar.tsx'), 'utf8');
-  assert.match(bar, /<Ticking testID="recording-numbers" style=\{\[styles\.text, styles\.numbers\]\} numberOfLines=\{1\} text=\{\(now\) => line\(now\)\.numbers\}/);
+  assert.match(bar, /<Ticking testID="recording-numbers" style=\{\[styles\.text, styles\.numbers\]\} numberOfLines=\{1\} text=\{\(now\) => line\(now\)\.time\} label=\{\(now\) => line\(now\)\.label\}/);
   assert.match(bar, /numbers: \{[^}]*flexShrink: 0/);
   assert.match(bar, /word: \{[^}]*flexShrink: 1/);
 });

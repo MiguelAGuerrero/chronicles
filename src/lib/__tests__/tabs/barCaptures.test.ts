@@ -10,7 +10,7 @@ import * as bar from '../../recordingBar';
 // Read loosely, so the file loads before the functions exist (written first, TG24).
 const fn = (m: object, name: string) => (m as Record<string, unknown>)[name] as ((...a: unknown[]) => unknown) | undefined;
 
-test('BC1: the bar\'s camera, mic and pencil show on every tab but Memories', { todo: 'test first' }, () => {
+test('BC1: the bar\'s camera, mic and pencil show on every tab but Memories', () => {
   const captures = fn(band, 'barCaptures');
   assert.ok(captures, 'barCaptures exists');
   assert.deepEqual(captures('/', 'memories'), []);
@@ -19,7 +19,7 @@ test('BC1: the bar\'s camera, mic and pencil show on every tab but Memories', { 
   assert.deepEqual(captures('/day/2026-11-09', 'memories'), ['photo', 'voice', 'note']);
 });
 
-test('BC6: the line\'s words are the time alone; the distance stays in its spoken name', { todo: 'test first' }, () => {
+test('BC6: the line\'s words are the time alone; the distance stays in its spoken name', () => {
   const on = bar.recordingLine({ startedAt: 0, pauses: [], now: 12 * 60_000 + 5_000, distanceM: 1300 }) as ReturnType<typeof bar.recordingLine> & { time?: string };
   assert.equal(on.time, '12 min');
   assert.match(on.label, /1\.3[  ]km walked in 12 min/);
@@ -29,7 +29,7 @@ test('BC6: the line\'s words are the time alone; the distance stays in its spoke
   assert.match(paused.label, /^Walk paused, 84[  ]m walked/);
 });
 
-test('BC6: the chevron shows from 360 px wide, never while a memo records', { todo: 'test first' }, () => {
+test('BC6: the chevron shows from 360 px wide, never while a memo records', () => {
   const chevron = fn(bar, 'barChevron');
   assert.ok(chevron, 'barChevron exists');
   assert.equal(chevron(320, false), false);
@@ -40,7 +40,7 @@ test('BC6: the chevron shows from 360 px wide, never while a memo records', { to
   assert.equal(chevron(640, true), false);
 });
 
-test('BC6: while a memo records the line says its time, and its name says the walk is paused when it is', { todo: 'test first' }, () => {
+test('BC6: while a memo records the line says its time, and its name says the walk is paused when it is', () => {
   const memo = fn(bar, 'memoLine');
   assert.ok(memo, 'memoLine exists');
   const r = memo({ startedAt: 1_000, now: 8_400, paused: false }) as { time: string; label: string };

@@ -31,6 +31,8 @@ export function barTimeSpoken(ms: number): string {
  */
 export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]; now: number; distanceM: number }): {
   text: string;
+  /** The line's visible words since T11 (BC6): the time alone; the distance is in `label`. */
+  time: string;
   /** The time and the distance, drawn whole (tend tabs audit 57). */
   numbers: string;
   /** "Paused" while paused, drawn apart after the numbers so only it shrinks; null otherwise. */
@@ -45,11 +47,30 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
     // The numbers first, so a narrow bar cuts the word (the pause glyph shows it too), never the time (tend tabs audit 17);
     // given apart, so the bar draws the numbers whole and lets only the word shrink (tend tabs audit 57).
     text: paused ? `${line} · Paused` : line,
+    time: barTime(ms),
     numbers: line,
     word: paused ? 'Paused' : null,
     label: `${paused ? 'Walk paused' : 'Walk recording'}, ${formatDistance(o.distanceM)} walked in ${barTimeSpoken(ms)}. Return to the walk`,
     paused,
   };
+}
+
+/**
+ * Whether the bar's line draws its chevron (BC6, the owner's call at 320 px, Nov 21): with four buttons beside it, only
+ * from 360 px wide, where "< 1 min" still has room beside it; never while a memo records (the drawing's Memo390).
+ */
+export function barChevron(width: number, memo: boolean): boolean {
+  return !memo && width >= 360;
+}
+
+/**
+ * The line while the bar records a memo (BC2, BC6): its time as m:ss, and a spoken name that says it records, whether
+ * the walk is paused, and what a tap does (the line saves it, then returns to the walk; BC3).
+ */
+export function memoLine(o: { startedAt: number; now: number; paused: boolean }): { time: string; label: string } {
+  const s = Math.floor(Math.max(0, o.now - o.startedAt) / 1000);
+  const time = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  return { time, label: `Recording voice memo, ${time}${o.paused ? ', walk paused' : ''}. Saves it and returns to the walk` };
 }
 
 /** The longest the bar's way back waits for its photo, and its Stop for a memo, then for the captures being kept. */
