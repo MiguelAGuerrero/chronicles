@@ -1,4 +1,4 @@
-# 0256. Thread at capture's deferred items, by reasonable default
+# 0257. Thread at capture's deferred items, by reasonable default
 
 Date: 2026-11-21 · Status: accepted · Area: threads, captures · Amends: 0253 (the grouping line's Thread) · From: the owner, "Proceed with reasonable default from the deferred items"
 
@@ -18,4 +18,5 @@ canvas (`docs/mockups/threading-at-capture/`, the Default* artboards) and approv
   through the Undo window); no keep-threading mode yet (the owner: after use; it amends 0104 and goes through `/vision`).
 
 ## Consequences
-CT12-CT14 in `specs/thread-at-capture/spec.md`; the deferred items are removed or answered there.
+CT12-CT14 in `specs/thread-at-capture/spec.md`; the deferred items are removed or answered there. The removals' record
+reasons name this record as 0256, the number it was written under before `main` took 0256 for another.

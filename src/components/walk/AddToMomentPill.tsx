@@ -37,7 +37,7 @@ export function AddToMomentPill(props: { hidden?: boolean; onPhoto: () => void; 
       <LiftIn testID="adding-moment" style={styles.stacked} accessibilityLiveRegion="polite">
         <Text style={styles.label}>Adding to this moment</Text>
         <View style={styles.row}>
-          {/* A word beside New moment's (CT14, decision 0256; T5: never an icon alone beside a labelled button). */}
+          {/* A word beside New moment's (CT14, decision 0257; T5: never an icon alone beside a labelled button). */}
           {offersThread(open, waiting) ? (
             <Pressable testID="add-thread" accessibilityRole="button" accessibilityLabel="Add this moment to a thread" onPress={() => props.onThread(open)} hitSlop={6} style={[styles.newBtn, styles.worded]}>
               <Icon name="link" size={18} color="#ffffff" />

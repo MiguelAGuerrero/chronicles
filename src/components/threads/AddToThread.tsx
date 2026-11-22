@@ -23,7 +23,7 @@ const PAGE = 40;
 function rowOf(m: MomentView, walks: Map<string, Walk>, now: number) {
   const walk = m.walkId ? walks.get(m.walkId) : undefined;
   return {
-    // Its time of day after its date (CT12, decision 0256): two moments of one walk read apart in words.
+    // Its time of day after its date (CT12, decision 0257): two moments of one walk read apart in words.
     context: pickLine({ place: m.place, t: m.t, walkLine: fromLine(walk), now }),
     words: m.words ? m.words.trim().slice(0, 90) : KIND_WORD[m.kind],
   };
@@ -268,7 +268,7 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
                 accessibilityLabel="Search threads and moments"
                 style={styles.field}
               />
-              {/* Clear while it holds text (CT13, decision 0256; HIG text fields): back to "Last added to" in one tap. */}
+              {/* Clear while it holds text (CT13, decision 0257; HIG text fields): back to "Last added to" in one tap. */}
               {find ? (
                 <Pressable
                   testID="add-thread-clear"

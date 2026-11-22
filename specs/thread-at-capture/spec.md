@@ -39,7 +39,7 @@ Approved: with G11, "Approve as drawn (Recommended)" (the owner, 2026-11-21)
 While building (Nov 21) the grouping line could not be built as drawn (three lines, not two); both shapes were drawn on
 the canvas and the owner chose "Stack it (Recommended)": the words above Thread and New moment.
 
-The deferred items by reasonable default (decision 0256): the Default* artboards, approved "Approve as drawn
+The deferred items by reasonable default (decision 0257): the Default* artboards, approved "Approve as drawn
 (Recommended)" (the owner, 2026-11-21).
 
 ## How adjacent apps do it
@@ -63,9 +63,9 @@ The deferred items by reasonable default (decision 0256): the Default* artboards
 10. **CT10** (the journey) On the web build: two photos on Navigate's ready screen, the second threaded with the first from the pill and named "Murals", a third added with Thread and "Last added to" (two taps); on a walk, two photos threaded from the pill with the walk still open; the grouping line's Thread; and the store holds the threads as made.
 11. **CT11** (nothing before the shutter) Before a moment is kept, nothing about threads is drawn on the walk screen or Navigate: the capture stack, its order and its first tap are as before (MS1, MS2), and no thread is asked for or chosen before a capture.
 
-12. **CT12** (rows apart in words; decision 0256) Each moment row in Add to a thread says its time of day after its date ("Nov 21, 4:12 pm · From Saturday afternoon walk"), so two moments of one walk read apart in words as well as by their pictures.
-13. **CT13** (Clear; decision 0256) While the threads' search holds text, a Clear button (×, 44 pt, spoken "Clear search") sits at its end; a tap empties it and the card is back on "Last added to". With no text it is not shown.
-14. **CT14** (the grouping line's word; decision 0256) With Group captures on, Thread on the line is a labelled button, the link icon and the word "Thread", beside New moment, never an icon alone beside a word (T5).
+12. **CT12** (rows apart in words; decision 0257) Each moment row in Add to a thread says its time of day after its date ("Nov 21, 4:12 pm · From Saturday afternoon walk"), so two moments of one walk read apart in words as well as by their pictures.
+13. **CT13** (Clear; decision 0257) While the threads' search holds text, a Clear button (×, 44 pt, spoken "Clear search") sits at its end; a tap empties it and the card is back on "Last added to". With no text it is not shown.
+14. **CT14** (the grouping line's word; decision 0257) With Group captures on, Thread on the line is a labelled button, the link icon and the word "Thread", beside New moment, never an icon alone beside a word (T5).
 
 ## Steward (Nov 21)
 
@@ -108,7 +108,7 @@ Audit (the auditor, one round): F1 accepted (`thread-at-capture audit 1`, no Thr
 F6 deferred (no Back from the moment step, older than the slice), F7 deferred (the card builds every moment's row at
 open; cost), F8 fixed in the records. Left the threads area no rougher; native unverified.
 
-The deferred items by reasonable default (decision 0256, Nov 21): CT12-CT14 built test-first (a unit test for the row's
+The deferred items by reasonable default (decision 0257, Nov 21): CT12-CT14 built test-first (a unit test for the row's
 line, the capthread journey's checks, 30 in all; `threads` and `stacks` green); a row's line takes two lines so its
 time never cuts the walk's name. The pill's icon, no Undo on adding and no keep-threading mode yet stay as they are. `check:test-first` on this branch reads CT12 and CT14 first as todos (`a9cc7c6`) and real after; CT1-CT11 were
 tested first on their own branch (11 of 11, before it reached `main`); CT13's todo was written across lines, which the
