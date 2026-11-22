@@ -25,8 +25,8 @@ test('NV9: the recording bar shows the time walked and the distance', () => {
 
 test('NV9: paused, it says Paused, and paused time is not counted', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 60_000, ended_at: null }], now: 125_000, distanceM: 1250 });
-  // The numbers first since tend tabs audit 17: NV9's "elapsed time, distance, and Paused when paused".
-  assert.equal(r.text, '1 min · 1.3\u00a0km · Paused');
+  // NV9's "Paused when paused": since T59 (the owner, Nov 22, "Drop the word") the glyph draws it and the label says it.
+  assert.equal(r.text, '1 min · 1.3\u00a0km');
   assert.equal(r.paused, true);
   assert.match(r.label, /^Walk paused/);
 });
@@ -98,7 +98,8 @@ test('NV8: whoever keeps the open walk hears it start, pause, resume and stop', 
 
 test('tend tabs audit 17: paused, the line puts its time and distance first, so a narrow bar cuts the word, never the numbers', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 9_000, distanceM: 18 });
-  assert.match(r.text, /^< 1 min · 18[ \u00a0]m · Paused$/);
+  // Since T59 no word at all: the numbers alone, whole.
+  assert.match(r.text, /^< 1 min · 18[ \u00a0]m$/);
   // The spoken label is unchanged: the state first.
   assert.match(r.label, /^Walk paused, 18[ \u00a0]m walked in /);
   // Recording, the line is the numbers alone, as before.
@@ -117,7 +118,7 @@ test('tend tabs 21: the recording bar says the time walked in minutes, never sec
   assert.equal(at(65 * 60_000), '1:05 · 340\u00a0m'); // hours:minutes past the hour since tend tabs audit 55
   for (const ms of [5_000, 125_000, 3_599_000]) assert.doesNotMatch(at(ms), /\d:\d\d|\bs\b/, 'under the hour no clock, no seconds');
   assert.doesNotMatch(at(3_725_000), /:\d\d:|\bs\b/, 'past it hours:minutes, never seconds (tend tabs audit 55)');
-  assert.equal(recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 9_000, distanceM: 18 }).text, '< 1 min · 18\u00a0m · Paused');
+  assert.equal(recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 9_000, distanceM: 18 }).text, '< 1 min · 18\u00a0m'); // no word since T59
 });
 
 // The diff review's auditor 2, ux 2 and steward 2: past the hour "1 h 05 min · 4.2 km" filled the bar at 320 px and cut
@@ -154,16 +155,14 @@ test('tend tabs audit 56: the bar says the time it draws', () => {
 test('tend tabs audit 57: the bar\'s line gives its numbers and its word apart, so only the word can shrink', () => {
   const r = recordingLine({ startedAt: 0, pauses: [{ started_at: 1_000, ended_at: null }], now: 30_000, distanceM: 84 });
   assert.equal(r.numbers, '< 1 min · 84 m');
-  assert.equal(r.word, 'Paused');
-  assert.equal(r.text, `${r.numbers} · ${r.word}`);
+  // Since T59 the line draws no word paused: the numbers are the whole line.
+  assert.equal(r.text, r.numbers);
   const on = recordingLine({ startedAt: 0, pauses: [], now: 9 * 60_000, distanceM: 750 });
   assert.equal(on.numbers, '9 min · 750 m');
-  assert.equal(on.word, null);
   assert.equal(on.text, on.numbers);
-  // The wiring: the time drawn never shrinks; the word, apart and hidden from a screen reader (the label says it), does.
+  // The wiring: the time drawn never shrinks (no word beside it since T59).
   // Since T11 (BC6, the owner's drawing) the line draws the time alone, the distance in its label.
   const bar = readFileSync(join(__dirname, '..', '..', '..', 'components', 'RecordingBar.tsx'), 'utf8');
   assert.match(bar, /<Ticking testID="recording-numbers" style=\{\[styles\.text, styles\.numbers\]\} numberOfLines=\{1\} text=\{\(now\) => line\(now\)\.time\} label=\{\(now\) => line\(now\)\.label\}/);
   assert.match(bar, /numbers: \{[^}]*flexShrink: 0/);
-  assert.match(bar, /word: \{[^}]*flexShrink: 1/);
 });

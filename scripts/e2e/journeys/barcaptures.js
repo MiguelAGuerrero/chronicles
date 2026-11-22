@@ -312,30 +312,23 @@ async function run(h) {
     await pg.click('[data-testid=pause-walk]');
     await pg.waitForSelector('[data-testid=resume-walk]', { timeout: 10000 });
     await minimize();
-    // recording-bar-captures ui 1 (the UI review's U2): paused, the time and " · Paused" keep their space between them.
-    const gap = await pg.evaluate(() => {
-      const n = document.querySelector('[data-testid=recording-bar] [data-testid=recording-numbers]');
-      const w = document.querySelector('[data-testid=recording-bar] [data-testid=recording-word]');
-      if (!n || !w) return null;
-      const r = document.createRange();
-      r.selectNodeContents(w);
-      const first = [...r.getClientRects()][0];
-      return first ? Math.round(first.left - n.getBoundingClientRect().right) : null;
-    });
-    const dotAt = await pg.evaluate(() => {
-      const w = document.querySelector('[data-testid=recording-bar] [data-testid=recording-word]');
-      if (!w || !w.firstChild) return null;
-      // Where the separator's dot is drawn, measured from the time's end.
-      const t = w.firstChild;
-      const i = t.textContent.indexOf('·');
-      const r = document.createRange();
-      r.setStart(t, i);
-      r.setEnd(t, i + 1);
-      const n = document.querySelector('[data-testid=recording-bar] [data-testid=recording-numbers]').getBoundingClientRect();
-      return Math.round(r.getBoundingClientRect().left - n.right);
-    });
-    await shot(pg, 'bc-09-paused-line-390');
-    check(gap != null && dotAt != null && dotAt >= 3, `recording-bar-captures ui 1: paused, a space stands between the time and " · Paused" (${JSON.stringify({ gap, dotAt })})`);
+    // tend tabs T59 (the owner, Nov 22, "Drop the word"; the drawing's Paused390): paused at 390 px the line is the pause
+    // glyph, the time whole and alone, and the chevron; "Walk paused" is in its spoken name. Before it, " · Paused"
+    // shrank to "Pau…" there (recording-bar-captures ui 1's space before it has nothing left to stand before).
+    {
+      const seen = await pg.evaluate(() => {
+        const q = (id) => document.querySelector(`[data-testid=recording-bar] [data-testid=${id}]`);
+        const n = q('recording-numbers');
+        const s = q('recording-stats');
+        return { glyph: !!q('recording-paused'), chevron: !!q('recording-go'), word: !!q('recording-word'), text: s?.textContent ?? null,
+          time: n?.textContent ?? null, whole: !!n && n.scrollWidth <= n.clientWidth + 1, name: n?.getAttribute('aria-label') ?? null,
+          wide: document.documentElement.scrollWidth <= window.innerWidth };
+      });
+      await shot(pg, 'bc-09-paused-line-390');
+      check(seen.glyph && seen.chevron && !seen.word && seen.text === seen.time && /^(?:< 1 min|\d+ min|\d+:\d\d)$/.test(seen.time ?? '')
+        && seen.whole && /^Walk paused, /.test(seen.name ?? '') && seen.wide,
+        `tend tabs T59: paused at 390 px the bar shows the pause glyph, the time whole and alone, the chevron, and says "Walk paused" (${JSON.stringify(seen)})`);
+    }
     // tend tabs audit 64 (the run's review, F2): paused at 320 px the glyph takes the chevron's place, no dot, the time
     // whole, 8 px from the glyph (Paused320; audit 63).
     {

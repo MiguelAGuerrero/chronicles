@@ -42,7 +42,7 @@ const SAID_MS = 3000;
 
 /**
  * The recording bar (NV9): while a walk is open and minimized, just above the
- * tab bar on every tab. Elapsed time and distance (Paused when paused); a tap
+ * tab bar on every tab. Elapsed time and distance (the pause glyph when paused, T59); a tap
  * returns to the walk; a held Stop (decision 0048) ends it. Its camera keeps a photo or video for the open
  * walk, placed as the walk's own captures are (the latest fix, else at stop),
  * paused or not, without opening the walk screen.
@@ -374,16 +374,10 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
               ) : (
                 dot && <View testID="recording-dot" style={styles.dot} />
               )}
-              {/* The time alone, then " · Paused", which alone shrinks at 320 px (tend tabs audit 57); the distance is in
-                  the label (BC6). */}
+              {/* The time alone, drawn whole (tend tabs audit 57); the distance is in the label (BC6). Paused, no word
+                  beside it: the glyph shows it and the label says it (T59, the owner's Paused390). */}
               <View testID="recording-stats" style={styles.line}>
                 <Ticking testID="recording-numbers" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => line(now).time} label={(now) => line(now).label} />
-                {paused && (
-                  <Text testID="recording-word" style={[styles.text, styles.word]} numberOfLines={1} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                    {/* A no-break space: a leading plain one is dropped at the start of its own item on the web (ui 1). */}
-                    {'\u00a0· Paused'}
-                  </Text>
-                )}
               </View>
               {/* Back into the walk, not "expand" (tabs audit U10), at every width (T58); never mid-memo (BC6). */}
               {chevron && (
@@ -484,7 +478,6 @@ const styles = StyleSheet.create({
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
   line: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' },
   numbers: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
-  word: { flex: 1, flexShrink: 1, minWidth: 0 },
   error: { fontSize: 14 },
   stop: { width: 44, height: 44, minHeight: 44, paddingHorizontal: 0, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },

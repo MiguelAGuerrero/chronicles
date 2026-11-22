@@ -38,6 +38,9 @@ paths:
     ground. The line draws `recordingLine(...).time` (the time alone), its label the distance; `barChevron(width, memo)`
     hides the chevron below 360 px. Its buttons are `BarRound`, a component: a `round()` helper called in render
     tripped the React Compiler's ref rule on `photo` (it reads refs).
+  - **Paused, the line draws no word** (`tend tabs T59`, the owner's Paused390, Nov 22): the pause glyph
+    (`recording-paused`) and the time alone, then the chevron; "Walk paused" is in the line's spoken name. There is no
+    `recording-word` and `recordingLine` has no `word`; where a line above quotes "1 min · Paused", it predates T59.
   - **The bar has its own Stop** (`bar-stop`, held as on the walk screen; a
     tap says to hold), beside its camera: a way out even when the walk screen
     can't be reached (the owner's quick fix, Nov 2). It refuses under a memo

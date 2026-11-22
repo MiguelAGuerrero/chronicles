@@ -25,7 +25,7 @@ test('BC6: the line\'s words are the time alone; the distance stays in its spoke
   assert.match(on.label, /1\.3[  ]km walked in 12 min/);
   const paused = bar.recordingLine({ startedAt: 0, pauses: [{ started_at: 60_000, ended_at: null }], now: 30 * 60_000, distanceM: 84 }) as typeof on;
   assert.equal(paused.time, '1 min');
-  assert.equal(paused.word, 'Paused');
+  assert.equal(paused.text, paused.numbers); // no word drawn since T59
   assert.match(paused.label, /^Walk paused, 84[  ]m walked/);
 });
 
@@ -127,4 +127,22 @@ test('tend tabs audit 65: the bar reads whether the walk is paused once, for its
   assert.equal((src.match(/pauses\.some\(/g) ?? []).length, 1, 'one reading of the open pause');
   assert.match(src, /barChevron\(width, memoOn, paused\)/);
   assert.match(src, /barLineGaps\(width, memoOn, paused\)/);
+});
+
+// T59 (the owner's yes, Nov 22, "Drop the word (Recommended)"; the drawing's Paused390, approved as drawn): with four
+// buttons and the chevron the line had about 100 px at 390 px and " · Paused" shrank to "Pau…". Paused, the line draws
+// the time alone; the pause glyph (0051, U10) shows it, a shape, and the spoken name keeps "Walk paused".
+test('tend tabs T59: paused, the bar draws the time alone, no " · Paused"; the glyph and the spoken name say it', async () => {
+  const paused = bar.recordingLine({ startedAt: 0, pauses: [{ started_at: 60_000, ended_at: null }], now: 30 * 60_000, distanceM: 84 });
+  assert.equal(paused.paused, true);
+  assert.equal(paused.time, '1 min');
+  assert.doesNotMatch(paused.text, /Paused/);
+  assert.equal(paused.text, paused.numbers);
+  assert.equal('word' in paused, false, 'no word to draw');
+  assert.match(paused.label, /^Walk paused, 84[ \u00a0\u202f]m walked in 1 min\. Return to the walk$/);
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const src = readFileSync(join(__dirname, '..', '..', '..', 'components', 'RecordingBar.tsx'), 'utf8');
+  assert.doesNotMatch(src, /recording-word|· Paused/, 'the bar draws no word beside the time');
+  assert.match(src, /testID="recording-paused"/, 'the pause glyph stays');
 });

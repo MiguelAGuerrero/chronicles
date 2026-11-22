@@ -27,7 +27,8 @@ export function barTimeSpoken(ms: number): string {
 
 /**
  * The recording bar's line (NV9): the time walked, paused time left out, and
- * the distance, with Paused after them while paused. Pure.
+ * the distance. Paused, no word is drawn (T59, the owner, Nov 22: "Drop the word"): the pause glyph shows it and the
+ * spoken name says "Walk paused". Pure.
  */
 export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]; now: number; distanceM: number }): {
   text: string;
@@ -35,8 +36,6 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
   time: string;
   /** The time and the distance, drawn whole (tend tabs audit 57). */
   numbers: string;
-  /** "Paused" while paused, drawn apart after the numbers so only it shrinks; null otherwise. */
-  word: string | null;
   label: string;
   paused: boolean;
 } {
@@ -44,12 +43,9 @@ export function recordingLine(o: { startedAt: number | null; pauses: PauseSpan[]
   const ms = o.startedAt == null ? 0 : Math.max(0, o.now - o.startedAt - pausedMs(o.pauses, o.startedAt, o.now));
   const line = `${barTime(ms)} · ${formatDistance(o.distanceM)}`;
   return {
-    // The numbers first, so a narrow bar cuts the word (the pause glyph shows it too), never the time (tend tabs audit 17);
-    // given apart, so the bar draws the numbers whole and lets only the word shrink (tend tabs audit 57).
-    text: paused ? `${line} · Paused` : line,
+    text: line,
     time: barTime(ms),
     numbers: line,
-    word: paused ? 'Paused' : null,
     label: `${paused ? 'Walk paused' : 'Walk recording'}, ${formatDistance(o.distanceM)} walked in ${barTimeSpoken(ms)}. Return to the walk`,
     paused,
   };
