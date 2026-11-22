@@ -312,6 +312,16 @@ async function run(h) {
     await pg.click('[data-testid=pause-walk]');
     await pg.waitForSelector('[data-testid=resume-walk]', { timeout: 10000 });
     await minimize();
+    // tend tabs audit 66 (the T59 review's auditor F1): the way back's whole text, its glyphs set aside, is the time alone, so
+    // a word drawn anywhere on the line (beside the chevron, under another testid) is caught, not only inside the stats.
+    const onlyTime = () => pg.evaluate(() => {
+      const ret = document.querySelector('[data-testid=recording-bar] [data-testid=recording-return]');
+      const n = document.querySelector('[data-testid=recording-bar] [data-testid=recording-numbers]');
+      if (!ret || !n) return null;
+      const c = ret.cloneNode(true);
+      for (const g of c.querySelectorAll('[data-testid=recording-paused], [data-testid=recording-go], [data-testid=recording-dot]')) g.remove();
+      return { rest: c.textContent.trim(), time: n.textContent.trim() };
+    });
     // tend tabs T59 (the owner, Nov 22, "Drop the word"; the drawing's Paused390): paused at 390 px the line is the pause
     // glyph, the time whole and alone, and the chevron; "Walk paused" is in its spoken name. Before it, " · Paused"
     // shrank to "Pau…" there (recording-bar-captures ui 1's space before it has nothing left to stand before).
@@ -325,6 +335,9 @@ async function run(h) {
           wide: document.documentElement.scrollWidth <= window.innerWidth };
       });
       await shot(pg, 'bc-09-paused-line-390');
+      const only390 = await onlyTime();
+      check(!!only390 && only390.rest === only390.time && !/Paused/i.test(only390.rest),
+        `tend tabs audit 66: paused at 390 px the way back draws its glyph, the time and its chevron, nothing more (${JSON.stringify(only390)})`);
       check(seen.glyph && seen.chevron && !seen.word && seen.text === seen.time && /^(?:< 1 min|\d+ min|\d+:\d\d)$/.test(seen.time ?? '')
         && seen.whole && /^Walk paused, /.test(seen.name ?? '') && seen.wide,
         `tend tabs T59: paused at 390 px the bar shows the pause glyph, the time whole and alone, the chevron, and says "Walk paused" (${JSON.stringify(seen)})`);
@@ -343,10 +356,13 @@ async function run(h) {
           gap: g && r ? Math.round(r.left - g.right) : null, wide: document.documentElement.scrollWidth <= window.innerWidth };
       });
       await shot(pg, 'bc-10-paused-320');
+      const only320 = await onlyTime();
       await pg.setViewportSize({ width: 390, height: 844 });
       await pg.waitForTimeout(800);
       check(seen.glyph && !seen.chevron && !seen.dot && seen.whole && seen.gap === 8 && seen.wide,
         `tend tabs audit 64: paused at 320 px the bar shows the pause glyph, no chevron and no dot, the time whole, 8 px from the glyph (${JSON.stringify(seen)})`);
+      check(!!only320 && only320.rest === only320.time && !/Paused/i.test(only320.rest),
+        `tend tabs audit 66: paused at 320 px the way back draws its glyph and the time, nothing more (${JSON.stringify(only320)})`);
     }
     const before = { voice: await count('voice'), text: await count('text') };
     await memo();
