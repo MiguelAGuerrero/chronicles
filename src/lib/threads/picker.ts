@@ -56,3 +56,12 @@ export function threadChoices<R extends ThreadRow>(rows: readonly R[], o: { quer
   const last = rows.find((r) => r.id === o.last) ?? null;
   return { last, rest: rows.filter((r) => r !== last).sort(byLatest) };
 }
+
+/**
+ * What Back and Escape do on each step of Add to a thread (tend threads T56, NN/g H3): on "Join it with another moment"
+ * they return to the threads, so a change of mind keeps the card; on the threads and the name step they close it (a
+ * name typed is kept as it goes, thread-at-capture audit 3).
+ */
+export function backFrom(step: 'threads' | 'moment' | 'name'): 'threads' | 'close' {
+  return step === 'moment' ? 'threads' : 'close';
+}

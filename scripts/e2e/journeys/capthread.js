@@ -76,6 +76,18 @@ async function run(h) {
     `CT7: the other mural is offered with its small picture beside "Photo" and its date line (${rows}, ${pic}, ${JSON.stringify(rowText)})`);
   check(/\d{1,2}:\d{2} (am|pm)/.test(rowText), `CT12: the row says its time of day after its date (${JSON.stringify(rowText)})`);
   await shot(pg, 'ct-03-new-thread');
+  // tend threads T56: Escape on the moment step goes back to the threads, the card still up (NN/g H3).
+  await pg.keyboard.press('Escape');
+  await pg.waitForTimeout(500);
+  const backOnThreads = (await pg.locator('[data-testid=add-to-thread]').count()) === 1 && (await pg.locator('[data-testid=add-new-thread]').count()) === 1;
+  check(backOnThreads, 'tend threads T56: Escape on "Join it with another moment" returns to the threads, the card still up');
+  if (backOnThreads) await pg.click('[data-testid=add-new-thread]');
+  else {
+    await pg.click('[data-testid=add-thread]').catch(() => {});
+    await there('[data-testid=add-to-thread]', 5000);
+    await pg.click('[data-testid=add-new-thread]').catch(() => {});
+  }
+  await pg.waitForTimeout(600);
   // thread-at-capture audit 2: a double tap on the row makes one thread, not two.
   if (rows) await pg.locator('[data-testid=add-moment-row]').first().dblclick();
   const named = await there('[data-testid=new-thread-name]', 5000);

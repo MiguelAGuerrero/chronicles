@@ -57,3 +57,11 @@ test('CT12: a row in Add to a thread says its time of day after its date, so two
   assert.notEqual(a, b, 'two moments of one walk read apart in words');
   assert.equal(lines.pickLine!({ place: 'Fox Point', t: new Date(2026, 10, 2, 10, 5).getTime(), walkLine: null, now }), 'Fox Point, Nov 2, 10:05 am', 'the place first, as the context line has it');
 });
+
+test('tend threads T56: Back and Escape on "Join it with another moment" return to the threads; elsewhere they close', () => {
+  const backFrom = (picker as unknown as { backFrom: (step: 'threads' | 'moment' | 'name') => 'threads' | 'close' }).backFrom;
+  assert.equal(typeof backFrom, 'function', 'the card asks one core rule what Back does');
+  assert.equal(backFrom('moment'), 'threads', 'changing one\'s mind on the second step keeps the card (NN/g H3)');
+  assert.equal(backFrom('threads'), 'close');
+  assert.equal(backFrom('name'), 'close', 'the thread is made: Back leaves, the typed name kept (thread-at-capture audit 3)');
+});

@@ -15,7 +15,7 @@ import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
 import { NewNotePage } from './notePage/NewNotePage';
-import { AddToThread } from './threads/AddToThread';
+import { AddToThread, type AddToThreadHandle } from './threads/AddToThread';
 import type { NotePageHandle } from './notePage/NotePage';
 import { SpaceLine } from './SpaceLine';
 import { useEditAfterCapture } from './edit/EditOffer';
@@ -94,6 +94,8 @@ export function CaptureRow(props: {
   const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
   // Thread on the pill (thread at capture CT1, CT3): the moment Add to a thread is open for.
   const [threading, setThreading] = useState<string | null>(null);
+  // Back and Escape go through the card (tend threads T56): a step back, or close.
+  const threadCard = useRef<AddToThreadHandle>(null);
   const noteOpen = page != null;
   const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
   const pageRef = useRef<NotePageHandle>(null);
@@ -238,9 +240,10 @@ export function CaptureRow(props: {
       )}
 
       {/* Add to a thread for the moment just made (CT3), in the app's Modal. */}
-      <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => setThreading(null)}>
+      <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => threadCard.current?.requestClose()}>
         {threading && (
           <AddToThread
+            ref={threadCard}
             moment={{ id: threading }}
             onClose={() => setThreading(null)}
             onDone={(text, ok) => {

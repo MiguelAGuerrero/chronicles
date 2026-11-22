@@ -44,7 +44,7 @@ import { NoteText } from './threads/NoteText';
 import { router } from 'expo-router';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { threads } from '../lib/threads';
-import { AddToThread } from './threads/AddToThread';
+import { AddToThread, type AddToThreadHandle } from './threads/AddToThread';
 import { ReplyDock, DOCK_H, type ReplyStage } from './threads/ReplyDock';
 import { ResponsesSheet } from './threads/ResponsesSheet';
 import { responseRows, responsesOf } from '../lib/threads/responses';
@@ -458,6 +458,8 @@ export function CaptureViewer(props: {
   // Back and Escape close an open menu of the reminder editor before the editor (tend explore 18).
   const remindEditor = useRef<RemindEditorHandle>(null);
   const replyNote = useRef<NotePageHandle>(null);
+  // Add to a thread: Back and Escape go a step back from its moment step, else close it (tend threads T56).
+  const addCard = useRef<AddToThreadHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Faced | null>(null);
@@ -714,7 +716,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={reactingTo ? () => setReactingTo(null) : menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => remindEditor.current?.requestClose() : openedStack.length ? back : close}
+      onRequestClose={reactingTo ? () => setReactingTo(null) : menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage === 'note' ? () => replyNote.current?.requestClose() : replyStage ? () => setReplyStage(null) : sheetUp ? () => setSheet(null) : adding ? () => addCard.current?.requestClose() : editing ? () => editor.current?.requestClose() : noting ? () => noteEditor.current?.requestClose() : reminding ? () => remindEditor.current?.requestClose() : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}
@@ -886,6 +888,7 @@ export function CaptureViewer(props: {
         )}
         {adding && (
           <AddToThread
+            ref={addCard}
             moment={adding}
             onClose={() => setAdding(null)}
             onDone={(text, ok) => {

@@ -7,7 +7,7 @@ import { walkClocks } from '../lib/pins';
 import { nextDayPartBoundary } from '../lib/resurface/context';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
-import { AddToThread } from '../components/threads/AddToThread';
+import { AddToThread, type AddToThreadHandle } from '../components/threads/AddToThread';
 import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
 import { perfCount } from '../lib/perfCount';
@@ -326,6 +326,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [toast, setToast] = useState<string | null>(null);
   // Thread on the pill (thread at capture CT1, CT3): the moment Add to a thread is open for.
   const [threading, setThreading] = useState<string | null>(null);
+  // Back and Escape go through the card (tend threads T56): a step back, or close.
+  const threadCard = useRef<AddToThreadHandle>(null);
   const [stopping, setStopping] = useState(false);
   // Read after the camera answers, which a render's `stopping` cannot be: no editor opens while the walk stops (audit 3).
   const stoppingNow = useRef(false);
@@ -2213,9 +2215,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <UndoToast style={{ top: insets.top + 64 }} />
 
       {/* Add to a thread for the moment just made (CT3): the app's Modal, the only one up on this screen when the pill shows. */}
-      <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => setThreading(null)}>
+      <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => threadCard.current?.requestClose()}>
         {threading && (
           <AddToThread
+            ref={threadCard}
             moment={{ id: threading }}
             onClose={() => setThreading(null)}
             onDone={(text, ok) => {

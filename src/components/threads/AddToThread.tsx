@@ -1,11 +1,11 @@
-import { type ComponentRef, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentRef, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { accessoryRoom, floatsAccessory, lineLift, overlayTop } from '../../lib/journal/keyboard';
 import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { threads } from '../../lib/threads';
-import { filterPicker, lastAddedTo, threadChoices, type ThreadRow } from '../../lib/threads/picker';
+import { backFrom, filterPicker, lastAddedTo, threadChoices, type ThreadRow } from '../../lib/threads/picker';
 import { headingOf, pickLine, threadLine } from '../../lib/threads/lines';
 import { useThreads } from '../../lib/threads/useThreads';
 import type { MomentView } from '../../lib/resurface/types';
@@ -38,7 +38,14 @@ type Listed = ThreadRow & { line: string };
  * walk still open included (CT6), then offers an optional name (CT8). Drawn inside its host's Modal, never a second one
  * (iOS can't present a Modal over a Modal). It reads only the moment's id.
  */
-export function AddToThread(props: { moment: { id: string }; onClose: () => void; onDone: (message: string, ok: boolean) => void }) {
+export interface AddToThreadHandle {
+  /** The host's Back or Escape (tend threads T56): a step back from "Join it with another moment", else close. */
+  requestClose: () => void;
+}
+
+type AddToThreadProps = { moment: { id: string }; onClose: () => void; onDone: (message: string, ok: boolean) => void };
+
+export const AddToThread = forwardRef<AddToThreadHandle, AddToThreadProps>(function AddToThread(props, ref) {
   const insets = useSafeAreaInsets();
   // The search's keyboard (fix picker-keyboard, the owner's iPhone, Nov 18): the card ends above the keys, and above the
   // row an iPhone's browser floats over them (`accessoryRoom`), so its last rows stay reachable. It rises by what the
@@ -154,6 +161,13 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
     },
     [],
   );
+  // Back and Escape from the host (tend threads T56): the moment step returns to the threads; elsewhere the card closes.
+  useImperativeHandle(ref, () => ({
+    requestClose: () => {
+      if (backFrom(step) === 'threads') setStep('threads');
+      else props.onClose();
+    },
+  }));
 
   const threadButton = (r: Listed, testID: string) => (
     <Pressable
@@ -331,7 +345,7 @@ export function AddToThread(props: { moment: { id: string }; onClose: () => void
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   // Over the journal's open line (its layer is `zIndex: 2`), which rises with any keyboard (fix picker-keyboard).
