@@ -336,6 +336,25 @@ async function run(h) {
     });
     await shot(pg, 'bc-09-paused-line-390');
     check(gap != null && dotAt != null && dotAt >= 3, `recording-bar-captures ui 1: paused, a space stands between the time and " · Paused" (${JSON.stringify({ gap, dotAt })})`);
+    // tend tabs audit 64 (the run's review, F2): paused at 320 px the glyph takes the chevron's place, no dot, the time
+    // whole, 8 px from the glyph (Paused320; audit 63).
+    {
+      await pg.setViewportSize({ width: 320, height: 700 });
+      await pg.waitForTimeout(1000);
+      const seen = await pg.evaluate(() => {
+        const q = (id) => document.querySelector(`[data-testid=recording-bar] [data-testid=${id}]`);
+        const n = q('recording-numbers');
+        const g = q('recording-paused')?.getBoundingClientRect();
+        const r = n?.getBoundingClientRect();
+        return { glyph: !!g, chevron: !!q('recording-go'), dot: !!q('recording-dot'), whole: !!n && n.scrollWidth <= n.clientWidth + 1,
+          gap: g && r ? Math.round(r.left - g.right) : null, wide: document.documentElement.scrollWidth <= window.innerWidth };
+      });
+      await shot(pg, 'bc-10-paused-320');
+      await pg.setViewportSize({ width: 390, height: 844 });
+      await pg.waitForTimeout(800);
+      check(seen.glyph && !seen.chevron && !seen.dot && seen.whole && seen.gap === 8 && seen.wide,
+        `tend tabs audit 64: paused at 320 px the bar shows the pause glyph, no chevron and no dot, the time whole, 8 px from the glyph (${JSON.stringify(seen)})`);
+    }
     const before = { voice: await count('voice'), text: await count('text') };
     await memo();
     await pg.click('[data-testid=bar-voice-save]');
