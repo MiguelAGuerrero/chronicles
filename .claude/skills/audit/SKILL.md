@@ -90,9 +90,11 @@ reviewers' own numbering is theirs and never becomes an audit number.
 - **Architectural** findings (data model, library, platform strategy,
   navigation flow) go to the owner with AskUserQuestion and a recommended
   option before any code.
-- **An accepted finding whose fix changes a look** (decision 0252): draw the fix and ask for its approval as
-  `.claude/skills/mockup.md` says, before its regression test; the owner's words go in the audit line. A fix
-  whose only visible effect is what its cited rule requires needs none.
+- **An accepted finding whose fix needs a mock-up** (decisions 0252, 0259: a new screen, sheet, dialog, flow,
+  transition or component, or a regrouping): draw the fix and ask for its approval as `.claude/skills/mockup.md`
+  says, before its regression test; the owner's words go in the audit line. A small element, a restyle within the
+  tokens, reworded words (quoted old and new) or a fix whose only visible effect is what its cited rule requires
+  needs none.
 
 ## 4. Regression test, then fix
 

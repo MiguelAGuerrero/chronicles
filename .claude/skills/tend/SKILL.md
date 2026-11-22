@@ -56,10 +56,9 @@ Classify every finding before touching code. When in doubt, it waits.
 | **phone** | Anything only a device can show or verify: haptics, gestures, native map behaviour, background recording, VoiceOver and TalkBack, real GPS. | The inbox as `[phone]`, with **Do** and **Expect**; never shipped |
 
 A loop fix that turns out to need an owner or architecture change stops there and is filed; the half-made change is
-dropped, not shipped smaller. **A new or changed look waits for the owner's approved mock-up** (decision 0252,
-`.claude/skills/mockup.md`): a finding or a review's finding whose fix adds, removes, moves, regroups, restyles or
-rewords what a screen shows is **owner**, filed with its drawn page, even with a cited source; one whose only visible
-effect is what its cited rule requires (focus order, a cut label, a contrast ratio) is **loop**.
+dropped, not shipped smaller. **A look big enough for a mock-up** (`.claude/skills/mockup.md`, "When one is needed"; 0252, 0259: a new screen, sheet,
+dialog, flow, transition or component, or a regrouping) makes a finding **owner**, filed with its drawn page, even with a
+cited source. A small element, a restyle or reworded words (quoted old and new) needs none and the other rows classify it.
 
 The loop never edits `docs/VISION.md`, a spec, a `vision-ok:` or `scripts/vision.allow.json`, a baseline, a hook, a
 skill, a script, CI or `package.json`; `npm run check:tend` fails a run that does, and CI runs the same check on every
@@ -188,7 +187,7 @@ entry per finding, written so a yes or no is enough:
   departure from all of them says why. The loop never edits `docs/research/`: a
   precedent the file lacks goes in the entry with its source, marked "not yet
   recorded", for the slice that builds it to record.
-- An entry that changes a look is filed with its mock-up drawn and published (`.claude/skills/mockup.md`); the owner's yes
+- An entry whose look needs a mock-up (`.claude/skills/mockup.md`, "When one is needed") is filed with its mock-up drawn and published (`.claude/skills/mockup.md`); the owner's yes
   approves the look it shows. `[phone]` entries carry **Do** and **Expect** in place of a recommendation.
 - An addition too large for one commit is not a `T` entry: shape it as a `G` entry with criteria (section 9's form), so a
   yes has something to hold it to. A `G` from lens 0 (section 9, source 6) is filed as a `G` whatever the balance reads.
@@ -238,7 +237,7 @@ which wait for the next `/tend inbox`. Every no is recorded in the same run.
 - **Yes to a slice-sized `[owner]` `T` entry** (filed so while the balance read
   outgrowing, section 5): one slice, the `slice` skill with the entry's criteria
   as its start; not `--from`, which only a `G` entry takes (decision 0130).
-- **Yes to an entry that changes a look and has no `Mock-up:` line** (decision 0252): not built; draw it, note its line on
+- **Yes to an entry whose look needs a mock-up and has no `Mock-up:` line** (decisions 0252, 0259): not built; draw it, note its line on
   the entry with the yes (`inbox note`), and ask at the close. **Yes to an `[owner]` `T` entry** (one commit's worth, by
   section 5): build its recommended shape, as its mock-up draws it, as section 4 does, one commit, subject
   `tend <area> T<n>: …`, its test named the same, `Source:` naming the entry

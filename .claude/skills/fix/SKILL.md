@@ -87,10 +87,12 @@ feature's worth of behaviour: that is `/slice`), and on:
   unreshaped version (decision 0094). Run `/vision` on any such fix first; a
   reshaped version the issue allows is the fix.
 
-**A new or changed look** (decision 0252): a fix that adds, removes, moves, regroups, restyles or rewords what a
-screen shows, beyond what restores an approved look or what its cited rule requires, waits for a mock-up: draw it,
-publish it and ask, as `.claude/skills/mockup.md` says, before the regression test. Record the owner's words in the
-commit (`Mock-up: <link>, approved "<words>" (<date>)`). A fix found to change a look while building stops the same way.
+**A look big enough for a mock-up** (decisions 0252, 0259): a fix that adds a screen, sheet, dialog, flow, transition or
+an entirely new component, or regroups controls across a screen, waits for a mock-up: draw it, publish it and ask, as
+`.claude/skills/mockup.md`, "When one is needed", says, before the regression test. Record the owner's words in the
+commit (`Mock-up: <link>, approved "<words>" (<date>)`). A fix found to cross that line while building stops the same
+way. A small element, a restyle within the tokens or reworded words needs none: build it, and quote old and new words
+in the commit; in doubt, build and show the pictures in the report.
 
 While the question is open the worktree stays; if the answer is no, scrap it.
 

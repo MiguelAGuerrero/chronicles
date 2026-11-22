@@ -1,17 +1,36 @@
 # Mock-up: a drawn page the owner approves before a look is built
 
-Decision 0252. Every skill that proposes, plans or builds a change to what a screen shows uses this page; a skill names
-it as `mockup.md`. Only the owner approves a look: never a proxy, a reviewer or the run itself.
+Decisions 0252 and 0259. Every skill that proposes, plans or builds a change to what a screen shows uses this page; a
+skill names it as `mockup.md`. Only the owner approves a mock-up: never a proxy, a reviewer or the run itself.
 
 ## When one is needed
 
-A **new or changed look**: the work adds, removes, moves, regroups, restyles or rewords what a screen shows (a screen,
-a control, a state, a sheet, a row, a line of copy, a notification's words). It needs a mock-up the owner approved
-before any code or test is written.
+Only for work big enough to need it (the owner, Nov 22, decision 0259: "in the interest of faster iteration"). A mock-up
+the owner approved comes before any code or test when the work:
 
-Not needed: a fix whose only visible effect is what its cited rule requires (focus order, a label no longer cut, a
-sheet that scrolls at large text, contrast brought to its ratio, a target grown to 44 pt), a bug that puts back what
-an approved look already showed, and work with no surface (`/vision` says **no surface**). When in doubt, it is needed.
+- adds a **new screen, sheet or dialog**;
+- adds or changes a **flow**: a sequence of steps, or a **transition** between states or screens;
+- adds an **entirely new component** (a kind of thing the app has never drawn);
+- **moves or regroups** controls across a screen (a layout, not one element).
+
+**Not needed**, built on the builder's judgement with nothing extra to show the owner:
+
+- a **small element** added to or removed from an existing screen: a snackbar or toast, a chevron, an icon, a pill, a
+  label, a row of an existing kind, a button beside its peers;
+- a **restyle** of colour, spacing or size within the app's tokens (`theme`, `lib/motionTokens`);
+- **words**: a reworded line, label or notification. The report (the commit, the run's summary) quotes the old and the
+  new words; the replay's words and any line VISION.md governs still go through the `steward`;
+- a fix whose only visible effect is what its cited rule requires (focus order, a label no longer cut, a sheet that
+  scrolls at large text, contrast brought to its ratio, a target grown to 44 pt), a bug that puts back what an
+  approved look already showed, and work with no surface (`/vision` says **no surface**).
+
+**When in doubt, build and show** (0259 reverses 0252's "when in doubt, it is needed"): a change that may or may not
+cross the line is built as a small change, and its pictures (390 and 320 px) go in the report so the owner can
+push back. A pushback is a fix. The VISION.md rules hold whatever the size: a small element is still never a count, a
+celebration or a capture moved behind a tap.
+
+A spec with a surface that needs no drawing says so in its `## Mock-up` section with one line, `Not needed: <why>`
+(checked by `scripts/mockup.js`).
 
 ## What it is
 

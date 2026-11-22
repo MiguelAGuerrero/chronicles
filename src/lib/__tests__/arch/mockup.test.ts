@@ -18,7 +18,7 @@ type Mockup = {
   LEGACY_SPECS: string[];
   IN_FLIGHT_SPECS: string[];
   surfaceOf(text: string): boolean | null;
-  sectionOf(text: string): { line: number; drawing: string | null; approved: string | null } | null;
+  sectionOf(text: string): { line: number; drawing: string | null; approved: string | null; notNeeded: string | null } | null;
   specProblems(specs: { slug: string; text: string }[], legacy?: string[], inFlight?: string[]): Problem[];
   check(root: string): Problem[];
 };
@@ -82,6 +82,21 @@ test('mockup: a new spec with a surface fails without an approved drawing; legac
   assert.match(bare, /## Mock-up/);
   assert.match(bare, /\.claude\/skills\/mockup\.md/);
   assert.match(got.find((x) => x.slug === 'new-unapproved')!.message, /Approved:/);
+});
+
+test('mockup 0259: a small change says why it needs no drawing ("Not needed: <reason>"); an empty or placeholder reason does not count', () => {
+  const m = mockup();
+  const small = '## Mock-up\n\nNot needed: a chevron added to an existing row, no new flow or component (decision 0259)\n';
+  assert.match(m.sectionOf(spec(small))?.notNeeded ?? '', /chevron/, 'the reason is read');
+  assert.equal(m.sectionOf(spec('## Mock-up\n\nNot needed:\n'))?.notNeeded, null, 'an empty reason is none');
+  assert.equal(m.sectionOf(spec('## Mock-up\n\nNot needed: <why>\n'))?.notNeeded, null, 'a placeholder is none');
+  const got = m.specProblems([
+    { slug: 'new-small', text: spec(VISION('aligned'), small) },
+    { slug: 'new-empty', text: spec(VISION('aligned'), '## Mock-up\n\nNot needed:\n') },
+  ], [], []);
+  assert.deepEqual(got.map((x) => x.slug), ['new-empty']);
+  assert.match(got[0].message, /Not needed:/, 'the message names the other way to pass');
+  assert.match(read('.claude/skills/mockup.md'), /0259/, 'the procedure names the decision');
 });
 
 test('mockup: the lists only shrink: a listed spec that gains the section, or has no spec, must leave', () => {

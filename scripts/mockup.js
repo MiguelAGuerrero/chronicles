@@ -5,6 +5,11 @@
 //
 //   Drawing: <a link, or a docs/mockups/<id>/ path>
 //   Approved: [with G<n>, ]"<the owner's words>" (the owner, YYYY-MM-DD)
+//
+// or, for a small change that needs no drawing (decision 0259: no new screen, sheet, dialog, flow, transition or
+// component, nothing regrouped across a screen):
+//
+//   Not needed: <why, in words>
 
 const fs = require('fs');
 const path = require('path');
@@ -66,7 +71,7 @@ function surfaceOf(text) {
   return !/no surface/i.test(m[1]);
 }
 
-/** The "## Mock-up" section (pure): its line, the drawing's link and the approval, each null when not given. */
+/** The "## Mock-up" section (pure): its line, the drawing's link, the approval and a small change's reason (0259), each null when not given. */
 function sectionOf(text) {
   const s = section(text, HEADING);
   if (!s) return null;
@@ -76,8 +81,9 @@ function sectionOf(text) {
   };
   const drawing = value('Drawing');
   const approved = value('Approved');
+  const reason = value('Not needed');
   const link = drawing && !/[<>]/.test(drawing) ? LINK.exec(drawing) : null;
-  return { line: s.line, drawing: link ? link[0] : null, approved: approved && APPROVED.test(approved) ? approved : null };
+  return { line: s.line, drawing: link ? link[0] : null, approved: approved && APPROVED.test(approved) ? approved : null, notNeeded: reason && reason.length > 2 && !/[<>]/.test(reason) ? reason : null };
 }
 
 /** What is wrong (pure): specs [{ slug, text }], the legacy and in-flight lists. */
@@ -87,17 +93,18 @@ function specProblems(specs, legacy = LEGACY_SPECS, inFlight = IN_FLIGHT_SPECS) 
   const branch = new Set(inFlight);
   for (const { slug, text } of specs) {
     const s = sectionOf(text);
-    const done = s && s.drawing && s.approved;
+    const done = s && ((s.drawing && s.approved) || s.notNeeded);
     if ((old.has(slug) || branch.has(slug)) && done) {
       out.push({ slug, message: `${slug} has an approved "## ${HEADING}" section now: take it off scripts/mockup.js's ${old.has(slug) ? 'LEGACY_SPECS' : 'IN_FLIGHT_SPECS'} (the lists only shrink).` });
       continue;
     }
     if (old.has(slug) || branch.has(slug) || surfaceOf(text) !== true) continue;
+    if (s && s.notNeeded) continue;
     const where = `specs/${slug}/spec.md`;
     if (!s) {
-      out.push({ slug, message: `${where} changes what a screen shows (its Vision verdict has a surface) and has no "## ${HEADING}" section (decision 0252): draw the mock-up, have the owner approve it, and add the section with its "Drawing:" and "Approved:" lines (${PROCEDURE}).` });
+      out.push({ slug, message: `${where} changes what a screen shows (its Vision verdict has a surface) and has no "## ${HEADING}" section (decision 0252): draw the mock-up, have the owner approve it, and add the section with its "Drawing:" and "Approved:" lines, or, for a small change that needs no drawing, a "Not needed: <why>" line (decision 0259, ${PROCEDURE}).` });
     } else if (!s.drawing) {
-      out.push({ slug, message: `${where}:${s.line}: "## ${HEADING}" has no "Drawing:" line with the page's link or its docs/mockups/<id>/ path (${PROCEDURE}).` });
+      out.push({ slug, message: `${where}:${s.line}: "## ${HEADING}" has no "Drawing:" line with the page's link or its docs/mockups/<id>/ path, nor a "Not needed: <why>" line for a small change (decision 0259, ${PROCEDURE}).` });
     } else if (!s.approved) {
       out.push({ slug, message: `${where}:${s.line}: "## ${HEADING}" has no "Approved:" line with the owner's words, quoted, and the date, \`Approved: "<the owner's words>" (the owner, YYYY-MM-DD)\`: no code before the owner approves the look (${PROCEDURE}).` });
     }

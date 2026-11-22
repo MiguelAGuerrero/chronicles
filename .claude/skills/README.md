@@ -55,9 +55,10 @@ shell, and the other two a shell that `.claude/hooks/readonly-bash.sh` keeps to 
   `Co-Authored-By: Claude` trailer; only the owner's own hand edits are left alone.
 - **A stopped slice is parked, not lost:** its branch is pushed as `slice/<slug>-parked`, its question
   is a `T` entry on `main`, and the owner's answer resumes it (`/tend`, section 7).
-- **A new or changed look waits for the owner's approved mock-up** (decision 0252, `mockup.md`): asked at once by
-  a skill the owner typed, filed with its drawn page by `/tend`, approved by the owner's yes to an entry that
-  carries it and again at a plan before code; never by a proxy or a reviewer.
+- **A look big enough for a mock-up waits for the owner's approval** (decisions 0252, 0259, `mockup.md`: a new
+  screen, sheet, dialog, flow, transition or component, or a regrouping): asked at once by a skill the owner typed,
+  filed with its drawn page by `/tend`, approved by the owner's yes to an entry that carries it and again at a plan
+  before code; never by a proxy or a reviewer. A small element, a restyle or reworded words is built without one.
 - **Gates are scripts where they can be:** `check:docs` (a criterion without a test), `check:vision`,
   `check:test-first`, the layer check, `check:tend` (a loop commit without a test or a source),
   `check:records` (a record document changed by anything but its commit's declared operations), the mock-up gate

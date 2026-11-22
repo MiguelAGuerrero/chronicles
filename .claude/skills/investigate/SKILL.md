@@ -82,7 +82,8 @@ The owner typed this skill and is present, so their calls are asked **in this ru
   owner takes the recommended option nearly always (`docs/research/tend-process-review.md`, F6).
 - A question of colour or look offers whole candidates side by side, measured as a person sees them
   (the blend included), never one swatch.
-- **The mock-up** (decision 0252): when the recommendation changes a look, draw it (and each option the owner
+- **The mock-up** (decisions 0252, 0259): when the recommendation's look needs one (`mockup.md`, "When one is
+  needed"), draw it (and each option the owner
   is asked to choose between) and publish it as `.claude/skills/mockup.md` says, before asking; one question
   asks for its approval, the page linked ("Approve as drawn (Recommended)"). An approval the owner leaves for
   later is an `Open:` line.

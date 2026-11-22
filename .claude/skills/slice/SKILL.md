@@ -33,7 +33,7 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
   - step 3: write the plan and run the steward, then **go on without
     stopping**, unless `.claude/skills/ship.md`, "Hard stops", is met, an
     accepted steward finding changes what a person sees beyond the approved
-    shape, or the slice changes a look and the entry has no approved `Mock-up:`
+    shape, or the slice's look needs a mock-up (0259) and the entry has no approved `Mock-up:`
     line, or the plan draws a look its mock-up did not show (decision 0252,
     `.claude/skills/mockup.md`); the spec's "## Mock-up" carries the entry's
     drawing as `Approved: with G<n>, "<the owner's words>" (the owner, <date>)`. Then stop building and return "Stopped on" with the question and
@@ -112,9 +112,10 @@ Run `/vision` on the slice, in the owner's words. Its block becomes the spec's
    entry naming an app and a source (`scripts/precedent.js`).
 3. Number the gate's criteria with the slice's prefix, beside the others: they
    get tests like any criterion.
-3a. **Mock-up** (decision 0252). Unless the gate said no surface: a section `## Mock-up` with its `Drawing:` and
-   `Approved:` lines, made and asked in step 3 (`.claude/skills/mockup.md`). `check:docs` fails a new spec with a
-   surface without both (`scripts/mockup.js`).
+3a. **Mock-up** (decisions 0252, 0259). Unless the gate said no surface: a section `## Mock-up` with its `Drawing:`
+   and `Approved:` lines, made and asked in step 3 (`.claude/skills/mockup.md`), or, when the slice's look needs no
+   drawing ("When one is needed": only small elements, restyles or words), one line `Not needed: <why>`.
+   `check:docs` fails a new spec with a surface and neither (`scripts/mockup.js`).
 4. List the spec in `IN_PROGRESS` in `scripts/features.js` (`{ branch, since }`):
    every live criterion must have a test or a recorded reason, or the docs
    check fails (TG20), and the entry exempts the slice's criteria while it is
@@ -154,7 +155,8 @@ Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
 plan, unless the gate said no surface. Triage each finding in the plan (accept
 into a criterion, or reject with the reason), so the owner reviews both at once.
 
-**The mock-up** (decision 0252), unless the gate said no surface: draw every screen the plan adds or changes,
+**The mock-up** (decisions 0252, 0259), unless the gate said no surface or the look needs none (`mockup.md`, "When
+one is needed"; the spec's `Not needed: <why>`): draw every screen the plan adds or changes,
 before beside after, its states and the steward's accepted findings in it, and publish it as
 `.claude/skills/mockup.md` says. The plan links it.
 

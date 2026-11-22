@@ -71,8 +71,10 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 
 ## How it is checked
 
-- A new or changed look is drawn before it is built, today's screen beside the change, and waits for the owner's
-  approval (decision 0252, `.claude/skills/mockup.md`); the reviewers compare the built pictures with that drawing.
+- A look big enough for a mock-up (a new screen, sheet, dialog, flow, transition or component, or a regrouping) is
+  drawn before it is built, today's screen beside the change, and waits for the owner's approval (decisions 0252,
+  0259, `.claude/skills/mockup.md`); the reviewers compare the built pictures with that drawing. A small element, a
+  restyle within the tokens or reworded words is built on the builder's judgement.
 - A slice's plan, when it changes a screen, lists each action with its intent and its matrix row (control, avoid).
 - `/audit` captures the slice's journeys with `E2E_SHOTS` at 390 x 844. The `ux-reviewer` judges every picture
   against these rules and the matrix and cites the source of each finding (or marks it opinion); the auditor and
