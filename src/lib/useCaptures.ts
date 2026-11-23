@@ -28,6 +28,7 @@ import { useStore } from './useStore';
 import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
 import { memoJoins, photoMidMemo, stampFor } from './pieceStamp';
+import { settleWithin } from './settleWithin';
 import type { Capture, CaptureKind, LngLat, Moment } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
@@ -46,6 +47,11 @@ const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 /** How long a stop may take before it is given up on. */
 const STOP_TIMEOUT_MS = 3000;
+/**
+ * How long a stopped memo waits for a photo taken during it that is still being kept, so it joins that photo's moment
+ * (T44); past it the memo is kept as a moment of its own (tend walk-screen audit 24).
+ */
+const PHOTO_JOIN_WAIT_MS = 5000;
 /** How long a discarded memo can be brought back. */
 export const UNDO_MS = 5000;
 
@@ -154,8 +160,11 @@ export function useCaptures(
   const lock = useRef(false); // taps arrive faster than state updates
   const alive = useRef(true); // the screen is still mounted
   const voiceStamp = useRef<Stamp | null>(null);
-  /** A photo taken while the memo records, being kept: the memo stops after it (T44). */
-  const photoMidMemoKeeping = useRef<Promise<unknown> | null>(null);
+  /**
+   * A photo taken while a memo records, being kept: the moment it lands in, for that memo (by its start time) to join once
+   * stopped, if it is not yet joined (T44; tend walk-screen audit 24).
+   */
+  const photoForMemo = useRef<{ memoT: number; momentId: Promise<string | null> } | null>(null);
   /** The recorder's uri before this memo's prepare: one still the same at its stop is not this memo's (tend captures 1). */
   const memoUriBefore = useRef<string | null>(null);
   const voice = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -322,7 +331,8 @@ export function useCaptures(
       return false;
     } finally {
       lock.current = false;
-      setBusy(null);
+      // Only its own: a memo's Save tapped while the photo was being kept stays busy (tend walk-screen audit 24).
+      setBusy((b) => (b === kind ? null : b));
     }
   }
 
@@ -497,8 +507,8 @@ export function useCaptures(
         if (k && memo && voiceOn.current && voiceStamp.current === memo) voiceStamp.current = memoJoins(memo, k.momentId);
       })();
       memoGate.keep(keeping, stamp.walk);
-      // The memo's Save, Discard or leaving waits for this photo, so it is never saved apart from it (T44).
-      if (memo) photoMidMemoKeeping.current = keeping.catch(() => {});
+      // A memo stopped meanwhile waits for this photo before it is kept, so it is never saved apart from it (T44, audit 24).
+      if (memo) photoForMemo.current = { memoT: memo.t, momentId: keeping.then(() => (kept as { momentId: string } | null)?.momentId ?? null, () => null) };
       await keeping;
     });
     return kept;
@@ -523,7 +533,7 @@ export function useCaptures(
     try {
       return await fn();
     } finally {
-      if (alive.current) setBusy(null);
+      if (alive.current) setBusy((b) => (b === 'voice' ? null : b));
     }
   };
 
@@ -589,9 +599,6 @@ export function useCaptures(
    * browser) is not stopped again, and a stop that does not answer gives up.
    */
   async function stopRecorder(): Promise<StoppedMemo> {
-    // A photo taken mid-memo and still being kept joins the memo first (T44).
-    await photoMidMemoKeeping.current;
-    photoMidMemoKeeping.current = null;
     const stamp = voiceStamp.current ?? stampNow();
     const wallMs = Date.now() - stamp.t;
     const status = voice.getStatus();
@@ -620,7 +627,16 @@ export function useCaptures(
    * with (SA8, tend captures 1). With none it is said and let go: here, or, lost as its screen went, by the next
    * screen in front (UN13).
    */
-  async function keepMemo(m: StoppedMemo): Promise<VoiceResult> {
+  async function keepMemo(stopped: StoppedMemo): Promise<VoiceResult> {
+    // Stopped at the tap; a photo taken during it and still being kept is waited for, a bounded while, so the memo joins
+    // its moment (T44; tend walk-screen audit 24). Past the wait it is kept on its own.
+    let m = stopped;
+    const photo = photoForMemo.current;
+    if (photo && photo.memoT === m.stamp.t && !m.stamp.into) {
+      let into: string | null = null;
+      await settleWithin(photo.momentId.then((id) => { into = id; }), PHOTO_JOIN_WAIT_MS);
+      if (into) m = { ...m, stamp: memoJoins(m.stamp, into) };
+    }
     const k = memoKeepable(m);
     const r = m.uri ? await keepCapture(k) : { path: null, error: null };
     if (!('error' in r)) return 'saved';

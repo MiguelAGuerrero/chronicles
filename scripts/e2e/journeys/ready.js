@@ -251,6 +251,49 @@ async function run(h) {
         && !/video/.test(accepts ?? ''),
         `tend walk-screen T44: a photo taken mid-memo is kept as one moment with the memo saved after it (${JSON.stringify({ stillRecording, joined, momentsBefore, momentsAfter, accepts })})`);
     }
+    // tend walk-screen audit 24 (T44's review: steward S6, ux U5, auditor 6, 11): Save stops the recorder at the tap, then
+    // waits (bounded) for a mid-memo photo still being kept, and the memo still joins its moment. The photo's keep is held
+    // back 2 s by delaying its file's read, so the tap lands while it is being kept.
+    {
+      const joinedCount = () => pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+          g.onsuccess = () => resolve(g.result.filter((m) => m.pieces.some((p) => p.kind === 'photo') && m.pieces.some((p) => p.kind === 'voice')).length);
+        };
+      }));
+      const joinedBefore = await joinedCount();
+      await pg.evaluate(() => {
+        if (!window.__fetchWas) window.__fetchWas = window.fetch;
+        window.__slowBlob = true;
+        window.__slowBlobHit = false;
+        window.fetch = async (u, ...rest) => {
+          if (window.__slowBlob && String(u).startsWith('blob:')) {
+            window.__slowBlob = false;
+            window.__slowBlobHit = true;
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+          return window.__fetchWas(u, ...rest);
+        };
+      });
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+      await pg.waitForTimeout(1400);
+      const [ch] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
+      await ch.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+      const hit = await pg.waitForFunction(() => window.__slowBlobHit, null, { timeout: 10000 }).then(() => true, () => false);
+      const tapAt = Date.now();
+      await pg.click('[data-testid=moment-voice-save]');
+      const stoppedAtTap = await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 900 }).then(() => Date.now() - tapAt, () => null);
+      // Its editor opens once the memo is saved; closed, the photo as taken.
+      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => pg.click('[data-testid=edit-close]')).catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(1000);
+      const joinedAfter = await joinedCount();
+      await pg.evaluate(() => { window.__slowBlob = false; if (window.__fetchWas) window.fetch = window.__fetchWas; });
+      check(hit && stoppedAtTap != null && joinedAfter === joinedBefore + 1,
+        `tend walk-screen audit 24: a Save tapped while a mid-memo photo is being kept stops recording at the tap and still joins the photo's moment (${JSON.stringify({ hit, stoppedAtTap, joinedBefore, joinedAfter })})`);
+    }
     await pg.click('[data-testid=moment-voice]');
     await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
     await pg.waitForTimeout(1400);
