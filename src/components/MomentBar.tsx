@@ -187,7 +187,9 @@ export function CaptureRow(props: {
           onNote={() => openNote(momentPill.target())}
           onThread={setThreading}
         />
-        {toast && (
+        {/* Not while a memo records: Discard and the timer stand where the pills are (T44), as the walk keeps its pills
+            back mid-memo. */}
+        {toast && !recording && (
           <LiftIn testID={`${p}-toast`} style={styles.toast} accessibilityLiveRegion="polite">
             <Text style={styles.toastText}>{toast}</Text>
           </LiftIn>

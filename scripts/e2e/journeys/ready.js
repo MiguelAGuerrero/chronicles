@@ -219,8 +219,21 @@ async function run(h) {
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
       // Its editor opens by itself once kept (decision 0240), over the memo still recording.
       await pg.waitForSelector('[data-testid=media-editor]', { timeout: 30000 });
+      await pg.waitForTimeout(1000);
+      await shot(pg, 'ws-t44-editor-mid-memo-390');
       await pg.click('[data-testid=edit-close]');
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 });
+      // The photo's toast waits while the memo records: Discard and the timer stand where the pills are.
+      await pg.waitForTimeout(1500);
+      const rowClear = await pg.evaluate(() => {
+        const r = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+        const toast = r('moment-toast');
+        const row = [r('moment-voice-discard'), r('voice-timer')];
+        const over = (a, b) => !!a && !!b && a.width > 0 && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        return !row.some((b) => over(toast, b));
+      });
+      await shot(pg, 'ws-t44-after-photo-390');
+      check(rowClear, 'tend walk-screen T44: mid-memo, the photo\'s toast never stands over Discard and the timer');
       const stillRecording = (await pg.locator('[data-testid=moment-voice-save]').count()) === 1;
       await pg.click('[data-testid=moment-voice-save]');
       await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 10000 });
