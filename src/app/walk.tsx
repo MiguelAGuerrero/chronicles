@@ -296,6 +296,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   );
   const isDrawing = drawing.gap != null;
   const [pausing, setPausing] = useState(false);
+  // The navigation bar's height, so the Undo pill sits under it (T42).
+  const [navBarH, setNavBarH] = useState(0);
   const [status, setStatus] = useState<RecorderStatus>({ kind: 'idle' });
   const [now, setNow] = useState(() => Date.now());
   // One-off notices: a start warning or "started". The web's "keep this page open" note is said
@@ -1540,32 +1542,38 @@ function WalkScreen(props: { onMinimize: () => void }) {
           )}
           {navigation.nav && (
             // Not a live region: it changes with every fix. The distance is announced in steps instead.
-            <View testID="nav-bar" style={styles.navBar}>
-              <Icon name="navigate" size={20} color="#ffffff" />
-              <Text
-                testID="nav-left"
-                style={styles.navText}
-                numberOfLines={2}
-                accessibilityLabel={`${formatDistance(navigation.nav.leftM)}${navigation.nav.dest.suggested ? '' : `, ${aboutTimeLeft(navTimeLeft)}`} left to ${navigation.nav.dest.label}`}
-              >
-                {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.suggested ? '' : `${formatTimeLeft(navTimeLeft)} · `}{navigation.nav.dest.label}
-              </Text>
-              <Pressable
-                testID="nav-handoff"
-                accessibilityRole="button"
-                accessibilityLabel="Open in Maps"
-                accessibilityHint={HANDOFF_HINT}
-                onPress={() => {
-                  const d = navigation.nav?.dest;
-                  if (d) handOff(d.at, d.label);
-                }}
-                style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
-              >
-                <Icon name="open-outline" size={22} color="#ffffff" />
-              </Pressable>
-              <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
-                <Text style={styles.navEndText}>End</Text>
-              </Pressable>
+            // T42 (decision 0233, "Two rows inside"): the arrow and the line full width, up to two lines, then Open in
+            // Maps and End, both in words, so nothing at 320 px cuts the time or the destination.
+            <View testID="nav-bar" style={styles.navBar} onLayout={(e) => setNavBarH(e.nativeEvent.layout.height)}>
+              <View style={styles.navLine}>
+                <Icon name="navigate" size={20} color="#ffffff" />
+                <Text
+                  testID="nav-left"
+                  style={styles.navText}
+                  numberOfLines={2}
+                  accessibilityLabel={`${formatDistance(navigation.nav.leftM)}${navigation.nav.dest.suggested ? '' : `, ${aboutTimeLeft(navTimeLeft)}`} left to ${navigation.nav.dest.label}`}
+                >
+                  {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.suggested ? '' : `${formatTimeLeft(navTimeLeft)} · `}{navigation.nav.dest.label}
+                </Text>
+              </View>
+              <View style={styles.navActions}>
+                <Pressable
+                  testID="nav-handoff"
+                  accessibilityRole="button"
+                  accessibilityLabel="Open in Maps"
+                  accessibilityHint={HANDOFF_HINT}
+                  onPress={() => {
+                    const d = navigation.nav?.dest;
+                    if (d) handOff(d.at, d.label);
+                  }}
+                  style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
+                >
+                  <Text style={styles.navHandoffText}>Open in Maps</Text>
+                </Pressable>
+                <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={({ pressed }) => [styles.navEnd, pressed && styles.pressed]}>
+                  <Text style={styles.navEndText}>End</Text>
+                </Pressable>
+              </View>
             </View>
           )}
           {/* The notice shares the minimize button's row, level with it at the top edge (the owner's call,
@@ -2206,7 +2214,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       />
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
-      <UndoToast style={{ top: insets.top + 64 }} />
+      {/* T42: under the navigation bar while one shows, which is now two rows tall. */}
+      <UndoToast style={{ top: insets.top + (navigation.nav && navBarH ? 4 + navBarH + 8 : 64) }} />
 
       {/* Add to a thread for the moment just made (CT3): the app's Modal, the only one up on this screen when the pill shows. */}
       <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => threadCard.current?.requestClose()}>
@@ -2261,11 +2270,13 @@ const styles = StyleSheet.create({
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   chipText: { color: theme.ink, fontWeight: '600', fontSize: 14 },
   // Navigating: what is left and where to, as on a maps app's top bar, with End.
+  // T42: two rows inside the one bar, the line over its two labelled buttons.
   navBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, backgroundColor: COLORS.route, borderRadius: 16,
-    paddingLeft: 16, paddingRight: 8, minHeight: 56,
+    flex: 1, minWidth: 0, gap: 4, backgroundColor: COLORS.route, borderRadius: 16, paddingLeft: 16, paddingRight: 8, paddingVertical: 8,
   },
+  navLine: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingRight: 8 },
   navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  navActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
   journeyBar: { flex: 1, minWidth: 0, gap: 4, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
   journeyText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
   // Audit: read at a glance, moving: the largest line on the bar.
@@ -2279,7 +2290,9 @@ const styles = StyleSheet.create({
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
-  navHandoff: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  // Open in Maps in words beside End (T5, T42): an outline on the blue, End the filled one.
+  navHandoff: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  navHandoffText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   finding: {
     flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 16, paddingRight: 4,
     minHeight: 52, borderWidth: 1, borderColor: theme.line,

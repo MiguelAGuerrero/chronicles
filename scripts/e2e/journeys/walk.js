@@ -894,8 +894,39 @@ async function checks(h) {
           if (t && window.__statsWas != null) t.textContent = window.__statsWas;
           window.__statsWas = null;
         });
+        // T42 (decision 0233, "Two rows inside"): the navigation bar holds the arrow and the line, full width and whole, over
+        // Open in Maps and End, both in words and 44 pt, level with Minimize. `longLine` stands in a long place's line for a picture.
+        const navRows = (longLine = null) => page.evaluate((longLine) => {
+          const q = (id) => document.querySelector(`[data-testid=${id}]`);
+          const bar = q('nav-bar'), left = q('nav-left'), maps = q('nav-handoff'), end = q('nav-end'), min = q('walk-minimize');
+          if (!bar || !left || !maps || !end || !min) return null;
+          // React keeps its own text nodes: they are put back as they were (restoreNav), or the line never redraws.
+          if (longLine) { window.__navWas = [...left.childNodes]; left.textContent = longLine; }
+          const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+          const r = document.createRange();
+          r.selectNodeContents(left);
+          const lines = new Set([...r.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top))).size;
+          const seen = {
+            bar: box(bar), left: box(left), maps: box(maps), end: box(end), min: box(min), lines, text: left.textContent,
+            clipped: left.scrollWidth > left.clientWidth + 1 || left.scrollHeight > left.clientHeight + 1,
+            words: [maps.innerText.trim(), end.innerText.trim()], said: [maps.getAttribute('aria-label'), end.getAttribute('aria-label')],
+            icons: maps.querySelectorAll('svg, [class*=icon]').length + [...maps.querySelectorAll('div')].filter((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText)).length,
+          };
+          return seen;
+        }, longLine);
+        const restoreNav = () => page.evaluate(() => {
+          const el = document.querySelector('[data-testid=nav-left]');
+          if (el && window.__navWas != null) el.replaceChildren(...window.__navWas);
+          window.__navWas = null;
+        });
+        const navOk = (m) => !!m && !m.clipped && m.lines <= 2 && m.icons === 0
+          && m.words[0] === 'Open in Maps' && m.words[1] === 'End' && m.said[0] === 'Open in Maps' && m.said[1] === 'End navigation'
+          && m.maps.h >= 44 && m.end.h >= 44 && m.maps.t >= m.left.b - 0.5 && m.end.t >= m.left.b - 0.5
+          && Math.abs(m.maps.t - m.end.t) <= 1 && m.maps.r <= m.end.l && m.end.r <= m.bar.r + 0.5 && m.maps.l >= m.bar.l - 0.5
+          && m.left.w >= m.bar.w - 72 && Math.abs(m.bar.t - m.min.t) <= 2 && m.bar.l >= m.min.r;
         const soft = 'rgb(227, 224, 218)';
         const LONG = '1:05:12 · 12.4 km';
+        const NAV_LONG = '1.2 km · 18 min · Saint Bartholomew Steps';
         const fills = (m) => !!m && m.whole && m.pill && m.btn.h === 48 && m.barH === 69 && m.btn.l > m.statsR;
         const walkingOk = (m) => fills(m) && m.id === 'pause-walk' && m.word === 'Pause' && m.said === 'Pause the walk' && m.hold == null
           && m.fill === soft && m.wordColor === 'rgb(29, 36, 48)'
@@ -955,13 +986,22 @@ async function checks(h) {
         await page.waitForTimeout(400);
         seenStrip.paused390 = await strip();
         await shot(page, '03g-strip-paused-390');
+        const nav390 = await navRows();
+        const nav390long = await navRows(NAV_LONG);
+        await shot(page, '03g-nav-390-long');
+        await restoreNav();
         await page.setViewportSize({ width: 320, height: 700 });
         await page.waitForTimeout(600);
         seenStrip.paused320 = await strip();
         await shot(page, '03g-strip-paused-320');
+        const nav320 = await navRows();
         seenStrip.paused320long = await strip(LONG, true);
+        const nav320long = await navRows(NAV_LONG);
         await shot(page, '03g-strip-paused-320-long');
+        await restoreNav();
         await restoreStats();
+        check(navOk(nav390) && navOk(nav320) && navOk(nav390long) && navOk(nav320long) && /min · /.test(nav320.text),
+          `tend walk-screen T42: the navigation bar is two rows beside Minimize, the line whole on up to two lines over Open in Maps and End in words, 44 pt, at 390 and 320 (${JSON.stringify([nav390, nav320, nav320long])})`);
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
         const saidPaused = await summarySaid();
