@@ -58,3 +58,25 @@ test('MS16: Undo (the job never run) leaves both as they were; the first piece i
   assert.deepEqual((await p.db.getMomentsByIds(['m']))[0].pieces.length, 3);
   await assert.rejects(s.split(stacked(), 'm'), 'the first piece is the moment\'s anchor');
 });
+
+// tend walk-screen audit 21 (T44's diff review, auditor 1): a photo kept mid-memo is the moment (its id is the photo's)
+// and the memo, saved after, joins it with its own earlier time, so it sorts first. The anchor is the piece that holds
+// the moment's id, not the first in time: the memo splits out and is stored; the photo never does.
+test('tend walk-screen audit 21: a moment whose photo was kept mid-memo splits the memo out and stores it, never the photo', async () => {
+  const p = fakePorts();
+  const joined: Moment = {
+    id: 'ph', walk_id: null, t: 4, lat: 41.8, lon: -71.4, segment_id: null,
+    pieces: [
+      { id: 'memo', moment_id: 'ph', t: 1, kind: 'voice', file_path: 'memo.m4a', body: null },
+      { id: 'ph', moment_id: 'ph', t: 4, kind: 'photo', file_path: 'ph.jpg', body: null },
+    ],
+  };
+  await p.db.addMoment(joined);
+  const jobs: PendingJob[] = [];
+  const s = (await mod()).createSplit(p, { schedule: (j) => jobs.push(j) });
+  await assert.rejects(s.split(joined, 'ph'), 'the photo holds the moment\'s id: it is the anchor');
+  await s.split(joined, 'memo');
+  await createDeleteRunner({ db: p.db, removeMedia: async () => 0, forgetRecalls: () => {} })(jobs[0].spec);
+  assert.deepEqual((await p.db.getMomentsByIds(['ph']))[0].pieces.map((x) => x.id), ['ph'], 'the photo stays the moment');
+  assert.deepEqual((await p.db.getMomentsByIds(['memo']))[0]?.pieces.map((x) => [x.id, x.moment_id, x.t]), [['memo', 'memo', 1]], 'the memo is stored as its own');
+});

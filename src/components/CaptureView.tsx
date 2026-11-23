@@ -1150,8 +1150,8 @@ export function CaptureViewer(props: {
                 <Icon name="link" size={22} color={theme.ink} />
                 <Text style={styles.menuText}>Add to a thread</Text>
               </Pressable>
-              {stacked && pi > 0 && moment && (
-                // Split out (MS16): never the first piece, the moment's anchor.
+              {stacked && moment && current.piece_id !== moment.id && (
+                // Split out (MS16): never the moment's anchor, the piece that holds its id (tend walk-screen audit 21).
                 <Pressable
                   testID="menu-split"
                   accessibilityRole="button"

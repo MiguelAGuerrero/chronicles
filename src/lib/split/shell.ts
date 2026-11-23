@@ -9,8 +9,9 @@ import type { Moment } from '../types';
 /**
  * Split out (moment stacks MS16, decision 0123): a piece leaves its moment through the Undo window. At once it is
  * hidden from its stack (by `pieceKey`) and shown as a moment of its own (`store`, read by the viewer); the split is
- * stored once the window has passed (`db.splitPiece`), so Undo never joins two moments back. The moment's first
- * piece is its anchor and is never split. The new moment's id is the piece's; it is placed by `splitPlace`.
+ * stored once the window has passed (`db.splitPiece`), so Undo never joins two moments back. The moment's anchor is
+ * the piece that holds its id (decision 0123), never split: usually the first, but a memo joined by a photo kept while it
+ * recorded sorts before it (T44; tend walk-screen audit 21). The new moment's id is the piece's; it is placed by `splitPlace`.
  */
 export function createSplit(p: Pick<Ports, 'db'>, deps: { schedule: (job: Pick<PendingJob, 'kind' | 'what' | 'ids' | 'spec'>) => void }) {
   /** Each split waiting or done in this run of the app: the moment it came from, and the moment it became. */
@@ -21,7 +22,7 @@ export function createSplit(p: Pick<Ports, 'db'>, deps: { schedule: (job: Pick<P
     async split(m: Moment, pieceId: string): Promise<void> {
       const i = m.pieces.findIndex((x) => x.id === pieceId);
       if (i < 0) throw new Error('That is not part of this moment.');
-      if (i === 0) throw new Error('A moment keeps its first capture.');
+      if (pieceId === m.id) throw new Error('A moment keeps its first capture.');
       const piece = m.pieces[i];
       const walk = m.walk_id ? { fixes: await p.db.getPoints(m.walk_id), pauses: await p.db.getPauses(m.walk_id) } : null;
       const at = splitPlace(piece.t, walk, m);
