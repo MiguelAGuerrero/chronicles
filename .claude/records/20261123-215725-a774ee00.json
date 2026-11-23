@@ -1,0 +1,82 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T42",
+        "--reason",
+        "the owner's yes, built in tend walk-screen T42"
+      ],
+      "target": "sha256:6755ea4b2b325513d0e1ec662e00d1cca558b9e33dd0e469f98e104b6dd03847"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **NH3's words after `tend walk-screen T42`** (Nov 23; the owner's yes to T42, \"Two rows inside (Recommended)\", decision 0233). What ships: the navigation bar is two rows inside the blue bar beside Minimize, the line over \"Open in Maps\" in words (an outline, no icon) and \"End\", 44 pt, 12 apart, the row wrapping at a larger text size. Still to say by hand: `specs/bridges-and-open-in-maps/spec.md` NH3 (l.32) says \"a 44 pt `open-outline` button left of End\"; the run added a line to `.claude/rules/walk-screen.md` saying what ships.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on a 320-class phone (iPhone SE, a small Android), at a larger and then the largest text size (Dynamic Type, Font size), start a walk, then a way to a named place with a long name; then with VoiceOver and TalkBack move through the navigation bar. **Expect:** the two-row navigation bar (`tend walk-screen T42`, audit 17): \"Open in Maps\" and \"End\" stay inside the blue bar, End dropping under Open in Maps when the row cannot fit, both 44 pt; the line keeps its place name whole on up to two lines (its cap, the approved shape: say if a very long name is cut); the Undo pill of a deleted moment sits under the bar and the chips (audit 18, by `onLayout`); the order read is the line, Open in Maps, End. Web pictured the default size only.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] At 320 px the \"Add to this moment\" pill's five buttons wrap three and two (`03g-strip-paused-320.png`, `components/MomentBar.tsx`); ui-patterns, \"Nothing wraps on a 320 px phone at the default text size\" (`tend walk-screen`'s T42 review, ux, outside the diff, medium)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] The navigation bar's Open in Maps and End are 44 pt on Android too, where the platform's target is 48 dp (`app/walk.tsx`, `navHandoff`, `navEnd`; ui-patterns \"Targets 44 pt on iOS, 48 dp on Android\"); `Platform.select` would give Android 48 (`tend walk-screen`'s T42 review, ux 3, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] The navigation bar's line can break inside a segment at 320 (\"100 m · < 1 min · A\" / \"place to find\"; \"< \" / \"1\"; a number from its unit); non-breaking spaces inside \"100 m\" and \"< 1 min\" (`formatDistance`, `formatTimeLeft` or the join in `app/walk.tsx`) would keep each whole (`tend walk-screen`'s T42 review, ux 4, low, opinion: no source)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] At 320 px with an hour-long walk's numbers (\"1:05:12 · 12.4 km\") the paused strip's Resume and Stop shrink to about 60 px each, not the \"half each\" the walk-screen rule draws (`03g-strip-paused-320-long.png`, `app/walk.tsx`, the strip) (`tend walk-screen`'s T42 review, ux, outside the diff, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] No walk-screen journey shows that a suggested way's navigation bar says its distance and its place and never a time left (KW7b, `lib/nav/types.ts`, decision 0101): `walk` has no suggested-way fixture, and scenic SR3 checks the route rows only (`tend walk-screen`'s T42 review, auditor and steward 1, low)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 23, `/tend inbox T42 yes`, one build** (opened from `b4870de7`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- T42, \"The navigation bar at 320 px loses the time and the destination, and mixes an icon with a word\", built as `tend walk-screen T42` (`c5819db6`): the blue bar keeps its place beside Minimize and is two rows inside, the arrow and the line full width on up to two lines over \"Open in Maps\" (in words, an outline, where the icon stood) and \"End\", both 44 pt; 104 px tall, was 56. No mock-up (decision 0259, \"in doubt, build and show\"): its pictures at 390 and 320 px went to the owner in the report.\n- The review (the auditor, the ux-reviewer and the steward, one round): `tend walk-screen audit 17` (the second row wraps, End dropping under Open in Maps at a larger text size; 12 apart; End's touch slop back on both), `18` (while navigating the Undo pill sits under the whole top column, never on the bar or the chip under it; kept only while navigating, for CM3's render budget), `19` (the Layers corner panel's ceiling grows with the bar). Deferred `[loop]` to Navigate, ready: Android's 48 dp, breaks inside a segment of the line, \"Add to this moment\" wrapping at 320 (medium), Resume and Stop cramped at 320 with an hour's numbers, a check that a suggested way's bar says no time (KW7b).\n- Lens 0: walk-screen's first lines drafted, E-walk-screen-1 to 5, for the owner (line 1 flagged as serving no verb, the steward's reason).\n- Still waiting for a build with the owner's yes: T43 (`[arch]`, a G entry to shape), T44, T45, T48, T49, T50, T51, T54; one a run.\n- Open before the loop: NH3's words (\"a 44 pt `open-outline` button\"). Native: the two-row bar at larger and the largest text sizes on a 320-class phone (`docs/NATIVE_UNVERIFIED.md`, Navigate, ready).\n- The balance reads outgrowing its base (six of the eight areas swept twice or more are rough). Entries filed: none. The e2e: walk, launch. Nothing here has run on a phone.\n"
+    }
+  ]
+}

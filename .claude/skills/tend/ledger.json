@@ -2,12 +2,14 @@
   "lastT": 59,
   "lastG": 15,
   "balance": {
-    "date": "2026-11-21",
+    "date": "2026-11-23",
     "days": 14,
     "slicesGrown": [
+      "BC",
       "BK",
       "CA",
       "CM",
+      "CT",
       "CX",
       "DC",
       "DN",
@@ -41,6 +43,7 @@
       "PC",
       "PK",
       "PL",
+      "PO",
       "PP",
       "PR",
       "PS",
@@ -69,14 +72,13 @@
       "VT",
       "WB",
       "WI",
-      "WP",
       "WT",
       "XS"
     ],
     "commits": {
-      "growth": 185,
-      "refinement": 787,
-      "other": 817
+      "growth": 187,
+      "refinement": 814,
+      "other": 849
     },
     "areas": {
       "rough": [
@@ -138,8 +140,8 @@
     "states": {
       "navigation": "settling: one unrated [loop] item; its latest sweep was not whole",
       "replay": "rough: a change since its sweep added a screen or a control (d7d2a86, 678bfda, 3d7c93d)",
-      "walk-screen": "rough: a change since its sweep added a screen or a control (1b4d486)",
-      "tabs": "rough: a change since its sweep added a screen or a control (1b4d486)",
+      "walk-screen": "rough: a change since its sweep added a screen or a control (264773e, 5212633, 1b4d486, 0cee290)",
+      "tabs": "rough: a change since its sweep added a screen or a control (0e9a2e0, 1b4d486)",
       "presence": "rough: two above low open (the latest sweep found no high and two medium, shipped no); waits on the owner: Open before the loop: \"`.claude/rules/presence.md` l.17 still says `ATLAS_CODE` (`a14.p4`)\"; its log line cannot show that what it shipped was above low",
       "explore": "rough: a change since its sweep added a screen or a control (db7c6ba, e51f4e9, d14f6fa)",
       "map": "rough: a change since its sweep added a screen or a control (b9fc26b)",
@@ -153,19 +155,19 @@
       "line": "more than half of the areas swept twice or more, and more than three (ROUGH_SHARE 0.5, LIMITS.rough 3; decision 0250)"
     },
     "open": {
-      "openT": 11,
+      "openT": 9,
       "phoneT": 4,
-      "openG": 5,
-      "unansweredT": 3
+      "openG": 8,
+      "unansweredT": 0
     },
     "inbox": {
-      "items": 85,
-      "unanswered": 56,
+      "items": 88,
+      "unanswered": 51,
       "phone": 4,
       "bySection": {
         "From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, \"The line and the page\")": 3,
         "From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)": 6,
-        "From /tend": 15,
+        "From /tend": 13,
         "From the road engine's audit (2026-11-18)": 3,
         "From the outing journey's second audit (2026-11-18)": 1,
         "From the more-attractions audit (Nov 18)": 1,
@@ -174,14 +176,15 @@
         "From /fix carousel-snap-back": 1,
         "From /slice reaction-links": 1,
         "From /slice: the row under the line": 3,
-        "Next evolutions": 5,
-        "Open before the loop": 44
+        "Next evolutions": 8,
+        "Open before the loop": 46
       }
     },
     "unattributed": [
+      "The \"Passing a place\" slider moved during a walk with Places off never reaches the walk's own `walk_pass`:",
       "The mention picker still runs under the keyboard."
     ],
-    "unrated": 34,
+    "unrated": 40,
     "reading": "outgrowing its base",
     "propose": false,
     "why": "six of the eight areas swept twice or more are rough",
@@ -251,13 +254,13 @@
   },
   "declined": [],
   "compass": {
-    "date": "2026-11-21",
-    "runs": 5,
+    "date": "2026-11-22",
+    "runs": 12,
     "shares": {
-      "first": 0.81,
-      "second": 0.36
+      "first": 0.55,
+      "second": 1
     },
-    "trend": "falling",
-    "verdict": "too early to say: 5 of 12 runs carry the compass"
+    "trend": "rising",
+    "verdict": "the compass is not biting: tighten it"
   }
 }
