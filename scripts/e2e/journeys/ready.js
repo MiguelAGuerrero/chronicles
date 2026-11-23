@@ -219,18 +219,16 @@ async function run(h) {
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
       // tend walk-screen audit 20 (the owner's "Editor waits", decision 0261): while the memo records, no editor opens
       // after the photo; Save and Discard stay one tap away. Once the memo is saved, the editor opens on that photo.
-      await pg.waitForFunction(() => new Promise((resolve) => {
+      // tend walk-screen audit 25 (T44's review, auditor 8): measured as soon as the photo's moment is placed, which is
+      // when its toast is set (MomentBar's `onMoment`), so the check meets the toast while it would show.
+      const placed = await pg.waitForFunction(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
           const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
-          g.onsuccess = () => resolve(g.result.some((m) => m.pieces.some((x) => x.kind === 'photo')));
+          g.onsuccess = () => resolve(g.result.some((m) => m.pieces.some((x) => x.kind === 'photo') && m.lat != null));
         };
-      }), null, { timeout: 30000, polling: 250 }).catch(() => {});
-      await pg.waitForTimeout(1500);
-      const editorMid = await pg.locator('[data-testid=media-editor]').count();
-      const saveMid = await boxOf(pg, 'moment-voice-save');
-      const discardMid = await boxOf(pg, 'moment-voice-discard');
-      // The photo's toast waits while the memo records: Discard and the timer stand where the pills are.
+      }), null, { timeout: 30000, polling: 100 }).then(() => true, () => false);
+      await pg.waitForTimeout(400);
       const rowClear = await pg.evaluate(() => {
         const r = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
         const toast = r('moment-toast');
@@ -238,8 +236,12 @@ async function run(h) {
         const over = (a, b) => !!a && !!b && a.width > 0 && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
         return !row.some((b) => over(toast, b));
       });
+      check(placed && rowClear, `tend walk-screen audit 25: mid-memo, once the photo is placed and its toast set, the toast never stands over Discard and the timer (${JSON.stringify({ placed, rowClear })})`);
+      await pg.waitForTimeout(1100);
+      const editorMid = await pg.locator('[data-testid=media-editor]').count();
+      const saveMid = await boxOf(pg, 'moment-voice-save');
+      const discardMid = await boxOf(pg, 'moment-voice-discard');
       await shot(pg, 'ws-t44-after-photo-390');
-      check(rowClear, 'tend walk-screen T44: mid-memo, the photo\'s toast never stands over Discard and the timer');
       const stillRecording = (await pg.locator('[data-testid=moment-voice-save]').count()) === 1;
       await pg.click('[data-testid=moment-voice-save]');
       await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 10000 });
