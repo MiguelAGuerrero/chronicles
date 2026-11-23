@@ -58,6 +58,8 @@ function stopWorld(over: Partial<{ finishVoice: () => Promise<unknown>; stopEnd:
     warnedHeld: { current: [] as string[] },
     // fix edit-after-capture audit 3: no editor opens after a capture while Stop runs; it is set with `stopping`.
     stoppingNow: { current: false },
+    // tend walk-screen audit 20: a photo's editor waiting on the memo is let go as Stop begins (counted, not logged).
+    editAfter: { closed: 0, close() { this.closed += 1; } },
     stopWarning: () => 'held',
     feedback: (k: string) => log.push(`feedback ${k}`),
     exitPlan: () => ({ kind: 'back' }),
@@ -192,4 +194,10 @@ test('walk-screen compiler 3: a gap\'s Keep or Not this way clears busy once, la
   r = await run(failing, () => { throw said; });
   await assert.rejects(r.done, (e) => e === said);
   cleanupOnceLast(r.log, 'busy');
+});
+
+test('tend walk-screen audit 20: Stop lets go a photo\'s editor that waited on the memo, before the memo is saved', async () => {
+  const w = stopWorld({ finishVoice: async () => { w.log.push(`editor closed ${(w.fakes.editAfter as { closed: number }).closed}`); return 'saved'; } });
+  await load('stop', w.fakes)();
+  assert.equal(w.log[1], 'editor closed 1');
 });

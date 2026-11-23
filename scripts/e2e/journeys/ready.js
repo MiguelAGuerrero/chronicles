@@ -221,13 +221,19 @@ async function run(h) {
       // after the photo; Save and Discard stay one tap away. Once the memo is saved, the editor opens on that photo.
       // tend walk-screen audit 25 (T44's review, auditor 8): measured as soon as the photo's moment is placed, which is
       // when its toast is set (MomentBar's `onMoment`), so the check meets the toast while it would show.
-      const placed = await pg.waitForFunction(() => new Promise((resolve) => {
+      // Polled from the test side: an async predicate is read once, never polled (tend captures audit 6).
+      const isPlaced = () => pg.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
           const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
           g.onsuccess = () => resolve(g.result.some((m) => m.pieces.some((x) => x.kind === 'photo') && m.lat != null));
         };
-      }), null, { timeout: 30000, polling: 100 }).then(() => true, () => false);
+      }));
+      let placed = false;
+      for (let i = 0; i < 300 && !placed; i++) {
+        placed = await isPlaced();
+        if (!placed) await pg.waitForTimeout(100);
+      }
       await pg.waitForTimeout(400);
       const rowClear = await pg.evaluate(() => {
         const r = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
