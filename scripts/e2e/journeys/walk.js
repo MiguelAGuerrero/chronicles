@@ -994,24 +994,33 @@ async function checks(h) {
         seenStrip.paused390 = await strip();
         await shot(page, '03g-strip-paused-390');
         const nav390 = await navRows();
-        const nav390long = await navRows(NAV_LONG);
-        await shot(page, '03g-nav-390-long');
-        await restoreNav();
+        // Set aside from the render budget (CM3): a stand-in line resizes the bar, and the screen measures it.
+        let nav390long = null;
+        await measuredAside(async () => {
+          nav390long = await navRows(NAV_LONG);
+          await shot(page, '03g-nav-390-long');
+          await restoreNav();
+        });
         await page.setViewportSize({ width: 320, height: 700 });
         await page.waitForTimeout(600);
         seenStrip.paused320 = await strip();
         await shot(page, '03g-strip-paused-320');
         const nav320 = await navRows();
-        const nav320big = await navRows(null, true);
+        let nav320big = null;
+        await measuredAside(async () => { nav320big = await navRows(null, true); });
         seenStrip.paused320long = await strip(LONG, true);
-        const nav320long = await navRows(NAV_LONG);
-        await shot(page, '03g-strip-paused-320-long');
-        await restoreNav();
+        let nav320long = null;
+        await measuredAside(async () => {
+          nav320long = await navRows(NAV_LONG);
+          await shot(page, '03g-strip-paused-320-long');
+          await restoreNav();
+        });
         await restoreStats();
         // tend walk-screen audit 18 (the diff review's auditor 2, ux 2): navigating and paused at 320, a deleted moment's Undo
         // pill sits under the whole top column (the two-row bar, the Paused chip), over none of it; then Undo takes it back.
         let undoUnder = null;
-        if (navPhotoId) {
+        // tend walk-screen audit 18: the viewer's taps set aside from the render budget (CM3), as the card taps are.
+        if (navPhotoId) await measuredAside(async () => {
           const pin = walkMap().locator(`[data-ids*="${navPhotoId}"]`).first();
           // Under the moment's pill at 320 a real click lands on the pill: the pin's own click then.
           await pin.click({ timeout: 3000 }).catch(() => pin.dispatchEvent('click').catch(() => {}));
@@ -1035,14 +1044,14 @@ async function checks(h) {
               return { pill: p, bar: box(bar), chip, column: box(column), over: inColumn.filter((b) => meets(p, b)).length };
             });
           }
-        }
-        await shot(page, '03g-undo-under-nav-320');
+          await shot(page, '03g-undo-under-nav-320');
+          if (await page.locator('[data-testid=undo]').count()) {
+            await page.click('[data-testid=undo]');
+            await page.waitForSelector('[data-testid=undo-toast]', { state: 'detached', timeout: 5000 }).catch(() => {});
+          }
+        });
         check(!!undoUnder?.pill?.t && undoUnder.over === 0 && undoUnder.pill.t >= undoUnder.bar.b && (!undoUnder.chip || undoUnder.pill.t >= undoUnder.chip.b),
           `tend walk-screen audit 18: navigating at 320, a deleted moment's Undo pill sits under the bar and the Paused chip, over nothing of the top column (${JSON.stringify(undoUnder)})`);
-        if (await page.locator('[data-testid=undo]').count()) {
-          await page.click('[data-testid=undo]');
-          await page.waitForSelector('[data-testid=undo-toast]', { state: 'detached', timeout: 5000 }).catch(() => {});
-        }
         check(navOk(nav390) && navOk(nav320) && navOk(nav390long) && navOk(nav320long),
           `tend walk-screen T42: the navigation bar is two rows beside Minimize, the line whole on up to two lines over Open in Maps and End in words, 44 pt, at 390 and 320 (${JSON.stringify([nav390, nav390long, nav320, nav320long])})`);
         // tend walk-screen audit 17 (the diff review's auditor 1, ux 1): at 320 with the buttons' words larger, End drops under

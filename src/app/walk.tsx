@@ -298,7 +298,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const isDrawing = drawing.gap != null;
   const [pausing, setPausing] = useState(false);
   // The navigation bar's height (T42) and the whole top column's (the bar and the chips and notices under it), so the
-  // Undo pill sits under all of them while navigating (tend walk-screen audit 18).
+  // Undo pill sits under all of them while navigating (tend walk-screen audit 18). Kept only while navigating: a street
+  // chip coming and going on a walk would otherwise render the screen again (CM3's budget).
   const [navBarH, setNavBarH] = useState(0);
   const [topColH, setTopColH] = useState(0);
   const [status, setStatus] = useState<RecorderStatus>({ kind: 'idle' });
@@ -1478,7 +1479,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
       ) : (
       <>
 
-      <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none" onLayout={(e) => setTopColH(e.nativeEvent.layout.height)}>
+      <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none"
+        onLayout={(e) => {
+          if (navigation.nav) setTopColH(e.nativeEvent.layout.height);
+        }}
+      >
         {/* Minimize (NV7): down to the recording bar above the tabs, still recording. At the top-left
             edge, under the navigation bar when one shows, away from the capture row and Stop. */}
         <View style={styles.minRow} pointerEvents="box-none">
