@@ -209,6 +209,8 @@ async function checks(h) {
     const navOn = async () => (await page.locator('[data-testid=nav-bar]').count()) === 1;
     const walkedM = async () => Number(/ · (\d+)[ \u00a0]m$/.exec(await page.locator('text=/ · \\d+[ \\u00a0]m$/').first().innerText())?.[1]);
     const n12 = {};
+    // The photo taken while navigating (k 30): tend walk-screen audit 18 deletes it and takes it back with Undo.
+    let navPhotoId = null;
     let dotLast = null;
     for (let k = 0; k < pts.length; k++) {
       await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1], accuracy: 6 });
@@ -808,6 +810,7 @@ async function checks(h) {
           thumb = await readThumb(photoId);
         }
         n12.photoKept = !!photoId;
+        navPhotoId = photoId;
         check(!!thumb.path && Math.max(thumb.w, thumb.h) <= 240 && Math.max(thumb.w, thumb.h) >= 100,
           `a new photo keeps a small copy beside it (TH1: ${JSON.stringify(thumb)})`);
         await page.waitForTimeout(600);
@@ -1005,6 +1008,41 @@ async function checks(h) {
         await shot(page, '03g-strip-paused-320-long');
         await restoreNav();
         await restoreStats();
+        // tend walk-screen audit 18 (the diff review's auditor 2, ux 2): navigating and paused at 320, a deleted moment's Undo
+        // pill sits under the whole top column (the two-row bar, the Paused chip), over none of it; then Undo takes it back.
+        let undoUnder = null;
+        if (navPhotoId) {
+          const pin = walkMap().locator(`[data-ids*="${navPhotoId}"]`).first();
+          // Under the moment's pill at 320 a real click lands on the pill: the pin's own click then.
+          await pin.click({ timeout: 3000 }).catch(() => pin.dispatchEvent('click').catch(() => {}));
+          const inViewer = await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+          if (inViewer) {
+            await page.click('[data-testid=capture-viewer] [aria-label="More"]').catch(() => {});
+            await page.locator('[data-testid=viewer-delete], [data-testid=menu-delete]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+            await page.waitForSelector('[data-testid=undo-toast]', { timeout: 5000 }).catch(() => {});
+            if (await page.locator('[data-testid=viewer-close]').filter({ visible: true }).count()) await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().click();
+            await page.waitForTimeout(600);
+            undoUnder = await page.evaluate(() => {
+              const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; };
+              const pill = [...document.querySelectorAll('[data-testid=undo-toast]')].find((e) => e.getBoundingClientRect().height > 0);
+              const bar = document.querySelector('[data-testid=nav-bar]');
+              if (!pill || !bar) return { pill: !!pill, bar: !!bar };
+              const column = bar.parentElement.parentElement;
+              const inColumn = [...column.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().height > 0).map(box);
+              const chip = [...column.querySelectorAll('[aria-label=Paused]')].map(box)[0] ?? null;
+              const p = box(pill);
+              const meets = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+              return { pill: p, bar: box(bar), chip, column: box(column), over: inColumn.filter((b) => meets(p, b)).length };
+            });
+          }
+        }
+        await shot(page, '03g-undo-under-nav-320');
+        check(!!undoUnder?.pill?.t && undoUnder.over === 0 && undoUnder.pill.t >= undoUnder.bar.b && (!undoUnder.chip || undoUnder.pill.t >= undoUnder.chip.b),
+          `tend walk-screen audit 18: navigating at 320, a deleted moment's Undo pill sits under the bar and the Paused chip, over nothing of the top column (${JSON.stringify(undoUnder)})`);
+        if (await page.locator('[data-testid=undo]').count()) {
+          await page.click('[data-testid=undo]');
+          await page.waitForSelector('[data-testid=undo-toast]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        }
         check(navOk(nav390) && navOk(nav320) && navOk(nav390long) && navOk(nav320long),
           `tend walk-screen T42: the navigation bar is two rows beside Minimize, the line whole on up to two lines over Open in Maps and End in words, 44 pt, at 390 and 320 (${JSON.stringify([nav390, nav390long, nav320, nav320long])})`);
         // tend walk-screen audit 17 (the diff review's auditor 1, ux 1): at 320 with the buttons' words larger, End drops under

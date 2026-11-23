@@ -296,8 +296,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   );
   const isDrawing = drawing.gap != null;
   const [pausing, setPausing] = useState(false);
-  // The navigation bar's height, so the Undo pill sits under it (T42).
+  // The navigation bar's height (T42) and the whole top column's (the bar and the chips and notices under it), so the
+  // Undo pill sits under all of them while navigating (tend walk-screen audit 18).
   const [navBarH, setNavBarH] = useState(0);
+  const [topColH, setTopColH] = useState(0);
   const [status, setStatus] = useState<RecorderStatus>({ kind: 'idle' });
   const [now, setNow] = useState(() => Date.now());
   // One-off notices: a start warning or "started". The web's "keep this page open" note is said
@@ -1475,7 +1477,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       ) : (
       <>
 
-      <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none" onLayout={(e) => setTopColH(e.nativeEvent.layout.height)}>
         {/* Minimize (NV7): down to the recording bar above the tabs, still recording. At the top-left
             edge, under the navigation bar when one shows, away from the capture row and Stop. */}
         <View style={styles.minRow} pointerEvents="box-none">
@@ -2216,8 +2218,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
       />
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
-      {/* T42: under the navigation bar while one shows, which is now two rows tall. */}
-      <UndoToast style={{ top: insets.top + (navigation.nav && navBarH ? 4 + navBarH + 8 : 64) }} />
+      {/* T42, tend walk-screen audit 18: while navigating, under the whole top column (the two-row bar and the chip or
+          notice under it), never at 64 over the bar's buttons, even before the first measure. */}
+      <UndoToast style={{ top: insets.top + (navigation.nav ? 4 + Math.max(topColH, navBarH || NAV_BAR_H) + 8 : 64) }} />
 
       {/* Add to a thread for the moment just made (CT3): the app's Modal, the only one up on this screen when the pill shows. */}
       <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => threadCard.current?.requestClose()}>
@@ -2256,6 +2259,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
     </View>
   );
 }
+
+/** The two-row navigation bar's height at the default text size (T42), until it is measured. */
+const NAV_BAR_H = 104;
 
 /** The navigation bar's buttons' touch slop: within the bar's 4 px row gap above and its 8 px padding below. */
 const NAV_SLOP = { top: 4, bottom: 8 };
