@@ -1807,8 +1807,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {walk && !recordingVoice && !spot && !openMark && !options && !memory && <SpaceLine />}
       </View>
       {/* The capture stack at the right edge (NR9): where it was on the ready screen. While recording,
-          Save takes the mic's own place, so tapping the mic again saves; Discard is smaller, in the
-          camera's. It hides while a gap's way is drawn, so taps belong to the map (GW8); the pills stay,
+          Save takes the mic's own place, so tapping the mic again saves; the camera keeps its own, and
+          Discard, smaller, sits beside the timer, left of the stack (T44). It hides while a gap's way is drawn, so taps belong to the map (GW8); the pills stay,
           so a memo's Undo isn't lost under the drawing (gap-drawing audit 7). */}
       <CaptureStack
         ref={saveRef}

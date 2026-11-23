@@ -239,6 +239,9 @@ async function checks(h) {
           await shot(page, '02-voice-recording-320');
           await page.setViewportSize(was);
           await page.waitForTimeout(600);
+          // tend walk-screen audit 27 (T44's review, auditor 9): Discard keeps its name and hint beside the timer.
+          const discardNamed = (await page.locator('[data-testid=voice-discard][aria-label="Discard voice memo"]').count()) === 1;
+          check(discardNamed, 'tend walk-screen audit 27: on the walk mid-memo, Discard beside the timer keeps its spoken name');
           check(at390.ok && at320.ok && (await page.locator('[data-testid=cap-photo][aria-label="Add a photo to this memo"]').count()) === 1,
             `tend walk-screen T44: on the walk mid-memo the camera keeps its slot, Discard and the timer beside Save, at 390 and 320 (${JSON.stringify({ at390, at320 })})`);
         });
