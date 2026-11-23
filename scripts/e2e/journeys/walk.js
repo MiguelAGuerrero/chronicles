@@ -896,12 +896,15 @@ async function checks(h) {
         });
         // T42 (decision 0233, "Two rows inside"): the navigation bar holds the arrow and the line, full width and whole, over
         // Open in Maps and End, both in words and 44 pt, level with Minimize. `longLine` stands in a long place's line for a picture.
-        const navRows = (longLine = null) => page.evaluate((longLine) => {
+        // `big`: the buttons' words at 20 px, a larger text size web cannot set (tend walk-screen audit 17), put back after.
+        const navRows = (longLine = null, big = false) => page.evaluate(([longLine, big]) => {
           const q = (id) => document.querySelector(`[data-testid=${id}]`);
           const bar = q('nav-bar'), left = q('nav-left'), maps = q('nav-handoff'), end = q('nav-end'), min = q('walk-minimize');
           if (!bar || !left || !maps || !end || !min) return null;
           // React keeps its own text nodes: they are put back as they were (restoreNav), or the line never redraws.
           if (longLine) { window.__navWas = [...left.childNodes]; left.textContent = longLine; }
+          const words = [maps, end].flatMap((el) => [...el.querySelectorAll('div')].filter((d) => !d.querySelector('div') && d.innerText.trim()));
+          if (big) for (const d of words) d.style.fontSize = '20px';
           const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
           const r = document.createRange();
           r.selectNodeContents(left);
@@ -912,8 +915,9 @@ async function checks(h) {
             words: [maps.innerText.trim(), end.innerText.trim()], said: [maps.getAttribute('aria-label'), end.getAttribute('aria-label')],
             icons: maps.querySelectorAll('svg, [class*=icon]').length + [...maps.querySelectorAll('div')].filter((d) => d.innerText.trim() && !/[A-Za-z]/.test(d.innerText)).length,
           };
+          if (big) for (const d of words) d.style.fontSize = '';
           return seen;
-        }, longLine);
+        }, [longLine, big]);
         const restoreNav = () => page.evaluate(() => {
           const el = document.querySelector('[data-testid=nav-left]');
           if (el && window.__navWas != null) el.replaceChildren(...window.__navWas);
@@ -922,7 +926,7 @@ async function checks(h) {
         const navOk = (m) => !!m && !m.clipped && m.lines <= 2 && m.icons === 0
           && m.words[0] === 'Open in Maps' && m.words[1] === 'End' && m.said[0] === 'Open in Maps' && m.said[1] === 'End navigation'
           && m.maps.h >= 44 && m.end.h >= 44 && m.maps.t >= m.left.b - 0.5 && m.end.t >= m.left.b - 0.5
-          && Math.abs(m.maps.t - m.end.t) <= 1 && m.maps.r <= m.end.l && m.end.r <= m.bar.r + 0.5 && m.maps.l >= m.bar.l - 0.5
+          && Math.abs(m.maps.t - m.end.t) <= 1 && m.end.l - m.maps.r >= 12 && m.end.r <= m.bar.r + 0.5 && m.maps.l >= m.bar.l - 0.5
           && m.left.w >= m.bar.w - 72 && Math.abs(m.bar.t - m.min.t) <= 2 && m.bar.l >= m.min.r;
         const soft = 'rgb(227, 224, 218)';
         const LONG = '1:05:12 · 12.4 km';
@@ -995,13 +999,20 @@ async function checks(h) {
         seenStrip.paused320 = await strip();
         await shot(page, '03g-strip-paused-320');
         const nav320 = await navRows();
+        const nav320big = await navRows(null, true);
         seenStrip.paused320long = await strip(LONG, true);
         const nav320long = await navRows(NAV_LONG);
         await shot(page, '03g-strip-paused-320-long');
         await restoreNav();
         await restoreStats();
-        check(navOk(nav390) && navOk(nav320) && navOk(nav390long) && navOk(nav320long) && /min · /.test(nav320.text),
-          `tend walk-screen T42: the navigation bar is two rows beside Minimize, the line whole on up to two lines over Open in Maps and End in words, 44 pt, at 390 and 320 (${JSON.stringify([nav390, nav320, nav320long])})`);
+        check(navOk(nav390) && navOk(nav320) && navOk(nav390long) && navOk(nav320long),
+          `tend walk-screen T42: the navigation bar is two rows beside Minimize, the line whole on up to two lines over Open in Maps and End in words, 44 pt, at 390 and 320 (${JSON.stringify([nav390, nav390long, nav320, nav320long])})`);
+        // tend walk-screen audit 17 (the diff review's auditor 1, ux 1): at 320 with the buttons' words larger, End drops under
+        // Open in Maps; both stay inside the bar and off Minimize.
+        const inBar = (m) => !!m && m.maps.l >= m.bar.l - 0.5 && m.maps.r <= m.bar.r + 0.5 && m.end.l >= m.bar.l - 0.5 && m.end.r <= m.bar.r + 0.5
+          && m.end.b <= m.bar.b + 0.5 && m.maps.l >= m.min.r && m.end.l >= m.min.r && m.maps.h >= 44 && m.end.h >= 44;
+        check(inBar(nav320big) && inBar(nav320) && inBar(nav390),
+          `tend walk-screen audit 17: at 320 with the buttons' words at 20 px, Open in Maps and End stay inside the bar, off Minimize, 12 apart at the default size (${JSON.stringify(nav320big)})`);
         await page.setViewportSize({ width: 390, height: 844 });
         await page.waitForTimeout(600);
         const saidPaused = await summarySaid();

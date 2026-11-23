@@ -1562,6 +1562,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
                   accessibilityRole="button"
                   accessibilityLabel="Open in Maps"
                   accessibilityHint={HANDOFF_HINT}
+                  // tend walk-screen audit 17: the touch slop End had, kept inside the bar's gap above and padding below.
+                  hitSlop={NAV_SLOP}
                   onPress={() => {
                     const d = navigation.nav?.dest;
                     if (d) handOff(d.at, d.label);
@@ -1570,7 +1572,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 >
                   <Text style={styles.navHandoffText}>Open in Maps</Text>
                 </Pressable>
-                <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={({ pressed }) => [styles.navEnd, pressed && styles.pressed]}>
+                <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} hitSlop={NAV_SLOP} style={({ pressed }) => [styles.navEnd, pressed && styles.pressed]}>
                   <Text style={styles.navEndText}>End</Text>
                 </Pressable>
               </View>
@@ -2255,6 +2257,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
   );
 }
 
+/** The navigation bar's buttons' touch slop: within the bar's 4 px row gap above and its 8 px padding below. */
+const NAV_SLOP = { top: 4, bottom: 8 };
+
 /** A large round icon button; the label is what screen readers say. */
 type PressableRef = ComponentRef<typeof Pressable>;
 
@@ -2276,7 +2281,9 @@ const styles = StyleSheet.create({
   },
   navLine: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingRight: 8 },
   navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  navActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+  // tend walk-screen audit 17: at a larger text size End drops under Open in Maps rather than pushing it out of the bar;
+  // 12 between the two (the row fits at 320 at the default size).
+  navActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 12 },
   journeyBar: { flex: 1, minWidth: 0, gap: 4, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.edge, paddingHorizontal: 12, paddingVertical: 8 },
   journeyText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
   // Audit: read at a glance, moving: the largest line on the bar.
@@ -2291,7 +2298,7 @@ const styles = StyleSheet.create({
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
   // Open in Maps in words beside End (T5, T42): an outline on the blue, End the filled one.
-  navHandoff: { minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  navHandoff: { flexShrink: 1, minHeight: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navHandoffText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   finding: {
     flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 16, paddingRight: 4,
