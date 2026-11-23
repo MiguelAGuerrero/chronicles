@@ -34,3 +34,16 @@ export function cornerPanelBox(o: { windowW: number; windowH: number; left: numb
     maxHeight: Math.max(MIN_HEIGHT, o.windowH - o.bottom - o.button - o.clearTop),
   };
 }
+
+/** The top overlay's clearance the corner panel was made for: the chevron row with a one-row, 56 px navigation bar. */
+export const CLEAR_TOP = 152;
+const ONE_ROW_BAR = 56;
+
+/**
+ * The corner panel's ceiling on the walk screen (tend walk-screen audit 19): the top overlay's clearance, plus what a
+ * navigation bar grew past one row (T42's two rows, about 104 px), so the panel never reaches the chips under the bar.
+ * `navBarH` is the bar's height while one shows, else null.
+ */
+export function walkClearTop(insetsTop: number, navBarH: number | null): number {
+  return insetsTop + CLEAR_TOP + (navBarH == null ? 0 : Math.max(0, navBarH - ONE_ROW_BAR));
+}

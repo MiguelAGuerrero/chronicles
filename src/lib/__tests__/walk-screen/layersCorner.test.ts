@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
-import { cornerPanelBox } from '../../layers/layout';
+import { CLEAR_TOP, cornerPanelBox, walkClearTop } from '../../layers/layout';
 import { EDGE_INDEX, layersCorner, pillsBottom } from '../../stackSlots';
 
 // fix layers-corner: the Layers button left the right column's top, where the navigation bar's End button sat
@@ -52,4 +54,21 @@ test('WB2: the column has no unwalked slot and no gap: Walk me back sits right a
   const slots = EDGE_INDEX as unknown as Record<string, number>;
   assert.equal('unwalked' in slots, false);
   assert.deepEqual(slots, { locate: 0, back: 1, compass: 2 });
+});
+
+// tend walk-screen audit 19 (the diff review's auditor 3): T42's two-row navigation bar is 104 px, not the 56 the corner
+// panel's 152 px ceiling assumed; the ceiling grows with it, so the panel stops above the chip under the bar.
+test('tend walk-screen audit 19: while navigating, the corner panel stays below the two-row bar and the chip under it', () => {
+  assert.equal(walkClearTop(0, null), CLEAR_TOP);
+  assert.equal(walkClearTop(20, 56), 20 + CLEAR_TOP);
+  assert.equal(walkClearTop(0, 104), CLEAR_TOP + 48);
+  // 320 x 700, navigating: the bar from top 4 to 108, the chip row (44) and a notice row (44) under it, 8 apart.
+  const chipBottom = 4 + 104 + 8 + 44 + 8 + 44;
+  const c = layersCorner({ ...C, barTop: 69 });
+  const b = cornerPanelBox({ windowW: 320, windowH: 700, left: 28, bottom: c.bottom, button: 44, rightClear: 80, clearTop: walkClearTop(0, 104) });
+  const panelTop = 700 - c.bottom - b.maxHeight;
+  assert.ok(panelTop >= chipBottom - 8, `the panel's top ${panelTop} reaches the chips under the bar (${chipBottom})`);
+  // Wired: the walk screen's Layers panel takes its ceiling from the bar's height while navigating.
+  const walk = readFileSync(join(__dirname, '..', '..', '..', 'app', 'walk.tsx'), 'utf8');
+  assert.match(walk, /<LayersControl map="walk"[^>]*clearTop=\{walkClearTop\(at\.insets\.top, navigation\.nav \? navBarH \|\| NAV_BAR_H : null\)\}/);
 });
