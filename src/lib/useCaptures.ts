@@ -331,7 +331,7 @@ export function useCaptures(
       return false;
     } finally {
       lock.current = false;
-      // Only its own: a memo's Save tapped while the photo was being kept stays busy (tend walk-screen audit 24).
+      // Only its own kind: a memo's Save tapped while the photo was being kept stays held (tend walk-screen audit 24).
       setBusy((b) => (b === kind ? null : b));
     }
   }

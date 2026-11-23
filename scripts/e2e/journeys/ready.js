@@ -307,6 +307,9 @@ async function run(h) {
       const tapAt = Date.now();
       await pg.click('[data-testid=moment-voice-save]');
       const stoppedAtTap = await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 900 }).then(() => Date.now() - tapAt, () => null);
+      // tend walk-screen audit 24 (auditor 11): while the memo waits for the photo, the mic's slot keeps its spinner.
+      const workingMeanwhile = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=moment-voice]')]
+        .filter((e) => e.getBoundingClientRect().width > 0).map((e) => e.getAttribute('aria-disabled')));
       // Its editor opens once the memo is saved; closed, the photo as taken.
       await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => pg.click('[data-testid=edit-close]')).catch(() => {});
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
@@ -315,6 +318,7 @@ async function run(h) {
       await pg.evaluate(() => { window.__slowBlob = false; if (window.__fetchWas) window.fetch = window.__fetchWas; });
       check(hit && stoppedAtTap != null && joinedAfter === joinedBefore + 1,
         `tend walk-screen audit 24: a Save tapped while a mid-memo photo is being kept stops recording at the tap and still joins the photo's moment (${JSON.stringify({ hit, stoppedAtTap, joinedBefore, joinedAfter })})`);
+      check(workingMeanwhile.length === 1 && workingMeanwhile[0] === 'true', `tend walk-screen audit 24: while the stopped memo waits for its photo, the mic's slot stays held (${JSON.stringify(workingMeanwhile)})`);
     }
     // tend walk-screen audit 20, on Discard: the photo stays, the memo goes, and the photo's editor opens then.
     {
