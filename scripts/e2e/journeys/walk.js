@@ -221,6 +221,27 @@ async function checks(h) {
         await page.waitForSelector('[data-testid=voice-discard]');
         await page.waitForTimeout(1500);
         await shot(page, '02-voice-recording');
+        // tend walk-screen T44 (decision 0233, "Camera stays"): on the walk too the camera keeps its slot mid-memo, and
+        // Discard and the timer sit beside Save, left of the stack; pictured at 320 px, set aside from the render budget.
+        await measuredAside(async () => {
+          const box = (id) => page.locator(`[data-testid=${id}]`).first().boundingBox().catch(() => null);
+          const was = page.viewportSize();
+          const rowAt = async (w) => {
+            const [cam, save, discard, timer] = [await box('cap-photo'), await box('voice-save'), await box('voice-discard'), await box('voice-timer')];
+            const ok = !!cam && !!save && !!discard && !!timer && discard.x >= 16 && discard.x + discard.width <= timer.x && timer.x + timer.width <= save.x
+              && Math.abs(cam.x - save.x) <= 1 && cam.y > save.y && cam.x + cam.width <= w - 14;
+            return { ok, cam, save, discard, timer };
+          };
+          const at390 = await rowAt(was.width);
+          await page.setViewportSize({ width: 320, height: was.height });
+          await page.waitForTimeout(600);
+          const at320 = await rowAt(320);
+          await shot(page, '02-voice-recording-320');
+          await page.setViewportSize(was);
+          await page.waitForTimeout(600);
+          check(at390.ok && at320.ok && (await page.locator('[data-testid=cap-photo][aria-label="Add a photo to this memo"]').count()) === 1,
+            `tend walk-screen T44: on the walk mid-memo the camera keeps its slot, Discard and the timer beside Save, at 390 and 320 (${JSON.stringify({ at390, at320 })})`);
+        });
         check(await page.evaluate(() => navigator.audioSession.type) === 'play-and-record', 'recording a memo switches the page to record');
         await page.click('[data-testid=voice-discard]');
         await page.waitForSelector('[data-testid=voice-undo]');

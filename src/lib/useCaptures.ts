@@ -27,7 +27,7 @@ import { folderOf, heldKey, heldWhere, keepInOrder, kindsOf, looseAfterEnd, retr
 import { useStore } from './useStore';
 import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
-import { stampFor } from './pieceStamp';
+import { memoJoins, photoMidMemo, stampFor } from './pieceStamp';
 import type { Capture, CaptureKind, LngLat, Moment } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
@@ -154,6 +154,8 @@ export function useCaptures(
   const lock = useRef(false); // taps arrive faster than state updates
   const alive = useRef(true); // the screen is still mounted
   const voiceStamp = useRef<Stamp | null>(null);
+  /** A photo taken while the memo records, being kept: the memo stops after it (T44). */
+  const photoMidMemoKeeping = useRef<Promise<unknown> | null>(null);
   /** The recorder's uri before this memo's prepare: one still the same at its stop is not this memo's (tend captures 1). */
   const memoUriBefore = useRef<string | null>(null);
   const voice = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -452,7 +454,11 @@ export function useCaptures(
   const takePhoto = async (into: string | null = null, place: string | null = null): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
     let kept: { kind: 'photo' | 'video'; id: string; momentId: string } | null = null;
     await guarded('photo', async () => {
-      const stamp = stampNow(false, into, place);
+      // While a memo records, the photo goes with it (T44, decision 0233): into the memo's moment, or kept as the
+      // moment the memo joins when saved. A photo only: a video would want the microphone the memo holds.
+      const memo = voiceOn.current ? voiceStamp.current : null;
+      const to = photoMidMemo(memo, into, place);
+      const stamp = stampNow(false, to.into, to.place);
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
         // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
@@ -462,7 +468,7 @@ export function useCaptures(
       }
       startLocating(stamp);
       const res = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images', 'videos'],
+        mediaTypes: memo ? ['images'] : ['images', 'videos'],
         quality: 0.8,
         videoMaxDuration: MAX_VIDEO_S,
         videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
@@ -486,8 +492,13 @@ export function useCaptures(
         }
         const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
         kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
+        // Kept while the same memo still records: the memo is saved into the photo's moment (T44).
+        const k = kept as { momentId: string } | null;
+        if (k && memo && voiceOn.current && voiceStamp.current === memo) voiceStamp.current = memoJoins(memo, k.momentId);
       })();
       memoGate.keep(keeping, stamp.walk);
+      // The memo's Save, Discard or leaving waits for this photo, so it is never saved apart from it (T44).
+      if (memo) photoMidMemoKeeping.current = keeping.catch(() => {});
       await keeping;
     });
     return kept;
@@ -578,6 +589,9 @@ export function useCaptures(
    * browser) is not stopped again, and a stop that does not answer gives up.
    */
   async function stopRecorder(): Promise<StoppedMemo> {
+    // A photo taken mid-memo and still being kept joins the memo first (T44).
+    await photoMidMemoKeeping.current;
+    photoMidMemoKeeping.current = null;
     const stamp = voiceStamp.current ?? stampNow();
     const wallMs = Date.now() - stamp.t;
     const status = voice.getStatus();

@@ -1,8 +1,10 @@
 // Navigate, ready (NR1-NR13) and its audit (navigate-ready audit 1-12), then the touch drag: three
 // flows in fresh browsers, in the order the full flow ran them.
 
+const path = require('path');
+
 async function run(h) {
-  const { url, navUrl, BASE, browser, page, errors, start, at, dLon, check, shot, metricRegion, metaOf, tabTo, tabBarShown, tileRoute, freshPage, openWalk, tiles, toStop } = h;
+  const { url, navUrl, BASE, browser, page, errors, start, at, dLon, check, shot, metricRegion, metaOf, tabTo, tabBarShown, tileRoute, freshPage, openWalk, tiles, toStop, scriptsDir } = h;
   // Navigate, ready (NR1-NR13): Navigate is the walk screen, ready with no walk open, and Start records
   // in place. In fresh browsers, at 390×844 and at 375×667. E2E_ONLY=ready runs it alone.
   const readyScenario = async () => {
@@ -170,16 +172,75 @@ async function run(h) {
       check(tapped && left === 0, `ready NR7: a tap on the bar raises the settings, a tap on the grip lowers them (raised ${tapped}, left ${left})`);
     }
 
-    // NR10: a memo in the stack; Start waits; the chevron saves it.
+    // NR10 as T44 amends it (decision 0233, "Camera stays"): a memo in the stack; Start waits; the chevron saves it.
     await pg.click('[data-testid=moment-voice]');
     await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
     await pg.waitForTimeout(1400);
     const save = await boxOf(pg, 'moment-voice-save');
     const discard = await boxOf(pg, 'moment-voice-discard');
     const timer = await boxOf(pg, 'voice-timer');
-    check(same(save, mic) && discard && Math.abs(cx(discard) - cx(cam)) <= 1 && Math.abs(discard.y + discard.h / 2 - (cam.y + cam.h / 2)) <= 1
-      && timer && timer.x + timer.w <= save.x && (await pg.locator('[data-testid=start][aria-disabled=true]').count()) === 1,
-      `ready NR10: Save in the mic's slot, Discard in the camera's, the timer beside, Start disabled (${JSON.stringify({ save, mic, discard, timer })})`);
+    const camMid = await boxOf(pg, 'moment-photo');
+    const midY = (b) => b.y + b.h / 2;
+    // The camera keeps its slot and its name says where its photo goes; Discard, then the timer, sit beside Save, left of
+    // the stack, on Save's line; the note's slot is empty.
+    const memoRow = (s, d, t, c) => !!s && !!d && !!t && !!c && same(c, cam) && d.x + d.w <= t.x && t.x + t.w <= s.x
+      && Math.abs(midY(d) - midY(s)) <= 1 && Math.abs(midY(t) - midY(s)) <= 1 && d.w >= 44 && d.h >= 44;
+    check(same(save, mic) && memoRow(save, discard, timer, camMid)
+      && (await pg.locator('[data-testid=moment-photo][aria-label="Add a photo to this memo"]').count()) === 1
+      && !(await boxOf(pg, 'moment-note')) && (await pg.locator('[data-testid=start][aria-disabled=true]').count()) === 1,
+      `ready NR10, tend walk-screen T44: Save in the mic's slot, the camera in its own, Discard and the timer beside Save, Start disabled (${JSON.stringify({ save, mic, camMid, cam, discard, timer })})`);
+    await shot(pg, 'ws-t44-memo-390');
+    // At 320 px the row still fits left of the stack, whole.
+    {
+      const was = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: was.height });
+      await pg.waitForTimeout(600);
+      const s320 = await boxOf(pg, 'moment-voice-save');
+      const d320 = await boxOf(pg, 'moment-voice-discard');
+      const t320 = await boxOf(pg, 'voice-timer');
+      const c320 = await boxOf(pg, 'moment-photo');
+      const m320 = await boxOf(pg, 'moment-voice-save');
+      const whole = await pg.evaluate(() => {
+        const t = document.querySelector('[data-testid=voice-timer]');
+        return !!t && t.scrollWidth <= t.clientWidth + 1 && [...t.querySelectorAll('div')].every((e) => e.scrollWidth <= e.clientWidth + 1);
+      });
+      await shot(pg, 'ws-t44-memo-320');
+      await pg.setViewportSize(was);
+      await pg.waitForTimeout(600);
+      check(!!d320 && !!t320 && !!c320 && !!m320 && d320.x >= 16 && d320.x + d320.w <= t320.x && t320.x + t320.w <= s320.x && c320.x + c320.w <= 320 - 14 && whole,
+        `tend walk-screen T44: at 320 px Discard and the timer fit whole left of the stack (${JSON.stringify({ d320, t320, s320, c320, whole })})`);
+    }
+    // A photo mid-memo goes with the memo: kept as the moment, and the memo, saved after, joins it (MS2's `into`).
+    {
+      const momentsBefore = (await rows(pg)).length;
+      const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
+      // A photo only: a video would want the microphone the memo holds.
+      const accepts = chooser.element ? await chooser.element().getAttribute('accept').catch(() => null) : null;
+      await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+      // Its editor opens by itself once kept (decision 0240), over the memo still recording.
+      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 30000 });
+      await pg.click('[data-testid=edit-close]');
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 });
+      const stillRecording = (await pg.locator('[data-testid=moment-voice-save]').count()) === 1;
+      await pg.click('[data-testid=moment-voice-save]');
+      await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 10000 });
+      await pg.waitForTimeout(1500);
+      const joined = await pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+          g.onsuccess = () => resolve(g.result.filter((m) => m.pieces.some((p) => p.kind === 'photo') && m.pieces.some((p) => p.kind === 'voice'))
+            .map((m) => ({ id: m.id, kinds: m.pieces.map((p) => p.kind), face: m.pieces.find((p) => p.id === m.id)?.kind })));
+        };
+      }));
+      const momentsAfter = (await rows(pg)).length;
+      check(stillRecording && joined.length === 1 && joined[0].kinds.length === 2 && joined[0].face === 'photo' && momentsAfter === momentsBefore + 1
+        && !/video/.test(accepts ?? ''),
+        `tend walk-screen T44: a photo taken mid-memo is kept as one moment with the memo saved after it (${JSON.stringify({ stillRecording, joined, momentsBefore, momentsAfter, accepts })})`);
+    }
+    await pg.click('[data-testid=moment-voice]');
+    await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+    await pg.waitForTimeout(1400);
     const voicesBefore = (await rows(pg)).filter((r) => r.kind === 'voice').length;
     await pg.click('[data-testid=ready-close]');
     await pg.waitForTimeout(1500);

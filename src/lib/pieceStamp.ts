@@ -22,3 +22,27 @@ export function stampFor(
   const at = pos.here && pos.lastFixAt != null && now - pos.lastFixAt <= FRESH_FIX_MS ? pos.here : null;
   return { t: now, at, locate: !at, into: null, place };
 }
+
+/**
+ * Where a photo taken while a memo records goes (T44, decision 0233, amending NR10): with the memo. A memo begun for an
+ * open moment takes the photo into that moment; a memo of its own has no moment yet, so the photo is kept as the moment,
+ * finding the place the memo was begun for, and the memo joins it when saved (`memoJoins`). No memo: the camera's own.
+ */
+export function photoMidMemo(
+  memo: { into?: string | null; place?: string | null } | null,
+  into: string | null,
+  place: string | null,
+): { into: string | null; place: string | null } {
+  if (!memo) return { into, place };
+  const to = memo.into ?? into;
+  return to ? { into: to, place: null } : { into: null, place: memo.place ?? place };
+}
+
+/**
+ * The memo still recording, once a photo taken during it is kept in `momentId`: it is saved into that moment, as MS2's
+ * `into` saves any piece. Its own fix, place and reply stay, so a moment gone meanwhile keeps it as a moment of its own
+ * (UN11). A memo already going to a moment keeps it.
+ */
+export function memoJoins<S extends { into?: string | null }>(memo: S, momentId: string): S {
+  return memo.into ? memo : { ...memo, into: momentId };
+}

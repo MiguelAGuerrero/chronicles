@@ -4,7 +4,7 @@ import { formatElapsed } from '../../lib/summary';
 import { Icon, type IconName } from '../icons';
 import { Ticking } from '../Ticking';
 import { theme } from '../ui';
-import { CAP, CAP_SMALL, useStackLayout, type CapSlot } from './layout';
+import { CAP, CAP_SMALL, STACK_GAP, useStackLayout, type CapSlot } from './layout';
 
 type PressableRef = ComponentRef<typeof Pressable>;
 
@@ -26,11 +26,11 @@ type CaptureStackProps = {
 };
 
 /**
- * The capture stack (NR9, NR10): camera, mic and note, one above the other at
- * the right edge, above the strip, in the same place on the ready screen and
- * on the walk. While a memo records, Stop & save takes the mic's slot, a
- * smaller Discard the camera's, and the timer sits beside them; nothing moves.
- * The forwarded ref is Save's, so focus can follow the tap that started the memo.
+ * The capture stack (NR9, NR10 as T44 amends it, decision 0233): camera, mic and note, one above the other at the right
+ * edge, above the strip, in the same place on the ready screen and on the walk. While a memo records, the camera keeps
+ * its slot (a photo then goes with the memo, `photoMidMemo`), Stop & save takes the mic's, and Discard, smaller, sits
+ * beside the timer, left of the stack; nothing in the stack moves. The forwarded ref is Save's, so focus can follow the
+ * tap that started the memo.
  */
 export const CaptureStack = forwardRef<PressableRef, CaptureStackProps>(function CaptureStack(props, saveRef) {
   return <Stack {...props} saveRef={saveRef} />;
@@ -52,9 +52,29 @@ function Stack({ saveRef, ...props }: StackProps) {
   );
   return (
     <View style={[StyleSheet.absoluteFill, props.hidden && styles.hidden]} pointerEvents={props.hidden ? 'none' : 'box-none'}>
+      {/* The camera keeps its slot mid-memo (T44): what it takes then goes with the memo. */}
+      {slot('photo', CAP, (
+        <Round
+          testID={props.ids.photo}
+          icon="camera"
+          label={recording ? 'Add a photo to this memo' : props.labels.photo}
+          onPress={props.onPhoto}
+          busy={props.busy === 'photo'}
+          disabled={props.disabled || props.busy === 'voice'}
+          size={CAP}
+        />
+      ))}
       {recording ? (
         <>
-          {slot('photo', CAP_SMALL, (
+          {slot('voice', CAP, (
+            <Round ref={saveRef} testID={props.ids.save} icon="stop" label="Stop and save voice memo" onPress={props.onSave} voice busy={props.busy === 'voice'} size={CAP} />
+          ))}
+          {/* Discard, then the timer, beside Save and left of the stack, so the stack never moves (NR10, T44). Discard is
+              the farther from Save, and smaller. */}
+          <View
+            style={[styles.memoRow, { right: at.right + CAP + STACK_GAP, bottom: at.capBottom('voice') + (CAP - CAP_SMALL) / 2, height: CAP_SMALL }]}
+            pointerEvents="box-none"
+          >
             <Round
               testID={props.ids.discard}
               icon="trash-outline"
@@ -63,26 +83,14 @@ function Stack({ saveRef, ...props }: StackProps) {
               onPress={props.onDiscard}
               size={CAP_SMALL}
             />
-          ))}
-          {slot('voice', CAP, (
-            <Round ref={saveRef} testID={props.ids.save} icon="stop" label="Stop and save voice memo" onPress={props.onSave} voice busy={props.busy === 'voice'} size={CAP} />
-          ))}
-          {/* The timer beside Save, left of the stack, so the stack never moves (NR10). */}
-          <View
-            testID="voice-timer"
-            style={[styles.live, { right: at.right + CAP + 12, bottom: at.capBottom('voice') + (CAP - 40) / 2 }]}
-            accessible
-            accessibilityLabel="Recording voice memo"
-          >
-            <View style={styles.recDot} />
-            <Ticking style={styles.liveText} text={(t) => formatElapsed(t - props.voiceStartedAt!)} />
+            <View testID="voice-timer" style={styles.live} accessible accessibilityLabel="Recording voice memo">
+              <View style={styles.recDot} />
+              <Ticking style={styles.liveText} text={(t) => formatElapsed(t - props.voiceStartedAt!)} />
+            </View>
           </View>
         </>
       ) : (
         <>
-          {slot('photo', CAP, (
-            <Round testID={props.ids.photo} icon="camera" label={props.labels.photo} onPress={props.onPhoto} busy={props.busy === 'photo'} disabled={props.disabled || props.busy === 'voice'} size={CAP} />
-          ))}
           {slot('voice', CAP, (
             <Round testID={props.ids.voice} icon="mic" label={props.labels.voice} onPress={props.onVoice} busy={props.busy === 'voice'} disabled={props.disabled} size={CAP} />
           ))}
@@ -141,8 +149,9 @@ const styles = StyleSheet.create({
   roundVoice: { backgroundColor: '#6b21a8', borderColor: '#6b21a8' },
   dim: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
+  memoRow: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 8 },
   live: {
-    position: 'absolute', height: 40, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface,
+    height: 40, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface,
     borderRadius: 999, paddingHorizontal: 14, borderWidth: 1, borderColor: theme.line,
   },
   recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
