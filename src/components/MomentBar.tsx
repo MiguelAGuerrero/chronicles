@@ -208,7 +208,8 @@ export function CaptureRow(props: {
             </Pressable>
           </View>
         )}
-        {cap.unsaved && (
+        {/* Held back while a memo records, as the walk holds its pills back (tend walk-screen audit 23). */}
+        {cap.unsaved && !recording && (
           <View testID="held-memo" style={styles.pill}>
             <Text style={styles.pillText}>{memoLabel(cap.memosHeld, 'Voice memo')}</Text>
             <Pressable testID="held-memo-retry" accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.pillBtn}>
@@ -216,7 +217,7 @@ export function CaptureRow(props: {
             </Pressable>
           </View>
         )}
-        {cap.held.length > 0 && (
+        {cap.held.length > 0 && !recording && (
           <View testID="held-captures" style={styles.pill} accessibilityLiveRegion="polite">
             <Text style={styles.pillText}>{heldLabel(cap.held)}</Text>
             <Pressable testID="held-retry" accessibilityRole="button" onPress={() => cap.retryHeld()} hitSlop={10} style={styles.pillBtn}>

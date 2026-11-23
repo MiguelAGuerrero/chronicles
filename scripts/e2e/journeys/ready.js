@@ -327,6 +327,46 @@ async function run(h) {
       // Let the discarded memo go with its Undo, so the steps below meet the screen as before.
       await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 12000 }).catch(() => {});
     }
+    // tend walk-screen audit 23 (T44's review, auditor 4): a photo whose save fails mid-memo is held for Retry; its pill,
+    // in the pills' place, never stands over Discard and the timer while the memo records (the walk keeps its pills back
+    // mid-memo too), and shows once the memo is saved. The photo's file read is made to fail once.
+    {
+      await pg.evaluate(() => {
+        if (!window.__fetchWas) window.__fetchWas = window.fetch;
+        window.__failBlob = true;
+        window.fetch = async (u, ...rest) => {
+          if (window.__failBlob && String(u).startsWith('blob:')) {
+            window.__failBlob = false;
+            throw new TypeError('Failed to fetch');
+          }
+          return window.__fetchWas(u, ...rest);
+        };
+      });
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+      await pg.waitForTimeout(1400);
+      const [ch] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
+      await ch.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+      await pg.waitForFunction(() => !window.__failBlob, null, { timeout: 10000 }).catch(() => {});
+      await pg.waitForTimeout(1500);
+      const heldClear = await pg.evaluate(() => {
+        // Every element of the id, the shown one among them (another screen may hold a hidden one).
+        const all = (id) => [...document.querySelectorAll(`[data-testid=${id}]`)].map((e) => e.getBoundingClientRect()).filter((b) => b.width > 0);
+        const row = [...all('moment-voice-discard'), ...all('voice-timer')];
+        const over = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        return row.length === 2 && !['held-captures', 'held-memo'].some((id) => all(id).some((a) => row.some((b) => over(a, b))));
+      });
+      await pg.evaluate(() => { window.__failBlob = false; if (window.__fetchWas) window.fetch = window.__fetchWas; });
+      await pg.click('[data-testid=moment-voice-save]');
+      await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 10000 });
+      const heldAfter = await pg.locator('[data-testid=held-captures]').filter({ visible: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+      check(heldClear && heldAfter, `tend walk-screen audit 23: on the ready screen a photo held mid-memo stands over neither Discard nor the timer, and is offered once the memo is saved (${JSON.stringify({ heldClear, heldAfter })})`);
+      // Retry keeps it, so the steps below meet the screen as before; its editor, if it opens, is closed.
+      await pg.locator('[data-testid=held-retry]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+      await pg.locator('[data-testid=held-captures]').filter({ visible: true }).first().waitFor({ state: 'detached', timeout: 10000 }).catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 3000 }).then(() => pg.click('[data-testid=edit-close]')).catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    }
     await pg.click('[data-testid=moment-voice]');
     await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
     await pg.waitForTimeout(1400);
