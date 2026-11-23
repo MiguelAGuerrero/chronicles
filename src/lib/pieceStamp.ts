@@ -24,8 +24,9 @@ export function stampFor(
 }
 
 /**
- * Where a photo taken while a memo records goes (T44, decision 0233, amending NR10): with the memo. A memo begun for an
- * open moment takes the photo into that moment; a memo of its own has no moment yet, so the photo is kept as the moment,
+ * Where a photo taken while a memo records goes (T44, decision 0233, amending NR10): with the memo, never where the
+ * camera alone would put it (an open moment under Group captures, tend walk-screen audit 22). A memo begun for an open
+ * moment takes the photo into that moment; a memo of its own has no moment yet, so the photo is kept as the moment,
  * finding the place the memo was begun for, and the memo joins it when saved (`memoJoins`). No memo: the camera's own.
  */
 export function photoMidMemo(
@@ -34,8 +35,7 @@ export function photoMidMemo(
   place: string | null,
 ): { into: string | null; place: string | null } {
   if (!memo) return { into, place };
-  const to = memo.into ?? into;
-  return to ? { into: to, place: null } : { into: null, place: memo.place ?? place };
+  return memo.into ? { into: memo.into, place: null } : { into: null, place: memo.place ?? null };
 }
 
 /**

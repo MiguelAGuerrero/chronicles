@@ -7,7 +7,7 @@ import { test } from 'node:test';
 
 // `place` (capture-at-a-place CA2-CA6): null unless a place's card began the capture, and never on a piece.
 type Stamp = { t: number; at: [number, number] | null; locate: boolean; into: string | null; place: string | null };
-type Mod = { stampFor(now: number, pos: { here: [number, number] | null; lastFixAt: number | null }, into: string | null): Stamp };
+type Mod = { stampFor(now: number, pos: { here: [number, number] | null; lastFixAt: number | null }, into: string | null, place?: string | null): Stamp };
 const mod = () => import('../../pieceStamp' + '') as Promise<Mod>;
 
 test('MS3: a piece\'s stamp asks for no fix and carries no place; a new moment\'s takes a fresh fix or asks for one', async () => {
@@ -30,18 +30,34 @@ const midMemo = () => import('../../pieceStamp' + '') as unknown as Promise<MidM
 
 test('tend walk-screen T44: a photo mid-memo goes where the memo goes; with no moment yet it is the moment, the memo joining it', async () => {
   const { photoMidMemo, memoJoins } = await midMemo();
+  const { stampFor } = await mod();
+  const pos = { here: null, lastFixAt: null };
   // No memo: the camera's own target, as before.
   assert.deepEqual(photoMidMemo(null, 'open', null), { into: 'open', place: null });
   assert.deepEqual(photoMidMemo(null, null, 'pl'), { into: null, place: 'pl' });
-  // A memo begun for an open moment (MS2): the photo joins that moment, and carries no place (CA6).
-  assert.deepEqual(photoMidMemo({ t: 1, into: 'm1', place: null }, null, null), { into: 'm1', place: null });
-  // A memo of its own: the photo is kept as the moment, finding the place the memo was begun for (CA3).
-  assert.deepEqual(photoMidMemo({ t: 1, into: null, place: 'pl' }, null, null), { into: null, place: 'pl' });
-  assert.deepEqual(photoMidMemo({ t: 1 }, 'open', null), { into: 'open', place: null });
-  // Kept, the memo still recording goes into the photo's moment; its own place, fix and reply stay for a fallback (UN11).
-  const memo = { t: 1, into: null, place: 'pl', replyTo: { answeredId: 'a' } };
-  assert.deepEqual(memoJoins(memo, 'p1'), { t: 1, into: 'p1', place: 'pl', replyTo: { answeredId: 'a' } });
-  // A memo that already goes to a moment keeps it.
-  const joined = { t: 1, into: 'm1' };
-  assert.equal(memoJoins(joined, 'p2'), joined);
+  // A memo begun for an open moment (MS2): the photo's stamp joins that moment, and so does the memo, unchanged.
+  const forOpen = { ...stampFor(1, pos, 'm1'), t: 1 };
+  const toOpen = photoMidMemo(forOpen, null, null);
+  assert.deepEqual(stampFor(4, pos, toOpen.into, toOpen.place).into, 'm1');
+  assert.equal(memoJoins(forOpen, 'm1'), forOpen);
+  // A memo of its own: the photo is stamped as a new moment ('ph' once kept), and the memo, saved after, goes into it,
+  // keeping its own time, and its fix, place and reply for a moment gone meanwhile (UN11).
+  const own = { t: 1, into: null, place: null, replyTo: { answeredId: 'a' } };
+  const toOwn = photoMidMemo(own, null, null);
+  assert.deepEqual(stampFor(4, pos, toOwn.into, toOwn.place), { t: 4, at: null, locate: true, into: null, place: null });
+  assert.deepEqual(memoJoins(own, 'ph'), { t: 1, into: 'ph', place: null, replyTo: { answeredId: 'a' } });
+});
+
+test('tend walk-screen audit 22: a photo mid-memo follows the memo, never the camera\'s open moment', async () => {
+  const { photoMidMemo, memoJoins } = await midMemo();
+  // Group captures on (MS19): the edge camera would add to the open moment X. A memo begun from a place's card (CA3)
+  // has no moment: the photo is kept as the moment that finds the card's place, and the memo joins it, never X.
+  const fromCard = { t: 1, into: null, place: 'K' };
+  const photo = photoMidMemo(fromCard, 'X', null);
+  assert.deepEqual(photo, { into: null, place: 'K' });
+  assert.deepEqual(memoJoins(fromCard, 'ph'), { t: 1, into: 'ph', place: 'K' }, 'the memo goes with the photo, to K');
+  // With no place either, still not X.
+  assert.deepEqual(photoMidMemo({ t: 1 }, 'X', 'other'), { into: null, place: null });
+  // A memo begun for an open moment keeps that one, whatever the camera would add to.
+  assert.deepEqual(photoMidMemo({ t: 1, into: 'm1' }, 'X', 'K'), { into: 'm1', place: null });
 });
