@@ -101,8 +101,10 @@ export function CaptureRow(props: {
   const pageRef = useRef<NotePageHandle>(null);
   // Once a photo or video is kept, its editor opens by itself (ME23 as decision 0240 amends it).
   const editAfter = useEditAfterCapture(cap.captures);
-  const editing = editAfter.editing;
   const recording = cap.voiceStartedAt != null;
+  // While a memo records, a photo taken then waits for its editor until the memo is saved or discarded (the owner's
+  // "Editor waits", decision 0261; tend walk-screen audit 20).
+  const editing = recording ? null : editAfter.editing;
   const { onRecording } = props;
   useEffect(() => {
     onRecording?.(recording);
@@ -143,7 +145,11 @@ export function CaptureRow(props: {
   // screen saves one, never left recording under another screen (tabs audit 3).
   const saveRef = useRef(saveVoice);
   useEffect(() => {
-    saveRef.current = saveVoice;
+    // A photo's editor waiting on the memo opens no more on a screen left (audit 20).
+    saveRef.current = async () => {
+      await saveVoice();
+      editAfter.close();
+    };
   });
   const { focused } = props;
   useEffect(() => {

@@ -495,7 +495,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // Once a photo or video is kept, its editor opens by itself, before it is looked at on the map (ME23 as decision 0240
   // amends it).
   const editAfter = useEditAfterCapture(cap.captures);
-  const editing = editAfter.editing;
+  // While a memo records, a photo taken then waits for its editor until the memo is saved or discarded (the owner's
+  // "Editor waits", decision 0261; tend walk-screen audit 20).
+  const editing = cap.voiceStartedAt != null ? null : editAfter.editing;
 
   // Declared before the effect below that calls them: the React Compiler skips a component that uses a function above its
   // declaration (walk-screen compiler).
@@ -1134,6 +1136,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     if (!walk || stopping) return;
     setStopping(true);
     stoppingNow.current = true;
+    // A photo's editor waiting on the memo opens no more: the replay comes (decision 0240's audits 3, 6; audit 20).
+    editAfter.close();
     // The walk stays on screen with the error, even if storage already closed it (audit 3).
     const couldNotStop = (e: unknown) =>
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });

@@ -217,14 +217,20 @@ async function run(h) {
       // A photo only: a video would want the microphone the memo holds.
       const accepts = chooser.element ? await chooser.element().getAttribute('accept').catch(() => null) : null;
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
-      // Its editor opens by itself once kept (decision 0240), over the memo still recording.
-      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 30000 });
-      await pg.waitForTimeout(1000);
-      await shot(pg, 'ws-t44-editor-mid-memo-390');
-      await pg.click('[data-testid=edit-close]');
-      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 });
-      // The photo's toast waits while the memo records: Discard and the timer stand where the pills are.
+      // tend walk-screen audit 20 (the owner's "Editor waits", decision 0261): while the memo records, no editor opens
+      // after the photo; Save and Discard stay one tap away. Once the memo is saved, the editor opens on that photo.
+      await pg.waitForFunction(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+          g.onsuccess = () => resolve(g.result.some((m) => m.pieces.some((x) => x.kind === 'photo')));
+        };
+      }), null, { timeout: 30000, polling: 250 }).catch(() => {});
       await pg.waitForTimeout(1500);
+      const editorMid = await pg.locator('[data-testid=media-editor]').count();
+      const saveMid = await boxOf(pg, 'moment-voice-save');
+      const discardMid = await boxOf(pg, 'moment-voice-discard');
+      // The photo's toast waits while the memo records: Discard and the timer stand where the pills are.
       const rowClear = await pg.evaluate(() => {
         const r = (id) => document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
         const toast = r('moment-toast');
@@ -237,6 +243,14 @@ async function run(h) {
       const stillRecording = (await pg.locator('[data-testid=moment-voice-save]').count()) === 1;
       await pg.click('[data-testid=moment-voice-save]');
       await pg.waitForSelector('[data-testid=moment-voice]', { timeout: 10000 });
+      const editorAfter = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+      const editorSays = editorAfter ? await pg.locator('[data-testid=media-editor]').innerText().catch(() => '') : '';
+      await pg.waitForTimeout(800);
+      await shot(pg, 'ws-t44-editor-after-save-390');
+      await pg.click('[data-testid=edit-close]').catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      check(editorMid === 0 && !!saveMid && !!discardMid && editorAfter && /Photo kept/.test(editorSays),
+        `tend walk-screen audit 20: mid-memo, after a photo, no editor opens and Save and Discard are one tap away; after Save the editor opens on the photo (${JSON.stringify({ editorMid, saveMid, discardMid, editorAfter })})`);
       await pg.waitForTimeout(1500);
       const joined = await pg.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
@@ -293,6 +307,23 @@ async function run(h) {
       await pg.evaluate(() => { window.__slowBlob = false; if (window.__fetchWas) window.fetch = window.__fetchWas; });
       check(hit && stoppedAtTap != null && joinedAfter === joinedBefore + 1,
         `tend walk-screen audit 24: a Save tapped while a mid-memo photo is being kept stops recording at the tap and still joins the photo's moment (${JSON.stringify({ hit, stoppedAtTap, joinedBefore, joinedAfter })})`);
+    }
+    // tend walk-screen audit 20, on Discard: the photo stays, the memo goes, and the photo's editor opens then.
+    {
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+      await pg.waitForTimeout(1400);
+      const [ch] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
+      await ch.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+      await pg.waitForTimeout(2500);
+      const editorMid = await pg.locator('[data-testid=media-editor]').count();
+      await pg.click('[data-testid=moment-voice-discard]');
+      const editorAfter = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+      await pg.click('[data-testid=edit-close]').catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      check(editorMid === 0 && editorAfter, `tend walk-screen audit 20: on Discard the photo's editor opens, not before (${JSON.stringify({ editorMid, editorAfter })})`);
+      // Let the discarded memo go with its Undo, so the steps below meet the screen as before.
+      await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 12000 }).catch(() => {});
     }
     await pg.click('[data-testid=moment-voice]');
     await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
