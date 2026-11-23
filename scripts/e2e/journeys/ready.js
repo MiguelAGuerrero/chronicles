@@ -375,6 +375,27 @@ async function run(h) {
     await pg.waitForTimeout(1500);
     const voicesAfter = (await rows(pg)).filter((r) => r.kind === 'voice').length;
     check(voicesAfter === voicesBefore + 1 && pathOf(pg) === `${BASE}/`, `ready NR10: the chevron mid-memo closes and keeps the memo (${voicesBefore} → ${voicesAfter})`);
+    // tend walk-screen audit 26 (T44's review: steward S3, ux U6; the owner's "Keep the photo's", decision 0261): the
+    // photo-and-memo moment, opened from Chronicle, pictured; its time and place are the photo's, and the memo keeps its own
+    // earlier time as a piece.
+    {
+      const entry = pg.locator('[aria-label^="Photo, with more in this moment"]').filter({ visible: true }).first();
+      const opened = await entry.click({ timeout: 5000 }).then(() => pg.waitForSelector('[data-testid=capture-viewer]', { timeout: 5000 })).then(() => true, () => false);
+      await pg.waitForTimeout(800);
+      await shot(pg, 'ws-t44-moment-390');
+      const times = await pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+          g.onsuccess = () => resolve(g.result.filter((m) => m.pieces.some((x) => x.kind === 'photo') && m.pieces.some((x) => x.kind === 'voice'))
+            .map((m) => ({ t: m.t, lat: m.lat, photoT: m.pieces.find((x) => x.id === m.id)?.t, voiceT: m.pieces.find((x) => x.kind === 'voice')?.t, first: m.pieces[0].kind })));
+        };
+      }));
+      await pg.click('[data-testid=viewer-close]').catch(() => {});
+      await pg.waitForSelector('[data-testid=capture-viewer]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      check(opened && times.length >= 1 && times.every((x) => x.t === x.photoT && x.voiceT < x.t && x.lat != null && x.first === 'voice'),
+        `tend walk-screen audit 26: a memo joined by a mid-memo photo keeps its own start time as a piece; the moment's time and place are the photo's (${JSON.stringify({ opened, times })})`);
+    }
     await tabTo(pg, 'navigate');
     await pg.waitForSelector('[data-testid=ready-bar]');
     await pg.waitForTimeout(1200);
