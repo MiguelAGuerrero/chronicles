@@ -174,3 +174,16 @@ test('tend walk-screen audit 33: Stop lets the walk\'s set-aside memo go and hid
   assert.match(stop, /void cap\.closeDiscard\(\);/, 'Stop lets the memo set aside go as it begins');
   assert.ok(stop.indexOf('cap.closeDiscard()') > stop.indexOf('setStopping(true)'), 'once the stop is under way');
 });
+
+// tend walk-screen audit 34 (the batch's review: steward S6; docs/DEFERRED.md, Navigate, ready, the review of tend
+// captures 1's F10): a memo whose stop timed out has no file, and its Undo could only end in "Couldn't save this voice
+// memo."; since T48 that Undo stayed. A memo with no file is discarded with nothing set aside and no pill.
+test('tend walk-screen audit 34: a memo with no file is discarded with nothing set aside and no Undo', () => {
+  const step = (memoSave as Record<string, unknown>).discardStep as (<M extends { uri: string | null }>(m: M) => { type: string; memo?: M }) | undefined;
+  assert.equal(typeof step, 'function', 'a pure step in lib/media/memoSave');
+  const kept = { uri: 'blob:a' };
+  assert.deepEqual(step!(kept), { type: 'discard', memo: kept }, 'a memo with its file is set aside for Undo');
+  assert.deepEqual(step!({ uri: null }), { type: 'close' }, 'one with none sets nothing aside, and lets go of any before');
+  const hook = read('lib/useCaptures.ts');
+  assert.match(body(hook, 'const discardVoice', 'const undoDiscard'), /asideStep\(discardStep\(m\)\)/, 'the hook\'s discard takes that step');
+});
