@@ -66,6 +66,11 @@ paths:
   revokes (web), so only an element already showing it can go on showing it. A host's `opens` repeats its own guard on
   `editAfter.open`, asked as the camera returns. The cover ends in the same turn as the keep only because the host's
   `open` follows it in microtasks, before React renders: put no await between `takePhoto`'s answer and `editAfter.open`.
+- **react-native-web draws a new Modal's first frame transparent** (tend captures audit 10): `ModalAnimation` sets its
+  style in a passive effect, so a frame painted between the commit and that effect shows what is under it, whatever the
+  `animationType`. The held shot's frame check reads from its first opaque frame and allows only that mount frame before
+  it. Native's Modal with `animationType="none"` is not affected (unverified). Drawing the held shot outside RNW's Modal
+  would be a web exception to native-first, so the one frame is left (DEFERRED, captures).
 - **Saving out:** photos through `bakers.bake` (the web applies the matrix to
   the pixels); videos through `exportVideo` with the lines and caption as a
   clear PNG (`bakers.bakeOverlay`): the local module on phones, canvas +
