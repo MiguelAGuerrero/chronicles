@@ -108,7 +108,9 @@ async function run(h) {
   const shoot = async (button) => {
     const got = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click(`[data-testid=${button}]`, { timeout: 10000 })]).catch(() => null);
     if (got) await got[0].setFiles(path.join(fixtures, 'photo.jpg'));
-    // A save that fails opens none; one that is kept is closed.
+    // From the camera's return the shot is held until its keep settles (tend captures T62): a save that fails takes it
+    // away, one that is kept brings the editor's controls. Then, as before: a save that fails opens none; one kept is closed.
+    await pg.waitForFunction(() => !document.querySelector('[data-testid=media-editor][data-held=true]'), null, { timeout: 10000 }).catch(() => {});
     await closeEditor(pg, 1500);
   };
   const hold = async (sel) => {
