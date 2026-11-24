@@ -730,8 +730,10 @@ async function run(h) {
       const r = pin.getBoundingClientRect();
       return { pinX: r.left + r.width / 2, pinBottom: r.bottom, before: window.__project(before), after: window.__project(after), end: window.__project(end), label: pin.getAttribute('aria-label') };
     }, [east(12), east(72), east(100)]);
-    const between = !!where && where.pinX >= Math.min(where.before[0], where.after[0]) - 12 && where.pinX <= Math.max(where.before[0], where.after[0]) + 12
-      && Math.abs(where.end[0] - where.pinX) >= 20 && Math.abs(where.pinBottom - where.after[1]) <= 48;
+    // tend replay audit 21 (the review's tests reviewed): within 4 px of the stretch between the fixes either side, and 20 px
+    // or more from the run's end before the gap, so a pin at that end (where a capture in a gap is told) fails.
+    const between = !!where && where.pinX >= Math.min(where.before[0], where.after[0]) - 4 && where.pinX <= Math.max(where.before[0], where.after[0]) + 4
+      && Math.abs(where.pinX - where.before[0]) >= 20 && Math.abs(where.end[0] - where.pinX) >= 20 && Math.abs(where.pinBottom - where.after[1]) <= 48;
     const pinIn = card.pins.length === 1 && !!card.map && card.sheetTop != null
       && card.pins.every((q) => q[0] >= card.map[0] && q[2] <= card.map[2] && q[1] >= card.map[1] && q[3] <= card.sheetTop);
     await shot(pg, 'unsaved-bar-unplaced-memo-card-390');
