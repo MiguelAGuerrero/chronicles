@@ -296,3 +296,11 @@ test('tend captures audit 15: the editor after a capture closes and saves throug
     assert.match(src(f), /<AfterCaptureEditor [^>]*onClose=\{\(\) => editAfter\.close\(\)\} onSave=\{\(c, patch\) => cap\.setEdit\(c, patch\)\}/, `${f} closes and saves the editor through its own hook and captures`);
   }
 });
+
+// tend captures audit 13, its first journey run: with the crop row's chips out of the Tab order, Chrome makes the row's
+// horizontal scroller itself a Tab stop (a scroll container with nothing focusable in it is focusable), hidden behind the
+// held shot. The scroller leaves the order too while held.
+test('tend captures audit 13: while held the crop row\'s scroller is no Tab stop either', () => {
+  const editor = src('components/edit/MediaEditor.tsx');
+  assert.match(editor, /<ScrollView horizontal showsHorizontalScrollIndicator=\{false\} contentContainerStyle=\{styles\.row\} \{\.\.\.untabbed\}>/);
+});

@@ -454,10 +454,15 @@ const SAMPLE = () => {
   const t0 = performance.now();
   window.__t62 = { frames: [], on: true, t0, change: null };
   // The shutter as the page hears it: the picker's file input changing (tend captures audit 10 logs shutter to cover).
-  document.addEventListener('change', (e) => {
-    const w = window.__t62;
-    if (w && w.change == null && e.target?.type === 'file') w.change = Math.round(performance.now() - t0);
-  }, true);
+  // Once per page, read against the sampling under way (tend captures audit 10: a listener per capture kept the first
+  // capture's clock, so later captures read a shutter from before their own start).
+  if (!window.__t62Listens) {
+    window.__t62Listens = true;
+    document.addEventListener('change', (e) => {
+      const w = window.__t62;
+      if (w && w.on && w.change == null && e.target?.type === 'file') w.change = Math.round(performance.now() - w.t0);
+    }, true);
+  }
   const tick = () => {
     const w = window.__t62;
     if (!w.on) return;
@@ -690,7 +695,11 @@ async function heldShot(h) {
     await pg.waitForTimeout(1500);
     pg.off('requestfailed', onFail);
     const errs = h.errors.slice(errs0).filter((e) => /ERR_FILE_NOT_FOUND/.test(e));
-    const fast = { up: r.up, held: r.held, picWhileHeld: r.picWhileHeld, blank: r.blank, gone: r.gone, moved: r.moved, pic: r.pic, toReady: r.toReady, errs, failed };
+    // A paused <video> cancels its own range loads (net::ERR_ABORTED, seen on the first run): not a failed read of the
+    // file. A read of a revoked blob is ERR_FILE_NOT_FOUND (tend captures audit 8).
+    const aborted = failed.filter((x) => /ERR_ABORTED/.test(x)).length;
+    failed.splice(0, failed.length, ...failed.filter((x) => !/ERR_ABORTED/.test(x)));
+    const fast = { up: r.up, held: r.held, picWhileHeld: r.picWhileHeld, blank: r.blank, gone: r.gone, moved: r.moved, pic: r.pic, toReady: r.toReady, errs, failed, aborted };
     check(r.up && !!r.pic && (r.held === 0 || r.picWhileHeld) && r.blank === 0 && r.moved === 0 && !errs.length && !failed.length,
       `tend captures audit 8: on the walk a video kept at full speed shows its held shot's picture, never blank after, and no read of the picked file fails (${JSON.stringify(fast)})`);
   });
