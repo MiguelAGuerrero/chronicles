@@ -1,0 +1,47 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Quality of life",
+        "--after",
+        "shows the bullseye whole over the start"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, stop a walk where it began (a loop round the block), open its replay to the card and then its day's replay, and pinch in and out over the end; then stop a walk that ends a street from where it began. **Expect:** MapLibre RN draws the loop as one mark while its two ends lie within 22 px on screen (`tend map T50`, decision 0244): the end's bullseye whole inside a white band and a green ring (`ENDS_LOOP_PAINT` on the `ends-loop` source, mounted before `ends`, so under `ends-ring`, with the trace's opacity), never the start's green crescent beside it; zoomed in until the two part (native `view` moves in 0.25 zoom steps, so the change can come up to a quarter of a zoom late) the hollow start and the bullseye are drawn apart as before, and one mark again on zooming out; faint with the replay's first beat and whole on the card; the walk that ends a street away is two marks at every zoom where they are apart. Never run on a phone. (T50)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--after",
+        "No after picture or check of a pin on a walk's hollow start"
+      ],
+      "body": "- [loop] (low) A pin standing on a loop's one mark (`tend map T50`) is lifted by the two 11 px discs `stalkLift` knows (`END_MARK_R`, `lib/pins.ts`; `standOn` is still the start and the end), not by the halo's 17 px: a pin whose foot lies 11 to 17 px below the end can have its stalk cross the halo's white band and green ring, and one at the start's own point is lifted past a disc no longer drawn there. To try: while `endsTogether` holds, hand the pins the end alone with the halo's outer radius (`stalkLift`'s `r`) on both maps (`WalkMap.web.tsx`'s `standOn` into `usePinMarkers`, `WalkMap.native.tsx`'s `PinListIn`), with a `stalkLift.test.ts` case first. Left out of T50's build to keep it to its four source files (the batch's scope, Nov 24).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--after",
+        "A pin standing on a loop's one mark"
+      ],
+      "body": "- [loop] (low) A loop's one mark can flicker as the replay's zoom crosses the edge: `endsTogether` (`lib/traceEnds.ts`) has one edge, 22 px, and no hysteresis, so a camera easing across it redraws the start as a halo, then apart, then a halo. Fix: two edges, one mark under 22 px, two marks over about 26, the last drawn kept between, with a `traceEnds.test.ts` case first (the batch's review, auditor F12, Nov 24; the owner kept the 22 px edge, decision 0262)\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T50",
+        "--reason",
+        "the owner's yes, built in tend map T50"
+      ],
+      "target": "sha256:e81fcffdc686c19e539743121fc75634a8282ef54d4971c0cd75885aaa7888f7"
+    }
+  ]
+}
