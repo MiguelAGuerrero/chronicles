@@ -59,7 +59,7 @@ export function KindStrip(props: { steps: Steps | null; testID?: string; /** One
 }
 
 /**
- * One kind on the area's card: icon, name, its word and its dots, at full ink even when none. Tapping the row opens the walk
+ * One kind on the area's card: icon, name with its word under it, and its dots, at full ink even when none. Tapping the row opens the walk
  * planner for the kind (WP1), and so does its own button (KW15): a signpost and "Suggest a walk", a target of its own so nothing
  * about the row has to be guessed at.
  */
@@ -70,8 +70,11 @@ export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; 
   const body = (
     <>
       <Icon name={KIND_ICON_OF[kind]} size={20} color={step ? KIND_COLOR[kind] : theme.edge} />
-      <Text style={styles.kindName}>{label}</Text>
-      <Text style={styles.kindWord} numberOfLines={1}>{STEP_WORDS[step]}</Text>
+      {/* tend explore audit 45 (decision 0264, "Two-line rows"): the name, its amount word under it, neither ever cut. */}
+      <View style={styles.kindText}>
+        <Text style={styles.kindName}>{label}</Text>
+        <Text style={styles.kindWord}>{STEP_WORDS[step]}</Text>
+      </View>
       <Dots step={step} color={KIND_COLOR[kind]} size={8} />
     </>
   );
@@ -122,6 +125,9 @@ const styles = StyleSheet.create({
     borderRadius: 22, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface,
   },
   walkBtnText: { fontSize: 13, fontWeight: '600', color: theme.ink },
-  kindName: { fontSize: 15, color: theme.ink, fontWeight: '500' },
-  kindWord: { fontSize: 14, color: theme.muted, flex: 1 },
+  // The name over its amount word, as a two-line list item's headline and supporting text (M3 lists); the column takes
+  // the room the dots and "Suggest a walk" leave, and the name wraps before anything is cut.
+  kindText: { flex: 1, minWidth: 0 },
+  kindName: { fontSize: 15, lineHeight: 20, color: theme.ink, fontWeight: '500' },
+  kindWord: { fontSize: 14, lineHeight: 18, color: theme.muted },
 });

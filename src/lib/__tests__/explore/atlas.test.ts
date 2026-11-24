@@ -594,3 +594,13 @@ test('tend explore T49: the map\'s spoken "?" names the kinds in the card\'s wor
   const { waitingLabel } = await import('../../atlas/waitingPins');
   assert.equal(waitingLabel('Fox Point', [{ key: 'a', category: 'parks' }, { key: 'b', category: 'viewpoints' }]), 'Waiting in Fox Point: green, views & oddities');
 });
+
+test('tend explore audit 45: a kind row is two lines, the name over its amount word, and the word is never cut to one line', async () => {
+  // Decision 0264 (the owner's "Two-line rows"); the atlas journey reads it at 390 and 320 px with "Suggest a walk".
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const src = readFileSync(join(__dirname, '../../..', 'components/atlas/KindStrip.tsx'), 'utf8');
+  const row = src.slice(src.indexOf('export function KindRow'), src.indexOf('const styles'));
+  assert.match(row, /<View style=\{styles\.kindText\}>\s*<Text style=\{styles\.kindName\}>\{label\}<\/Text>\s*<Text style=\{styles\.kindWord\}>\{STEP_WORDS\[step\]\}<\/Text>\s*<\/View>/);
+  assert.ok(!/kindWord\} numberOfLines/.test(row), 'the word is never clipped to a line');
+});
