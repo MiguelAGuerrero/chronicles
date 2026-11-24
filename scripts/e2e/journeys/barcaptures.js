@@ -159,6 +159,13 @@ async function run(h) {
     const save = await box('[data-testid=bar-voice-save]');
     const stop = await box('[data-testid=recording-bar] [data-testid=bar-stop]');
     const noPencil = !(await shown('[data-testid=recording-bar] [data-testid=bar-note]'));
+    // BC2 as tend tabs T60 amends it (decision 0261): mid-memo the camera keeps its place and says where its photo goes;
+    // Discard sits on the line before the memo's time.
+    const camMid = await box('[data-testid=recording-bar] [data-testid=bar-photo]');
+    const camName = await pg.locator('[data-testid=recording-bar] [data-testid=bar-photo]').first().getAttribute('aria-label').catch(() => null);
+    const timeBox = await box('[data-testid=recording-bar] [data-testid=bar-voice-timer]');
+    const barBox = await box('[data-testid=recording-bar]');
+    const noScroll = await pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
     // recording-bar-captures ui 2 (the UI review's U4): the memo's red dot has the idle dot's white ring, 3:1 on the bar.
     const ring = await pg.locator('[data-testid=bar-voice-dot]').evaluate((e) => { const st = getComputedStyle(e); return { w: st.borderTopWidth, c: st.borderTopColor }; }).catch(() => null);
     check(!!ring && parseFloat(ring.w) >= 1 && ring.c === 'rgb(255, 255, 255)', `recording-bar-captures ui 2: the memo's red dot has a white ring (${JSON.stringify(ring)})`);
@@ -166,9 +173,13 @@ async function run(h) {
     await pg.click('[data-testid=bar-voice-save]');
     const kept = await settle('voice', voices);
     const [b0, b1, , b3] = before.boxes;
-    check(timer && !!discard && !!save && !!stop && noPencil && Math.abs(discard.x + discard.w / 2 - (b0.x + b0.w / 2)) <= 2
+    const inBar = (b) => !!b && !!barBox && b.x >= barBox.x && b.x + b.w <= barBox.x + barBox.w;
+    check(timer && !!camMid && !!discard && !!save && !!stop && !!timeBox && noPencil && Math.abs(camMid.x + camMid.w / 2 - (b0.x + b0.w / 2)) <= 2
       && Math.abs(save.x + save.w / 2 - (b1.x + b1.w / 2)) <= 2 && stop.x === b3.x && kept && !walkUrlSince(from) && !/\/walk$/.test(path()),
-      `BC2: the mic records on Explore: the memo's time in the line, Discard in the camera's place, Save in the mic's, Stop unmoved; saved, the memo is in the walk and the walk screen never opened (${JSON.stringify({ timer, discard, save, stop, before: before.boxes, kept })})`);
+      `BC2, tend tabs T60: the mic records on Explore: the memo's time in the line, the camera in its place, Save in the mic's, Stop unmoved; saved, the memo is in the walk and the walk screen never opened (${JSON.stringify({ timer, camMid, discard, save, stop, before: before.boxes, kept })})`);
+    check(camName === 'Add a photo to this memo' && !!discard && !!timeBox && discard.w >= 44 && discard.h >= 44 && discard.x + discard.w <= timeBox.x
+      && [discard, timeBox, camMid, save, stop].every(inBar) && noScroll,
+      `tend tabs T60: mid-memo the bar's camera says "Add a photo to this memo", and a 44 pt Discard sits on the line left of the memo's time, the row inside the bar (${JSON.stringify({ camName, discard, timeBox, barBox, noScroll })})`);
     // Saved at once, a memo under a second is not kept, and the bar says so.
     const n = await count('voice');
     await pg.click('[data-testid=bar-voice]');
@@ -211,6 +222,103 @@ async function run(h) {
     const kept = await settle('voice', voices);
     check(pill && /Voice memo discarded/.test(words) && !!pillBox && !!barBox && pillBox.y + pillBox.h <= barBox.y + 0.5 && kept,
       `BC9: Discard shows "Voice memo discarded" with Undo just above the bar, and Undo keeps the memo in the walk (${JSON.stringify({ words, pillBox, barBox, kept })})`);
+  });
+
+  // tend tabs T60 (the owner's yes, Nov 23; decision 0261, the T44 shape): a photo taken from the bar mid-memo joins the
+  // memo's moment, and its editor waits until the memo is saved or discarded; at 320 px the memo's row fits whole; a tab
+  // change mid-memo saves the memo and lets a waiting editor go.
+  await step('t60', async () => {
+    const pieces = () => pg.evaluate((id) => new Promise((resolve) => {
+      const timer = setTimeout(() => resolve([]), 5000);
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const conn = req.result;
+        const g = conn.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => { clearTimeout(timer); conn.close(); resolve(g.result.filter((m) => m.walk_id === id).map((m) => ({ id: m.id, kinds: (m.pieces ?? []).map((x) => x.kind) }))); };
+      };
+    }), walk?.id);
+    const editorShown = () => pg.locator('[data-testid=media-editor]').count().then((n) => n > 0);
+    const closeEditor = async () => {
+      await pg.click('[data-testid=edit-close]').catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    };
+    const photoMid = async () => {
+      const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 8000 }), pg.click('[data-testid=recording-bar] [data-testid=bar-photo]')]);
+      await chooser.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+      await pg.waitForTimeout(2500);
+    };
+    // (a, b, c) At 390: a memo, a photo mid-memo, no editor while the memo records; Save, then the editor; one moment.
+    const from = urls.length;
+    const m0 = await pieces();
+    await memo();
+    await shot(pg, 'barcaptures-t60-memo-390');
+    await photoMid();
+    const timerOn = await shown('[data-testid=recording-bar] [data-testid=bar-voice-timer]');
+    const editorMid = await editorShown();
+    await pg.click('[data-testid=bar-voice-save]');
+    const editorAfter = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+    await pg.waitForTimeout(800);
+    await shot(pg, 'barcaptures-t60-editor-after-save-390');
+    await closeEditor();
+    await pg.waitForTimeout(1500);
+    const m1 = await pieces();
+    const joined = m1.filter((m) => !m0.some((o) => o.id === m.id));
+    check(timerOn && !editorMid && editorAfter && joined.length === 1 && joined[0].kinds.includes('photo') && joined[0].kinds.includes('voice') && !walkUrlSince(from) && !/\/walk$/.test(path()),
+      `tend tabs T60: a photo from the bar mid-memo opens no editor while the memo records; after Save the editor opens, and the photo and the memo are one moment (${JSON.stringify({ timerOn, editorMid, editorAfter, joined })})`);
+    // (d) Again, discarding the memo after the photo: the editor opens after the Discard, the pill with it.
+    const m2 = await pieces();
+    await memo();
+    await photoMid();
+    const editorMid2 = await editorShown();
+    await pg.click('[data-testid=bar-voice-discard]');
+    const pill = await there('[data-testid=bar-voice-undo]', 4000);
+    const editorAfter2 = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+    await closeEditor();
+    await pg.waitForTimeout(6000);
+    const m3 = await pieces();
+    const added = m3.filter((m) => !m2.some((o) => o.id === m.id));
+    check(!editorMid2 && pill && editorAfter2 && added.length === 1 && added[0].kinds.join() === 'photo',
+      `tend tabs T60: discarded after a photo, the memo goes and the photo stays, its editor opening after the Discard, the pill with it (${JSON.stringify({ editorMid2, pill, editorAfter2, added })})`);
+    // (e) At 320 px the memo's row fits: Discard, the time, the camera, Save and Stop in one row inside the bar, the time
+    // whole, no red dot.
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(900);
+    await memo();
+    const fit = await pg.evaluate(() => {
+      const q = (id) => document.querySelector(`[data-testid=recording-bar] [data-testid=${id}]`);
+      const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null; };
+      const bar = r(document.querySelector('[data-testid=recording-bar]'));
+      const row = ['bar-voice-discard', 'bar-voice-timer', 'bar-photo', 'bar-voice-save', 'bar-stop'].map((id) => r(q(id)));
+      const t = q('bar-voice-timer');
+      const mid = (b) => b.y + b.h / 2;
+      return {
+        bar, row, dot: !!q('bar-voice-dot'),
+        whole: !!t && t.scrollWidth <= t.clientWidth + 1 && [...t.querySelectorAll('div')].every((e) => e.scrollWidth <= e.clientWidth + 1),
+        oneRow: row.every((b) => !!b && Math.abs(mid(b) - mid(row[0])) <= 3),
+        inOrder: row.every((b, i) => !!b && (i === 0 || b.x >= row[i - 1].x + row[i - 1].w - 0.5)),
+        inside: !!bar && row.every((b) => !!b && b.x >= bar.x && b.x + b.w <= bar.x + bar.w),
+        noScroll: document.documentElement.scrollWidth <= window.innerWidth,
+      };
+    });
+    await shot(pg, 'barcaptures-t60-memo-320');
+    await pg.click('[data-testid=bar-voice-save]').catch(() => {});
+    await pg.waitForTimeout(1500);
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(900);
+    check(fit.oneRow && fit.inOrder && fit.inside && fit.whole && !fit.dot && fit.noScroll,
+      `tend tabs T60: at 320 px mid-memo Discard, the time, the camera, Save and Stop share one row inside the bar, the time whole and no red dot (${JSON.stringify(fit)})`);
+    // (f) Mid-memo with a photo's editor waiting, a change of tab saves the memo and no editor opens.
+    const voices = await count('voice');
+    await memo();
+    await photoMid();
+    await tabTo(pg, 'chronicle', 'walks');
+    const saved = await settle('voice', voices);
+    await pg.waitForTimeout(2500);
+    const editorLeft = await editorShown();
+    if (editorLeft) await closeEditor();
+    check(saved && !editorLeft, `tend tabs T60: mid-memo with a photo's editor waiting, a change of tab saves the memo and no editor opens (${JSON.stringify({ saved, editorLeft })})`);
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(1200);
   });
 
   // BC4: the pencil opens the note's page over the tab; words kept join the walk; an empty page keeps nothing.
