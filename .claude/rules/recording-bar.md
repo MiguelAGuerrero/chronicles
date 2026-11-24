@@ -66,3 +66,12 @@ paths:
   320 px, nothing cut) and goes on; the second hold lets the walk's held captures go. Its camera's failure says its
   Retry is on the walk screen (`retryShown: false`, UN10). `HoldButton` empties its fill when let go, a fired hold
   too (UN7): a refused hold's true-to-false busy can batch into no render.
+- **Mid-memo the bar's camera keeps its place** (`tend tabs T60`, decision 0261, the T44 shape amending BC2; this line, not
+  "Discard (`bar-voice-discard`) and Save (`bar-voice-save`) take the camera's and the mic's places" above, says what
+  ships): `bar-photo` stays (spoken "Add a photo to this memo"; photos only; off while the memo is being saved), Save in
+  the mic's place, the pencil's slot empty; Discard, a 44 pt `BarRound` (react-native-web has no `hitSlop`), sits before
+  the line, outside its button. A photo taken then follows the memo in `useCaptures` (`photoMidMemo`, `memoJoins`, the
+  walk screen's path); its editor waits while the memo records (`editing` is null) and is let go (`editAfter.close()`)
+  when `back()` saves the memo or `leaveMemo` saves it as the captures leave sight, so it never opens on another tab or
+  over a card or Modal. Below 360 px the memo's dot goes and the line's padding is 4 a side (`barMemoLine`): at 320 px
+  the line has 54 px for "59:59". Not run on a device.
