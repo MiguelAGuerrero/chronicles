@@ -106,6 +106,7 @@ test('tend walk-screen audit 28: the discard pill\'s words take their own line w
   assert.equal(stacks!(208), true, 'nor at 320');
   assert.equal(stacks!(544), false, 'a wide screen keeps the one row');
   assert.equal(stacks!(400, 1.5), true, 'larger text needs more room');
+  // tend walk-screen audit 28: both screens measure the same room, the screen less the pills' insets.
   for (const [file, style] of [['components/MomentBar.tsx', 'pillStacked'], ['app/walk.tsx', 'undoStacked']] as const) {
     const src = read(file);
     const pill = /\{cap\.discarded && [^\n]*\(\n([\s\S]*?)\n {8}\)\}/.exec(src)?.[1] ?? '';

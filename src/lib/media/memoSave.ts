@@ -40,3 +40,17 @@ export function setAside<M>(held: M | null, e: SetAsideEvent<M>): { held: M | nu
 
 /** The discarded memo's Close, saying what it leaves, as the delete's Undo pill does (deletion `dismissLabel`). */
 export const DISCARD_CLOSE_LABEL = 'Close, it stays discarded';
+
+/**
+ * The width the discard pill's one row takes at the default text size: its words, Undo and Close side by side, with the
+ * pill's padding and gaps (the walk's pill, the wider of the two screens'; tend walk-screen audit 28).
+ */
+export const DISCARD_ROW_PX = 340;
+/**
+ * Whether the discard pill's words take a line of their own above Undo and Close: when the row the pills have beside the
+ * capture stack (`room`) cannot hold them on one line, as on every phone, so Close never hangs outside the pill over the
+ * stack and the words never wrap (tend walk-screen audit 28; the dead-zone nudge's narrow layout, audit 13).
+ */
+export function discardPillStacks(room: number, fontScale = 1): boolean {
+  return room < DISCARD_ROW_PX * Math.max(1, fontScale);
+}

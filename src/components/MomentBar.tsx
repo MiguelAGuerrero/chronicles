@@ -1,7 +1,7 @@
 import type { Faced } from '../lib/moment';
 import { useEffect, useRef, useState } from 'react';
 import {
-  AccessibilityInfo, BackHandler, Platform, Pressable, StyleSheet, Text, View,
+  AccessibilityInfo, BackHandler, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions,
 } from 'react-native';
 import { momentToast } from '../lib/captureBand';
 import { feedback } from '../lib/motion';
@@ -11,7 +11,7 @@ import { useStore } from '../lib/useStore';
 import { space } from '../lib/space';
 import { heldLabel } from '../lib/space/core';
 import { memoLabel } from '../lib/unsaved/core';
-import { DISCARD_CLOSE_LABEL } from '../lib/media/memoSave';
+import { DISCARD_CLOSE_LABEL, discardPillStacks } from '../lib/media/memoSave';
 import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
@@ -92,6 +92,9 @@ export function CaptureRow(props: {
   const p = props.idPrefix ?? 'moment';
   // Pills and toasts sit left of the stack on the walk screen (NR10).
   const pillsAt = at.pills;
+  // The discard pill's words take their own line when the pills' row beside the stack cannot hold them (audit 28).
+  const { width, fontScale } = useWindowDimensions();
+  const stacked = discardPillStacks(width - at.pills.left - at.pills.right, fontScale);
   const { cap, toast, setToast } = props;
   // The note's page, begun at the pencil's tap (NP1), keyed so each opens fresh; `into` is the open moment it joins (MS2, MS4).
   const [page, setPage] = useState<{ key: number; into: string | null } | null>(null);
@@ -204,8 +207,9 @@ export function CaptureRow(props: {
           </LiftIn>
         )}
         {cap.discarded && !recording && (
-          <View style={styles.pill} accessibilityLiveRegion="polite">
-            <Text style={styles.pillText}>Voice memo discarded</Text>
+          // When the row cannot hold them, the words take a line of their own above Undo and Close (tend walk-screen audit 28).
+          <View style={[styles.pill, stacked && styles.pillStacked]} accessibilityLiveRegion="polite">
+            <Text style={[styles.pillText, stacked && styles.pillTextStacked]}>Voice memo discarded</Text>
             <Pressable testID={`${p}-voice-undo`} accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.pillBtn}>
               <Text style={styles.pillBtnText}>Undo</Text>
             </Pressable>
@@ -296,6 +300,9 @@ const styles = StyleSheet.create({
   pillBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   pillBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   pillClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
+  // The discard pill when its row cannot hold its words (tend walk-screen audit 28): the words a line, Undo and Close under.
+  pillStacked: { flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 4, borderRadius: 20, maxWidth: '100%' },
+  pillTextStacked: { flexBasis: '100%', paddingTop: 4 },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },

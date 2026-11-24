@@ -72,7 +72,7 @@ import { stopEnd } from '../lib/unsaved/stopEnd';
 import { formatDistance, formatDuration } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
-import { DISCARD_CLOSE_LABEL } from '../lib/media/memoSave';
+import { DISCARD_CLOSE_LABEL, discardPillStacks } from '../lib/media/memoSave';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
 import { routeLeanings } from '../lib/routeLeanings';
@@ -251,13 +251,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // Every distance on this screen follows the units setting (QL16).
   const units = useUnits();
   const insets = useSafeAreaInsets();
-  const { width, height: screenH } = useWindowDimensions();
+  const { width, height: screenH, fontScale } = useWindowDimensions();
   // The strip's words step down a size below 360, so long numbers still leave them whole (fix walk-strip-buttons audit 1).
   const narrow = width < 360;
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
   const sideInset = Math.max(GUTTER, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const at = useStackLayout();
+  // The discard pill's words take their own line when the pills' row beside the stack cannot hold them (audit 28).
+  const stacked = discardPillStacks(width - at.pills.left - at.pills.right, fontScale);
   // The walk's cards sit above the strip, left of the stack's column, so they never cover it (audit 5).
   // zIndex 2: over the Layers button in the corner (1), under the drawer (3) (fix layers-corner audit 2).
   const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP, zIndex: 2 };
@@ -1788,8 +1790,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
           </View>
         )}
         {cap.discarded && !recordingVoice && !spot && !openMark && !options && !memory && (
-          <View style={styles.undo} accessibilityLiveRegion="polite">
-            <Text style={styles.undoText}>Voice memo discarded</Text>
+          // When the row cannot hold them, the words take a line of their own above Undo and Close (tend walk-screen audit 28).
+          <View style={[styles.undo, stacked && styles.undoStacked]} accessibilityLiveRegion="polite">
+            <Text style={[styles.undoText, stacked && styles.undoTextStacked]}>Voice memo discarded</Text>
             <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
               <Text style={styles.undoBtnText}>Undo</Text>
             </Pressable>
@@ -2389,6 +2392,9 @@ const styles = StyleSheet.create({
   // The nudge below 360: wrapped, its text a full line above its two buttons (tend walk-screen audit 13).
   nudgeNarrow: { flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 4, borderRadius: 20 },
   nudgeTextNarrow: { flexBasis: '100%', paddingTop: 4 },
+  // The discard pill when its row cannot hold its words (tend walk-screen audit 28): the words a line, Undo and Close under.
+  undoStacked: { flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 4, borderRadius: 20 },
+  undoTextStacked: { flexBasis: '100%', paddingTop: 4 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
