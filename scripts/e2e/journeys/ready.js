@@ -219,6 +219,7 @@ async function run(h) {
         `tend walk-screen T45: Done lowers the ready bar to rest, the capture stack in reach again (${JSON.stringify({ byDone, barDone, barRest, stackFree })})`);
       // Raised again, a tap on the map above the panel: a spot where the map's own canvas is under the pointer.
       await raiseByTap();
+      const raisedBefore = await pg.locator('[data-testid=start-settings]').isVisible().catch(() => false);
       const up = await boxOf(pg, 'ready-bar');
       const spot = await pg.evaluate((top) => {
         for (const y of [top - 40, top / 2, top - 80, 90])
@@ -231,8 +232,8 @@ async function run(h) {
       await pg.waitForTimeout(1200);
       const barMap = await boxOf(pg, 'ready-bar');
       const destAfter = await pg.locator('[data-testid=ready-dest]').count();
-      check(byMap && same(barMap, barRest) && destAfter === 0 && !(await metaOf(pg, 'nav')) && pathOf(pg) === `${BASE}/walk`,
-        `tend walk-screen T45: a tap on the map above the raised bar lowers it, and sets no destination (${JSON.stringify({ spot, up, byMap, barMap, destAfter })})`);
+      check(raisedBefore && byMap && same(barMap, barRest) && destAfter === 0 && !(await metaOf(pg, 'nav')) && pathOf(pg) === `${BASE}/walk`,
+        `tend walk-screen T45: a tap on the map above the raised bar lowers it, and sets no destination (${JSON.stringify({ raisedBefore, spot, up, byMap, barMap, destAfter })})`);
     }
 
     // NR10 as T44 amends it (decision 0233, "Camera stays"): a memo in the stack; Start waits; the chevron saves it.
