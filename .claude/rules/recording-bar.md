@@ -76,3 +76,10 @@ paths:
   over a card or Modal; a photo still being saved then opens none once kept either (`leftMemo`, the memo the leave saved,
   matched by its start; `tend tabs audit 68`). Below 360 px the memo's dot goes and the line's padding is 4 a side (`barMemoLine`): at 320 px
   the line has 54 px for "59:59". Not run on a device.
+- **The bar's discarded memo stays, with Undo and Close** (`tend tabs T61`, after `tend walk-screen T48`; this line, not
+  BC9's 5 s, says what ships): "Voice memo discarded" above the bar has Undo (`bar-voice-undo`) and a 44 pt Close
+  (`bar-voice-close`, `DISCARD_CLOSE_LABEL`), and stays until Undo, Close, the next capture kept or memo recording from
+  the bar, or the bar going (`discardStays: true`); the bar's Stop lets the memo go as it begins (`cap.closeDiscard()`
+  after `barStop.set`) and draws no pill while stopping. Below 360 px the words take their own line above Undo and Close
+  (`discardPillStacks(width - 20, fontScale)`). Discard's hint is `discardHint(true)`. An e2e step that waited for the
+  pill to leave by itself taps Close. Not run on a device.
