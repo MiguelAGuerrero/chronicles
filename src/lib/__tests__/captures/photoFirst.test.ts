@@ -138,7 +138,8 @@ test('tend captures T62: the held shot is the editor minus its controls, and the
   // The controls keep their room while held, so the shot never moves when they come: hidden, untouchable, unread; the ✕
   // alone shows and works (tend captures audit 7: the top row's middle and Done, then the tools below, each hidden).
   assert.match(editor, /const hidden = props\.held \? HIDDEN : null;/);
-  assert.equal([...editor.matchAll(/style=\{(?:\[[^\]]*\bhidden\]|hidden)\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}/g)].length, 3, 'tend captures audit 7: the top row\'s middle, Done and the tools below');
+  // (tend captures audit 12: the row's middle is unhidden for screen readers while it holds only the empty live line.)
+  assert.equal([...editor.matchAll(/style=\{(?:\[[^\]]*\bhidden\]|hidden)\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.(?:unread|\(props\.held && !words \? unread : \{\}\))\}/g)].length, 3, 'tend captures audit 7: the top row\'s middle, Done and the tools below');
   assert.match(editor, /\{ paddingBottom: insets\.bottom \+ 10 \}, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}/);
   // Mounted over a held shot, the Modal comes at once, the backdrop and the shot with it; otherwise it fades, as before.
   assert.match(editor, /const \[enter\] = useState<'none' \| 'fade'>\(\(\) => \(props\.shot \? 'none' : 'fade'\)\);/);
@@ -161,7 +162,8 @@ test("tend captures audit 7: while the shot is held the editor's ✕ is shown in
   // same as once kept, "Close, the photo stays as it is" (or the video).
   assert.match(top, /testID="edit-close" accessibilityRole="button" accessibilityLabel=\{words \? words\.close : 'Close'\}/);
   // Revert, "Photo kept" and Draw's Undo and Redo (the row's middle), and Done: hidden in their place, untouchable, unread.
-  assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>/);
+  // (tend captures audit 12: unread only when it holds more than the empty live line, i.e. no kept words to come.)
+  assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.\(props\.held && !words \? unread : \{\}\)\}>/);
   assert.match(top, /<View style=\{hidden\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>\s*<Pressable testID="edit-done" [^>]*disabled=\{!!props\.held\}/);
   // The tools below: as before.
   assert.match(editor, /<View style=\{\[styles\.bottom, \{ paddingBottom: insets\.bottom \+ 10 \}, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>/);
@@ -236,4 +238,16 @@ test('tend captures audit 11: the held shot\'s ✕ is named "Close, the photo st
   assert.equal(keptWords('video').close, 'Close, the video stays as it is');
   // (tend captures audit 11: the iOS announcement still says "Photo kept" only once kept, from `kept`.)
   assert.match(editor, /const keptLine = kept\?\.line;/);
+});
+
+// tend captures audit 12 (the review's U2, WCAG 4.1.3): "Photo kept" and "Video kept" were likely never announced on the
+// web: the live region was inserted already full as the controls came (react-native-web's announceForAccessibility does
+// nothing). It is mounted empty from the hold, in the row's middle, which screen readers may then read (it holds only that
+// line: invisible, untouchable), and fills at the keep, the same node.
+test('tend captures audit 12: the kept line\'s live region is in the page, empty, from the start of the hold, and fills at the keep', () => {
+  const editor = src('components/edit/MediaEditor.tsx');
+  const top = editor.slice(editor.indexOf('const top = ('), editor.indexOf('const stage = ('));
+  assert.match(top, /\{words && empty && s\.tool !== 'draw' \? \(/);
+  assert.match(top, /<Text testID="edit-kept" style=\{styles\.kept\} accessibilityLiveRegion="polite" numberOfLines=\{1\}>\{kept \? kept\.line : ''\}<\/Text>/);
+  assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.\(props\.held && !words \? unread : \{\}\)\}>/);
 });

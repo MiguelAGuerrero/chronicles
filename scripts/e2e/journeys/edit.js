@@ -529,13 +529,31 @@ async function heldShot(h) {
     await pg.evaluate(SAMPLE);
     await chooser.setFiles(path.join(fixtures, file));
     if (await pg.waitForSelector('[data-testid=media-editor][data-held=true] [data-testid=edit-shot]', { timeout: 4000 }).then(() => true, () => false)) await shot(pg, `${SHOTS_TAG}-${label}-held`);
+    // tend captures audit 12 (U2): while held, the editor's polite live region is in the page already, empty and read by
+    // screen readers (no aria-hidden over it), so "Photo kept" is announced when it fills; stamped to find it again.
+    const liveHeld = await pg.evaluate(() => {
+      const ed = document.querySelector('[data-testid=media-editor][data-held=true]');
+      const el = ed?.querySelector('[data-testid=edit-kept][aria-live=polite]') ?? null;
+      if (el) el.dataset.stamp62 = 'held';
+      return { held: !!ed, live: !!el, text: el?.textContent ?? null, hidden: !!el?.closest('[aria-hidden=true]') };
+    }).catch(() => null);
     const up = await pg.waitForSelector('[data-testid=media-editor][data-held=false] [data-testid=edit-kept]', { timeout: 15000 }).then(() => true, () => false);
+    const liveKept = await pg.evaluate(() => {
+      const el = document.querySelector('[data-testid=media-editor][data-held=false] [data-testid=edit-kept]');
+      return { live: el?.getAttribute('aria-live') ?? null, text: el?.textContent ?? null, same: el?.dataset.stamp62 === 'held', hidden: !!el?.closest('[aria-hidden=true]') };
+    }).catch(() => null);
     await pg.waitForTimeout(700);
     await shot(pg, `${SHOTS_TAG}-${label}-kept`);
     const frames = await stopSampling();
     const change = await pg.evaluate(() => window.__t62?.change ?? null);
     await closeEditor();
-    return { up, frames, change };
+    return { up, frames, change, live: { held: liveHeld, kept: liveKept } };
+  };
+  // tend captures audit 12: the live region was there, empty and unhidden, while held, and the same node says it once kept.
+  const spoken = (res, kind) => {
+    const h = res.live?.held;
+    const k = res.live?.kept;
+    return !!h && h.held && h.live && h.text === '' && !h.hidden && !!k && k.live === 'polite' && k.text === `${kind === 'photo' ? 'Photo' : 'Video'} kept` && k.same && !k.hidden;
   };
   // What the frames say, from the first frame the editor's root shows to 500 ms after Done could first be pressed.
   // tend captures audit 10 (the orchestrator's ruling R3, finding A): react-native-web draws a new Modal's first frame
@@ -599,7 +617,9 @@ async function heldShot(h) {
 
   for (const [kind, file] of [['photo', 'photo.jpg'], ['video', 'clip-4s.webm']]) {
     await step(`T62 walk ${kind}`, async () => {
-      const r = read(await capture('[data-testid=cap-photo]', file, `walk-${kind}-390`), kind);
+      const res = await capture('[data-testid=cap-photo]', file, `walk-${kind}-390`);
+      const r = read(res, kind);
+      check(spoken(res, kind), `tend captures audit 12: on the walk while the ${kind} is held its editor's polite live region is in the page, empty and not hidden, and the same node says "${kind === 'photo' ? 'Photo' : 'Video'} kept" once kept (${JSON.stringify(res.live)})`);
       check(whole(r), `tend captures T62: on the walk a ${kind} covers the map from the picker's return, opaque from the frame after its mount, until its editor is up, with the keep held back 2.5 s (${say(r)})`);
       check(steady(r), `tend captures T62: on the walk the ${kind}'s picture is there while it is held, and its box never moves until 500 ms after Done can be pressed (${say(r)})`);
       check(honest(r), `tend captures T62, audit 7, audit 11: on the walk while the ${kind} is held there is no "${kind === 'photo' ? 'Photo' : 'Video'} kept" and Done cannot be pressed, only ✕ named "Close, the ${kind} stays as it is"; once kept, the words and Done (${say(r)})`);
