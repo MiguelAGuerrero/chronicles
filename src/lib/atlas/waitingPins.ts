@@ -1,7 +1,8 @@
 // @layer core
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
-import { ATLAS_LABEL, ATLAS_ORDER, waitingMarks, type AtlasMark } from './atlas';
+import { categoryOf } from '../discovery/categories';
+import { ATLAS_ORDER, waitingMarks, type AtlasMark } from './atlas';
 import type { Kind } from '../discovery/types';
 
 /*
@@ -146,7 +147,7 @@ export function areaMapMarks(
  */
 export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'category' | 'key'>[], found: ReadonlySet<string> = new Set()): string {
   const waiting = marks.filter((m) => !found.has(m.key));
-  const kinds = ATLAS_ORDER.filter((c) => waiting.some((m) => m.category === c)).map((c) => ATLAS_LABEL[c].toLowerCase());
+  const kinds = ATLAS_ORDER.filter((c) => waiting.some((m) => m.category === c)).map((c) => categoryOf(c).label.toLowerCase());
   return kinds.length ? `Waiting in ${area}: ${kinds.join(', ')}` : '';
 }
 

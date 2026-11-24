@@ -1,5 +1,5 @@
 // @layer core
-import { ATLAS_LABEL } from '../atlas/atlas';
+import { nounIs, nounOf } from '../discovery/categories';
 import type { CategoryId } from '../discovery/types';
 import { formatDistance } from '../format';
 import type { Units } from '../units';
@@ -11,7 +11,8 @@ import type { WalkabilityPref } from './settings';
  */
 
 /** What the walk is, in a sentence (KW1b). */
-export const introLine = (kind: CategoryId): string => `A way through where ${ATLAS_LABEL[kind].toLowerCase()} is concentrated here.`;
+/** Each kind's noun, never its name (tend explore T49, decision 0239): "where views are concentrated". */
+export const introLine = (kind: CategoryId): string => `A way through where ${nounIs(kind)} concentrated here.`;
 
 /** Its length, rounded, in the displayed unit (KW7): "about 2.0 km". */
 export function lengthLine(lengthM: number, units: Units): string {
@@ -40,7 +41,7 @@ export function walkabilityLine(r: Reach): string {
   return `Part of it is built around cars${where}.`;
 }
 
-export const noneLine = (kind: CategoryId): string => `No ${ATLAS_LABEL[kind].toLowerCase()} to walk through here.`;
+export const noneLine = (kind: CategoryId): string => `No ${nounOf(kind)} to walk through here.`;
 export const fewLine = 'Too little of this in one place to make a way.';
 export const farLine = 'Too far from here to start on foot.';
 export const noRouteLine = 'No way through it that fits was found on the streets nearby.';

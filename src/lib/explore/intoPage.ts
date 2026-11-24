@@ -43,7 +43,10 @@ export const INTO_KIND_GAP = 8;
 
 export interface IntoSection {
   category: CategoryId;
+  /** The category's name, as the area card names it (tend explore T49, decision 0239). */
   label: string;
+  /** The muted line under its heading, in words: "Parks, gardens and nature" (decision 0239). */
+  line?: string;
   rows: IntoRow[];
 }
 
@@ -59,13 +62,18 @@ export function intoSections(kinds: readonly KindInfo[], hidden: ReadonlySet<Kin
     const prev = last && last.category === kind.category ? last.rows[last.rows.length - 1] : undefined;
     if (depth === 0 && prev && prev.depth > 0) row.spaced = true;
     if (last && last.category === kind.category) last.rows.push(row);
-    else sections.push({ category: kind.category, label: categoryOf(kind.category).label, rows: [row] });
+    else {
+      const { label, line } = categoryOf(kind.category);
+      sections.push({ category: kind.category, label, ...(line ? { line } : {}), rows: [row] });
+    }
   }
   return sections;
 }
 
 export type IntoChild =
   | { type: 'heading'; id: string; label: string }
+  /** The muted line under a category's heading (tend explore T49, decision 0239); it scrolls with the rows, as Complexes' note does. */
+  | { type: 'line'; id: CategoryId; text: string }
   | { type: 'row'; row: IntoRow }
   | { type: 'note' }
   | { type: 'complex'; kind: ComplexKind };
@@ -80,6 +88,7 @@ export function intoChildren(sections: readonly IntoSection[], complexes: readon
   for (const s of sections) {
     sticky.push(children.length);
     children.push({ type: 'heading', id: s.category, label: s.label });
+    if (s.line) children.push({ type: 'line', id: s.category, text: s.line });
     for (const row of s.rows) children.push({ type: 'row', row });
   }
   if (complexes.length) {

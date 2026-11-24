@@ -1,9 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { CategoryId } from '../../lib/discovery/types';
 import { stripLabel, strip, type Grade } from '../../lib/walkPlanner/exposure';
-import { ATLAS_LABEL } from '../../lib/atlas/atlas';
 import type { PlannerRoute } from '../../lib/walkPlanner/service';
-import { fillsLess, lessGroundLine, rowWords, visibleLines } from '../../lib/walkPlanner/words';
+import { fillsLess, lessGroundLine, rowWords, stripKind, visibleLines } from '../../lib/walkPlanner/words';
 import { walkabilityLine } from '../../lib/kindWalk/words';
 import type { Units } from '../../lib/units';
 import { KIND_COLOR } from '../atlas/kinds';
@@ -52,7 +51,7 @@ export function RouteRows(props: {
             <Text style={styles.meta}>{w.passes}</Text>
             {w.getting ? <Text style={styles.meta}>{w.getting}</Text> : null}
             {on && w.also ? <Text style={styles.meta} testID={`plan-also-${i}`}>{w.also}</Text> : null}
-            <ExposureStrip grades={strip(r.runs)} color={KIND_COLOR[props.kind]} kindLabel={ATLAS_LABEL[props.kind]} testID={`plan-strip-${i}`} />
+            <ExposureStrip grades={strip(r.runs)} color={KIND_COLOR[props.kind]} kindLabel={stripKind(props.kind)} testID={`plan-strip-${i}`} />
             <Text style={styles.meta} testID={`plan-reach-${i}`}>{reach}</Text>
             {fillsLess(r, props.ceilingM) ? <Text style={styles.meta}>{lessGroundLine}</Text> : null}
           </Pressable>

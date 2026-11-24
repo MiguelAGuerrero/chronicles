@@ -119,6 +119,13 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
             />
           </View>
         );
+      case 'line':
+        // tend explore T49 (decision 0239): what the category holds, muted, under its heading; it scrolls with the rows.
+        return (
+          <View key={key} style={cell} onLayout={measured(key)}>
+            <Text testID={`into-line-${c.id}`} style={styles.note}>{c.text}</Text>
+          </View>
+        );
       case 'note':
         return (
           <View key={key} style={cell} onLayout={measured(key)}>
@@ -154,7 +161,8 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
   );
 }
 
-const keyOf = (c: IntoChild): string => (c.type === 'heading' ? `h-${c.id}` : c.type === 'row' ? c.row.id : c.type === 'note' ? 'complex-note' : `c-${c.kind}`);
+const keyOf = (c: IntoChild): string =>
+  c.type === 'heading' ? `h-${c.id}` : c.type === 'line' ? `l-${c.id}` : c.type === 'row' ? c.row.id : c.type === 'note' ? 'complex-note' : `c-${c.kind}`;
 
 /**
  * A section's heading (WI5, WI14, WI17, WI22, WI24): its own ground at one height, the category in ink, larger than a

@@ -60,7 +60,7 @@ export const SUBTYPES: readonly Subtype[] = [
   // History: Places of worship, Cemeteries.
   { kind: 'wayside_shrines', parent: 'churches', label: 'Wayside shrines', plural: 'Wayside shrines', single: 'A wayside shrine', on: false, small: true },
   { kind: 'mausoleums', parent: 'cemeteries', label: 'Mausoleums and tombs', plural: 'Mausoleums', single: null, on: true, small: false },
-  // Parks & green spaces.
+  // Green (parks, gardens and nature).
   { kind: 'gardens', parent: 'parks', label: 'Gardens', plural: 'Gardens', single: null, on: true, small: false },
   { kind: 'community_gardens', parent: 'parks', label: 'Community gardens', plural: 'Community gardens', single: 'A community garden', on: true, small: false },
   // more-attractions audit 4: after Community gardens.
@@ -76,7 +76,7 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'concert_halls', parent: 'theatres', label: 'Concert halls', plural: 'Concert halls', single: null, on: true, small: false },
   { kind: 'little_libraries', parent: 'community', label: 'Little libraries', plural: 'Little libraries', single: 'A little library', on: true, small: true },
   { kind: 'carousels', parent: 'community', label: 'Carousels', plural: 'Carousels', single: 'A carousel', on: true, small: false },
-  // Viewpoints & oddities.
+  // Views & oddities.
   { kind: 'fire_towers', parent: 'viewpoints', label: 'Fire lookout towers', plural: 'Fire towers', single: null, on: true, small: false },
   // more-attractions audit 1 (the owner, Nov 18, "Own row, on"): every amusement, theme or water park, whatever its source.
   { kind: 'amusement_parks', parent: 'attractions', label: 'Amusement parks', plural: 'Amusement parks', single: null, on: true, small: false },

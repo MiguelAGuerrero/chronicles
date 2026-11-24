@@ -10,7 +10,7 @@ export type Kind =
   | 'public_art' | 'museums' | 'theatres' | 'monuments' | 'churches' | 'cemeteries' | 'parks' | 'viewpoints'
   /** Listed buildings and structures of the places archive: a bridge, a mill, a station, a courthouse (RP8, decision 0109). */
   | 'structures'
-  /** Odd places of the Viewpoints & oddities category, from the places archive (PW4, decision 0103). */
+  /** Odd places of the Views & oddities category, from the places archive (PW4, decision 0103). */
   | 'curiosities'
   /** Community centres (by a notable name), arts centres and libraries, in Culture (PK11-PK13). */
   | 'community'
@@ -18,10 +18,10 @@ export type Kind =
   | 'community_parks'
   /** Small places of the places archive, each a subset of its kind with a switch of its own (specs/small-places, decision 0183). */
   | 'plaques' | 'small_memorials' | 'old_stones' | 'wayside_shrines' | 'time_capsules' | 'little_libraries'
-  /** Waterfalls, caves, hot springs and old trees, in Parks & green spaces (specs/explore-subtypes XS4, decision 0191). */
+  /** Waterfalls, caves, hot springs and old trees, in Green (specs/explore-subtypes XS4, decision 0191). */
   | 'nature'
   /**
-   * Zoos and aquariums, in Viewpoints & oddities (XS4; the map's other attractions stay with Viewpoints, explore-subtypes
+   * Zoos and aquariums, in Views & oddities (XS4; the map's other attractions stay with Viewpoints, explore-subtypes
    * audit 12), with amusement, theme and water parks as its subtype (more-attractions audit 1).
    */
   | 'attractions'

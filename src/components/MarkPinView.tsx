@@ -34,7 +34,7 @@ export interface MarkPin {
   quiet?: boolean;
   icon: IconName;
   name: string;
-  /** Spoken with the name: "Food & drink". */
+  /** Spoken with the name: "Green" (the one table's name, `discovery/categories`). */
   category: string;
 }
 

@@ -1,5 +1,6 @@
 // @layer shell
-import { ATLAS_LABEL, ATLAS_ORDER } from '../atlas/atlas';
+import { ATLAS_ORDER } from '../atlas/atlas';
+import { nounOf } from '../discovery/categories';
 import type { CategoryId, Place } from '../discovery/types';
 import { barsOf, passesBy } from '../discovery/bars';
 import { distanceM } from '../geo';
@@ -150,4 +151,5 @@ export async function startFrom(planner: ReturnType<typeof createPlanner>, req: 
   return again.routes.find((r) => r.preset === chosen.preset) ?? chosen;
 }
 
-export const kindName = (k: CategoryId): string => ATLAS_LABEL[k].toLowerCase();
+/** A kind's noun in a sentence (tend explore T49, decision 0239). */
+export const kindName = (k: CategoryId): string => nounOf(k);

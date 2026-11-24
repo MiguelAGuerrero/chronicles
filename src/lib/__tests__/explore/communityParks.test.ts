@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ATLAS_CODE, ATLAS_LABEL, ringOf, waitingKinds } from '../../atlas/atlas';
+import { ATLAS_CODE, ringOf, waitingKinds } from '../../atlas/atlas';
+import { CATEGORIES } from '../../discovery/categories';
 import { archivePlace } from '../../discovery/archivePois';
 import { barsOf, passesBy } from '../../discovery/bars';
 import { refineRead } from '../../discovery/refinements';
@@ -146,7 +147,7 @@ test('PC10: a community park lights Green as a park does, in the same category',
   assert.equal(steps('Elm Street Playground'), steps('Elm Street Park'));
   const p = read([park('Elm Street Playground')])[0];
   assert.deepEqual(barsOf(p), ['parks']);
-  assert.equal(ATLAS_LABEL.parks, 'Green', 'the atlas names the bar, never the kind');
+  assert.equal(CATEGORIES.find((c) => c.id === 'parks')!.label, 'Green', 'the atlas names the bar, never the kind (tend explore T49: from the one table)');
 });
 
 test('PC11: the judgement is the same for the same input, and no outline read is parks', () => {
@@ -192,7 +193,8 @@ test('PC15: the planner counts both kinds as parks, and a route still passes a c
 });
 
 test('PC16: an unfound place is never named for its kind: the bars and waiting kinds are categories', () => {
-  assert.ok(!Object.values(ATLAS_LABEL).some((l) => /community/i.test(l)));
+  // tend explore T49: the kinds' names are the one table's (decision 0239).
+  assert.ok(!CATEGORIES.some((c) => /community/i.test(c.label) || /community/i.test(c.noun)));
   const mark = { key: 'a', name: 'Elm Street Playground', category: 'parks' as const, at: at(0), generic: false, build: 'b', kind: CP };
   assert.deepEqual(waitingKinds([mark], new Set()), ['parks']);
   assert.equal(foundLine({ name: mark.name, category: 'parks', generic: false, kind: CP }).includes('Community parks'), true, 'named once found');

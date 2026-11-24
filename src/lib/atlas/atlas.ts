@@ -10,6 +10,7 @@ import { keepFindKeys, mergePlaces } from '../discovery/archiveMerge';
 import { isKindHidden, refineRead } from '../discovery/refinements';
 import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
 import { barsOf } from '../discovery/bars';
+import { categoryOf } from '../discovery/categories';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
 import { NAV } from '../nav/rules';
@@ -92,9 +93,7 @@ export type Steps = Record<CategoryId, Step>;
 
 /** The kinds in one fixed order on every tile (AT3), so tiles compare at a glance. */
 export const ATLAS_ORDER: readonly CategoryId[] = ['history', 'art', 'culture', 'parks', 'viewpoints', 'food', 'shops', 'nightlife'];
-export const ATLAS_LABEL: Record<CategoryId, string> = {
-  history: 'History', art: 'Art', culture: 'Culture', parks: 'Green', viewpoints: 'Views', food: 'Food', shops: 'Shops', nightlife: 'Nightlife',
-};
+// The kinds' names are `CATEGORIES`' (discovery/categories), the one table every screen reads (tend explore T49, decision 0239).
 export const STEP_WORDS = ['none', 'some', 'plenty', 'lots'] as const;
 
 /**
@@ -807,15 +806,21 @@ export function areaPins(listed: Listed[], selected: string | null, inTown: bool
   return same.map((l) => ({ id: l.area.key, at: l.area.at, name: l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
 }
 
+/** The kinds as the card names them, in a sentence's list (tend explore T49): "history, art and green". */
+const named = (kinds: readonly CategoryId[]): string => {
+  const w = kinds.map((c) => categoryOf(c).label.toLowerCase());
+  return w.length > 1 ? `${w.slice(0, -1).join(', ')} and ${w[w.length - 1]}` : w.join('');
+};
+
 /**
  * How the marks work, in words (atlas round 3, AG4): presence, never a count of
  * places, the same everywhere, and what each kind counts.
  */
 export const MARKS_EXPLAINED: readonly string[] = [
   'Marks say which kinds of places are around an area and how much of each, never how good it is or how many people go there.',
-  'Sights (history, art, culture, green and views) count only places worth finding, the ones that can turn up as a “?”.',
+  `Sights (${named(SIGHT_KINDS)}) count only places worth finding, the ones that can turn up as a “?”.`,
   'They count only the kinds you have on in “What I’m into”. Some museums count toward two kinds, history and culture.',
-  'Local life (food, shops and nightlife) counts every place of its kind, and never turns up as a “?”.',
+  `Local life (${named(LIFE_KINDS)}) counts every place of its kind, and never turns up as a “?”.`,
   'A place too small to light a mark can still turn up as a “?”, even where its kind reads none.',
   'One mark: a little of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
@@ -865,7 +870,7 @@ export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => strin
   if (a.profile.thin) return head;
   const part = a.profile.partial ? ' Covers part of the town.' : '';
   // SG5: the groups present, each named before its kinds.
-  const groups = groupsPresent(a.profile.steps).map((g) => `${g.label}: ${g.kinds.map((c) => `${ATLAS_LABEL[c]}: ${STEP_WORDS[a.profile!.steps[c]]}`).join(', ')}.`);
+  const groups = groupsPresent(a.profile.steps).map((g) => `${g.label}: ${g.kinds.map((c) => `${categoryOf(c).label}: ${STEP_WORDS[a.profile!.steps[c]]}`).join(', ')}.`);
   return [head, groups.length ? groups.join(' ') : 'Quiet: little of any kind.', a.profile.strips[0] ? `Storefronts along ${a.profile.strips[0]}.` : '', part.trim()]
     .filter(Boolean).join(' ');
 }

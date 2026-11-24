@@ -1,5 +1,5 @@
 // @layer core
-import { ATLAS_LABEL } from '../atlas/atlas';
+import { howMuch, nounOf } from '../discovery/categories';
 import type { CategoryId } from '../discovery/types';
 import { lengthLine } from '../kindWalk/words';
 import type { Units } from '../units';
@@ -15,7 +15,8 @@ import type { Density, Mode } from './settings';
 
 export const PRESET_NAMES: Record<PresetId, string> = { middle: 'Through the middle', across: 'Across the area', edge: 'Around the edge' };
 
-export const title = (kind: CategoryId): string => `A walk for ${ATLAS_LABEL[kind].toLowerCase()}`;
+/** Each kind's noun, never its name (tend explore T49, decision 0239): "A walk for views". */
+export const title = (kind: CategoryId): string => `A walk for ${nounOf(kind)}`;
 export const startLabel = 'Start';
 export const differentLabel = 'Suggest different routes';
 export const closeLabel = 'Close';
@@ -24,7 +25,9 @@ export const readingLine = 'Reading the streets…';
 export const MODE_LABEL: Record<Mode, string> = { loop: 'Loop, back where you start', oneway: 'One way' };
 export const DENSITY_LABEL: Record<Density, string> = { anywhere: 'Anywhere', some: 'Where there is some', plenty: 'Where there is plenty' };
 /** The density setting names what it asks for, and not what it is a threshold of (walk planner audit 19). */
-export const densityHeading = (kind: CategoryId): string => `How much ${ATLAS_LABEL[kind].toLowerCase()} the walk passes`;
+export const densityHeading = (kind: CategoryId): string => `How ${howMuch(kind)} the walk passes`;
+/** The strip's spoken kind, opening its sentence: "Views along this route: …" (tend explore T49). */
+export const stripKind = (kind: CategoryId): string => nounOf(kind).charAt(0).toUpperCase() + nounOf(kind).slice(1);
 export const MODE_HEADING = 'The walk';
 export const CEILING_HEADING = 'About how far you would like to go';
 export const CEILING_NOTE = 'No route goes beyond it.';
@@ -60,7 +63,7 @@ export interface RowWords {
 /** "Also passes some history and plenty of art": kinds, never places (WP28). */
 export function alsoLine(also: readonly Also[]): string | null {
   if (!also.length) return null;
-  const parts = also.map((a) => `${a.level === 'plenty' ? 'plenty of' : 'some'} ${ATLAS_LABEL[a.kind].toLowerCase()}`);
+  const parts = also.map((a) => `${a.level === 'plenty' ? 'plenty of' : 'some'} ${nounOf(a.kind)}`);
   const text = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
   return `Also passes ${text}`;
 }

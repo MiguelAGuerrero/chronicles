@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ATLAS_LABEL, groupsPresent, STEP_WORDS, STRIP, type Step, type Steps } from '../../lib/atlas/atlas';
+import { groupsPresent, STEP_WORDS, STRIP, type Step, type Steps } from '../../lib/atlas/atlas';
+import { categoryOf } from '../../lib/discovery/categories';
 import type { CategoryId } from '../../lib/discovery/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
@@ -64,21 +65,23 @@ export function KindStrip(props: { steps: Steps | null; testID?: string; /** One
  */
 export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; onPress?: () => void }) {
   const { kind, step } = props;
+  // The kind's name and noun from the one table, as What I'm into heads it (tend explore T49, decision 0239).
+  const { label, noun } = categoryOf(kind);
   const body = (
     <>
       <Icon name={KIND_ICON_OF[kind]} size={20} color={step ? KIND_COLOR[kind] : theme.edge} />
-      <Text style={styles.kindName}>{ATLAS_LABEL[kind]}</Text>
+      <Text style={styles.kindName}>{label}</Text>
       <Text style={styles.kindWord} numberOfLines={1}>{STEP_WORDS[step]}</Text>
       <Dots step={step} color={KIND_COLOR[kind]} size={8} />
     </>
   );
-  if (!props.onPress) return <View style={styles.kindRow} accessible accessibilityLabel={`${ATLAS_LABEL[kind]}: ${STEP_WORDS[step]}`} testID={props.testID}>{body}</View>;
+  if (!props.onPress) return <View style={styles.kindRow} accessible accessibilityLabel={`${label}: ${STEP_WORDS[step]}`} testID={props.testID}>{body}</View>;
   return (
     <View style={styles.kindLine}>
       <Pressable
         style={[styles.kindRow, styles.kindPress]}
         accessibilityRole="button"
-        accessibilityLabel={`${ATLAS_LABEL[kind]}: ${STEP_WORDS[step]}`}
+        accessibilityLabel={`${label}: ${STEP_WORDS[step]}`}
         onPress={props.onPress}
         testID={props.testID}
       >
@@ -87,7 +90,7 @@ export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; 
       <Pressable
         style={styles.walkBtn}
         accessibilityRole="button"
-        accessibilityLabel={`Suggest a walk through ${ATLAS_LABEL[kind].toLowerCase()}`}
+        accessibilityLabel={`Suggest a walk through ${noun}`}
         onPress={props.onPress}
         hitSlop={4}
         testID={`atlas-kind-walk-${kind}`}
