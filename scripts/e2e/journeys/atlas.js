@@ -227,26 +227,6 @@ async function checks(h) {
         const vp = page.viewportSize();
         await page.setViewportSize({ width: 320, height: vp.height });
         await page.waitForTimeout(400);
-        {
-          // tend explore T49: at 320 px "Views & oddities" stays one line, its word, its dots and "Suggest a walk" beside it, none cut.
-          const row = await page.evaluate(() => {
-            const r = document.querySelector('[data-testid=atlas-kind-viewpoints]');
-            const walk = document.querySelector('[data-testid=atlas-kind-walk-viewpoints]');
-            const leaf = r && [...r.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /oddities/.test(x.textContent || ''));
-            if (!r || !leaf) return null;
-            const range = document.createRange();
-            range.selectNodeContents(leaf);
-            const lines = new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size;
-            const cut = [...r.querySelectorAll('*'), ...(walk ? walk.querySelectorAll('*') : [])].filter((x) => x.childElementCount === 0 && x.scrollWidth > x.clientWidth + 1).length;
-            const nameR = leaf.getBoundingClientRect();
-            const w = walk ? walk.getBoundingClientRect() : null;
-            return { lines, cut, overlap: !!w && nameR.right > w.left, inView: !!w && w.right <= window.innerWidth };
-          });
-          check(!!row && row.lines === 1 && row.cut === 0 && !row.overlap && row.inView,
-            `tend explore T49: at 320 px "Views & oddities", its word, its dots and "Suggest a walk" fit one row (${JSON.stringify(row)})`);
-          await page.locator('[data-testid=atlas-kind-viewpoints]').scrollIntoViewIfNeeded().catch(() => {});
-          await shot(page, 'tend-explore-T49-card-320');
-        }
         await shot(page, 'tend-explore-audit-22-search-320');
         await page.setViewportSize(vp);
         await page.waitForTimeout(300);
@@ -429,6 +409,34 @@ async function checks(h) {
         const vp = page.viewportSize();
         await page.setViewportSize({ width: 320, height: vp.height });
         await page.waitForTimeout(400);
+        {
+          // tend explore T49: at 320 px "Views & oddities" stays one line, its word, its dots and "Suggest a walk" beside it, none cut.
+          await page.locator('[data-testid=atlas-kind-viewpoints]').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+          await page.waitForTimeout(300);
+          const row = await page.evaluate(() => {
+            const r = document.querySelector('[data-testid=atlas-kind-viewpoints]');
+            const walk = document.querySelector('[data-testid=atlas-kind-walk-viewpoints]');
+            const leaf = r && [...r.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /oddities/.test(x.textContent || ''));
+            if (!r || !leaf) return null;
+            const range = document.createRange();
+            range.selectNodeContents(leaf);
+            const lines = new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size;
+            const cut = [...r.querySelectorAll('*'), ...(walk ? walk.querySelectorAll('*') : [])].filter((x) => x.childElementCount === 0 && x.scrollWidth > x.clientWidth + 1).length;
+            const nameR = leaf.getBoundingClientRect();
+            const w = walk ? walk.getBoundingClientRect() : null;
+            // A kind at none has no "Suggest a walk" (its row has no press): then the row alone is read.
+            const word = r.querySelectorAll('*');
+            return { lines, cut, walk: !!w, overlap: !!w && nameR.right > w.left, inView: !w || w.right <= window.innerWidth, nameRight: Math.round(nameR.right), words: [...word].filter((x) => x.childElementCount === 0 && x.textContent).map((x) => x.textContent) };
+          });
+          check(!!row && row.lines === 1 && row.cut === 0 && !row.overlap && row.inView,
+            `tend explore T49: at 320 px "Views & oddities", its word, its dots and "Suggest a walk" (when it has one) fit one row (${JSON.stringify(row)})`);
+          await page.locator('[data-testid=atlas-kind-viewpoints]').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+          await page.waitForTimeout(300);
+          await shot(page, 'tend-explore-T49-card-320');
+          // Back to "How the marks work" for tend explore 19's picture, as it was before this check.
+          await page.locator('[data-testid=atlas-how]').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+          await page.waitForTimeout(300);
+        }
         await shot(page, 'tend-explore-19-how-320');
         await page.setViewportSize(vp);
         await page.waitForTimeout(400);
