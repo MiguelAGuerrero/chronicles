@@ -1,0 +1,36 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1",
+        "--after",
+        "Contents' Close is muted grey"
+      ],
+      "body": "- [loop] (low) A failed write of Contents' switch (Bring moments back) leaves the open sheet showing a setting that was not kept: `resurface/shell.ts` `setPrefs` sets the store before the write and never puts it back when the write fails, and since `tend memories T54` the sheet stays up to show it. Fix: on a failed write, the store back to the setting kept and the sheet's switch with it, with a shell test over `fakePorts()` first (the batch's review, auditor F11, Nov 24)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1",
+        "--after",
+        "A failed write of Contents' switch"
+      ],
+      "body": "- [loop] (low) At 320 px, with Contents open over Memories, a stray clipped \"2025\" shows under the day's heading behind the sheet (`resurface-t54-contents-switch-off-320.png`, the batch's end pass); its cause is not found, and it may be older than `tend memories T54` (the batch's review, ux U8, Nov 24)\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T54",
+        "--reason",
+        "the owner's yes, built in tend memories T54"
+      ],
+      "target": "sha256:1da024e7f10ca6bb5eb18cf671972a83076227c809cfc08925bded6d2f9a7571"
+    }
+  ]
+}
