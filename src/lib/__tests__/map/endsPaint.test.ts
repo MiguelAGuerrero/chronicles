@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { CircleLayerSpecification } from 'maplibre-gl';
-import { COLORS, ENDS_PAINT, ENDS_RING_PAINT, endsGeoJSON, traceShown } from '../../../components/map/types';
+import { COLORS, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, endsGeoJSON, endsLoopGeoJSON, traceShown } from '../../../components/map/types';
+import { contrast } from './colourSight';
 
 // tend map T16 (the owner's yes, Nov 12): a walk's start and end differed by colour alone, two white discs
 // ringed one green and one orange (WCAG 2.2, 1.4.1 Use of Color). The start stays hollow; the end is solid,
@@ -248,4 +249,100 @@ test('tend map audit 25: the start keeps its look: a white disc of 7 px with a 4
   assert.equal(paintFor(ENDS_RING_PAINT['circle-radius'], 'start'), 7);
   assert.equal(paintFor(ENDS_RING_PAINT['circle-stroke-width'], 'start'), 4);
   assert.equal(paintFor(ENDS_RING_PAINT['circle-stroke-color'], 'start'), COLORS.trace);
+});
+
+// tend map T50 (the owner's yes, Nov 20, "One combined mark (Recommended)", decision 0244): a walk that ends within one
+// marker's diameter of its start (on screen, `endsTogether` in lib/traceEnds) drew the end's bullseye over the start,
+// whose green showed only as a crescent. Now one mark: the start's hollow ring, in the trace's green, as a halo round
+// the end's bullseye, a white band between them so the two read apart in greyscale (the green and the walked colour are
+// near one grey). Apart, the two marks as before. The halo is its own source and layer, `ends-loop`, under `ends-ring`.
+
+test('tend map T50: the halo is the start\'s ring: a white middle ringed in the trace\'s green, as wide a ring as the start\'s', () => {
+  assert.equal(ENDS_LOOP_PAINT['circle-color'], WHITE);
+  assert.equal(ENDS_LOOP_PAINT['circle-stroke-color'], COLORS.trace);
+  assert.equal(ENDS_LOOP_PAINT['circle-stroke-width'], paintFor(ENDS_RING_PAINT['circle-stroke-width'], 'start'));
+  const paint: NonNullable<CircleLayerSpecification['paint']> = ENDS_LOOP_PAINT;
+  for (const key of Object.keys(paint)) assert.match(key, /^circle-/);
+  // No hue of its own.
+  const hues = new Set([WHITE, COLORS.trace, COLORS.walked]);
+  assert.ok(hues.has(ENDS_LOOP_PAINT['circle-color']) && hues.has(ENDS_LOOP_PAINT['circle-stroke-color']));
+});
+
+test('tend map T50: a white band separates the start\'s ring from the end\'s bullseye', () => {
+  // The halo's white middle reaches past the bullseye's own white edge by at least 2 px, so the band between the
+  // end's walked ring and the start's green is the edge and that much more.
+  const halo = num(ENDS_LOOP_PAINT['circle-radius']);
+  assert.ok(halo - outerOf('end') >= 2, `a white band past the bullseye (${halo - outerOf('end')} px)`);
+  assert.ok(halo - num(paintFor(ENDS_RING_PAINT['circle-radius'], 'end')) >= 3, 'at least 3 px of white between the walked ring and the green');
+});
+
+test('tend map T50: endsLoopGeoJSON is the halo\'s one point, or nothing', () => {
+  assert.deepEqual(endsLoopGeoJSON(null).features, []);
+  const p: [number, number] = [-71.4, 41.812];
+  const f = endsLoopGeoJSON(p).features;
+  assert.equal(f.length, 1);
+  assert.deepEqual((f[0].geometry as GeoJSON.Point).coordinates, p);
+  assert.equal((f[0].properties as { kind: string }).kind, 'loop');
+});
+
+/** The halo's layer and the two ends layers as the web draws them, the halo first. */
+function loopLayers(): Layer[] {
+  const web = readFileSync(join(__dirname, '../../../components/map/WalkMap.web.tsx'), 'utf8');
+  const at = web.search(/map\.addLayer\(\{ id: 'ends-loop', type: 'circle', source: 'ends-loop',\s*paint: ENDS_LOOP_PAINT \}\);/);
+  assert.ok(at >= 0, 'the web draws the halo on its own source');
+  assert.ok(at < web.indexOf("id: 'ends-ring'"), 'under the ends');
+  // The halo's source holds the halo alone; the ends' sources never hold it (drawn at the end's point, it would match).
+  return [{ paint: ENDS_LOOP_PAINT as unknown as Record<string, unknown>, only: 'loop' }, ...drawnLayers()];
+}
+
+test('tend map T50: one mark: from its middle out, the bullseye, a white band, the start\'s green, read apart in greyscale', () => {
+  const layers = loopLayers();
+  const p: [number, number] = [0, 0];
+  // Together, the ends source holds the end alone and the halo source the halo, both at the end's point.
+  const kinds = [...endsLoopGeoJSON(p).features, ...endsGeoJSON(null, p).features].map((f) => (f.properties as { kind: string }).kind);
+  assert.deepEqual(kinds, ['loop', 'end']);
+  const mark = kinds.map((kind) => ({ kind, at: p }));
+  const halo = num(ENDS_LOOP_PAINT['circle-radius']);
+  const outer = halo + num(ENDS_LOOP_PAINT['circle-stroke-width']);
+  const bands: [number, string][] = [[0, COLORS.walked], [5, WHITE], [8, COLORS.walked], [10.5, WHITE], [halo - 0.5, WHITE], [halo + 2, COLORS.trace], [outer - 0.5, COLORS.trace]];
+  for (const [r, want] of bands) assert.equal(colourAt(layers, mark, [r, 0]), want, `${r} px out`);
+  assert.equal(colourAt(layers, mark, [outer + 1, 0]), undefined, 'nothing past the green');
+  // In greyscale: each band differs from the next by 3:1 or more, so the green is never read as the walked ring.
+  const seq = bands.map(([, c]) => c).filter((c, i, all) => i === 0 || c !== all[i - 1]);
+  assert.deepEqual(seq, [COLORS.walked, WHITE, COLORS.walked, WHITE, COLORS.trace]);
+  for (let i = 1; i < seq.length; i++) assert.ok(contrast(seq[i - 1], seq[i]) >= 3, `${seq[i - 1]} beside ${seq[i]}: ${contrast(seq[i - 1], seq[i]).toFixed(2)}:1`);
+  // Without the band they would not: the green and the walked colour are near one grey.
+  assert.ok(contrast(COLORS.trace, COLORS.walked) < 3);
+});
+
+test('tend map T50: apart, the two marks as before, and no halo', () => {
+  const layers = loopLayers();
+  const feats = [...endsLoopGeoJSON(null).features, ...endsGeoJSON([0, 0], [40, 0]).features];
+  const marks = feats.map((f) => ({ kind: (f.properties as { kind: string }).kind, at: (f.geometry as GeoJSON.Point).coordinates as [number, number] }));
+  assert.deepEqual(marks.map((m) => m.kind), ['start', 'end']);
+  assert.equal(colourAt(layers, marks, [0, 0]), WHITE);
+  assert.equal(colourAt(layers, marks, [9, 0]), COLORS.trace);
+  assert.equal(colourAt(layers, marks, [13, 0]), undefined);
+  assert.equal(colourAt(layers, marks, [40, 0]), COLORS.walked);
+});
+
+test('tend map T50: both maps draw the halo under the ends with the trace\'s opacity, and send the ends again as the zoom decides', () => {
+  const dir = join(__dirname, '../../../components/map');
+  const web = readFileSync(join(dir, 'WalkMap.web.tsx'), 'utf8');
+  const native = readFileSync(join(dir, 'WalkMap.native.tsx'), 'utf8');
+  // The web: its own source, the layer before ends-ring, going with the trace's opacity.
+  assert.match(web, /'ends-loop'[^\n]*map\.addSource\(id/, 'the web adds the halo\'s source');
+  assert.match(web, /map\.setPaintProperty\('ends-loop', 'circle-opacity', look\.marks\);\s*map\.setPaintProperty\('ends-loop', 'circle-stroke-opacity', look\.marks\);/);
+  // Judged at the map's zoom; together, the start leaves the ends source for the halo's.
+  assert.match(web, /const together = endsTogether\(ends, view\?\.zoom \?\? props\.initialZoom\);/);
+  assert.match(web, /setData\('ends', endsGeoJSON\(together \? null : ends\.start, ends\.end\)\);\s*setData\('ends-loop', endsLoopGeoJSON\(together \? ends\.end : null\)\);/);
+  assert.match(web, /\}, \[ready, endsKey, together\]\);/, 'sent again when the zoom makes them one mark or two, never per frame');
+  assert.match(web, /data-ends-together=\{together \? '1' : '0'\}/, 'the e2e reads which');
+  // Native: the halo's source mounted before the ends', with its paint and the trace's opacity.
+  const loopSource = /<GeoJSONSource id="ends-loop" data=\{loop\}>\s*<Layer id="ends-loop" type="circle" paint=\{\{ \.\.\.ENDS_LOOP_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity \}\} \/>\s*<\/GeoJSONSource>/;
+  assert.match(native, loopSource);
+  assert.ok(native.search(loopSource) < native.indexOf('<GeoJSONSource id="ends"'), 'mounted first, so drawn under');
+  assert.match(native, /const together = endsTogether\(endPoints, view\?\.zoom \?\? props\.initialZoom\);/);
+  assert.match(native, /const ends = useMemo\(\(\) => endsGeoJSON\(together \? null : endPoints\.start, endPoints\.end\), \[endsKey, together\]\);/);
+  assert.match(native, /const loop = useMemo\(\(\) => endsLoopGeoJSON\(together \? endPoints\.end : null\), \[endsKey, together\]\);/);
 });
