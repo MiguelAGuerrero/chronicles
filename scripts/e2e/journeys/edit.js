@@ -432,6 +432,234 @@ async function run(h) {
       if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]').catch(() => {});
     });
     await c.close();
+    await heldShot(h);
+}
+
+// tend captures T62 (the owner, Nov 24: "It'll jump straight back to the map for a little bit and then open up the
+// editor… This happens on every moment capture. For camera or video."): from the camera's return the shot is held full
+// screen and the editor's controls come over it once kept. Read frame by frame in the page, with the keep slowed in the
+// journey only (the picked file's read held back), from the picker's files until Done can be clicked, then 500 ms on.
+const SAMPLE = () => {
+  const pts = [[0.5, 0.5], [0.1, 0.12], [0.9, 0.12], [0.1, 0.88], [0.9, 0.88]];
+  const rect = (b) => ({ x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) });
+  const opacity = (e) => { let o = 1; for (let n = e; n && n.nodeType === 1; n = n.parentElement) o *= Number(getComputedStyle(n).opacity); return o; };
+  const live = (e) => {
+    if (!e) return false;
+    const b = e.getBoundingClientRect();
+    if (!b.width) return false;
+    const hit = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+    return !!hit && e.contains(hit) && opacity(e) > 0.5;
+  };
+  const t0 = performance.now();
+  window.__t62 = { frames: [], on: true, t0 };
+  const tick = () => {
+    const w = window.__t62;
+    if (!w.on) return;
+    const hits = pts.map(([fx, fy]) => document.elementFromPoint(window.innerWidth * fx, window.innerHeight * fy));
+    // The editor on screen: the one under the middle of the screen (a closed one's portal may linger, unseen), else the last.
+    const eds = [...document.querySelectorAll('[data-testid=media-editor]')].filter((e) => e.getBoundingClientRect().width > 0);
+    const ed = eds.find((e) => !!hits[0] && e.contains(hits[0])) ?? eds[eds.length - 1] ?? null;
+    const st = ed?.querySelector('[data-testid=edit-stage]');
+    // The picture on the stage: the held shot's box, or the stored picture's, whichever is drawn (they share one place).
+    const pics = st ? [...st.children].filter((c) => c.querySelector('img, video, canvas, svg image')) : [];
+    const pic = pics.length ? rect(pics[0].getBoundingClientRect()) : null;
+    const done = ed?.querySelector('[data-testid=edit-done]');
+    const close = ed?.querySelector('[data-testid=edit-close]');
+    w.frames.push({
+      t: Math.round(performance.now() - t0),
+      ed: !!ed,
+      held: ed?.getAttribute('data-held') ?? null,
+      covered: !!ed && hits.every((x) => !!x && ed.contains(x)),
+      map: hits.some((x) => !!x?.closest?.('.maplibregl-map')),
+      op: ed ? Math.round(opacity(ed) * 100) / 100 : 0,
+      pic,
+      shot: !!ed?.querySelector('[data-testid=edit-shot]'),
+      kept: !!ed && /\b(Photo|Video) kept\b/.test(ed.innerText),
+      doneLive: live(done),
+      closeLive: live(close),
+      closeName: close?.getAttribute('aria-label') ?? null,
+    });
+    if (performance.now() - t0 < 20000) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+};
+
+async function heldShot(h) {
+  const { navUrl, BASE, start, check, shot, freshPage, scriptsDir } = h;
+  const { c, pg } = await freshPage('edit-held');
+  const fixtures = path.join(scriptsDir, 'fixtures');
+  const SHOTS_TAG = 't62';
+  const step = async (name, fn) => {
+    try {
+      await fn();
+    } catch (e) {
+      check(false, `step ${name}: ${String(e.message).split('\n').slice(0, 2).join(' | ')}`);
+    }
+  };
+  // The keep read held back once: the picked blob's fetch waits `ms` (in the journey only; the app is as it ships).
+  const slowKeep = (ms) => pg.evaluate((d) => {
+    if (!window.__fetchT62) window.__fetchT62 = window.fetch;
+    window.__slowT62 = d;
+    window.fetch = async (u, ...rest) => {
+      if (window.__slowT62 && String(u?.url ?? u).startsWith('blob:')) {
+        const wait = window.__slowT62;
+        window.__slowT62 = 0;
+        await new Promise((r) => setTimeout(r, wait));
+      }
+      return window.__fetchT62(u, ...rest);
+    };
+  }, ms);
+  const closeEditor = async () => {
+    await pg.click('[data-testid=edit-close]', { timeout: 8000 }).catch(() => {});
+    await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    await pg.waitForTimeout(600);
+  };
+  const stopSampling = () => pg.evaluate(() => { const w = window.__t62; if (w) w.on = false; return w ? w.frames : []; });
+  // One capture read frame by frame: the shot held, its picture, then the editor once kept. Pictures of the first held
+  // frame and of the editor once kept.
+  const capture = async (button, file, label) => {
+    await slowKeep(2500);
+    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click(button, { timeout: 10000 })]);
+    await pg.evaluate(SAMPLE);
+    await chooser.setFiles(path.join(fixtures, file));
+    if (await pg.waitForSelector('[data-testid=media-editor][data-held=true] [data-testid=edit-shot]', { timeout: 4000 }).then(() => true, () => false)) await shot(pg, `${SHOTS_TAG}-${label}-held`);
+    const up = await pg.waitForSelector('[data-testid=media-editor][data-held=false] [data-testid=edit-kept]', { timeout: 15000 }).then(() => true, () => false);
+    await pg.waitForTimeout(700);
+    await shot(pg, `${SHOTS_TAG}-${label}-kept`);
+    const frames = await stopSampling();
+    await closeEditor();
+    return { up, frames };
+  };
+  // What the frames say, from the first frame the editor's root shows to 500 ms after Done could first be pressed.
+  const read = ({ up, frames }) => {
+    const first = frames.findIndex((f) => f.ed);
+    const ready = frames.findIndex((f) => f.doneLive);
+    const span = first < 0 || ready < 0 ? [] : frames.slice(first).filter((f) => f.t <= frames[ready].t + 500);
+    const held = span.filter((f) => f.held === 'true');
+    const picFrom = span.findIndex((f) => !!f.pic);
+    const pics = picFrom < 0 ? [] : span.slice(picFrom);
+    const p0 = pics[0]?.pic;
+    const near = (a, b) => !!a && !!b && ['x', 'y', 'w', 'h'].every((k) => Math.abs(a[k] - b[k]) <= 1);
+    return {
+      up,
+      // From the files to the editor's first frame: the picker's read only, never the keep (held back 2.5 s).
+      toCover: first < 0 ? null : frames[first].t,
+      toReady: ready < 0 ? null : frames[ready].t,
+      frames: span.length,
+      gone: span.filter((f) => !f.ed || !f.covered || f.map).length,
+      firstOp: first < 0 ? null : frames[first].op,
+      minOp: span.length ? Math.min(...span.map((f) => f.op)) : null,
+      held: held.length,
+      picWhileHeld: picFrom >= 0 && span[picFrom].held === 'true',
+      moved: pics.filter((f) => !near(f.pic, p0)).length,
+      blank: pics.filter((f) => !f.pic).length,
+      pic: p0 ?? null,
+      keptWhileHeld: held.filter((f) => f.kept).length,
+      doneWhileHeld: held.filter((f) => f.doneLive).length,
+      // The ✕ is read on the frames the editor is drawn opaque (a transparent one is the first check's to say).
+      shownHeld: held.filter((f) => f.op === 1).length,
+      closeWhileHeld: held.filter((f) => f.op === 1 && f.closeLive && f.closeName === 'Close').length,
+      keptAfter: span.some((f) => f.held === 'false' && f.kept),
+    };
+  };
+  const whole = (r) => r.up && r.toCover != null && r.toCover < 1500 && r.toReady != null && r.toReady >= 2000 && r.frames > 10 && r.gone === 0 && r.firstOp === 1 && r.minOp === 1;
+  const steady = (r) => r.picWhileHeld && r.moved === 0 && r.blank === 0;
+  const honest = (r) => r.held > 5 && r.keptWhileHeld === 0 && r.doneWhileHeld === 0 && r.shownHeld > 5 && r.closeWhileHeld === r.shownHeld && r.keptAfter;
+  const say = (r) => JSON.stringify(r);
+
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
+  await pg.waitForTimeout(1500);
+  await pg.click('[data-testid=start]');
+  await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await c.setGeolocation({ longitude: start[0], latitude: start[1] + 0.000002, accuracy: 6 });
+  await pg.waitForSelector('[data-testid=walker-puck]', { timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+
+  for (const [kind, file] of [['photo', 'photo.jpg'], ['video', 'clip-4s.webm']]) {
+    await step(`T62 walk ${kind}`, async () => {
+      const r = read(await capture('[data-testid=cap-photo]', file, `walk-${kind}-390`));
+      check(whole(r), `tend captures T62: on the walk a ${kind} covers the map from the picker's return, opaque from its first frame, until its editor is up, with the keep held back 2.5 s (${say(r)})`);
+      check(steady(r), `tend captures T62: on the walk the ${kind}'s picture is there while it is held, and its box never moves until 500 ms after Done can be pressed (${say(r)})`);
+      check(honest(r), `tend captures T62, audit 7: on the walk while the ${kind} is held there is no "${kind === 'photo' ? 'Photo' : 'Video'} kept" and Done cannot be pressed, only ✕ named "Close"; once kept, the words and Done (${say(r)})`);
+    });
+  }
+  await step('T62 walk photo 320', async () => {
+    await pg.setViewportSize({ width: 320, height: 640 });
+    await pg.waitForTimeout(900);
+    const r = read(await capture('[data-testid=cap-photo]', 'photo.jpg', 'walk-photo-320'));
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(900);
+    check(whole(r), `tend captures T62: at 320 px on the walk the photo covers the map from the picker's return, opaque from its first frame, until its editor is up (${say(r)})`);
+    check(steady(r) && honest(r), `tend captures T62, audit 7: at 320 px on the walk the photo's box is still from while it is held, only ✕ shows until it is kept, then the editor's controls over it (${say(r)})`);
+  });
+
+  // tend captures audit 7: ✕ while held closes the shot; it is still kept, and no editor opens for it once it is.
+  await step('T62 walk close while held', async () => {
+    const before = await pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => { const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll(); g.onsuccess = () => resolve(g.result.length); };
+    }));
+    await slowKeep(2500);
+    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=cap-photo]', { timeout: 10000 })]);
+    await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
+    const held = await pg.waitForSelector('[data-testid=media-editor][data-held=true]', { timeout: 4000 }).then(() => true, () => false);
+    await pg.click('[data-testid=edit-close]', { timeout: 2000 }).catch(() => {});
+    const gone = await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 1500 }).then(() => true, () => false);
+    await pg.evaluate(SAMPLE);
+    await pg.waitForTimeout(4500);
+    const frames = await stopSampling();
+    const after = await pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => { const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll(); g.onsuccess = () => resolve(g.result.length); };
+    }));
+    const editorAfter = frames.filter((f) => f.ed).length;
+    check(held && gone && editorAfter === 0 && after === before + 1,
+      `tend captures audit 7: on the walk ✕ closes the held shot before its keep settles; the photo is kept and no editor opens for it (${JSON.stringify({ held, gone, editorAfter, before, after })})`);
+  });
+
+  // No cover where no editor follows: the picker cancelled, and a photo taken mid-memo (T60: the editor waits for Save).
+  await step('T62 walk no cover', async () => {
+    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=cap-photo]', { timeout: 10000 })]);
+    await pg.evaluate(SAMPLE);
+    // The browser's own word for a dismissed picker (expo-image-picker's web picker answers it as cancelled).
+    await (await chooser.element()).evaluate((el) => el.dispatchEvent(new Event('cancel')));
+    await pg.waitForTimeout(2000);
+    const cancelled = (await stopSampling()).filter((f) => f.ed).length;
+    await pg.click('[data-testid=cap-voice]', { timeout: 8000 });
+    await pg.waitForSelector('[data-testid=voice-save]', { timeout: 10000 });
+    await pg.waitForTimeout(1200);
+    const [ch2] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=cap-photo]', { timeout: 10000 })]);
+    await pg.evaluate(SAMPLE);
+    await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
+    await pg.waitForTimeout(2500);
+    const midMemo = (await stopSampling()).filter((f) => f.ed).length;
+    await shot(pg, `${SHOTS_TAG}-walk-mid-memo-390`);
+    await pg.evaluate(SAMPLE);
+    await pg.click('[data-testid=voice-save]', { timeout: 8000 });
+    const after = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 10000 }).then(() => true, () => false);
+    await pg.waitForTimeout(800);
+    const fades = (await stopSampling()).filter((f) => f.ed);
+    await closeEditor();
+    check(cancelled === 0 && midMemo === 0, `tend captures T62: on the walk nothing covers the map when the picker is cancelled, or for a photo taken mid-memo (${JSON.stringify({ cancelled, midMemo })})`);
+    check(after && fades.length > 0 && fades[0].op < 1 && !fades[0].shot,
+      `tend captures T62: after the memo's Save the editor opens as before, fading in, with no held shot under it (${JSON.stringify({ after, firstOp: fades[0]?.op ?? null, shot: fades[0]?.shot ?? null })})`);
+  });
+
+  // The recording bar, on Explore.
+  await pg.click('[data-testid=walk-minimize]');
+  await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+  if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
+  await pg.waitForTimeout(1200);
+  for (const [kind, file] of [['photo', 'photo.jpg'], ['video', 'clip-4s.webm']]) {
+    await step(`T62 bar ${kind}`, async () => {
+      const r = read(await capture('[data-testid=bar-photo]', file, `bar-${kind}-390`));
+      check(whole(r), `tend captures T62: from the recording bar a ${kind} covers the map from the picker's return, opaque from its first frame, until its editor is up (${say(r)})`);
+      check(steady(r) && honest(r),
+        `tend captures T62, audit 7: from the recording bar the ${kind}'s box is still from while it is held, with no "kept" and no Done, only ✕, until its editor's controls come over it (${say(r)})`);
+    });
+  }
+  await c.close();
 }
 
 module.exports = {
