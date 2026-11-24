@@ -346,7 +346,6 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 ## Navigate, ready
 
 - [loop] A web memo stop answered after the 3 s give-up (`STOP_TIMEOUT_MS`) is told as lost though it had audio, and the late uri it sets (`AudioRecorder.web.js` writes `uri` when `dataavailable` comes) can be taken as the next memo's file if that memo's stop also times out (`memoFile` compares with the uri read before the next prepare); the late blob is never revoked. Fix: after a timed-out stop, accept only a uri the next memo's own stop sets, and revoke a late one (the review of tend captures 1, auditor F9, Nov 17, low)
-- [loop] Discard, then Undo, of a memo whose stop timed out (no file) is an Undo that cannot work: `discardVoice` sets it aside and its Undo ends in "Couldn’t save this voice memo." Fix: a memo with no file is discarded with nothing set aside and no Undo pill (`useCaptures.ts` `discardVoice`; the review of tend captures 1, auditor F10, Nov 17, low)
 - [loop] `dropTemp` runs inside `setDiscarded` updaters (`useCaptures.ts` ~l.565-574); idempotent today, but an updater should be pure (`/tend walk-screen`, Nov 11; auditor, low)
 - [loop] `E2E_ONLY=space` step setup: a refusal armed with `__failMedia = 1` can be eaten by a kept photo's own small-copy write, so the next photo is not held; the new `tend walk-screen 1` steps wait 2.5 s first. A harness hook that arms the refusal for the next photo's own put would end the wait (`/tend walk-screen`, Nov 11)
 - **A walk stopped from a second browser tab** while this tab's walk screen is up: the screen turns
@@ -1151,7 +1150,7 @@ What the place offer leaves out (decision 0251).
 
 ## Recording bar captures
 
-- [loop] A memo discarded on the walk screen, Navigate's ready screen or the bar is never deleted when its screen goes within the Undo's five seconds: `useCaptures`' discard timer runs `dropTemp` inside a state updater, which never runs once unmounted, so the file (a blob on the web) stays (the diff review's F5; older than the slice, shared by every host).
+- [loop] What is left of the recording bar captures' diff review (Nov 22): its F5, a memo discarded on the walk screen, Navigate's ready screen or the bar never deleted when its screen went within the Undo's five seconds, is fixed by `tend walk-screen T48` (every path lets the memo set aside go as its screen goes) and `tend walk-screen audit 32` (a discard that lands after its screen went lets it go at once).
   - [loop] A memo under a second, ended by a tap on the bar's line, is dropped without "Too short, not kept": the walk screen opens and the bar is gone (the diff review's F6, low).
   - [owner] The discarded memo's pill and the bar's words sit in flow above the bar, so the tab's content moves up while they show and back after (the UI review's U3, the auditor's UI note; as drawn and approved Nov 22). A fixed band the same height in both states would hold it still.
   - [owner] Mid-memo the purple Save and the walk's Stop are both square stop glyphs, 50 px apart (the cold find, the auditor's UI note; as drawn, Memo390, and as the walk screen's capture stack). A tap on the walk's Stop only says "Hold to stop".

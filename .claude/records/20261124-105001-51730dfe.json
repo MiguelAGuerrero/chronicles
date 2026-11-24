@@ -1,0 +1,63 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, on Navigate's ready screen and then on a walk, start a voice memo and Discard it; wait a minute, lock and unlock the phone, then tap Undo; discard another and tap Close (✕); discard a third and take a photo; then with VoiceOver and TalkBack move along the pill. **Expect:** \"Voice memo discarded\" with Undo and a 44 pt Close stays until one is tapped (it never leaves by itself); Undo after the wait keeps the memo; Close, and the photo, take the pill away and the memo stays gone; Close is read as \"Close, it stays discarded\". Never run on a phone. (T48)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on a 320-class phone and a 390-class one (iPhone SE, an iPhone 15, a small Android), at the default and the largest text size, on Navigate's ready screen and on a walk, record a memo and Discard it; tap Discard again on a second memo and at once the ready screen's chevron; discard a third, open the camera and cancel it, then open the note page and close it empty; on a walk discard a fourth and hold Stop. **Expect:** \"Voice memo discarded\" on one line above Undo and Close, the pill clear of the capture stack, Close inside it and 44 pt (`discardPillStacks`; `tend walk-screen audit 28`); the memo discarded as the screen went leaves no file in the app's documents (`setAside` with the screen gone; audit 32); the cancelled camera and the empty note leave the pill and its Undo (audit 29); Stop takes the pill away and keeps no memo (audit 33); Discard's hint is \"Throws this recording away. You can undo it.\" (audit 31). Never run on a phone. (T48's diff review, the auditor's F1, F2, F5, F6, F7)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "is never deleted when its screen goes within the Undo",
+        "--reason",
+        "F5 fixed by tend walk-screen T48 (772aa0ae) and tend walk-screen audit 32; its unfixed sub-items kept"
+      ],
+      "body": "- [loop] What is left of the recording bar captures' diff review (Nov 22): its F5, a memo discarded on the walk screen, Navigate's ready screen or the bar never deleted when its screen went within the Undo's five seconds, is fixed by `tend walk-screen T48` (every path lets the memo set aside go as its screen goes) and `tend walk-screen audit 32` (a discard that lands after its screen went lets it go at once).\n  - [loop] A memo under a second, ended by a tap on the bar's line, is dropped without \"Too short, not kept\": the walk screen opens and the bar is gone (the diff review's F6, low).\n  - [owner] The discarded memo's pill and the bar's words sit in flow above the bar, so the tab's content moves up while they show and back after (the UI review's U3, the auditor's UI note; as drawn and approved Nov 22). A fixed band the same height in both states would hold it still.\n  - [owner] Mid-memo the purple Save and the walk's Stop are both square stop glyphs, 50 px apart (the cold find, the auditor's UI note; as drawn, Memo390, and as the walk screen's capture stack). A tap on the walk's Stop only says \"Hold to stop\".\n",
+      "target": "sha256:c3aa856c3cd1c7b3eee692d33be9cb302c72bf87ccdb10a22e189a0e025bb6dc"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "remove",
+        "Discard, then Undo, of a memo whose stop timed out",
+        "--reason",
+        "fixed by tend walk-screen audit 34 (a memo with no file is discarded with nothing set aside and no Undo)"
+      ],
+      "target": "sha256:2d2d06ebe8247a2f3e5a550aa889ea9b83a1c4c6b24757a76959d88b3216fd9c"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [loop] The recording bar's and the journal band's discarded memo still go after 5 s, with no Close** (2026-11-24)\n  Area: tabs. Seen: `bc-05-discarded-390.png` (the batch's end pass): on the recording bar (`bar-voice-undo`, `components/RecordingBar.tsx`) and the journal's band (`band-voice-undo`, `components/journal/OpenLine.tsx`) \"Voice memo discarded\" has Undo alone and goes by itself after `UNDO_MS`, where Navigate's ready screen and the walk have Undo and Close and stay since `tend walk-screen T48` (the batch's review: auditor F9, ux U3, steward S1). Rests on: `.claude/rules/ui-patterns.md`, \"Undo stays until it is used or dismissed\" (decision 0113); decision 0233, the owner's \"Undo + Close, stays\" for T48; BC9 (`specs/recording-bar-captures/spec.md`), whose 5 s waited for T48.\n  Recommended: the bar's and the band's discarded memo has Undo and a 44 pt Close and stays until Undo, Close, the next capture or the bar going; checked 6 s after a discard at 390 and 320. Two source files (each passes `discardStays: true` and draws the Close, `DISCARD_CLOSE_LABEL`), and their Discard hints from `discardHint(true)`; the planner's stack too if it keeps a memo. /vision: aligned (the owner's T48 answer, on the bar's sibling).\n  Otherwise: leave the 5 s there.\n",
+      "number": "T61"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T48",
+        "--reason",
+        "the owner's yes, built in tend walk-screen T48"
+      ],
+      "target": "sha256:f174497ebed3bf04d8b43f77c7791f5a4279eae5a1f6bba02997fa41f1fea848"
+    }
+  ]
+}
