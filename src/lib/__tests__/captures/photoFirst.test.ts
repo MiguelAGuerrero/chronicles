@@ -303,4 +303,6 @@ test('tend captures audit 15: the editor after a capture closes and saves throug
 test('tend captures audit 13: while held the crop row\'s scroller is no Tab stop either', () => {
   const editor = src('components/edit/MediaEditor.tsx');
   assert.match(editor, /<ScrollView horizontal showsHorizontalScrollIndicator=\{false\} contentContainerStyle=\{styles\.row\} \{\.\.\.untabbed\}>/);
+  // (tend captures audit 13: the same spread as the chips', nothing while not held.)
+  assert.match(editor, /const untabbed = props\.held \? \(\{ focusable: false, tabIndex: -1 \} as const\) : \{\};/);
 });

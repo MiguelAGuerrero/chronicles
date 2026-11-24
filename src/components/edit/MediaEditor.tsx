@@ -96,7 +96,8 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   const hidden = props.held ? HIDDEN : null;
   const unread = props.held ? ({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants', 'aria-hidden': true } as object) : {};
   // Held, the hidden chips and tools leave the Tab order (tend captures audit 13): react-native-web's Pressable sets its
-  // own tabIndex, so `focusable` alone does not take it out there.
+  // own tabIndex, so `focusable` alone does not take it out there. The crop row's scroller too: holding nothing
+  // focusable, Chrome would make it a Tab stop of its own.
   const untabbed = props.held ? ({ focusable: false, tabIndex: -1 } as const) : {};
   const insets = useSafeAreaInsets();
   const uri = useMediaUri(c);
@@ -334,7 +335,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   const controls = (() => {
     if (s.tool === 'crop') {
       return (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} {...untabbed}>
           {chip('edit-rotate', 'Rotate', false, () => dispatch({ type: 'rotate' }), 'refresh')}
           {ASPECTS.map((a) => chip(`edit-aspect-${a.id}`, a.label, s.aspect === a.id, () => size && dispatch({ type: 'aspect', aspect: a.id, W: size.w, H: size.h }), undefined, true))}
           {chip('edit-crop-reset', 'Reset', false, () => dispatch({ type: 'resetCrop' }))}
