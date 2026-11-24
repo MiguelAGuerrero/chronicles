@@ -20,10 +20,10 @@ export interface Category {
 
 /** The eight broad categories (the owner's call). The order is the picker's. The one table of their names (decision 0239). */
 export const CATEGORIES: readonly Category[] = [
-  { id: 'art', label: 'Art', noun: 'art', line: 'Public art, statues and murals', icon: 'color-palette-outline' },
+  { id: 'art', label: 'Art', noun: 'art', line: 'Statues, murals, fountains and signs', icon: 'color-palette-outline' },
   { id: 'food', label: 'Food', noun: 'food', icon: 'cafe-outline' },
   { id: 'shops', label: 'Shops', noun: 'shops', plural: true, icon: 'bag-handle-outline' },
-  { id: 'history', label: 'History', noun: 'history', line: 'Monuments, memorials and old buildings', icon: 'library-outline' },
+  { id: 'history', label: 'History', noun: 'history', line: 'Monuments, buildings, places of worship and cemeteries', icon: 'library-outline' },
   { id: 'parks', label: 'Green', noun: 'green', line: 'Parks, gardens and nature', icon: 'leaf-outline' },
   { id: 'culture', label: 'Culture', noun: 'culture', line: 'Museums, theatres and community spaces', icon: 'ticket-outline' },
   { id: 'viewpoints', label: 'Views & oddities', noun: 'views', plural: true, line: 'Viewpoints, attractions and curiosities', icon: 'eye-outline' },
@@ -36,5 +36,3 @@ export const categoryOf = (id: CategoryId): Category => CATEGORIES.find((c) => c
 export const nounOf = (id: CategoryId): string => categoryOf(id).noun;
 /** The verb its noun takes: "green is", "views are". */
 export const nounIs = (id: CategoryId): string => `${nounOf(id)} ${categoryOf(id).plural ? 'are' : 'is'}`;
-/** How a sentence measures it: "how much green", "how many views". */
-export const howMuch = (id: CategoryId): string => `${categoryOf(id).plural ? 'many' : 'much'} ${nounOf(id)}`;

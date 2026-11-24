@@ -806,9 +806,9 @@ export function areaPins(listed: Listed[], selected: string | null, inTown: bool
   return same.map((l) => ({ id: l.area.key, at: l.area.at, name: l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
 }
 
-/** The kinds as the card names them, in a sentence's list (tend explore T49): "history, art and green". */
+/** The kinds as the card names them, capitalised, in a list (tend explore T49; decision 0264): "History, Art and Green". */
 const named = (kinds: readonly CategoryId[]): string => {
-  const w = kinds.map((c) => categoryOf(c).label.toLowerCase());
+  const w = kinds.map((c) => categoryOf(c).label);
   return w.length > 1 ? `${w.slice(0, -1).join(', ')} and ${w[w.length - 1]}` : w.join('');
 };
 

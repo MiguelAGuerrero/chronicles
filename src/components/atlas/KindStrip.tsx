@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { groupsPresent, STEP_WORDS, STRIP, type Step, type Steps } from '../../lib/atlas/atlas';
 import { categoryOf } from '../../lib/discovery/categories';
+import { suggestLabel } from '../../lib/walkPlanner/words';
 import type { CategoryId } from '../../lib/discovery/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
@@ -66,7 +67,7 @@ export function KindStrip(props: { steps: Steps | null; testID?: string; /** One
 export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; onPress?: () => void }) {
   const { kind, step } = props;
   // The kind's name and noun from the one table, as What I'm into heads it (tend explore T49, decision 0239).
-  const { label, noun } = categoryOf(kind);
+  const { label } = categoryOf(kind);
   const body = (
     <>
       <Icon name={KIND_ICON_OF[kind]} size={20} color={step ? KIND_COLOR[kind] : theme.edge} />
@@ -93,7 +94,7 @@ export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; 
       <Pressable
         style={styles.walkBtn}
         accessibilityRole="button"
-        accessibilityLabel={`Suggest a walk through ${noun}`}
+        accessibilityLabel={suggestLabel(kind)}
         onPress={props.onPress}
         hitSlop={4}
         testID={`atlas-kind-walk-${kind}`}

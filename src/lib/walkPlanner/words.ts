@@ -1,5 +1,5 @@
 // @layer core
-import { howMuch, nounOf } from '../discovery/categories';
+import { categoryOf, nounOf } from '../discovery/categories';
 import type { CategoryId } from '../discovery/types';
 import { lengthLine } from '../kindWalk/words';
 import type { Units } from '../units';
@@ -15,8 +15,10 @@ import type { Density, Mode } from './settings';
 
 export const PRESET_NAMES: Record<PresetId, string> = { middle: 'Through the middle', across: 'Across the area', edge: 'Around the edge' };
 
-/** Each kind's noun, never its name (tend explore T49, decision 0239): "A walk for views". */
-export const title = (kind: CategoryId): string => `A walk for ${nounOf(kind)}`;
+/** A title takes the kind's name, lower case (decision 0264): "A walk for views & oddities"; sentences keep the noun. */
+export const title = (kind: CategoryId): string => `A walk for ${categoryOf(kind).label.toLowerCase()}`;
+/** The card's "Suggest a walk" spoken by the kind's name (decision 0264): "Suggest a walk through views & oddities". */
+export const suggestLabel = (kind: CategoryId): string => `Suggest a walk through ${categoryOf(kind).label.toLowerCase()}`;
 export const startLabel = 'Start';
 export const differentLabel = 'Suggest different routes';
 export const closeLabel = 'Close';
@@ -25,7 +27,12 @@ export const readingLine = 'Reading the streets…';
 export const MODE_LABEL: Record<Mode, string> = { loop: 'Loop, back where you start', oneway: 'One way' };
 export const DENSITY_LABEL: Record<Density, string> = { anywhere: 'Anywhere', some: 'Where there is some', plenty: 'Where there is plenty' };
 /** The density setting names what it asks for, and not what it is a threshold of (walk planner audit 19). */
-export const densityHeading = (kind: CategoryId): string => `How ${howMuch(kind)} the walk passes`;
+/**
+ * A plural kind is named along the walk, never asked "how many" (decision 0264): "Shops along the walk", "Views along the
+ * walk"; the others "How much green the walk passes".
+ */
+export const densityHeading = (kind: CategoryId): string =>
+  categoryOf(kind).plural ? `${stripKind(kind)} along the walk` : `How much ${nounOf(kind)} the walk passes`;
 /** The strip's spoken kind, opening its sentence: "Views along this route: …" (tend explore T49). */
 export const stripKind = (kind: CategoryId): string => nounOf(kind).charAt(0).toUpperCase() + nounOf(kind).slice(1);
 export const MODE_HEADING = 'The walk';

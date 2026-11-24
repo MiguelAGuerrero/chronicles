@@ -628,6 +628,11 @@ async function run(h) {
   check(intoLines.length === 5 && intoLines.every((l) => l.text && !/\d/.test(l.text) && l.color === 'rgb(89, 98, 115)' && l.after === `kind-heading-${l.id.slice('into-line-'.length)}`)
     && intoLines.some((l) => l.text === 'Parks, gardens and nature') && linesWrapped.length === 0,
     `tend explore T49: each category's heading has its muted line under it, in words, one line at 320 px (${JSON.stringify(intoLines)}; ${JSON.stringify(linesWrapped)})`);
+  // tend explore audit 46 (decision 0264): History's line names its four kinds; at 320 px it is one line, or the owner's
+  // shorter form is the one shown ("Monuments, buildings, worship and cemeteries"), which this says.
+  const history = intoLines.find((l) => l.id === 'into-line-history');
+  check(!!history && /^Monuments, buildings, (places of )?worship and cemeteries$/.test(history.text) && !linesWrapped.some((x) => /into-line-history/.test(x)),
+    `tend explore audit 46: at 320 px History's muted line names its four kinds on one line (${JSON.stringify(history)}; wrapped: ${JSON.stringify(linesWrapped)})`);
   await shot(pg, 'into-page-320');
   await closeInto(pg);
   await pg.setViewportSize({ width: 390, height: 844 });
