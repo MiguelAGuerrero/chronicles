@@ -558,11 +558,14 @@ async function run(h) {
         && a.pill.x + a.pill.w <= Math.min(a.cam.x, a.mic.x) - 8 && a.lines === 1;
       check(held(at390) && held(at320),
         `tend walk-screen audit 28: on the ready screen the discard pill holds its Close, ends 8 px or more left of the stack, and its words keep one line, at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+      // tend walk-screen audit 36 (the review's tests reviewed): the pill is there just before Close, so a pill gone by
+      // itself cannot pass for one Close took away.
+      const shownBeforeClose = await pg.locator('[data-testid=moment-voice-close]').filter({ visible: true }).count();
       await pg.locator('[data-testid=moment-voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
       const closed = await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
       await pg.waitForTimeout(800);
       const voicesClosed = (await rows(pg)).filter((r) => r.kind === 'voice').length;
-      check(closed && voicesClosed === voicesBefore, `tend walk-screen T48: Close takes the pill away and keeps no memo (${JSON.stringify({ closed, voicesBefore, voicesClosed })})`);
+      check(shownBeforeClose === 1 && closed && voicesClosed === voicesBefore, `tend walk-screen T48, audit 36: Close takes the pill shown away and keeps no memo (${JSON.stringify({ shownBeforeClose, closed, voicesBefore, voicesClosed })})`);
       // Discarded again, then a photo: the pill goes as the photo begins, and the memo stays gone.
       await pg.click('[data-testid=moment-voice]');
       await pg.waitForSelector('[data-testid=moment-voice-discard]', { timeout: 10000 });

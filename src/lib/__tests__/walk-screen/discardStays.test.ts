@@ -86,13 +86,14 @@ test('tend walk-screen T48: on those two screens no timer takes the memo; the ne
 });
 
 test('tend walk-screen T48: the paths that draw no Close keep the 5 s, so no pill there waits with no way out', () => {
-  // The recording bar, the journal's band and the planner: Undo alone (or none), so the timer still lets the memo go.
-  for (const file of ['components/RecordingBar.tsx', 'components/journal/OpenLine.tsx', 'components/planner/PlannerCapture.tsx']) {
+  // tend walk-screen audit 36 (the review's tests reviewed): the rule, not today's split. A path whose pill stays draws its
+  // Close; one that draws none keeps the timer. Which paths stay is the owner's (D1 files the bar and the band).
+  for (const file of ['components/RecordingBar.tsx', 'components/journal/OpenLine.tsx', 'components/planner/PlannerCapture.tsx', 'components/MomentBar.tsx', 'app/walk.tsx']) {
     const src = read(file);
-    assert.doesNotMatch(src, /discardStays/, `${file} keeps the timer`);
-    assert.doesNotMatch(src, /closeDiscard/, `${file} draws no Close`);
+    if (/discardStays: true/.test(src)) assert.match(src, /closeDiscard\(\)/, `${file}: a pill that stays has its Close`);
   }
   assert.match(read('lib/useCaptures.ts'), /\nexport const UNDO_MS = 5000;/);
+  assert.match(body(read('lib/useCaptures.ts'), 'const discardVoice', 'const undoDiscard'), /if \(!opts\.discardStays\) discardTimer\.current = setTimeout\(/, 'a path with no Close keeps the timer');
 });
 
 // tend walk-screen audit 28 (the batch's review: auditor F1, ux U1, U2, steward S3): at 320 px on the walk Close hung

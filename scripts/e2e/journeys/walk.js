@@ -1171,11 +1171,14 @@ async function checks(h) {
               `tend walk-screen T48: on the walk, 6 s after a discard, "Voice memo discarded" still has Undo and a 44 pt Close, whole on screen at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
             check(held(at390) && held(at320),
               `tend walk-screen audit 28: on the walk the discard pill holds its Close, ends 8 px or more left of the stack, and its words keep one line, at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+            // tend walk-screen audit 36 (the review's tests reviewed): the pill is there just before Close, so a pill gone by
+            // itself cannot pass for one Close took away.
+            const shownBeforeClose = await page.locator('[data-testid=voice-close]').filter({ visible: true }).count();
             await page.locator('[data-testid=voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
             const closed = await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
             await page.waitForTimeout(800);
             const memosAfter = await voiceRows();
-            check(closed && memosAfter === memosBefore, `tend walk-screen T48: on the walk Close takes the pill away and keeps no memo (${JSON.stringify({ closed, memosBefore, memosAfter })})`);
+            check(shownBeforeClose === 1 && closed && memosAfter === memosBefore, `tend walk-screen T48, audit 36: on the walk Close takes the pill shown away and keeps no memo (${JSON.stringify({ shownBeforeClose, closed, memosBefore, memosAfter })})`);
           }
         });
         await page.click('[data-testid=pause-walk]');
