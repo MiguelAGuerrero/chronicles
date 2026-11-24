@@ -131,3 +131,19 @@ test('tend walk-screen audit 29: only a capture kept, or a memo recording, lets 
   const start = body(hook, 'const startVoice', 'async function stopRecorder');
   assert.ok(start.indexOf(step) > start.indexOf('voice.record();'), 'a memo lets it go once it records');
 });
+
+// tend walk-screen audit 31 (the batch's review: auditor F5, ux U4, steward S2): Discard's hint said "You can undo for a
+// few seconds." on the ready screen and the walk, where the pill now stays. It says what each host does.
+test('tend walk-screen audit 31: Discard\'s hint says the Undo stays where the pill stays, a few seconds elsewhere', () => {
+  const hint = (memoSave as Record<string, unknown>).discardHint as ((stays: boolean) => string) | undefined;
+  assert.equal(typeof hint, 'function', 'a pure line in lib/media/memoSave');
+  assert.equal(hint!(true), 'Throws this recording away. You can undo it.');
+  assert.equal(hint!(false), 'Throws this recording away. You can undo for a few seconds.');
+  const stack = read('components/walk/CaptureStack.tsx');
+  assert.match(stack, /hint=\{discardHint\(!!props\.discardStays\)\}/, 'the stack\'s Discard asks its host');
+  assert.doesNotMatch(stack, /for a few seconds/, 'no fixed words in the stack');
+  for (const file of ['components/MomentBar.tsx', 'app/walk.tsx']) {
+    const at = read(file).indexOf('<CaptureStack');
+    assert.match(read(file).slice(at, at + 1200), /\n\s*discardStays\n/, `${file}: its pill stays, and its Discard says so`);
+  }
+});
