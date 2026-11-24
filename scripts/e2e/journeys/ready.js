@@ -397,8 +397,10 @@ async function run(h) {
       await pg.click('[data-testid=edit-close]').catch(() => {});
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
       check(editorMid === 0 && editorAfter, `tend walk-screen audit 20: on Discard the photo's editor opens, not before (${JSON.stringify({ editorMid, editorAfter })})`);
-      // Let the discarded memo go with its Undo, so the steps below meet the screen as before.
-      await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 12000 }).catch(() => {});
+      // Let the discarded memo go with its Close (it stays until used since tend walk-screen T48), so the steps below meet
+      // the screen as before.
+      await pg.locator('[data-testid=moment-voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+      await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 5000 }).catch(() => {});
     }
     // tend walk-screen audit 23 (T44's review, auditor 4): a photo whose save fails mid-memo is held for Retry; its pill,
     // in the pills' place, never stands over Discard and the timer while the memo records (the walk keeps its pills back
@@ -482,8 +484,59 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=moment-voice-undo]', { timeout: 5000 }).catch(() => {});
       const undo = await boxOf(pg, 'moment-voice-undo');
       check(!!undo && undo.h >= 44, `tend walk-screen 14: the ready screen's Undo is 44 pt high itself (${JSON.stringify(undo)})`);
-      // Let it go: the discarded memo leaves with its Undo, so the steps below meet the screen as before.
-      await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 12000 }).catch(() => {});
+      // tend walk-screen T48 (the owner's "Undo + Close, stays", decision 0233): past the old five seconds the pill is
+      // still there, with Undo and a 44 pt Close, whole and left of the stack at 390 and 320 px; Close takes it away and
+      // keeps nothing; a memo discarded again goes with the next capture begun (a photo), its pill with it.
+      const voicesBefore = (await rows(pg)).filter((r) => r.kind === 'voice').length;
+      await pg.waitForTimeout(6000);
+      const pillAt = async () => pg.evaluate(() => {
+        const vis = (id) => [...document.querySelectorAll(`[data-testid=${id}]`)].find((e) => e.getBoundingClientRect().width > 0) ?? null;
+        const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }; };
+        const undo = vis('moment-voice-undo');
+        const close = vis('moment-voice-close');
+        const pill = undo?.parentElement ?? null;
+        const words = pill ? [...pill.querySelectorAll('div[dir=auto]')] : [];
+        return {
+          undo: r(undo), close: r(close), pill: r(pill), cam: r(vis('moment-photo')), mic: r(vis('moment-voice')),
+          said: pill?.textContent ?? '', name: close?.getAttribute('aria-label') ?? null,
+          whole: words.every((e) => e.scrollWidth <= e.clientWidth + 1),
+          over: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      });
+      const fits = (a, w) => !!a.undo && !!a.close && !!a.pill && !!a.cam && a.pill.x >= 0 && a.pill.x + a.pill.w <= Math.min(a.cam.x, a.mic.x) && a.pill.x + a.pill.w <= w
+        && a.close.w >= 44 && a.close.h >= 44 && a.whole && a.over <= 0;
+      const at390 = await pillAt();
+      await shot(pg, 'ws-t48-pill-after-6s-390');
+      const was = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: was.height });
+      await pg.waitForTimeout(600);
+      const at320 = await pillAt();
+      await shot(pg, 'ws-t48-pill-320');
+      await pg.setViewportSize(was);
+      await pg.waitForTimeout(600);
+      check(/Voice memo discarded/.test(at390.said) && at390.name === 'Close, it stays discarded' && fits(at390, was.width) && fits(at320, 320),
+        `tend walk-screen T48: on the ready screen, 6 s after a discard, "Voice memo discarded" still has Undo and a 44 pt Close, whole and left of the stack at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+      await pg.locator('[data-testid=moment-voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+      const closed = await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
+      await pg.waitForTimeout(800);
+      const voicesClosed = (await rows(pg)).filter((r) => r.kind === 'voice').length;
+      check(closed && voicesClosed === voicesBefore, `tend walk-screen T48: Close takes the pill away and keeps no memo (${JSON.stringify({ closed, voicesBefore, voicesClosed })})`);
+      // Discarded again, then a photo: the pill goes as the photo begins, and the memo stays gone.
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-discard]', { timeout: 10000 });
+      await pg.waitForTimeout(1400);
+      await pg.click('[data-testid=moment-voice-discard]');
+      const pillAgain = await pg.waitForSelector('[data-testid=moment-voice-undo]', { timeout: 5000 }).then(() => true, () => false);
+      const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
+      const pillAtPhoto = await pg.locator('[data-testid=moment-voice-undo]').filter({ visible: true }).count();
+      await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => pg.click('[data-testid=edit-close]')).catch(() => {});
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(800);
+      const pillAfterPhoto = await pg.locator('[data-testid=moment-voice-undo]').filter({ visible: true }).count();
+      const voicesAfterPhoto = (await rows(pg)).filter((r) => r.kind === 'voice').length;
+      check(pillAgain && pillAfterPhoto === 0 && voicesAfterPhoto === voicesBefore,
+        `tend walk-screen T48: a memo discarded again goes with the photo begun next, its pill with it (${JSON.stringify({ pillAgain, pillAtPhoto, pillAfterPhoto, voicesBefore, voicesAfterPhoto })})`);
     }
 
     // A moment before Start (NR9).
