@@ -2,6 +2,7 @@
 // moment everywhere, the viewer's pieces, deleting a piece. In a fresh browser with nothing kept. E2E_ONLY=stacks.
 
 const path = require('path');
+const { heldKit } = require('./edit');
 
 // Every moment record, as stored (the moment store holds each moment's pieces inside it).
 const moments = (pg) => pg.evaluate(() => new Promise((resolve) => {
@@ -40,8 +41,12 @@ async function run(h) {
   await pg.waitForTimeout(1500);
 
   // A photo from the edge stack: one tap, a new moment, and the pill offers to add to it (MS1, MS2).
-  const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
-  await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
+  // tend captures audit 17 (the review's S6, the orchestrator's ruling R16): read frame by frame, the keep held back, the
+  // shot is held full screen from the picker's return on Navigate's ready screen too, and its editor comes over it.
+  const kit = heldKit(pg, { fixtures, shot, tag: 'stacks' });
+  const r17 = kit.read(await kit.capture('[data-testid=moment-photo]', 'photo.jpg', 'ready-edge-390', 2500, false), 'photo');
+  check(kit.whole(r17) && kit.steady(r17) && kit.honest(r17),
+    `tend captures audit 17: on Navigate's ready screen a photo from the edge stack covers the map from the frame after its mount until its editor is up, its box still, only ✕ while held (${kit.say(r17)})`);
   // Its editor opens by itself once kept (ME23, decision 0240): closed, the photo kept as taken.
   await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).catch(() => {});
   await pg.click('[data-testid=edit-close]').catch(() => {});
@@ -66,8 +71,10 @@ async function run(h) {
   check(label2 === label1 && !/\d/.test(label1) && colour !== '', `MS6: the pill reads the same after a second piece, with no number (${JSON.stringify([label1, label2])})`);
   // A third piece, a photo, from the pill's camera.
   if (await there('[data-testid=add-photo]', 3000)) {
-    const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=add-photo]')]);
-    await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
+    // tend captures audit 17: Add to this moment's camera holds its shot the same way, on the piece it adds.
+    const r17b = kit.read(await kit.capture('[data-testid=add-photo]', 'photo.jpg', 'add-to-moment-390', 2500, false), 'photo');
+    check(kit.whole(r17b) && kit.steady(r17b) && kit.honest(r17b),
+      `tend captures audit 17: from Add to this moment a photo covers the map from the frame after its mount until its editor is up, its box still, only ✕ while held (${kit.say(r17b)})`);
     // fix edit-after-capture audit 2: a photo added to the open moment opens its editor too, on that piece.
     // Once kept: while the shot is held the kept line is in the page already, empty (tend captures audit 12).
     const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 }).then(() => true, () => false);

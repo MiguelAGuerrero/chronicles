@@ -3,6 +3,7 @@
 // then seeded entries, then a walk minimized. E2E_ONLY=journal runs it alone.
 
 const path = require('path');
+const { heldKit } = require('./edit');
 
 const DAY = 86400000;
 const ACCENT = 'rgb(194, 65, 12)';
@@ -362,8 +363,12 @@ async function run(h) {
 
   // JN14, JN15: a photo and the line typed under it are one entry; a memo's controls take only the mic's place.
   const before3 = (await stored(pg)).moments.length;
-  const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=band-photo]').catch(() => {})]);
-  await chooser?.setFiles(path.join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+  // tend captures audit 17 (the review's S6, the orchestrator's ruling R16): read frame by frame with the keep held back,
+  // Memories' camera holds its shot full screen from the picker's return, and the editor comes over it.
+  const kit = heldKit(pg, { fixtures: path.join(h.scriptsDir, 'fixtures'), shot, tag: 'journal' });
+  const r17 = kit.read(await kit.capture('[data-testid=band-photo]', 'photo.jpg', 'band-390', 2500, false), 'photo');
+  check(kit.whole(r17) && kit.steady(r17) && kit.honest(r17),
+    `tend captures audit 17: on Memories a photo from the band covers the page from the frame after its mount until its editor is up, its box still, only ✕ while held (${kit.say(r17)})`);
   await closeEditor(pg, 15000);
   const photoOn = await pg.waitForFunction((sel) => { const all = document.querySelectorAll(sel); const last = all[all.length - 1]; return !!last && !!last.querySelector('[data-testid=entry-piece-photo]'); }, entries, { timeout: 15000 }).then(() => true, () => false);
   await type('Same post as last week.');
@@ -758,8 +763,10 @@ async function run(h) {
   await pg.waitForTimeout(1200);
   // JN44: a photo from the toolbar leaves an entry open: Done follows the field; after Done the toolbar is the field,
   // the camera and the mic.
-  const [chooser44] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }).catch(() => null), pg.click('[data-testid=open-line] [data-testid=band-photo]').catch(() => {})]);
-  await chooser44?.setFiles(path.join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+  // tend captures audit 17: the toolbar's camera too (in the composer when it is open, the editor drawn inside it).
+  const r17b = kit.read(await kit.capture('[data-testid=open-line] [data-testid=band-photo]', 'photo.jpg', 'band-toolbar-390', 2500, false), 'photo');
+  check(kit.whole(r17b) && kit.steady(r17b) && kit.honest(r17b),
+    `tend captures audit 17: on Memories a photo from the toolbar (composer ${r17b.composer}) covers the page from the frame after its mount until its editor is up, its box still, only ✕ while held (${kit.say(r17b)})`);
   await closeEditor(pg, 2500);
   await pg.waitForTimeout(1000);
   const open44 = await tool();

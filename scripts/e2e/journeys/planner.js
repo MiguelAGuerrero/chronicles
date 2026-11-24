@@ -3,6 +3,7 @@
 // E2E_ONLY=planner runs it alone.
 
 const path = require('path');
+const { heldKit } = require('./edit');
 
 const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest|less|than|same)\b/i;
 
@@ -277,8 +278,12 @@ async function run(h) {
   {
     // fix planner-edit (decision 0240, the owner's answer): the planner's camera opens the photo's editor by itself once it
     // is accepted, as the walk screen's does; Escape closes the editor alone, never the planner beneath it.
-    const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=plan-cap-photo]')]);
-    await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+    // tend captures audit 17 (the review's S6, the orchestrator's ruling R16): read frame by frame with the keep held back,
+    // the planner's camera holds its shot full screen from the picker's return, and the editor comes over it.
+    const kit = heldKit(pg, { fixtures: path.join(scriptsDir, 'fixtures'), shot, tag: 'planner' });
+    const r17 = kit.read(await kit.capture('[data-testid=plan-cap-photo]', 'photo.jpg', 'planner-390', 2500, false), 'photo');
+    check(kit.whole(r17) && kit.steady(r17) && kit.honest(r17),
+      `tend captures audit 17: on the planner a photo covers the map from the frame after its mount until its editor is up, its box still, only ✕ while held (${kit.say(r17)})`);
     // Once kept: from the camera's return the shot is held in the editor with its controls hidden (tend captures T62).
     const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 }).then(() => true, () => false);
     const keptLine = await pg.locator('[data-testid=edit-kept]').innerText().catch(() => '');

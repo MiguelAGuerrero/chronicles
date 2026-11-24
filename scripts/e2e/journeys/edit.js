@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { Buffer } = require('buffer');
 
 async function run(h) {
   const { navUrl, BASE, page, start, at, check, shot, freshPage, scriptsDir, toStop } = h;
@@ -483,25 +484,19 @@ const SAMPLE = () => {
       doneLive: live(done),
       closeLive: live(close),
       closeName: close?.getAttribute('aria-label') ?? null,
+      // Drawn inside Memories' composer (its Modal), not a Modal of its own (tend captures audit 17).
+      composer: !!ed?.closest('[data-testid=composer]'),
     });
     if (performance.now() - t0 < 20000) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
 };
 
-async function heldShot(h) {
-  const { navUrl, BASE, start, check, shot, freshPage, scriptsDir } = h;
-  // h.errors: the console errors the harness collects (tend captures audit 8 reads the ones a capture adds).
-  const { c, pg } = await freshPage('edit-held');
-  const fixtures = path.join(scriptsDir, 'fixtures');
-  const SHOTS_TAG = 't62';
-  const step = async (name, fn) => {
-    try {
-      await fn();
-    } catch (e) {
-      check(false, `step ${name}: ${String(e.message).split('\n').slice(0, 2).join(' | ')}`);
-    }
-  };
+// The held shot read frame by frame (tend captures T62), for any surface that opens the editor after a capture: edit's
+// own `heldShot`, and the other journeys' surfaces (tend captures audit 17: the ready screen's edge stack, Add to this
+// moment, Memories' line and composer, the planner). `capture(button, file, label, slow, close)` picks the file with the
+// keep held back `slow` ms, and reads it until the editor is up; `read` says what the frames show.
+function heldKit(pg, { fixtures, shot, tag = 't62' }) {
   // The keep read held back once: the picked blob's fetch waits `ms` (in the journey only; the app is as it ships).
   const slowKeep = (ms) => pg.evaluate((d) => {
     if (!window.__fetchT62) window.__fetchT62 = window.fetch;
@@ -523,12 +518,12 @@ async function heldShot(h) {
   const stopSampling = () => pg.evaluate(() => { const w = window.__t62; if (w) w.on = false; return w ? w.frames : []; });
   // One capture read frame by frame: the shot held, its picture, then the editor once kept. Pictures of the first held
   // frame and of the editor once kept.
-  const capture = async (button, file, label, slow = 2500) => {
+  const capture = async (button, file, label, slow = 2500, close = true) => {
     if (slow) await slowKeep(slow);
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click(button, { timeout: 10000 })]);
     await pg.evaluate(SAMPLE);
     await chooser.setFiles(typeof file === 'string' ? path.join(fixtures, file) : file);
-    if (await pg.waitForSelector('[data-testid=media-editor][data-held=true] [data-testid=edit-shot]', { timeout: 4000 }).then(() => true, () => false)) await shot(pg, `${SHOTS_TAG}-${label}-held`);
+    if (await pg.waitForSelector('[data-testid=media-editor][data-held=true] [data-testid=edit-shot]', { timeout: 4000 }).then(() => true, () => false)) await shot(pg, `${tag}-${label}-held`);
     // tend captures audit 12 (U2): while held, the editor's polite live region is in the page already, empty and read by
     // screen readers (no aria-hidden over it), so "Photo kept" is announced when it fills; stamped to find it again.
     const liveHeld = await pg.evaluate(() => {
@@ -543,10 +538,11 @@ async function heldShot(h) {
       return { live: el?.getAttribute('aria-live') ?? null, text: el?.textContent ?? null, same: el?.dataset.stamp62 === 'held', hidden: !!el?.closest('[aria-hidden=true]') };
     }).catch(() => null);
     await pg.waitForTimeout(700);
-    await shot(pg, `${SHOTS_TAG}-${label}-kept`);
+    await shot(pg, `${tag}-${label}-kept`);
     const frames = await stopSampling();
     const change = await pg.evaluate(() => window.__t62?.change ?? null);
-    await closeEditor();
+    // Left open for a journey that goes on with the editor (tend captures audit 17).
+    if (close) await closeEditor();
     return { up, frames, change, live: { held: liveHeld, kept: liveKept } };
   };
   // tend captures audit 12: the live region was there, empty and unhidden, while held, and the same node says it once kept.
@@ -598,6 +594,7 @@ async function heldShot(h) {
       keptAfter: span.some((f) => f.held === 'false' && f.kept),
       // tend captures audit 9: the camera's shot still on the stage on the last frame read (700 ms after the editor is up).
       shotAtEnd: frames.length ? frames[frames.length - 1].shot : null,
+      composer: span.some((f) => f.composer),
     };
   };
   const whole = (r) => r.up && r.toCover != null && r.toCover < 1500 && r.toReady != null && r.toReady >= 2000 && r.frames > 10 && r.gone === 0
@@ -605,6 +602,23 @@ async function heldShot(h) {
   const steady = (r) => r.picWhileHeld && r.moved === 0 && r.blank === 0;
   const honest = (r) => r.held > 5 && r.keptWhileHeld === 0 && r.doneWhileHeld === 0 && r.shownHeld > 5 && r.closeWhileHeld === r.shownHeld && r.keptAfter;
   const say = (r) => JSON.stringify(r);
+  return { slowKeep, closeEditor, stopSampling, capture, spoken, read, whole, steady, honest, say };
+}
+
+async function heldShot(h) {
+  const { navUrl, BASE, start, check, shot, freshPage, scriptsDir } = h;
+  // h.errors: the console errors the harness collects (tend captures audit 8 reads the ones a capture adds).
+  const { c, pg } = await freshPage('edit-held');
+  const fixtures = path.join(scriptsDir, 'fixtures');
+  const SHOTS_TAG = 't62';
+  const step = async (name, fn) => {
+    try {
+      await fn();
+    } catch (e) {
+      check(false, `step ${name}: ${String(e.message).split('\n').slice(0, 2).join(' | ')}`);
+    }
+  };
+  const { slowKeep, closeEditor, stopSampling, capture, spoken, read, whole, steady, honest, say } = heldKit(pg, { fixtures, shot, tag: SHOTS_TAG });
 
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
@@ -628,7 +642,7 @@ async function heldShot(h) {
   // tend captures audit 10: a camera-sized photo (4032 x 3024 JPEG), made in the page from the 800 x 600 fixture (the loop
   // adds no file under scripts/ outside the journeys), handed to the picker as a file of its own.
   const cameraSized = async () => {
-    const from = require('fs').readFileSync(path.join(fixtures, 'photo.jpg')).toString('base64');
+    const from = fs.readFileSync(path.join(fixtures, 'photo.jpg')).toString('base64');
     const b64 = await pg.evaluate(async (s) => {
       const img = new Image();
       img.src = `data:image/jpeg;base64,${s}`;
@@ -793,4 +807,5 @@ module.exports = {
     'src/app/walk.tsx',
   ],
   run,
+  heldKit,
 };
