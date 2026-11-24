@@ -7,6 +7,7 @@ import { COMPLEX_KINDS, type ComplexKind } from '../../complexes/types';
 import { kindParent } from '../../discovery/refinements';
 import { DEFAULT_OFF } from '../../discovery/subtypes';
 import type { Kind } from '../../discovery/types';
+import { categoryOf } from '../../discovery/categories';
 import { KINDS, kindOf, type KindInfo } from '../../explore/explore';
 
 // What I'm into's page, its audit (specs/what-im-into-page, Nov 18): each regression test before its fix.
@@ -203,7 +204,11 @@ test('what-im-into-page audit 12: a heading reserves only its own lines, and a p
   const { intoHeadingH, intoSections, intoChildren, intoPin } = await page();
   // At 200% (195 px wide), "Art" takes one line: its heading is no taller than at the default size.
   assert.equal(intoHeadingH('Art', 195, 1), intoHeadingH('Art', 390, 1));
-  assert.ok(intoHeadingH('Viewpoints & oddities', 195, 1) > intoHeadingH('Art', 195, 1), 'a long category keeps its second line');
+  // tend explore audit 47: the longest real heading, never a name no heading has (since T49 "Views & oddities" fits one
+  // line at 195 px; on a 320 px phone at 200% text it takes two).
+  const longest = [...new Set(KINDS.map((k) => k.category))].map((c) => categoryOf(c).label).sort((a, b) => b.length - a.length)[0];
+  assert.equal(intoHeadingH(longest, 195, 1), intoHeadingH('Art', 195, 1), `${longest} keeps one line at 195 px`);
+  assert.ok(intoHeadingH(longest, 320, 2) > intoHeadingH('Art', 320, 2), `${longest} keeps its second line on a 320 px phone at 200%`);
   assert.ok(intoHeadingH('Art', 390, 2) > intoHeadingH('Art', 390, 1), 'the heading grows with the text');
   // While the incoming heading pushes the pinned one out, the pinned one has no hairline (it would sit on the incoming one).
   const { children, sticky } = intoChildren(intoSections(KINDS, new Set()), COMPLEX_KINDS);
