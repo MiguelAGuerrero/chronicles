@@ -486,6 +486,7 @@ const SAMPLE = () => {
 
 async function heldShot(h) {
   const { navUrl, BASE, start, check, shot, freshPage, scriptsDir } = h;
+  // h.errors: the console errors the harness collects (tend captures audit 8 reads the ones a capture adds).
   const { c, pg } = await freshPage('edit-held');
   const fixtures = path.join(scriptsDir, 'fixtures');
   const SHOTS_TAG = 't62';
@@ -517,8 +518,8 @@ async function heldShot(h) {
   const stopSampling = () => pg.evaluate(() => { const w = window.__t62; if (w) w.on = false; return w ? w.frames : []; });
   // One capture read frame by frame: the shot held, its picture, then the editor once kept. Pictures of the first held
   // frame and of the editor once kept.
-  const capture = async (button, file, label) => {
-    await slowKeep(2500);
+  const capture = async (button, file, label, slow = 2500) => {
+    if (slow) await slowKeep(slow);
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click(button, { timeout: 10000 })]);
     await pg.evaluate(SAMPLE);
     await chooser.setFiles(path.join(fixtures, file));
@@ -592,6 +593,23 @@ async function heldShot(h) {
     await pg.waitForTimeout(900);
     check(whole(r), `tend captures T62: at 320 px on the walk the photo covers the map from the picker's return, opaque from its first frame, until its editor is up (${say(r)})`);
     check(steady(r) && honest(r), `tend captures T62, audit 7: at 320 px on the walk the photo's box is still from while it is held, only ✕ shows until it is kept, then the editor's controls over it (${say(r)})`);
+  });
+
+  // tend captures audit 8 (finding B): a video kept at full speed, the keep not held back. The keep revoked the picked blob
+  // while the held shot's <video> was still to read it: "Failed to load resource: net::ERR_FILE_NOT_FOUND", and the stage
+  // showed only the backdrop until the stored video was sized. Now the held shot owns the picked file until it leaves.
+  await step('T62 walk video full speed', async () => {
+    const errs0 = h.errors.length;
+    const failed = [];
+    const onFail = (q) => { if (q.url().startsWith('blob:')) failed.push(q.failure()?.errorText ?? 'failed'); };
+    pg.on('requestfailed', onFail);
+    const r = read(await capture('[data-testid=cap-photo]', 'clip-4s.webm', 'walk-video-fast-390', 0));
+    await pg.waitForTimeout(1500);
+    pg.off('requestfailed', onFail);
+    const errs = h.errors.slice(errs0).filter((e) => /ERR_FILE_NOT_FOUND/.test(e));
+    const fast = { up: r.up, held: r.held, picWhileHeld: r.picWhileHeld, blank: r.blank, gone: r.gone, moved: r.moved, pic: r.pic, toReady: r.toReady, errs, failed };
+    check(r.up && !!r.pic && (r.held === 0 || r.picWhileHeld) && r.blank === 0 && r.moved === 0 && !errs.length && !failed.length,
+      `tend captures audit 8: on the walk a video kept at full speed shows its held shot's picture, never blank after, and no read of the picked file fails (${JSON.stringify(fast)})`);
   });
 
   // tend captures audit 7: ✕ while held closes the shot; it is still kept, and no editor opens for it once it is.

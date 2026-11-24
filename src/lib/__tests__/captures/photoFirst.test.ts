@@ -120,8 +120,9 @@ test('tend captures T62: every surface that opens the editor after a capture han
   for (const k of ['video', 'photo']) {
     assert.match(take, new RegExp(`keepWatched\\(\\{ kind: '${k}'`), `the ${k} is kept through the watch`);
   }
-  assert.match(caps, /const turn = camera\?\.shot\(\{ kind: k\.kind, uri: k\.uri \}\);[\s\S]{0,200}?await keepOrHold\(k\)/, 'held before the keep');
-  assert.match(caps, /camera\?\.kept\(turn, /, 'and told how the keep went');
+  // tend captures audit 8: the watch now answers whether the screen holds the shot, so the keep leaves its file in place.
+  assert.match(caps, /const seen = camera\?\.shot\(\{ kind: k\.kind, uri: k\.uri \}\);[\s\S]{0,400}?await keepOrHold\(/, 'held before the keep');
+  assert.match(caps, /camera\?\.kept\(seen\.turn, /, 'and told how the keep went');
   // The hook asks the screen, at the camera's return, whether its editor would open there.
   const hook = src('components/edit/EditOffer.tsx');
   assert.match(hook, /shotTaken\(s, turn, !waitsNow\.current && \(opensNow\.current\?\.\(\) \?\? true\)\)/);
@@ -173,4 +174,35 @@ test("tend captures audit 7: while the shot is held the editor's ✕ is shown in
   const closed = shotClosed(shotTaken({ kind: 'photo', uri: 'blob:held' }, 9, true));
   const m = moment('m9', [piece('m9', 'm9', 'photo', 1)]);
   assert.deepEqual(view(shotKept(closed, 9, kept), editAfter(kept), [m]), { show: 'none' });
+});
+
+// tend captures audit 8 (the review's F1 = finding B = S2 = U4, the orchestrator's ruling R1): the keep revoked the picked
+// blob (web) or moved the picked file (native) while the held shot's element was still reading it, so a video kept at
+// full speed logged ERR_FILE_NOT_FOUND and its held shot showed only the backdrop. The held shot owns its source until it
+// leaves the view: watched, the keep leaves the picked file in place (the web keeps the blob, native copies), and the
+// editor's hook lets it go once the shot is closed, replaced or unmounted, only if it was kept; a failed keep's file
+// stays with the holder for Retry.
+test('tend captures audit 8: a watched keep keeps its source until the shot leaves, and a failed one leaves it to Retry', () => {
+  const web = src('lib/media/index.web.ts');
+  assert.match(web, /export async function keepFile\(tempUri: string, walkId: string, name: string, opts: \{ replace\?: boolean; keepSource\?: boolean \} = \{\}\)/);
+  assert.match(web, /if \(!opts\.keepSource && tempUri\.startsWith\('blob:'\)\) URL\.revokeObjectURL\(tempUri\);/, 'the web keeps the blob a held shot reads');
+  const native = src('lib/media/index.native.ts');
+  assert.match(native, /opts: \{ replace\?: boolean; keepSource\?: boolean \} = \{\}/);
+  assert.match(native, /if \(opts\.keepSource\) await new File\(tempUri\)\.copy\(dest\);\s*else await new File\(tempUri\)\.move\(dest\);/, 'native copies the file a held shot reads');
+  // The keep is told whether a held shot reads the file: only when the screen holds it.
+  const caps = src('lib/useCaptures.ts');
+  assert.match(caps, /return keepFile\(uri, folderOf\(stamp\.walk\), `\$\{newId\(\)\}\.\$\{k\.ext\}`, \{ keepSource: !!k\.keepSource \}\);/);
+  assert.match(caps, /const seen = camera\?\.shot\(\{ kind: k\.kind, uri: k\.uri \}\);[\s\S]{0,400}?keepOrHold\(\{ \.\.\.k, keepSource: !!seen\?\.holds \}/);
+  assert.match(caps, /camera\?\.kept\(seen\.turn, r, !!r \|\| released\)/, 'kept, or copied before the row failed: the file is the editor\'s to let go');
+  // A failed keep whose file was copied is retried from the copy: the holder keeps no picked file to Retry from.
+  assert.match(caps, /if \(k\.keepSource && r\.path\) released\?\.\(\);\s*holdFailed\(k\.keepSource && r\.path \? \{ \.\.\.k, uri: null \} : k, r\.path, r\.error\);/);
+  // The hook lets the picked file go once its shot leaves the view, and never one a failed keep left with the holder.
+  const hook = src('components/edit/EditOffer.tsx');
+  assert.match(hook, /shot: \(s\) => \{[\s\S]{0,400}?if \(holds\) sources\.current\.set\(turn, s\.uri\);[\s\S]{0,200}?return \{ turn, holds \};/);
+  assert.match(hook, /kept: \(turn, k, release\) => \{[\s\S]{0,300}?const uri = sources\.current\.get\(turn\);\s*sources\.current\.delete\(turn\);\s*if \(uri && release\) \{\s*if \(shownNow\.current === uri\) letGo\.current\.add\(uri\);\s*else dropTemp\(uri\);/);
+  assert.match(hook, /return \(\) => \{\s*shownNow\.current = null;\s*if \(letGo\.current\.delete\(shown\)\) dropTemp\(shown\);\s*\};\s*\}, \[shown\]\);/, 'closed, replaced or unmounted: let go');
+  // The watch says whether the screen holds the shot, and whether the keep left the file to the editor.
+  const core = src('lib/editOffer.ts');
+  assert.match(core, /shot\(s: Shot\): \{ turn: number; holds: boolean \};/);
+  assert.match(core, /kept\(turn: number, k: KeptShot \| null, release: boolean\): void;/);
 });
