@@ -231,6 +231,15 @@ function builder() {
   };
 }
 
+/**
+ * A moment's captures as the card pins them (tend replay T51, the owner's "Place it by its time", Nov 20): one with no
+ * place of its own (no fresh fix when begun, none found, and kept after Stop placed the walk's moments) stands where
+ * the story tells it, `at`: where its start time falls on the path, or where the walker was last known before a gap or
+ * after the last fix. A copy: what the store holds is read, never written.
+ */
+const placedWhereTold = (captures: Faced[], at: LngLat | null): Faced[] =>
+  at ? captures.map((c) => (c.lat != null && c.lon != null ? c : { ...c, lon: at[0], lat: at[1] })) : captures;
+
 /** A walk's story: its path, moves and breaks along it, its moments, the places it passed. */
 export function walkStory(r: WalkInput): Story {
   const path = pathOf(r);
@@ -264,7 +273,7 @@ export function walkStory(r: WalkInput): Story {
     const at = g.at ?? positionAt(path, tFirst);
     const before = events[events.length - 1];
     if (!onTrace && g.at && before?.kind === 'break' && before.t1 === arrive) before.to = g.at;
-    events.push({ kind: 'moment', captures: g.captures, at, arrive, leave, pathId: path.id, onTrace });
+    events.push({ kind: 'moment', captures: placedWhereTold(g.captures, at), at, arrive, leave, pathId: path.id, onTrace });
     if (!onTrace && g.at) offTrace = { at: g.at, leave };
     cursor = Math.max(cursor, leave);
   });

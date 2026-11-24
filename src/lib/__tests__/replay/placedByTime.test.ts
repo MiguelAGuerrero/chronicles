@@ -84,3 +84,14 @@ test('tend replay T51: the day replay pins a walk\'s memo with no place where it
   assert.ok(pin && distanceM(pin, at(282.8)) < 1, 'pinned on its walk\'s path, where its start time falls');
   assert.equal(pinOf(s, loose.id), null, 'a moment with no walk to place it by stays without a pin');
 });
+
+test('tend replay T51: a memo with no place told in one moment with a placed photo is pinned at that moment\'s place, not apart', () => {
+  const fixes = line(O, at(600), 9 * 60 * MIN);
+  const memo = cap('voice', fixes[40].t, null, '3000');
+  const photo = cap('photo', fixes[40].t + 20_000, at(290, 10));
+  const s = walkStory(input(fixes, [memo, photo]));
+  const [m] = momentOf(s);
+  assert.equal(m.captures.length, 2, 'one moment, as before');
+  const pin = pinOf(s, memo.id);
+  assert.ok(pin && distanceM(pin, at(290, 10)) < 0.01, 'the memo stands with the photo, where the moment is told');
+});
