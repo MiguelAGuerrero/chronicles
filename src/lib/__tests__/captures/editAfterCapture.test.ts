@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import ts from 'typescript';
-import { editAfter, editingOf, keptWords } from '../../editOffer';
+import { afterCapture, editAfter, editingOf, keptWords } from '../../editOffer';
 import { faced, type Faced } from '../../moment';
 import type { Capture } from '../../types';
 
@@ -54,7 +54,8 @@ test('ME23 fix edit-after-capture: every place that takes a photo opens the edit
     const s = src(f);
     assert.match(s, /= useEditAfterCapture\(/, `${f} holds the editor after a capture`);
     assert.match(s, /\.open\(k(ept)?\)/, `${f} opens it with what the camera kept`);
-    assert.match(s, /<MediaEditor [^>]*capture=\{[^}]*\}[^>]*onClose=\{\(\) => [a-zA-Z]+\.close\(\)\}/, `${f} draws it and closes it`);
+    // tend captures T62: drawn through the hook's view (the held shot, then the editor), never a MediaEditor of its own.
+    assert.match(s, /<AfterCaptureEditor [^>]*view=\{[^}]*\}[^>]*onClose=\{\(\) => editAfter\.close\(\)\}/, `${f} draws it and closes it`);
     assert.doesNotMatch(s, /EditOfferPill|useEditOffer|capture-offer|bar-edit-offer|barOffer\(/, `${f} offers no Edit pill`);
   }
   const offer = src('components/edit/EditOffer.tsx');
@@ -68,7 +69,9 @@ test('fix edit-after-capture audit 1: the editor after a capture says the photo 
   assert.deepEqual(keptWords('photo'), { line: 'Photo kept', close: 'Close, the photo stays as it is' });
   assert.deepEqual(keptWords('video'), { line: 'Video kept', close: 'Close, the video stays as it is' });
   for (const k of ['photo', 'video'] as const) assert.doesNotMatch(Object.values(keptWords(k)).join(' '), /\d|!/);
-  for (const f of HOSTS) assert.match(src(f), /<MediaEditor [^>]*justKept[ />]/, `${f} tells the editor it opened after a capture`);
+  // tend captures T62: every host draws it through the one component, which tells the editor so.
+  for (const f of HOSTS) assert.match(src(f), /<AfterCaptureEditor [^>]*view=/, `${f} draws the editor after a capture`);
+  assert.match(src('components/edit/EditOffer.tsx'), /<MediaEditor [^>]*justKept[ />]/, 'the editor after a capture is told it opened after one');
   const editor = src('components/edit/MediaEditor.tsx');
   assert.match(editor, /accessibilityLabel=\{kept \? kept\.close : 'Close'\}/, 'the ✕ is named for what it does after a capture');
   assert.match(editor, /kept && empty && s\.tool !== 'draw' \?/, 'the kept line stands until the first edit, where Revert has nothing to revert');
@@ -131,9 +134,10 @@ test('fix edit-after-capture audit 3: no editor opens while the walk is stopping
 test('fix edit-after-capture audit 4: in the composer the editor is drawn inside its Modal, and Back goes to the editor first', () => {
   const line = src('components/journal/OpenLine.tsx');
   const composer = line.slice(line.indexOf('<Modal visible={composing}'), line.indexOf('</Modal>', line.indexOf('<Modal visible={composing}')));
-  assert.match(composer, /\{composing && editing \? \(\s*<MediaEditor ref=\{editorRef\} key=\{editing\.piece_id\} overlay /);
+  assert.match(composer, /\{composing && editing \? \(\s*<AfterCaptureEditor ref=\{editorRef\} overlay view=\{editing\} /);
   assert.match(composer, /onRequestClose=\{\(\) => \{ if \(editing\) \{ editorRef\.current\?\.requestClose\(\); return; \}/);
-  assert.match(line, /\{editing && !composing && <MediaEditor /, 'its own Modal only with the composer closed');
+  assert.match(line, /\{editing && !composing && <AfterCaptureEditor view=\{editing\} /, 'its own Modal only with the composer closed');
+  assert.match(src('components/edit/EditOffer.tsx'), /<MediaEditor ref=\{ref\} [^>]*overlay=\{overlay\}/, 'the overlay reaches the editor');
 });
 
 // fix edit-after-capture audit 5 (round 2's R1, medium): a › tapped while the bar's photo was being saved went back to
@@ -215,13 +219,18 @@ test('fix edit-after-capture audit 8: the kept line gives way to Revert while Dr
 
 // fix edit-after-capture audit 9 (round 2's R6, low): every piece of a moment shares the moment's id, so an editor keyed
 // by it kept one piece's session while it drew and saved another's.
+// tend captures T62: the one editor after a capture is keyed by its view, which is the piece's (or the shot's turn the
+// piece was held under, so the held shot and its editor are one element), never the moment's.
 test('fix edit-after-capture audit 9: the editor after a capture is keyed by its piece', () => {
-  for (const f of HOSTS) {
-    const s = src(f);
-    const keys = [...s.matchAll(/<MediaEditor [^>]*?key=\{([^}]+)\}/g)].map((m) => m[1]);
-    assert.ok(keys.length >= 1, f);
-    for (const k of keys) assert.equal(k, 'editing.piece_id', `${f} keys its editor by the piece`);
-  }
+  for (const f of HOSTS) assert.doesNotMatch(src(f), /<MediaEditor [^>]*justKept/, `${f} draws no editor after a capture of its own`);
+  const keys = [...src('components/edit/EditOffer.tsx').matchAll(/<MediaEditor [^>]*?key=\{([^}]+)\}/g)].map((m) => m[1]);
+  assert.deepEqual(keys, ['view.key']);
+  const a = faced({ id: 'm', walk_id: null, t: 1, lat: null, lon: null, segment_id: null, pieces: [piece('m', 'm', 'photo', 1), piece('p', 'm', 'photo', 2)] });
+  const one = afterCapture({ shot: null, target: editAfter({ kind: 'photo', id: 'm', momentId: 'm' }), captures: [a], waits: false });
+  const two = afterCapture({ shot: null, target: editAfter({ kind: 'photo', id: 'p', momentId: 'm' }), captures: [a], waits: false });
+  assert.ok(one.show === 'editor' && two.show === 'editor');
+  assert.equal(one.key, 'piece-m');
+  assert.equal(two.key, 'piece-p', 'each piece its own session, though they share the moment');
 });
 
 // fix planner-edit (the owner's answer to decision 0240's open question, Nov 20): the walk planner's camera (WP23, on the
@@ -230,7 +239,7 @@ test('fix edit-after-capture audit 9: the editor after a capture is keyed by its
 // they are edited later from the viewer.
 test('fix planner-edit: the planner\'s camera opens the editor once kept, and Respond and the note page open none', () => {
   const s = src('components/planner/PlannerCapture.tsx');
-  assert.match(s, /const kept = await cap\.takePhoto\(\);\s*if \(!kept\) return;/, 'the photo the camera kept, or nothing');
+  assert.match(s, /const kept = await cap\.takePhoto\(null, null, editAfter\.camera\);\s*if \(!kept\) return;/, 'the photo the camera kept, or nothing');
   const r = opensGuarded(s, GUARDS.find(([f]) => f === 'components/planner/PlannerCapture.tsx')![1]);
   assert.equal(r.calls, 1, 'one open, from the camera');
   assert.equal(r.guarded, 1, 'behind the walk\'s stop guard');
