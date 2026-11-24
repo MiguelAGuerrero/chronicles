@@ -221,7 +221,9 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
         <Icon name="close" size={24} color={theme.ink} />
       </Pressable>
       {/* While held only the ✕ shows and works (tend captures audit 7): the rest keeps its room, hidden and untouchable. */}
-      <View style={[styles.topMid, hidden]} pointerEvents={props.held ? 'none' : 'auto'} {...unread}>
+      {/* While held it holds only the kept line's empty live region (tend captures audit 12): read, so its words are
+          announced when they fill at the keep; invisible and untouchable meanwhile. */}
+      <View style={[styles.topMid, hidden]} pointerEvents={props.held ? 'none' : 'auto'} {...(props.held && !words ? unread : {})}>
         {s.tool === 'draw' && (
           <>
             <Pressable testID="edit-undo" accessibilityRole="button" accessibilityLabel="Undo" accessibilityState={{ disabled: !s.past.length }} disabled={!s.past.length} onPress={() => dispatch({ type: 'undo' })} style={[styles.iconBtn, !s.past.length && styles.dim]} hitSlop={6}>
@@ -232,10 +234,11 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
             </Pressable>
           </>
         )}
-        {kept && empty && s.tool !== 'draw' ? (
+        {words && empty && s.tool !== 'draw' ? (
           // Until the first edit, where Revert has nothing to revert: the shot is already kept (audit 1). Not beside Draw's
-          // Undo and Redo, where it would not fit a 320 px phone and the first stroke would move them (audit 8).
-          <Text testID="edit-kept" style={styles.kept} accessibilityLiveRegion="polite" numberOfLines={1}>{kept.line}</Text>
+          // Undo and Redo, where it would not fit a 320 px phone and the first stroke would move them (audit 8). Mounted
+          // empty while the shot is held, the same node fills at the keep, so the web announces it (tend captures audit 12).
+          <Text testID="edit-kept" style={styles.kept} accessibilityLiveRegion="polite" numberOfLines={1}>{kept ? kept.line : ''}</Text>
         ) : (
           <Pressable testID="edit-revert" accessibilityRole="button" accessibilityLabel="Revert to original" accessibilityState={{ disabled: empty }} disabled={empty} onPress={() => dispatch({ type: 'revert' })} style={[styles.textBtn, empty && styles.dim]} hitSlop={6}>
             <Text style={styles.textBtnText}>Revert</Text>

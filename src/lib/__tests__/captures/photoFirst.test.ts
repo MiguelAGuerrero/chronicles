@@ -247,6 +247,7 @@ test('tend captures audit 11: the held shot\'s ✕ is named "Close, the photo st
 test('tend captures audit 12: the kept line\'s live region is in the page, empty, from the start of the hold, and fills at the keep', () => {
   const editor = src('components/edit/MediaEditor.tsx');
   const top = editor.slice(editor.indexOf('const top = ('), editor.indexOf('const stage = ('));
+  // (tend captures audit 12: while held `empty` holds and the tool stays Crop, so the line is always there.)
   assert.match(top, /\{words && empty && s\.tool !== 'draw' \? \(/);
   assert.match(top, /<Text testID="edit-kept" style=\{styles\.kept\} accessibilityLiveRegion="polite" numberOfLines=\{1\}>\{kept \? kept\.line : ''\}<\/Text>/);
   assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.\(props\.held && !words \? unread : \{\}\)\}>/);

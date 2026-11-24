@@ -69,7 +69,8 @@ async function run(h) {
     const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=add-photo]')]);
     await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
     // fix edit-after-capture audit 2: a photo added to the open moment opens its editor too, on that piece.
-    const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+    // Once kept: while the shot is held the kept line is in the page already, empty (tend captures audit 12).
+    const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 }).then(() => true, () => false);
     const kept = await pg.locator('[data-testid=edit-kept]').innerText().catch(() => '');
     check(opened && kept === 'Photo kept', `fix edit-after-capture audit 2: a photo added from the pill opens its editor ("${kept}")`);
     await pg.click('[data-testid=edit-close]').catch(() => {});
