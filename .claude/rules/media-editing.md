@@ -72,6 +72,12 @@ paths:
   `animationType`. The held shot's frame check reads from its first opaque frame and allows only that mount frame before
   it. Native's Modal with `animationType="none"` is not affected (unverified). Drawing the held shot outside RNW's Modal
   would be a web exception to native-first, so the one frame is left (DEFERRED, captures).
+- **While the shot is held, its ✕ alone shows and works** (tend captures audit 7, confirmed by the owner in 0263): named
+  `keptWords(kind).close` ("Close, the photo stays as it is") from the start of the hold (audit 11); it closes the held
+  shot, the shot is still kept (0240's "Close with no change keeps it as taken"), and no editor opens for it after. The
+  rest of the editor keeps its place hidden: `dispatch` takes only `close`, the chips and tools leave the Tab order
+  (`tabIndex` -1: react-native-web's Pressable ignores `focusable`), and only the empty `edit-kept` live line is read, so
+  "Photo kept" is announced when it fills (audits 12, 13).
 - **Saving out:** photos through `bakers.bake` (the web applies the matrix to
   the pixels); videos through `exportVideo` with the lines and caption as a
   clear PNG (`bakers.bakeOverlay`): the local module on phones, canvas +
