@@ -6,8 +6,7 @@ import { barStopping } from '../../lib/recordingBar';
 import { barStop } from '../../lib/tabsHidden';
 import { unsaved } from '../../lib/unsaved';
 import { useCaptures } from '../../lib/useCaptures';
-import { useEditAfterCapture } from '../edit/EditOffer';
-import { MediaEditor } from '../edit/MediaEditor';
+import { AfterCaptureEditor, useEditAfterCapture } from '../edit/EditOffer';
 import { CaptureStack } from '../walk/CaptureStack';
 import { theme } from '../ui';
 import { Modal } from '../Modal';
@@ -44,10 +43,12 @@ export function PlannerCapture(props: {
   // on a Modal; fix planner-edit audit 3).
   const noteUp = useRef(false);
   // Once a photo or video is kept, its editor opens by itself, as on the walk screen (decision 0240; fix planner-edit).
-  const editAfter = useEditAfterCapture(cap.captures);
-  const editing = editAfter.editing;
+  // From the camera's return the shot is held full screen where the editor will open (tend captures T62), as `photo` asks.
+  const editAfter = useEditAfterCapture(cap.captures, {
+    opens: () => !(props.leaving?.current || noteUp.current || barStopping(barStop.get(), props.walkId, Date.now()) || unsaved.hasEnded(props.walkId)),
+  });
   async function photo() {
-    const kept = await cap.takePhoto();
+    const kept = await cap.takePhoto(null, null, editAfter.camera);
     if (!kept) return;
     feedback('tap');
     // Not while the planner's Start is leaving (audit 2), over the note page (audit 3), while the bar stops this walk or once
@@ -99,9 +100,7 @@ export function PlannerCapture(props: {
           ) : null}
         </View>
       ) : null}
-      {editing && (
-        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
-      )}
+      <AfterCaptureEditor view={editAfter.view} onClose={() => editAfter.close()} onSave={(c, patch) => cap.setEdit(c, patch)} />
       <Modal visible={page > 0} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
         {page > 0 ? <NewNotePage key={page} ref={pageRef} cap={cap} into={null} onWalk reactable camera onKept={() => setMessage('Note saved here')} onClose={() => {
           noteUp.current = false;

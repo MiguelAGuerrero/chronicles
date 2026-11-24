@@ -18,8 +18,7 @@ import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
 import { LayersControl, LayersKey } from '../components/LayersControl';
 import { COLORS, HOTSPOT, namesNearYou, type WalkMapHandle } from '../components/map/types';
-import { useEditAfterCapture } from '../components/edit/EditOffer';
-import { MediaEditor } from '../components/edit/MediaEditor';
+import { AfterCaptureEditor, useEditAfterCapture } from '../components/edit/EditOffer';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
@@ -498,10 +497,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const sightsOn = useStore(routeLeanings.store, (s) => s.includes('sights'));
   // Once a photo or video is kept, its editor opens by itself, before it is looked at on the map (ME23 as decision 0240
   // amends it).
-  const editAfter = useEditAfterCapture(cap.captures);
   // While a memo records, a photo taken then waits for its editor until the memo is saved or discarded (the owner's
-  // "Editor waits", decision 0261; tend walk-screen audit 20).
-  const editing = cap.voiceStartedAt != null ? null : editAfter.editing;
+  // "Editor waits", decision 0261; tend walk-screen audit 20). From the camera's return the shot is held full screen where
+  // the editor will open (tend captures T62): not while the walk stops or once it has ended, as `photo` below.
+  const editAfter = useEditAfterCapture(cap.captures, { waits: cap.voiceStartedAt != null, opens: () => !stoppingNow.current && !(walk && unsaved.hasEnded(walk.id)) });
 
   // Declared before the effect below that calls them: the React Compiler skips a component that uses a function above its
   // declaration (walk-screen compiler).
@@ -510,7 +509,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
    * begun on a place's card, the moment kept finds it (CA2).
    */
   async function photo(into: string | null = null, place: string | null = null) {
-    const kept = await cap.takePhoto(into, place);
+    const kept = await cap.takePhoto(into, place, editAfter.camera);
     if (!kept) return;
     feedback('tap');
     // Not while the walk is stopping, or once it has ended (a save that outlasted Stop's wait): the replay would cover or
@@ -2149,9 +2148,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           if (c.lat != null && c.lon != null) handOff([c.lon, c.lat], KIND_LABEL[c.kind]);
         }}
       />
-      {editing && (
-        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
-      )}
+      <AfterCaptureEditor view={editAfter.view} onClose={() => editAfter.close()} onSave={(c, patch) => cap.setEdit(c, patch)} />
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <MemoryPreview

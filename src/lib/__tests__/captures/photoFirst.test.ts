@@ -103,7 +103,8 @@ const HOSTS = ['app/walk.tsx', 'components/MomentBar.tsx', 'components/journal/O
 test('tend captures T62: every surface that opens the editor after a capture hands the camera to the hook and draws its view', () => {
   for (const f of HOSTS) {
     const s = src(f);
-    const takes = [...s.matchAll(/cap\.takePhoto\(([^)]*)\)/g)].map((m) => m[1]);
+    // tend captures T62: a call's own nested parentheses (`momentPill.target()`) are read through.
+    const takes = [...s.matchAll(/cap\.takePhoto\(((?:[^()]|\([^()]*\))*)\)/g)].map((m) => m[1]);
     const watched = takes.filter((a) => /editAfter\.camera$/.test(a));
     assert.ok(watched.length >= 1, `${f} hands its camera to the editor's hook`);
     assert.match(s, /<AfterCaptureEditor [^>]*view=\{[^}]+\}/, `${f} draws the held shot and the editor through the hook's view`);

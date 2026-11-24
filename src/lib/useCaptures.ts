@@ -18,6 +18,7 @@ import { rereadTranscript, transcripts } from './transcript';
 import { nowPlaying, RECORDING } from './journal/nowPlaying';
 import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
+import type { CameraWatch } from './editOffer';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
 import { discardStep, failedMemo, memoFile, setAside, type SetAsideEvent } from './media/memoSave';
@@ -468,10 +469,22 @@ export function useCaptures(
   /**
    * The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. With
    * `into`, what it keeps joins that open moment as a piece (MS2, MS3); `id` is then the piece's. With `place`, begun
-   * from a place's card, the moment it keeps finds that place (capture-at-a-place CA2).
+   * from a place's card, the moment it keeps finds that place (capture-at-a-place CA2). With `camera`, the screen's
+   * editor is told the shot the moment the camera returns and how its keep went, so it holds the shot full screen
+   * meanwhile (tend captures T62); the keep itself is the same.
    */
-  const takePhoto = async (into: string | null = null, place: string | null = null): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
+  const takePhoto = async (into: string | null = null, place: string | null = null, camera?: CameraWatch): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
     let kept: { kind: 'photo' | 'video'; id: string; momentId: string } | null = null;
+    // Told before the keep, and after it in the same turn as the screen's own answer (T62).
+    const keepWatched = async (k: Keepable & { kind: 'photo' | 'video'; uri: string }) => {
+      const turn = camera?.shot({ kind: k.kind, uri: k.uri });
+      const r = await keepOrHold(k).catch((e: unknown) => {
+        if (turn !== undefined) camera?.kept(turn, null);
+        throw e;
+      });
+      if (turn !== undefined) camera?.kept(turn, r);
+      return r;
+    };
     await guarded('photo', async () => {
       // While a memo records, the photo goes with it (T44, decision 0233): into the memo's moment, or kept as the
       // moment the memo joins when saved. A photo only: a video would want the microphone the memo holds.
@@ -506,11 +519,11 @@ export function useCaptures(
             return;
           }
           const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-          kept = await keepOrHold({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
+          kept = await keepWatched({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
           return;
         }
         const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-        kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
+        kept = await keepWatched({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
         // Kept while the same memo still records: the memo is saved into the photo's moment (T44).
         const k = kept as { momentId: string } | null;
         if (k && memo && voiceOn.current && voiceStamp.current === memo) voiceStamp.current = memoJoins(memo, k.momentId);

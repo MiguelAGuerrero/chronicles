@@ -10,11 +10,11 @@ import { FULL_LINES_TEXT, openSession, step, TOOLS, type EditTool, type Session,
 import { removeMedia } from '../../lib/media';
 import { keepEditedThumb } from '../../lib/media/thumb';
 import { thumbs } from '../../lib/thumbs';
-import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
+import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, emptyEdit, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
 import { stillChanged, THUMB } from '../../lib/thumbPlan';
 import { formatElapsed } from '../../lib/format';
 import { voiceReachedEnd, voiceSpan, wholeMs } from '../../lib/voiceTrim';
-import { keptWords } from '../../lib/editOffer';
+import { keptWords, type Shot } from '../../lib/editOffer';
 
 import { useMediaUri } from '../../lib/useMediaUri';
 import { useBaker } from '../Baker';
@@ -45,6 +45,11 @@ function pauseAudio(player: AudioPlayer) {
   player.pause();
 }
 
+// The shot as the camera gave it, drawn as the editor draws a capture with no edits (tend captures T62).
+const PLAIN: MediaEdit = emptyEdit();
+// While the shot is held its controls keep their room, so the shot never moves when they come (tend captures T62).
+const HIDDEN = { opacity: 0 };
+
 const DRAW_TOOLS: { id: 'pen' | 'marker' | 'eraser'; label: string; icon: IconName }[] = [
   { id: 'pen', label: 'Pen', icon: 'pencil' },
   { id: 'marker', label: 'Marker', icon: 'color-wand' },
@@ -68,6 +73,13 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   overlay?: boolean;
   /** Opened by itself after a capture (decision 0240): it says the shot is kept, and ✕ says it stays (audit 1). */
   justKept?: boolean;
+  /**
+   * Not kept yet (tend captures T62): the shot alone on the editor's backdrop, its controls hidden in their place until
+   * it is kept, so they come over the same shot.
+   */
+  held?: boolean;
+  /** The camera's shot, drawn on the stage until the stored picture is (tend captures T62). */
+  shot?: Shot | null;
   /** Stores a change to the capture: the edits and caption on Done, then the new small copy. */
   onSave: (patch: CapturePatch) => Promise<void>;
   onClose: () => void;
@@ -75,7 +87,11 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   const c = props.capture;
   const kind = c.kind === 'video' ? 'video' : c.kind === 'voice' ? 'voice' : 'photo';
   // Opened by itself after a capture: the shot is already kept (decision 0240, audit 1).
-  const kept = props.justKept && kind !== 'voice' ? keptWords(kind) : null;
+  const kept = props.justKept && !props.held && kind !== 'voice' ? keptWords(kind) : null;
+  // Mounted over a held shot, it comes at once, its backdrop with the shot: no fade from transparent over the map (T62).
+  const [enter] = useState<'none' | 'fade'>(() => (props.shot ? 'none' : 'fade'));
+  const hidden = props.held ? HIDDEN : null;
+  const unread = props.held ? ({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants', 'aria-hidden': true } as object) : {};
   const insets = useSafeAreaInsets();
   const uri = useMediaUri(c);
   const [s, setS] = useState<Session>(() => openSession(kind, { edit: c.edit ?? null, caption: c.caption ?? null, caption_y: c.caption_y ?? null }, props.initialTool));
@@ -97,6 +113,16 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   });
   const videoSize = useVideoSize(player, kind === 'video' ? uri : null);
   const size = kind === 'photo' ? photoSize : videoSize;
+  // The camera's shot (T62): a photo's own file, a video's first frame on a paused player of its own, let go once the
+  // stored video is sized.
+  const shotUri = props.shot?.uri ?? null;
+  const shotPhotoSize = useNaturalSize(props.shot?.kind === 'photo' ? shotUri : null);
+  const shotPlayer = useVideoPlayer(props.shot?.kind === 'video' && !videoSize ? shotUri : null, (p) => {
+    p.loop = false;
+    p.muted = true;
+  });
+  const shotVideoSize = useVideoSize(shotPlayer, props.shot?.kind === 'video' && !videoSize ? shotUri : null);
+  const shotSize = props.shot?.kind === 'photo' ? shotPhotoSize : props.shot?.kind === 'video' ? shotVideoSize : null;
   // A voice memo previews through its own player: no picture, only the kept part (VT3).
   const voice = useAudioPlayer(kind === 'voice' ? (uri ?? undefined) : undefined, { updateInterval: 100 });
   const voiceStatus = useAudioPlayerStatus(voice);
@@ -172,6 +198,11 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   const stageEdit: MediaEdit = cropping ? { ...edit, crop: null } : edit;
   const shown = size ? (cropping ? rotatedSize(size.w, size.h, edit.rotate) : editedSize(size.w, size.h, edit)) : null;
   const rect = fitRect(box, shown);
+  const shotRect = fitRect(box, shotSize);
+  // Under the stored picture until it is drawn: a photo while its look is untouched (then the two are the same picture in
+  // the same place), a video until it is sized (T62).
+  const plainLook = !edit.rotate && !edit.crop && edit.filter === 'original' && !edit.strokes.length;
+  const under = !!props.shot && (!!props.held || !rect || (kind === 'photo' && plainLook));
   const empty = !edit.rotate && !edit.crop && edit.filter === 'original' && !edit.strokes.length && !edit.trim && !s.caption.trim();
 
   const top = (
@@ -212,6 +243,15 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
         <View style={styles.voiceCard} testID="voice-card">
           <Icon name="mic" size={40} color="#ffffff" />
           <Text style={styles.hint}>Voice memo</Text>
+        </View>
+      )}
+      {under && shotRect && shotSize && (
+        <View style={{ position: 'absolute', left: shotRect.x, top: shotRect.y, width: shotRect.width, height: shotRect.height, overflow: 'hidden' }} pointerEvents="none" testID="edit-shot">
+          {props.shot?.kind === 'photo' ? (
+            <EditedPicture uri={shotUri} W={shotSize.w} H={shotSize.h} edit={PLAIN} width={shotRect.width} height={shotRect.height} />
+          ) : (
+            <VideoPicture player={shotPlayer} W={shotSize.w} H={shotSize.h} edit={PLAIN} width={shotRect.width} height={shotRect.height} />
+          )}
         </View>
       )}
       {rect && size && (
@@ -384,13 +424,15 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   })();
 
   const body = (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, props.overlay && StyleSheet.absoluteFill]} testID="media-editor">
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, props.overlay && StyleSheet.absoluteFill]} testID="media-editor" {...webData({ held: props.held ? 'true' : 'false' })}>
       {/* The baker draws behind everything; the screen's own background hides it. */}
       {baker}
       <View style={[StyleSheet.absoluteFill, styles.screenBg]} pointerEvents="none" />
-      {top}
+      <View style={hidden} pointerEvents={props.held ? 'none' : 'auto'} {...unread}>
+        {top}
+      </View>
       {stage}
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + 10 }]}>
+      <View style={[styles.bottom, { paddingBottom: insets.bottom + 10 }, hidden]} pointerEvents={props.held ? 'none' : 'auto'} {...unread}>
         {error && (
           <Text style={styles.error} accessibilityLiveRegion="polite">
             {error}
@@ -438,7 +480,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   );
   if (props.overlay) return body;
   return (
-    <Modal visible animationType="fade" onRequestClose={() => dispatch({ type: 'close' })}>
+    <Modal visible animationType={enter} onRequestClose={() => dispatch({ type: 'close' })}>
       {body}
     </Modal>
   );

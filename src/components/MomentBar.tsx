@@ -19,8 +19,7 @@ import { NewNotePage } from './notePage/NewNotePage';
 import { AddToThread, type AddToThreadHandle } from './threads/AddToThread';
 import type { NotePageHandle } from './notePage/NotePage';
 import { SpaceLine } from './SpaceLine';
-import { useEditAfterCapture } from './edit/EditOffer';
-import { MediaEditor } from './edit/MediaEditor';
+import { AfterCaptureEditor, useEditAfterCapture } from './edit/EditOffer';
 import { AddToMomentPill } from './walk/AddToMomentPill';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
@@ -106,11 +105,10 @@ export function CaptureRow(props: {
   const openNote = (into: string | null) => setPage((p) => ({ key: (p?.key ?? 0) + 1, into }));
   const pageRef = useRef<NotePageHandle>(null);
   // Once a photo or video is kept, its editor opens by itself (ME23 as decision 0240 amends it).
-  const editAfter = useEditAfterCapture(cap.captures);
   const recording = cap.voiceStartedAt != null;
   // While a memo records, a photo taken then waits for its editor until the memo is saved or discarded (the owner's
-  // "Editor waits", decision 0261; tend walk-screen audit 20).
-  const editing = recording ? null : editAfter.editing;
+  // "Editor waits", decision 0261; tend walk-screen audit 20). Otherwise the shot is held from the camera's return (T62).
+  const editAfter = useEditAfterCapture(cap.captures, { waits: recording });
   const { onRecording } = props;
   useEffect(() => {
     onRecording?.(recording);
@@ -176,7 +174,7 @@ export function CaptureRow(props: {
   useEffect(() => {
     onAsk.current = (kind) => {
       const into = momentPill.target();
-      if (kind === 'photo') void cap.takePhoto(into).then(kept);
+      if (kind === 'photo') void cap.takePhoto(into, null, editAfter.camera).then(kept);
       else if (kind === 'voice') void cap.startVoice(into).then((ok) => ok && feedback('tap'));
       else openNote(into);
     };
@@ -194,7 +192,7 @@ export function CaptureRow(props: {
       <View style={[styles.pills, pillsAt]} pointerEvents="box-none">
         <AddToMomentPill
           hidden={recording || noteOpen}
-          onPhoto={() => void cap.takePhoto(momentPill.target()).then(kept)}
+          onPhoto={() => void cap.takePhoto(momentPill.target(), null, editAfter.camera).then(kept)}
           onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
           onNote={() => openNote(momentPill.target())}
           onThread={setThreading}
@@ -248,7 +246,7 @@ export function CaptureRow(props: {
         disabled={props.disabled}
         onPhoto={() =>
           // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
-          cap.takePhoto(momentPill.edgeTarget()).then(kept)
+          cap.takePhoto(momentPill.edgeTarget(), null, editAfter.camera).then(kept)
         }
         onVoice={() => cap.startVoice(momentPill.edgeTarget()).then((ok) => ok && feedback('tap'))}
         onSave={saveVoice}
@@ -256,9 +254,7 @@ export function CaptureRow(props: {
         onNote={() => openNote(momentPill.edgeTarget())}
       />
 
-      {editing && (
-        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
-      )}
+      <AfterCaptureEditor view={editAfter.view} onClose={() => editAfter.close()} onSave={(c, patch) => cap.setEdit(c, patch)} />
 
       {/* Add to a thread for the moment just made (CT3), in the app's Modal. */}
       <Modal visible={!!threading} transparent animationType="fade" onRequestClose={() => threadCard.current?.requestClose()}>

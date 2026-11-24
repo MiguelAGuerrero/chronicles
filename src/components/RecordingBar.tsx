@@ -26,8 +26,7 @@ import { settleWithin } from '../lib/settleWithin';
 import { barReminderUp, barStop, barStops, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
 import { Icon, type IconName } from './icons';
-import { useEditAfterCapture } from './edit/EditOffer';
-import { MediaEditor } from './edit/MediaEditor';
+import { AfterCaptureEditor, useEditAfterCapture } from './edit/EditOffer';
 import { Modal } from './Modal';
 import { NewNotePage } from './notePage/NewNotePage';
 import type { NotePageHandle } from './notePage/NotePage';
@@ -94,11 +93,6 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // The pencil's page (BC4), the one the walk screen's pencil opens, over this tab.
   const [page, setPage] = useState<{ key: number } | null>(null);
   const pageRef = useRef<NotePageHandle>(null);
-  // Once its photo or video is kept, the editor opens by itself (ME23 as decision 0240 amends it; it was 0149's pill).
-  const editAfter = useEditAfterCapture(cap.captures);
-  // While the memo records, a photo taken then waits for its editor until the memo is saved or discarded, as on the walk
-  // screen (the owner's "Editor waits", decision 0261; tend tabs T60).
-  const editing = memoOn ? null : editAfter.editing;
   // Held to stop, the walk is going. Shared, not this bar's own: the bar unmounts as its tab loses focus while the stop
   // goes on (tend tabs audit 26).
   // Within the stop's own bound, as the way back is: a stop that hangs lets the Stop's spinner go after it (tend tabs 19).
@@ -128,6 +122,14 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const returning = useRef(false);
   // Up once the way back has asked for the walk screen, and never lowered: the bar is going (audit 5).
   const wentBack = useRef(false);
+  // Once its photo or video is kept, the editor opens by itself (ME23 as decision 0240 amends it; it was 0149's pill).
+  // While the memo records, a photo taken then waits for its editor until the memo is saved or discarded, as on the walk
+  // screen (the owner's "Editor waits", decision 0261; tend tabs T60). From the camera's return the shot is held full
+  // screen where the editor will open (tend captures T62): as `photo` below asks once it is kept.
+  const editAfter = useEditAfterCapture(cap.captures, {
+    waits: memoOn,
+    opens: () => !returning.current && !wentBack.current && !barStopping(barStop.get(), walk.id, Date.now()) && !unsaved.hasEnded(walk.id),
+  });
   const [reminder, setReminder] = useState<Faced[] | null>(null);
 
   useEffect(() => {
@@ -234,7 +236,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const leftMemo = useRef<number | null>(null);
   const photo = async () => {
     const memoAt = cap.voiceStartedAt;
-    const run = cap.takePhoto();
+    const run = cap.takePhoto(null, null, editAfter.camera);
     keeping.current = run;
     const kept = await run.finally(() => {
       if (keeping.current === run) keeping.current = null;
@@ -478,9 +480,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           <Icon name="stop" size={18} color={theme.ink} />
         </HoldButton>
       </View>
-      {editing && (
-        <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
-      )}
+      <AfterCaptureEditor view={editAfter.view} onClose={() => editAfter.close()} onSave={(c, patch) => cap.setEdit(c, patch)} />
       {/* The note's page the walk screen's pencil opens, over this tab; kept, it joins the walk (BC4). Nothing is said
           when it is kept (BC7). */}
       <Modal visible={!!page} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>

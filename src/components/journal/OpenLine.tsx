@@ -31,8 +31,8 @@ import { refLabel } from '../../lib/threads/lines';
 import type { LngLat } from '../../lib/types';
 import { useCaptures, type MomentState } from '../../lib/useCaptures';
 import { useStore } from '../../lib/useStore';
-import { useEditAfterCapture } from '../edit/EditOffer';
-import { MediaEditor, type MediaEditorHandle } from '../edit/MediaEditor';
+import { AfterCaptureEditor, useEditAfterCapture } from '../edit/EditOffer';
+import type { MediaEditorHandle } from '../edit/MediaEditor';
 import { Icon, type IconName } from '../icons';
 import { Modal } from '../Modal';
 import { useOpenWalk, useOpenWalkInfo } from '../OpenWalk';
@@ -455,15 +455,16 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
 
   // The camera and the mic: what they keep joins the open entry, and the words typed so far stand as their own piece.
   // Once a new moment's photo or video is kept, its editor opens by itself (ME23 as decision 0240 amends it).
-  const editAfter = useEditAfterCapture(cap.captures);
-  const editing = editAfter.editing;
+  // From the camera's return the shot is held full screen where the editor will open (tend captures T62), as `photo` asks.
+  const editAfter = useEditAfterCapture(cap.captures, { opens: () => !(walk && (barStopping(barStop.get(), walk.id, Date.now()) || unsaved.hasEnded(walk.id))) });
+  const editing = editAfter.view.show === 'none' ? null : editAfter.view;
   // In the composer the editor is drawn inside its Modal, never a Modal over it (iOS; audit 4); Back goes to its Close.
   const editorRef = useRef<MediaEditorHandle>(null);
   const photo = async () => {
     onFoot();
     // Mid-note, the camera is still one tap (audit 1): the note is saved first, then the camera opens.
     if (recording) await saveVoice();
-    void cap.takePhoto(momentPill.target()).then((k) => {
+    void cap.takePhoto(momentPill.target(), null, editAfter.camera).then((k) => {
       if (!k) return;
       feedback('tap');
       send.current({ k: 'kept' });
@@ -804,7 +805,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
           </View>
         </View>
         {composing && editing ? (
-          <MediaEditor ref={editorRef} key={editing.piece_id} overlay capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />
+          <AfterCaptureEditor ref={editorRef} overlay view={editing} onClose={() => editAfter.close()} onSave={(c, patch) => cap.setEdit(c, patch)} />
         ) : null}
       </Modal>
       <Modal visible={page != null} animationType="slide" onRequestClose={() => pageRef.current?.requestClose()}>
@@ -847,7 +848,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
       {picking != null && (
         <Mention self={pen.entry?.momentId ?? null} onPick={pick} onClose={() => { setPicking(null); input.current?.focus(); }} />
       )}
-      {editing && !composing && <MediaEditor key={editing.piece_id} capture={editing} justKept initialTool="crop" onClose={() => editAfter.close()} onSave={(patch) => cap.setEdit(editing, patch)} />}
+      {editing && !composing && <AfterCaptureEditor view={editing} onClose={() => editAfter.close()} onSave={(c, patch) => cap.setEdit(c, patch)} />}
     </>
   );
 }
