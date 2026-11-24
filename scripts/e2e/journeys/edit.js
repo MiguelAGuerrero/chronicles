@@ -68,7 +68,8 @@ async function run(h) {
     await step('ME23 moment', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
-      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+      // Once kept: from the camera's return the shot is held in the editor with its controls hidden (tend captures T62).
+      const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 }).then(() => true, () => false);
       check(opened, 'ME23 fix edit-after-capture: a moment\'s photo opens its editor by itself once accepted (Navigate, ready)');
       await pg.waitForTimeout(800);
       await shot(pg, 'edit-after-capture-ready');
@@ -86,7 +87,7 @@ async function run(h) {
       // media-editing audit 2: a moment edited as it is taken shows the edit on its own pin's viewer, and opens on it.
       const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
       await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
-      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 });
+      await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 });
       await pg.click('[data-testid=edit-rotate]');
       // audit 1: after the first edit Revert takes the kept line's place.
       const swapped = (await pg.locator('[data-testid=edit-kept]').count()) === 0 && (await pg.locator('[data-testid=edit-revert]').count()) === 1;
@@ -124,7 +125,7 @@ async function run(h) {
     await step('ME1-ME13 photo', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
-      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+      const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 }).then(() => true, () => false);
       check(opened, 'ME23 fix edit-after-capture: the walk screen opens the photo\'s editor by itself once accepted');
       photoId = (await rowOf('photo'))?.id;
       // The pin's small copy before the edit (media-editing audit 3).
@@ -222,7 +223,7 @@ async function run(h) {
     await step('ME1, ME12-ME15 video', async () => {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
-      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+      const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 }).then(() => true, () => false);
       check(opened, 'ME23 fix edit-after-capture: the walk screen opens a video\'s editor by itself once accepted');
       // It opens as the camera closes now: measured after its fade, never mid-way (ME14's handles once read too early).
       await pg.waitForTimeout(800);
@@ -404,7 +405,7 @@ async function run(h) {
       if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
-      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+      const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 }).then(() => true, () => false);
       check(opened, 'ME23 fix edit-after-capture: the recording bar opens its photo\'s editor by itself once accepted');
       await pg.waitForTimeout(800);
       await shot(pg, 'edit-after-capture-bar');

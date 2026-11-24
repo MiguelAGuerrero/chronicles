@@ -279,7 +279,8 @@ async function run(h) {
     // is accepted, as the walk screen's does; Escape closes the editor alone, never the planner beneath it.
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=plan-cap-photo]')]);
     await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
-    const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).then(() => true, () => false);
+    // Once kept: from the camera's return the shot is held in the editor with its controls hidden (tend captures T62).
+    const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 15000 }).then(() => true, () => false);
     const keptLine = await pg.locator('[data-testid=edit-kept]').innerText().catch(() => '');
     check(opened && keptLine === 'Photo kept', `ME23 fix planner-edit: the planner's camera opens the photo's editor by itself once accepted (${keptLine})`);
     await pg.waitForTimeout(800);
