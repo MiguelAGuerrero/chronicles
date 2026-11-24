@@ -206,8 +206,6 @@ export function useCaptures(
     const st = stampFor(clockNow(), pos.current, into, place);
     // The reply is fixed when the capture begins (ui-conformance audit 10); a piece answers nothing.
     const s: Stamp = { t: st.t, at: st.at, walk: walkId, into: st.into, replyTo: st.into ? null : replyTo.current, place: st.place };
-    // The next capture begun replaces the memo set aside, where its pill stays (T48).
-    if (opts.discardStays) asideStep({ type: 'capture' });
     if (locate && st.locate) startLocating(s);
     return s;
   };
@@ -241,6 +239,8 @@ export function useCaptures(
     const pieceId = newId();
     const piece: Capture = { id: pieceId, moment_id: into, t: stamp.t, kind, file_path, body, ...more };
     await db.addPiece(into, piece);
+    // A capture kept replaces the memo set aside, where its pill stays (T48); one only begun does not (audit 29).
+    if (opts.discardStays) asideStep({ type: 'capture' });
     // Stored: what follows never makes it unsaved (unsaved-captures audit 6).
     try {
       const [stored] = await db.getMomentsByIds([into]);
@@ -268,6 +268,8 @@ export function useCaptures(
       pieces: [{ id, moment_id: id, t: stamp.t, kind, file_path, body, ...more }],
     };
     await db.addMoment(m);
+    // A capture kept replaces the memo set aside, where its pill stays (T48); one only begun does not (audit 29).
+    if (opts.discardStays) asideStep({ type: 'capture' });
     const c = faced(m);
     // Stored: what follows never makes it unsaved (unsaved-captures audit 6).
     try {
@@ -589,6 +591,8 @@ export function useCaptures(
           }
           voiceStamp.current = stampNow(true, into, place);
           voice.record();
+          // A memo recording replaces the one set aside (T48; audit 29: once it records, not as it is asked for).
+          if (opts.discardStays) asideStep({ type: 'capture' });
           voiceOn.current = true;
           memoGate.recording(self, true);
           setVoiceStartedAt(voiceStamp.current.t);

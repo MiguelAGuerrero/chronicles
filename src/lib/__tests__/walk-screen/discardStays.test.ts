@@ -77,8 +77,8 @@ test('tend walk-screen T48: on those two screens no timer takes the memo; the ne
   // Undo and Close go through the same step.
   assert.match(body(hook, 'const undoDiscard', 'const closeDiscard'), /asideStep\(\{ type: 'undo' \}\)/);
   assert.match(body(hook, 'const closeDiscard', '// Leaving the screen'), /asideStep\(\{ type: 'close' \}\)/);
-  // A capture begun (every capture takes its stamp) replaces it where the pill stays.
-  assert.match(body(hook, 'const stampNow', 'const startLocating'), /if \(opts\.discardStays\) asideStep\(\{ type: 'capture' \}\);/);
+  // A capture kept replaces it where the pill stays (tend walk-screen audit 29: kept, not only begun).
+  assert.match(body(hook, 'async function add(', '\n  /**'), /if \(opts\.discardStays\) asideStep\(\{ type: 'capture' \}\);/);
   // The screen going lets it go, on every path (docs/DEFERRED.md, Recording bar captures: never deleted once unmounted).
   assert.match(body(hook, '// Leaving the screen', '// A capture held'), /setAside\(setAsideRef\.current, \{ type: 'leave' \}\)/);
   assert.doesNotMatch(hook, /setDiscarded\(\(/, 'no effect runs inside a state updater');
