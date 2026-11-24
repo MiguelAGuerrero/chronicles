@@ -1076,6 +1076,31 @@ async function checks(h) {
             const drawing = await walkMap().getAttribute('data-drawing').catch(() => null);
             check(raisedBefore && byMap && opened.length === 0 && (drawing ?? '0') === '0' && page.url() === urlBefore,
               `tend walk-screen T45: a tap on the map above the raised settings lowers them and opens nothing (${JSON.stringify({ raisedBefore, top, spot, byMap, opened, drawing })})`);
+            // tend walk-screen audit 30 (auditor F4): raised again, a tap on a moment's pin (the click its marker hears)
+            // lowers the settings and opens no viewer or card.
+            await page.click('[data-testid=walk-summary]');
+            await page.waitForSelector('[data-testid=options-card]', { timeout: 5000 }).catch(() => {});
+            await page.waitForTimeout(900);
+            const raisedPin = await page.locator('[data-testid=options-card]').isVisible().catch(() => false);
+            const pinned = await page.evaluate(() => {
+              const pin = [...document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]')].find((e) => e.getBoundingClientRect().width > 0);
+              if (!pin) return null;
+              pin.click();
+              return pin.getAttribute('aria-label');
+            });
+            const byPin = !!pinned && (await lowered());
+            await page.waitForTimeout(1000);
+            const openedByPin = await page.evaluate(() => ['capture-viewer', 'mark-card', 'gap-card', 'spot-card', 'found-card'].filter((id) => document.querySelector(`[data-testid=${id}]`)));
+            check(raisedPin && byPin && openedByPin.length === 0,
+              `tend walk-screen audit 30: raised, a tap on a pin lowers the walk's settings and opens nothing (${JSON.stringify({ raisedPin, pinned, byPin, openedByPin })})`);
+            if (openedByPin.includes('capture-viewer')) {
+              await page.click('[data-testid=viewer-close]').catch(() => {});
+              await page.waitForSelector('[data-testid=capture-viewer]', { state: 'detached', timeout: 5000 }).catch(() => {});
+            }
+            if (await page.locator('[data-testid=options-card]').isVisible().catch(() => false)) {
+              await page.keyboard.press('Escape');
+              await lowered();
+            }
           }
           // tend walk-screen T48 (the owner's "Undo + Close, stays", decision 0233): a memo discarded on the walk; past the
           // old five seconds the pill is still there with Undo and a 44 pt Close, whole and on screen at 390 and 320 px;

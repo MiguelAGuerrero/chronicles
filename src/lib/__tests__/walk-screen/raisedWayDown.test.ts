@@ -60,3 +60,24 @@ test('tend walk-screen T45: Done is spoken by its word, with a hint saying it lo
   assert.doesNotMatch(attrs, /accessibilityLabel=/, 'its spoken name is the word it shows');
   assert.match(attrs, /accessibilityHint="Lowers the walk settings"/, 'a hint saying what it does');
 });
+
+// tend walk-screen audit 30 (the batch's review: auditor F4): on the walk, a tap on a moment's pin, a "?" place or a
+// memory pin above the raised settings, or a long press on the map, opened a card over the still-raised panel; on the ready
+// screen a pin tap with the bar up did nothing. Raised, each of them lowers the panel as the map's tap does, and nothing else.
+test('tend walk-screen audit 30: raised, a pin, a place, a memory or a long press lowers the settings and opens nothing', () => {
+  const walk = read('app/walk.tsx');
+  assert.match(walk, /const lowerFirst = \(\) => \{\s*if \(!options\) return false;\s*raiseOptions\(false\);\s*return true;\s*\};/, 'one step: lowered, and nothing else');
+  for (const [prop, rest] of [
+    ['onPinPress', /\(cs: Faced\[\]\) => \{\s*if \(lowerFirst\(\)\) return;/],
+    ['onMemoryPress', /\(group, at\) => \{\s*if \(lowerFirst\(\)\) return;/],
+    ['onDiscoveryPress', /\(id\) => \{\s*if \(lowerFirst\(\)\) return;/],
+    ['onLongPress', /\(at, radiusM\) => \{\s*if \(lowerFirst\(\)\) return;/],
+  ] as const) {
+    const at = walk.indexOf(`        ${prop}={`);
+    assert.ok(at >= 0, `the walk map's ${prop}`);
+    assert.match(walk.slice(at, at + 400), rest, `${prop} lowers the raised settings first`);
+  }
+  const ready = read('components/walk/useReady.tsx');
+  assert.match(ready, /onPinPress: \(cs: Faced\[\]\) => \{\s*if \(up\) \{\s*setUp\(false\);\s*return;\s*\}/, 'the ready map: a pin tap lowers the raised bar');
+  assert.match(ready, /onLongPress: \(p: LngLat\) => \{\s*if \(up\) \{\s*setUp\(false\);\s*return;\s*\}/, 'and a long press');
+});
