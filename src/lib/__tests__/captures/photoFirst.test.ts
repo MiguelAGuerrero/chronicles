@@ -263,5 +263,7 @@ test('tend captures audit 13: while the shot is held only ✕ acts, and the hidd
   assert.match(editor, /const untabbed = props\.held \? \(\{ focusable: false, tabIndex: -1 \} as const\) : \{\};/);
   const chip = editor.slice(editor.indexOf('const chip = ('), editor.indexOf('const controls = ('));
   assert.match(chip, /<Pressable\s+key=\{testID\}\s+testID=\{testID\}[\s\S]*?\{\.\.\.untabbed\}/);
-  assert.match(editor, /testID=\{`edit-tool-\$\{t\}`\}[\s\S]{0,200}?\{\.\.\.untabbed\}/);
+  assert.match(editor, /testID=\{`edit-tool-\$\{t\}`\}[\s\S]{0,800}?\{\.\.\.untabbed\}/);
+  // (tend captures audit 13: Done is disabled while held, and Revert while nothing is edited: both out of the order.)
+  assert.match(editor, /testID="edit-done" [^>]*disabled=\{!!props\.held\}/);
 });

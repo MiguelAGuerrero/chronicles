@@ -95,6 +95,9 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   const [enter] = useState<'none' | 'fade'>(() => (props.shot ? 'none' : 'fade'));
   const hidden = props.held ? HIDDEN : null;
   const unread = props.held ? ({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants', 'aria-hidden': true } as object) : {};
+  // Held, the hidden chips and tools leave the Tab order (tend captures audit 13): react-native-web's Pressable sets its
+  // own tabIndex, so `focusable` alone does not take it out there.
+  const untabbed = props.held ? ({ focusable: false, tabIndex: -1 } as const) : {};
   const insets = useSafeAreaInsets();
   const uri = useMediaUri(c);
   const [s, setS] = useState<Session>(() => openSession(kind, { edit: c.edit ?? null, caption: c.caption ?? null, caption_y: c.caption_y ?? null }, props.initialTool));
@@ -176,6 +179,8 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
 
   const dispatch = (e: SessionEvent) => {
     if (saving) return;
+    // Held, only ✕ acts: a hidden tool reached by a keyboard or a screen reader edits nothing (tend captures audit 13).
+    if (props.held && e.type !== 'close') return;
     const r = step(s, e);
     setS(r.state);
     if (r.effect?.type === 'close') props.onClose();
@@ -319,6 +324,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
       onPress={onPress}
       style={[styles.chip, on && styles.chipOn]}
       hitSlop={4}
+      {...untabbed}
     >
       {icon && <Icon name={icon} size={18} color={on ? theme.ink : '#ffffff'} />}
       <Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text>
@@ -480,6 +486,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
                     }}
                     style={styles.tool}
                     hitSlop={4}
+                    {...untabbed}
                   >
                     <Icon name={TOOL_META[t].icon} size={24} color={on ? '#ffd60a' : '#ffffff'} />
                     <Text style={[styles.toolText, on && styles.toolTextOn]}>{TOOL_META[t].label}</Text>
