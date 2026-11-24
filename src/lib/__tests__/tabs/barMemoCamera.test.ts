@@ -132,3 +132,17 @@ test('tend tabs T60: mid-memo the line keeps its time whole beside Discard at 32
   }
   assert.deepEqual([memoLine(390).left, memoLine(390).right], [10, 10], 'from 360 px the line\'s gaps are as before');
 });
+
+// tend tabs audit 68 (the batch's review: auditor F3): a photo still being saved when its memo left sight opened its editor
+// anyway: `leaveMemo` let the editor go first, then the memo's save waited for the photo, and `photo()` opened the editor
+// once it was kept, on the new tab or over a card or a Modal (iOS cannot present a Modal over a Modal). The memo a leave
+// saved is kept, and a photo taken during that memo opens no editor once kept.
+test('tend tabs audit 68: a photo taken during a memo that left sight opens no editor once kept', () => {
+  const sf = source();
+  const leave = constText(sf, 'leaveMemo');
+  assert.match(leave, /leftMemo\.current = cap\.voiceStartedAt;/, 'the leave keeps which memo it saved');
+  const photo = constText(sf, 'photo');
+  assert.match(photo, /const memoAt = cap\.voiceStartedAt;/, 'the photo knows the memo it was taken during');
+  const gate = photo.indexOf('memoAt != null && leftMemo.current === memoAt');
+  assert.ok(gate >= 0 && gate < photo.indexOf('editAfter.open('), 'and opens no editor once that memo has left sight');
+});

@@ -319,6 +319,43 @@ async function run(h) {
     check(saved && !editorLeft, `tend tabs T60: mid-memo with a photo's editor waiting, a change of tab saves the memo and no editor opens (${JSON.stringify({ saved, editorLeft })})`);
     await tabTo(pg, 'explore');
     await pg.waitForTimeout(1200);
+    // tend tabs audit 68 (auditor F3): the same with the photo still being saved as the tab changes (its file's read held
+    // back 4 s): the memo waits for it and joins it, and no editor opens once it is kept.
+    const m68 = await pieces();
+    await memo();
+    await pg.evaluate(() => {
+      if (!window.__fetchWas) window.__fetchWas = window.fetch;
+      window.__slowBlob68 = true;
+      window.__slowBlobHit68 = false;
+      window.fetch = async (u, ...rest) => {
+        if (window.__slowBlob68 && String(u).startsWith('blob:')) {
+          window.__slowBlob68 = false;
+          window.__slowBlobHit68 = true;
+          await new Promise((r) => setTimeout(r, 4000));
+        }
+        return window.__fetchWas(u, ...rest);
+      };
+    });
+    const [chooser68] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 8000 }), pg.click('[data-testid=recording-bar] [data-testid=bar-photo]')]);
+    await chooser68.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+    const held68 = await pg.waitForFunction(() => window.__slowBlobHit68, null, { timeout: 8000 }).then(() => true, () => false);
+    await tabTo(pg, 'chronicle', 'walks');
+    let added68 = [];
+    for (let k = 0; k < 40; k++) {
+      added68 = (await pieces()).filter((m) => !m68.some((o) => o.id === m.id));
+      if (added68.some((m) => m.kinds.includes('photo')) && added68.some((m) => m.kinds.includes('voice'))) break;
+      await pg.waitForTimeout(400);
+    }
+    const saved68 = added68.some((m) => m.kinds.includes('voice'));
+    const kept68 = added68.some((m) => m.kinds.includes('photo'));
+    await pg.waitForTimeout(2500);
+    const editor68 = await editorShown();
+    if (editor68) await closeEditor();
+    await pg.evaluate(() => { if (window.__fetchWas) window.fetch = window.__fetchWas; });
+    check(held68 && saved68 && kept68 && !editor68,
+      `tend tabs audit 68: a photo still being saved as the memo leaves sight is kept with it, and opens no editor (${JSON.stringify({ held68, added68, editor68 })})`);
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(1200);
   });
 
   // BC4: the pencil opens the note's page over the tab; words kept join the walk; an empty page keeps nothing.
