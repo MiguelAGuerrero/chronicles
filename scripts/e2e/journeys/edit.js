@@ -527,7 +527,7 @@ async function heldShot(h) {
     if (slow) await slowKeep(slow);
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click(button, { timeout: 10000 })]);
     await pg.evaluate(SAMPLE);
-    await chooser.setFiles(path.join(fixtures, file));
+    await chooser.setFiles(typeof file === 'string' ? path.join(fixtures, file) : file);
     if (await pg.waitForSelector('[data-testid=media-editor][data-held=true] [data-testid=edit-shot]', { timeout: 4000 }).then(() => true, () => false)) await shot(pg, `${SHOTS_TAG}-${label}-held`);
     // tend captures audit 12 (U2): while held, the editor's polite live region is in the page already, empty and read by
     // screen readers (no aria-hidden over it), so "Photo kept" is announced when it fills; stamped to find it again.
@@ -625,9 +625,28 @@ async function heldShot(h) {
       check(honest(r), `tend captures T62, audit 7, audit 11: on the walk while the ${kind} is held there is no "${kind === 'photo' ? 'Photo' : 'Video'} kept" and Done cannot be pressed, only ✕ named "Close, the ${kind} stays as it is"; once kept, the words and Done (${say(r)})`);
     });
   }
-  // tend captures audit 10: a camera-sized photo (4032 x 3024), the picker's read of it the slowest part of its return.
+  // tend captures audit 10: a camera-sized photo (4032 x 3024 JPEG), made in the page from the 800 x 600 fixture (the loop
+  // adds no file under scripts/ outside the journeys), handed to the picker as a file of its own.
+  const cameraSized = async () => {
+    const from = require('fs').readFileSync(path.join(fixtures, 'photo.jpg')).toString('base64');
+    const b64 = await pg.evaluate(async (s) => {
+      const img = new Image();
+      img.src = `data:image/jpeg;base64,${s}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = 4032;
+      c.height = 3024;
+      c.getContext('2d').drawImage(img, 0, 0, 4032, 3024);
+      const url = c.toDataURL('image/jpeg', 0.85);
+      c.width = 0;
+      c.height = 0;
+      return url.split(',')[1];
+    }, from);
+    return { name: 'photo-4032.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(b64, 'base64') };
+  };
+  // tend captures audit 10: a camera-sized photo, the picker's read of it the slowest part of its return.
   await step('T62 walk photo camera-sized', async () => {
-    const r = read(await capture('[data-testid=cap-photo]', 'photo-4032.jpg', 'walk-photo-4032-390'));
+    const r = read(await capture('[data-testid=cap-photo]', await cameraSized(), 'walk-photo-4032-390'));
     check(whole(r) && steady(r), `tend captures audit 10: on the walk a 4032 x 3024 photo covers the map from its first opaque frame, only the mount frame before it, within 250 ms of the editor's first frame, and its box never moves (${say(r)})`);
   });
   await step('T62 walk photo 320', async () => {
