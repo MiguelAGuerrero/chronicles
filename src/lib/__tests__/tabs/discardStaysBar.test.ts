@@ -114,3 +114,19 @@ test('tend tabs audit 70: the band hides its discarded memo\'s pill and lets the
   // (tend tabs audit 70: read as the walk the band files into, set as Stop begins and cleared by that same stop.)
   assert.ok(band.indexOf('const barStopFor') > band.indexOf('const walkId = walk?.id ?? null;'));
 });
+
+// tend tabs audit 71 (the review's F5, the orchestrator's ruling R11): the bar's Stop let its set-aside memo go as it
+// began, before it could refuse (a memo recording, held captures warned of, a failure), so a refused Stop lost the
+// discarded memo's Undo. The memo is let go when the end goes through; the pill hides while the Stop is under way. (The
+// walk screen's own Stop has the same shape and keeps it: walk-screen audit 33 holds it there, filed in DEFERRED.)
+test('tend tabs audit 71: a refused bar Stop keeps the discarded memo\'s Undo; the memo goes when the end goes through', () => {
+  const bar = read(BAR);
+  assert.match(pill(bar, '{cap.discarded && '), /^\{cap\.discarded && !memoOn && !stopping && /, 'no pill while stopping');
+  const stop = body(bar, '  const stop = async () => {', '\n  };');
+  assert.doesNotMatch(stop, /closeDiscard/, 'Stop no longer lets the memo go as it begins');
+  const end = body(bar, '  const endWalk = async () => {', '\n  };');
+  const warnAt = end.indexOf("if ('warn' in r)");
+  const closeAt = end.indexOf('void cap.closeDiscard();');
+  assert.ok(warnAt > 0 && closeAt > warnAt, 'let go only past the warning, once the end has gone through');
+  assert.ok(closeAt < end.indexOf("feedback('success')"), 'before the bar goes');
+});

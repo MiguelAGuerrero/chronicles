@@ -342,10 +342,26 @@ async function run(h) {
   await shot(pg, 'unsaved-bar-warning-390');
   check((await fillOf('[data-testid=bar-stop]')) === 0, `UN7: the bar's Stop is empty again after the refused hold (${await fillOf('[data-testid=bar-stop]')})`);
 
+  // tend tabs audit 71 (the review's F5): a memo discarded on the bar, then a Stop that does not go through: its Undo is
+  // still there after, and keeps the memo in the walk. (The bar's Stop let the memo go as it began, refused or not.)
+  if (!(await there('[data-testid=bar-voice]', 2000))) await tabTo(pg, 'explore').catch(() => {});
+  const memos71 = (await voices(walkId)).length;
+  await pg.click('[data-testid=bar-voice]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=bar-voice-discard]', { timeout: 10000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  await pg.click('[data-testid=bar-voice-discard]', { timeout: 5000 }).catch(() => {});
+  const pill71 = await there('[data-testid=bar-voice-undo]', 4000);
+
   // unsaved-captures audit 4: a second hold whose Stop fails keeps the walk's held captures.
   await pg.evaluate(() => { window.__failWalk = 1; });
   await hold('[data-testid=bar-stop]');
   const notStopped = await textOf('[data-testid=recording-said]');
+  const undo71 = await there('[data-testid=bar-voice-undo]', 4000);
+  if (undo71) await shown('[data-testid=bar-voice-undo]').first().click().catch(() => {});
+  await pg.waitForTimeout(2000);
+  const memosAfter71 = (await voices(walkId)).length;
+  check(pill71 && /could not be stopped/.test(notStopped) && undo71 && memosAfter71 === memos71 + 1,
+    `tend tabs audit 71: a memo discarded on the bar keeps its Undo through a Stop that does not go through, and Undo then keeps it in the walk (${JSON.stringify({ pill71, notStopped, undo71, memos71, memosAfter71 })})`);
   check(/could not be stopped/.test(notStopped) && (await there('[data-testid=held-captures]', 3000)),
     `unsaved-captures audit 4: a Stop that fails keeps the walk's held photo ("${notStopped}")`);
   await pg.evaluate(() => { window.__failWalk = 0; });
