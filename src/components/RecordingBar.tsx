@@ -17,7 +17,7 @@ import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/r
 import { feedback } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { perfCount } from '../lib/perfCount';
-import { BAR_WAIT_MS, barCapturesOff, barChevron, barDot, barGoesBack, barLineGaps, barMemoSaves, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
+import { BAR_WAIT_MS, barCapturesOff, barChevron, barDot, barGoesBack, barLineGaps, barMemoLine, barMemoSaves, barStopLeftMs, barStopping, memoLine, recordingLine } from '../lib/recordingBar';
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
@@ -71,7 +71,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const path = usePathname();
   const section = useStore(chronicleSection.store, (x) => x);
   const showCaptures = barCaptures(path, section).length > 0;
-  // The memo records in place (BC2): the line shows its time, Discard and Save take the camera's and the mic's places.
+  // The memo records in place (BC2 as T60 amends it): the line shows its time with Discard before it, the camera keeps its
+  // place (a photo then joins the memo's moment, `photoMidMemo` in `useCaptures`), Save takes the mic's.
   const memoOn = cap.voiceStartedAt != null;
   const memoStartedAt = cap.voiceStartedAt;
   // The chevron at every width, never mid-memo (BC6, T58).
@@ -83,12 +84,16 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const dot = barDot(width);
   // The line's gaps as the drawings have them, by width and state (tend tabs audit 63).
   const gaps = barLineGaps(width, memoOn, paused);
+  // Mid-memo, the line with Discard on it: its dot and paddings by width, so the time stays whole at 320 px (T60).
+  const memoRow = barMemoLine(width);
   // The pencil's page (BC4), the one the walk screen's pencil opens, over this tab.
   const [page, setPage] = useState<{ key: number } | null>(null);
   const pageRef = useRef<NotePageHandle>(null);
   // Once its photo or video is kept, the editor opens by itself (ME23 as decision 0240 amends it; it was 0149's pill).
   const editAfter = useEditAfterCapture(cap.captures);
-  const editing = editAfter.editing;
+  // While the memo records, a photo taken then waits for its editor until the memo is saved or discarded, as on the walk
+  // screen (the owner's "Editor waits", decision 0261; tend tabs T60).
+  const editing = memoOn ? null : editAfter.editing;
   // Held to stop, the walk is going. Shared, not this bar's own: the bar unmounts as its tab loses focus while the stop
   // goes on (tend tabs audit 26).
   // Within the stop's own bound, as the way back is: a stop that hangs lets the Stop's spinner go after it (tend tabs 19).
@@ -199,8 +204,12 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (!goesBack(returning.current)) return;
     returning.current = true;
     try {
-      // A memo recording is saved first (BC3): the line, the reminder's See.
-      if (cap.voiceStartedAt != null) await cap.finishVoice();
+      // A memo recording is saved first (BC3): the line, the reminder's See. A photo's editor waiting on it opens no
+      // more: the walk screen comes, and it would open on the tab being left (T60).
+      if (cap.voiceStartedAt != null) {
+        editAfter.close();
+        await cap.finishVoice();
+      }
       // The photo is kept first, so the walk screen shows it; never held for ever by a save that hangs.
       await settleWithin(keeping.current, RETURN_WAIT_MS);
       // Held to stop meanwhile: the stop goes alone, its replay over the tabs, not over a walk screen (tend tabs 12).
@@ -244,10 +253,16 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   };
   // A memo is saved first when the bar's captures leave sight (BC3; `barMemoSaves`): another tab, Memories, a card or
   // sheet that folds the bar away, or a Modal over the tabs. A change of Chronicle's section keeps it (audit 2). A screen
-  // over the tabs unmounts the bar, and `useCaptures` saves it then.
-  const saveRef = useRef(saveMemo);
+  // over the tabs unmounts the bar, and `useCaptures` saves it then. A photo's editor waiting on the memo opens no more
+  // (T60): it would come on another tab, or over the card or the Modal that took the bar's place (iOS cannot present a
+  // Modal over a Modal).
+  const leaveMemo = async () => {
+    editAfter.close();
+    await saveMemo();
+  };
+  const saveRef = useRef(leaveMemo);
   useEffect(() => {
-    saveRef.current = saveMemo;
+    saveRef.current = leaveMemo;
   });
   const lastPath = useRef(path);
   useEffect(() => {
@@ -351,17 +366,33 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         </View>
       )}
       <View style={styles.row}>
+        {memoOn && (
+          // Discard on the line, before the memo's time, the farther from Save, as the walk screen's row (T44, T60).
+          <BarRound
+            id="bar-voice-discard"
+            icon="trash-outline"
+            label="Discard voice memo"
+            hint="Throws this recording away. You can undo for a few seconds."
+            onPress={() => void discardMemo()}
+            disabled={cap.busy === 'voice'}
+          />
+        )}
         <Pressable
           testID="recording-return"
           accessibilityRole="button"
           accessibilityHint={memoOn ? undefined : 'Returns to the walk'}
           onPress={() => back(null)}
-          style={({ pressed }) => [styles.main, { gap: gaps.gap, paddingRight: gaps.right }, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.main,
+            memoOn ? { gap: gaps.gap, paddingLeft: memoRow.left, paddingRight: memoRow.right } : { gap: gaps.gap, paddingRight: gaps.right },
+            pressed && styles.pressed,
+          ]}
         >
           {memoOn ? (
-            // The memo's time beside a red dot (BC2); its name says it records, the walk's pause, and what a tap does (BC6).
+            // The memo's time beside a red dot (BC2), the dot from 360 px (T60); its name says it records, the walk's pause,
+            // and what a tap does (BC6).
             <>
-              <View testID="bar-voice-dot" style={styles.memoDot} />
+              {memoRow.dot && <View testID="bar-voice-dot" style={styles.memoDot} />}
               <Ticking testID="bar-voice-timer" style={[styles.text, styles.numbers]} numberOfLines={1} text={(now) => memo(now).time} label={(now) => memo(now).label} />
             </>
           ) : (
@@ -388,18 +419,25 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             </>
           )}
         </Pressable>
+        {(showCaptures || cap.busy === 'photo') &&
+          // Named as Memories' band names its camera with a walk open: the same job, the same name (tend tabs 3). Mid-memo it
+          // keeps its place and says where the photo goes; off while the memo is being saved (T60).
+          <BarRound
+            id="bar-photo"
+            icon="camera"
+            label={memoOn ? 'Add a photo to this memo' : 'Add to your walk: take a photo or video'}
+            onPress={() => void photo()}
+            spinning={cap.busy === 'photo'}
+            disabled={capturing || cap.busy === 'voice'}
+          />}
         {memoOn ? (
-          // Discard in the camera's place, Save in the mic's, the pencil's left empty, so Stop never moves (BC2).
+          // Save in the mic's place, the pencil's left empty, so Stop never moves (BC2).
           <>
-            <BarRound id="bar-voice-discard" icon="trash-outline" label="Discard voice memo" onPress={() => void discardMemo()} disabled={cap.busy === 'voice'} />
             <BarRound id="bar-voice-save" icon="stop" label="Stop and save voice memo" onPress={() => void saveMemo()} voice spinning={cap.busy === 'voice'} disabled={cap.busy === 'voice'} />
             <View style={styles.slot} pointerEvents="none" aria-hidden />
           </>
         ) : (
           <>
-            {(showCaptures || cap.busy === 'photo') &&
-              // Named as Memories' band names its camera with a walk open: the same job, the same name (tend tabs 3).
-              <BarRound id="bar-photo" icon="camera" label="Add to your walk: take a photo or video" onPress={() => void photo()} spinning={cap.busy === 'photo'} disabled={capturing} />}
             {(showCaptures || cap.busy === 'voice') &&
               <BarRound id="bar-voice" icon="mic" label="Add to your walk: record a voice memo" onPress={() => void startMemo()} spinning={cap.busy === 'voice'} disabled={capturing} />}
             {showCaptures && <BarRound id="bar-note" icon="document-text" label="Add to your walk: write a note" onPress={() => setPage((p) => ({ key: (p?.key ?? 0) + 1 }))} disabled={capturing} />}
@@ -436,12 +474,13 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
 }
 
 /** A round 44 pt button of the bar, ink on white (BC1), or purple for the memo's Save, as on the walk screen (BC2). */
-function BarRound(o: { id: string; icon: IconName; label: string; onPress: () => void; spinning?: boolean; disabled?: boolean; voice?: boolean }) {
+function BarRound(o: { id: string; icon: IconName; label: string; hint?: string; onPress: () => void; spinning?: boolean; disabled?: boolean; voice?: boolean }) {
   return (
     <Pressable
       testID={o.id}
       accessibilityRole="button"
       accessibilityLabel={o.label}
+      accessibilityHint={o.hint}
       accessibilityState={{ busy: !!o.spinning, disabled: !!o.disabled }}
       disabled={o.disabled}
       onPress={o.onPress}

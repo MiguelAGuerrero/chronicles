@@ -116,20 +116,19 @@ const TIME_MAX = 44;
 const PAD = 6 + 10; // the bar's left and right padding
 const ROUND = 44; // the camera, Save, the pencil's empty slot and Stop
 const GAP = 6; // between the row's parts
-const LEFT = 10; // the line's left padding
 const DOT = 12 + 10; // the memo's dot and its gap
 
 test('tend tabs T60: mid-memo the line keeps its time whole beside Discard at 320 px; the dot gives way below 360 px, as the line\'s', () => {
-  const memoLine = fn(bar, 'barMemoLine') as ((w: number) => { dot: boolean; right: number; discard: number }) | undefined;
+  const memoLine = fn(bar, 'barMemoLine') as ((w: number) => { dot: boolean; left: number; right: number; discard: number }) | undefined;
   assert.ok(memoLine, 'barMemoLine exists');
   for (const width of [320, 340, 360, 390, 430]) {
     const m = memoLine(width);
     assert.equal(m.dot, bar.barDot(width), `the memo's dot follows the line's at ${width} px`);
-    // Smaller than the bar's buttons, as the walk screen's Discard is smaller than its stack (T44); its touch stays 44.
-    assert.ok(m.discard < ROUND && m.discard + 2 * 4 >= 44, `Discard is smaller, its touch 44 pt at ${width} px`);
+    // tend tabs T60: a 44 pt button itself, as the bar's others: react-native-web has no hitSlop (tabs-and-home rule).
+    assert.equal(m.discard, ROUND, `Discard's touch is 44 pt at ${width} px`);
     const room = width - PAD - (m.discard + 4 * ROUND + 5 * GAP);
-    const need = LEFT + (m.dot ? DOT : 0) + TIME_MAX + m.right;
+    const need = m.left + (m.dot ? DOT : 0) + TIME_MAX + m.right;
     assert.ok(need <= room, `the memo's time fits at ${width} px (${need} <= ${room})`);
   }
-  assert.equal(memoLine(390).right, 10, 'from 360 px the line\'s gaps are as before');
+  assert.deepEqual([memoLine(390).left, memoLine(390).right], [10, 10], 'from 360 px the line\'s gaps are as before');
 });

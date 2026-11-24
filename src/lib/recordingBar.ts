@@ -80,6 +80,18 @@ export function barDot(width: number): boolean {
 }
 
 /**
+ * The line while the bar's own memo records (`tend tabs T60`, decision 0261, amending BC2 as T44 amended NR10): Discard
+ * sits on the line, before the memo's time, a 44 pt button as the bar's others (react-native-web has no `hitSlop`, so a
+ * smaller one would be a smaller touch), and the camera keeps its place. Below 360 px the memo's red dot gives way, as
+ * the line's does (T58), and the line's own padding is 4 at each side, so the time stays whole at 320 px beside
+ * Discard, the camera, Save, the pencil's empty slot and Stop.
+ */
+export function barMemoLine(width: number): { dot: boolean; left: number; right: number; discard: number } {
+  const dot = barDot(width);
+  return { dot, left: dot ? 10 : 4, right: dot ? 10 : 4, discard: 44 };
+}
+
+/**
  * The line while the bar records a memo (BC2, BC6): its time as m:ss, and a spoken name that says it records, whether
  * the walk is paused, and what a tap does (the line saves it, then returns to the walk; BC3).
  */
