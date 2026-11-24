@@ -138,6 +138,7 @@ test('tend tabs T60: mid-memo the line keeps its time whole beside Discard at 32
 // once it was kept, on the new tab or over a card or a Modal (iOS cannot present a Modal over a Modal). The memo a leave
 // saved is kept, and a photo taken during that memo opens no editor once kept.
 test('tend tabs audit 68: a photo taken during a memo that left sight opens no editor once kept', () => {
+  // tend tabs audit 68: read from the bar's own `leaveMemo` and `photo`.
   const sf = source();
   const leave = constText(sf, 'leaveMemo');
   assert.match(leave, /leftMemo\.current = cap\.voiceStartedAt;/, 'the leave keeps which memo it saved');

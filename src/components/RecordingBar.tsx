@@ -225,7 +225,10 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       returning.current = false;
     }
   };
+  /** The memo a leave-sight save took (its start): a photo taken during it opens no editor once kept (tend tabs audit 68). */
+  const leftMemo = useRef<number | null>(null);
   const photo = async () => {
+    const memoAt = cap.voiceStartedAt;
     const run = cap.takePhoto();
     keeping.current = run;
     const kept = await run.finally(() => {
@@ -234,6 +237,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (!kept) return;
     feedback('tap');
     setSaid(null);
+    // Taken during a memo that has since left sight: the editor would open on another tab or over a card (audit 68).
+    if (memoAt != null && leftMemo.current === memoAt) return;
     // Not while the walk is stopping or has ended, nor once the bar goes back to the walk: the replay or the walk screen
     // would take the editor with the bar (tend tabs audit 19; fix edit-after-capture audits 3, 5, 6).
     if (!returning.current && !wentBack.current && !barStopping(barStop.get(), walk.id, Date.now()) && !unsaved.hasEnded(walk.id)) editAfter.open(kept);
@@ -257,6 +262,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // (T60): it would come on another tab, or over the card or the Modal that took the bar's place (iOS cannot present a
   // Modal over a Modal).
   const leaveMemo = async () => {
+    leftMemo.current = cap.voiceStartedAt;
     editAfter.close();
     await saveMemo();
   };

@@ -73,5 +73,6 @@ paths:
   the line, outside its button. A photo taken then follows the memo in `useCaptures` (`photoMidMemo`, `memoJoins`, the
   walk screen's path); its editor waits while the memo records (`editing` is null) and is let go (`editAfter.close()`)
   when `back()` saves the memo or `leaveMemo` saves it as the captures leave sight, so it never opens on another tab or
-  over a card or Modal. Below 360 px the memo's dot goes and the line's padding is 4 a side (`barMemoLine`): at 320 px
+  over a card or Modal; a photo still being saved then opens none once kept either (`leftMemo`, the memo the leave saved,
+  matched by its start; `tend tabs audit 68`). Below 360 px the memo's dot goes and the line's padding is 4 a side (`barMemoLine`): at 320 px
   the line has 54 px for "59:59". Not run on a device.
