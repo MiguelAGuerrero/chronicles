@@ -84,8 +84,8 @@ test('tend tabs T60: Discard sits on the line beside the time, before it, not in
 });
 
 test('tend tabs T60: a photo taken mid-memo waits for its editor until the memo is saved or discarded', () => {
-  const sf = source();
-  assert.match(constText(sf, 'editing'), /^(memoOn|cap\.voiceStartedAt\s*!=\s*null)\s*\?\s*null\s*:\s*editAfter\.editing$/, 'the editor waits on the memo');
+  // tend captures T62: the bar's mask is the editor hook's own `waits`, which holds no shot and draws no editor meanwhile.
+  assert.match(readFileSync(BAR, 'utf8'), /= useEditAfterCapture\(cap\.captures, \{\s*waits: memoOn,/, 'the editor waits on the memo');
 });
 
 test('tend tabs T60: the editor waiting on the memo opens no more when the bar goes back to the walk or its memo leaves sight', () => {
@@ -103,7 +103,8 @@ test('tend tabs T60: the editor waiting on the memo opens no more when the bar g
 test('tend tabs T60: the bar\'s photo mid-memo goes with the memo, as the walk screen\'s since T44', () => {
   const sf = source();
   // The bar's camera asks for no target of its own, so `useCaptures` sends it after the memo (`photoMidMemo`).
-  assert.match(constText(sf, 'photo'), /cap\.takePhoto\(\)/);
+  // tend captures T62: still no target or place of its own; only the editor's camera watch is handed over.
+  assert.match(constText(sf, 'photo'), /cap\.takePhoto\(null, null, editAfter\.camera\)/);
   // A memo of its own: the photo is kept as the moment, and the memo joins it when saved.
   assert.deepEqual(photoMidMemo({ into: null, place: null }, null, null), { into: null, place: null });
   assert.deepEqual(memoJoins({ t: 1, into: null }, 'm1'), { t: 1, into: 'm1' });
