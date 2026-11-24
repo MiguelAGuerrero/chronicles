@@ -343,6 +343,16 @@ test('tend map T50: both maps draw the halo under the ends with the trace\'s opa
   assert.match(native, loopSource);
   assert.ok(native.search(loopSource) < native.indexOf('<GeoJSONSource id="ends"'), 'mounted first, so drawn under');
   assert.match(native, /const together = endsTogether\(endPoints, view\?\.zoom \?\? props\.initialZoom\);/);
-  assert.match(native, /const ends = useMemo\(\(\) => endsGeoJSON\(together \? null : endPoints\.start, endPoints\.end\), \[endsKey, together\]\);/);
-  assert.match(native, /const loop = useMemo\(\(\) => endsLoopGeoJSON\(together \? endPoints\.end : null\), \[endsKey, together\]\);/);
+  // One memo for the two sources, keyed on the ends and the flip (one React rule suppression, as before T50).
+  assert.match(native, /const \{ ends, loop \} = useMemo\(\s*\(\) => \(\{ ends: endsGeoJSON\(together \? null : endPoints\.start, endPoints\.end\), loop: endsLoopGeoJSON\(together \? endPoints\.end : null\) \}\),[\s\S]{0,80}\[endsKey, together\],\s*\);/);
+});
+
+test('tend map T50: one mark or two, the web still writes both ends for the e2e, and both maps keep the ends\' points', () => {
+  const dir = join(__dirname, '../../../components/map');
+  const web = readFileSync(join(dir, 'WalkMap.web.tsx'), 'utf8');
+  const native = readFileSync(join(dir, 'WalkMap.native.tsx'), 'utf8');
+  // The key names the start and the end whatever is drawn, so the journeys that read them (qol, replay, gaps) hold.
+  assert.match(web, /const endsKey = `\$\{fmt\(ends\.start\)\}\|\$\{fmt\(ends\.end\)\}`;/);
+  assert.match(web, /data-ends=\{endsKey\}/);
+  assert.match(native, /<EndsSource data=\{ends\} loop=\{loop\} opacity=/);
 });

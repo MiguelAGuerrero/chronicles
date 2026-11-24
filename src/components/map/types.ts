@@ -969,6 +969,29 @@ export const ENDS_PAINT = {
 } satisfies NonNullable<CircleLayerSpecification['paint']>;
 
 /**
+ * A loop's start as a halo round the end's bullseye (tend map T50, decision 0244): when the two lie within one
+ * marker's diameter on screen (`endsTogether`, `lib/traceEnds`), the start leaves the `ends` source and is drawn
+ * here, on its own `ends-loop` source and layer under `ends-ring`, at the end's point: the start's white middle and
+ * its 4 px ring in the trace's green, wide enough that 3.5 px of white (the bullseye's own edge and this middle)
+ * part the green from the end's walked ring. The green and the walked colour are near one grey, so the band is what
+ * tells them apart in greyscale. No hue of its own; 34 px across.
+ */
+export const ENDS_LOOP_PAINT = {
+  'circle-color': '#ffffff',
+  'circle-radius': 13,
+  'circle-stroke-width': 4,
+  'circle-stroke-color': COLORS.trace,
+} satisfies NonNullable<CircleLayerSpecification['paint']>;
+
+/** The halo's one point (tend map T50), the end's, or nothing while the two ends are drawn apart. */
+export function endsLoopGeoJSON(at: LngLat | null): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: at ? [{ type: 'Feature', properties: { kind: 'loop' }, geometry: { type: 'Point', coordinates: at } }] : [],
+  };
+}
+
+/**
  * Where the walk began and ended, as points with a `kind` (QL1, QL2), drawn with `ENDS_RING_PAINT` and `ENDS_PAINT`;
  * the start first, so a layer draws the end over it (tend map audit 25).
  */

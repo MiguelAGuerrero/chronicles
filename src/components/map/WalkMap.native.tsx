@@ -19,7 +19,7 @@ import { metersPerPixel, pinKey, pinReactions, pinReminded, pinThumb, stalkLift 
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { useReminded } from '../../lib/useReminded';
 import { drawnFrom, scaleBar, scaleShown } from '../../lib/scaleBar';
-import { traceEnds } from '../../lib/traceEnds';
+import { endsTogether, traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { NATIVE_FRAME_MS, useGlideFrames, useGlideShown, type GlideFrame } from '../../lib/useGlidingWalker';
 import { createStore, type Store } from '../../lib/store';
@@ -36,7 +36,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
+  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
   LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps, FLAT_NORTH_UP, resendKey, type ReplayMapFrame, FIT_MAX_ZOOM, FIT_PADDING,
 } from './types';
 
@@ -240,8 +240,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // of the trace (MapLibre RN serializes a source's data on each change).
   const endPoints = traceEnds(Array.isArray(props.ended) ? props.ended : props.trace, !!props.ended);
   const endsKey = `${endPoints.start?.join(',') ?? ''}|${endPoints.end?.join(',') ?? ''}`;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
+  // A loop's two ends within one marker's diameter on screen are one mark, the start a halo round the end (tend map
+  // T50): judged at the view's zoom (every 0.25 here), new sources only when that makes them one mark or two.
+  const together = endsTogether(endPoints, view?.zoom ?? props.initialZoom);
+  const { ends, loop } = useMemo(
+    () => ({ ends: endsGeoJSON(together ? null : endPoints.start, endPoints.end), loop: endsLoopGeoJSON(together ? endPoints.end : null) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [endsKey, together],
+  );
   // The markers a pin may stand on, whose edge its stalk stops at (decision 0172, O13): none while hidden with the trace.
   const markersShown = (props.traceOpacity ?? 1) > 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -576,7 +582,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <ReplayLine store={replayShown} id="replay-trace" pick={replayTrace} />
         {/* A gap's way being drawn, dashed over the trace (GW3). */}
         <DrawingSource data={drawing} />
-        <EndsSource data={ends} opacity={props.traceOpacity ?? 1} store={replayShown} />
+        <EndsSource data={ends} loop={loop} opacity={props.traceOpacity ?? 1} store={replayShown} />
         <ConeSource frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} zoom={view?.zoom ?? 16} />
         {/* The range preview (E21): a soft disc with a firm edge. */}
         <RingSource data={ring} />
@@ -883,13 +889,19 @@ const DrawingSource = memo(function DrawingSource({ data }: { data: FC }) {
  * a walk that ends on its start keeps its end whole (tend map audit 25).
  */
 /** The trace's end markers: with the trace's opacity; through a replay, faint with the first beat's trace and whole once the path is told (replay-ceremony ui 7). */
-const EndsSource = memo(function EndsSource({ data, opacity: given, store }: { data: FC; opacity: number; store: Store<ReplayShown> }) {
+const EndsSource = memo(function EndsSource({ data, loop, opacity: given, store }: { data: FC; loop: FC; opacity: number; store: Store<ReplayShown> }) {
   const opacity = useTraceLook(store, given).marks;
+  // A loop's start as a halo round the end (tend map T50), mounted first so it is drawn under the end.
   return (
-    <GeoJSONSource id="ends" data={data}>
-      <Layer id="ends-ring" type="circle" paint={{ ...ENDS_RING_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity }} />
-      <Layer id="ends" type="circle" filter={['==', ['get', 'kind'], 'end']} paint={{ ...ENDS_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity }} />
-    </GeoJSONSource>
+    <>
+      <GeoJSONSource id="ends-loop" data={loop}>
+        <Layer id="ends-loop" type="circle" paint={{ ...ENDS_LOOP_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity }} />
+      </GeoJSONSource>
+      <GeoJSONSource id="ends" data={data}>
+        <Layer id="ends-ring" type="circle" paint={{ ...ENDS_RING_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity }} />
+        <Layer id="ends" type="circle" filter={['==', ['get', 'kind'], 'end']} paint={{ ...ENDS_PAINT, 'circle-opacity': opacity, 'circle-stroke-opacity': opacity }} />
+      </GeoJSONSource>
+    </>
   );
 });
 

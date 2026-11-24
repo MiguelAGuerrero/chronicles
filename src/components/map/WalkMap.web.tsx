@@ -19,7 +19,7 @@ import { boxAround, boxHolds, drawsPin, metersPerPixel, PIN_REACH_PX, pinDrawBox
 import type { ReactionSet } from '../../lib/reactions/core';
 import { useReactionSets } from '../../lib/reactions/useReactions';
 import { blankLookLayers, creditsAt, scaleBar, scaleShown } from '../../lib/scaleBar';
-import { traceEnds } from '../../lib/traceEnds';
+import { endsTogether, traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
 import { DEFAULT_SCALE_INSET, ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { LngLat } from '../../lib/types';
@@ -36,7 +36,7 @@ import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import { fitBearing, followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
   FIT_MAX_ZOOM, FIT_PADDING, FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
@@ -83,7 +83,7 @@ function addOverlay(map: MapLibreMap): string | undefined {
   // Lines are simplified a little more than the default and keep a smaller tile buffer (`LINE_SOURCE`, NF5).
   const lineSource = { type: 'geojson' as const, data: empty, ...LINE_SOURCE };
   for (const id of LINE_SOURCE_IDS) map.addSource(id, lineSource);
-  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins', 'waiting-dots', 'complexes', 'ground']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends-loop', 'ends', 'found-pins', 'waiting-dots', 'complexes', 'ground']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -149,7 +149,10 @@ function addOverlay(map: MapLibreMap): string | undefined {
   // are DOM markers, so they sit above every layer. The start hollow, ringed in the trace's green
   // (tend map T16); the end a bullseye (tend map T25): the start and the end's walked outer ring
   // first, then the end's walked centre and white band alone, so a walk that ends on its start keeps
-  // its end whole (tend map audit 25).
+  // its end whole (tend map audit 25). Under them, a loop's start as a halo round the end, on its own
+  // source, when the two lie within one marker's diameter on screen (tend map T50).
+  map.addLayer({ id: 'ends-loop', type: 'circle', source: 'ends-loop',
+    paint: ENDS_LOOP_PAINT });
   map.addLayer({ id: 'ends-ring', type: 'circle', source: 'ends',
     paint: ENDS_RING_PAINT });
   map.addLayer({ id: 'ends', type: 'circle', source: 'ends', filter: ['==', ['get', 'kind'], 'end'],
@@ -408,6 +411,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       map.setPaintProperty(id, 'circle-opacity', look.marks);
       map.setPaintProperty(id, 'circle-stroke-opacity', look.marks);
     }
+    // A loop's halo too (tend map T50).
+    map.setPaintProperty('ends-loop', 'circle-opacity', look.marks);
+    map.setPaintProperty('ends-loop', 'circle-stroke-opacity', look.marks);
     // How strongly the trace is drawn, for the e2e (only when measuring).
     if ((window as { __perf?: unknown }).__perf) container.current?.setAttribute('data-trace-shown', String(look.line));
   };
@@ -1194,11 +1200,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   );
   const ends = traceEnds(Array.isArray(props.ended) ? props.ended : props.trace, !!props.ended);
   const endsKey = `${fmt(ends.start)}|${fmt(ends.end)}`;
+  // A loop's two ends within one marker's diameter on screen are one mark, the start a halo round the end (tend map
+  // T50): judged at the view's zoom, and sent again only when that makes them one mark or two, never per frame.
+  const together = endsTogether(ends, view?.zoom ?? props.initialZoom);
   useEffect(() => {
-    if (ready) setData('ends', endsGeoJSON(ends.start, ends.end));
+    if (!ready) return;
+    setData('ends', endsGeoJSON(together ? null : ends.start, ends.end));
+    setData('ends-loop', endsLoopGeoJSON(together ? ends.end : null));
     // ends is derived from endsKey.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, endsKey]);
+  }, [ready, endsKey, together]);
   useEffect(() => { if (ready) setData('ring', ringGeoJSON(props.ring)); }, [ready, props.ring]);
   useEffect(() => { if (ready) setData('ground', groundGeoJSON(props.ground ?? null)); }, [ready, props.ground]);
   useEffect(() => { if (ready) setData('complexes', (props.complexes?.lines ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection); }, [ready, props.complexes]);
@@ -1774,7 +1785,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-ground={props.ground ? String(props.ground.polygons.reduce((n, rings) => n + rings.length, 0)) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} data-graded={gradedKey} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-ground={props.ground ? String(props.ground.polygons.reduce((n, rings) => n + rings.length, 0)) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} data-ends-together={together ? '1' : '0'} data-graded={gradedKey} />
       {/* Beside the map's own DOM, not inside it, so React owns it. */}
       {scale && scaleOn && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View testID="map-cover" style={styles.cover} pointerEvents="none" />}
