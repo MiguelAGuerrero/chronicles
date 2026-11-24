@@ -80,7 +80,7 @@ const SEED_CONTEXT = () => {
 const attempt = async (fn) => { try { return !!(await fn()); } catch { return false; } };
 
 async function contextRun(h) {
-  const { url, check, tabTo, freshPage, toThreads, toJournal } = h;
+  const { url, check, shot, tabTo, freshPage, toThreads, toJournal } = h;
   const { c, pg } = await freshPage('resurface-context');
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
@@ -125,6 +125,13 @@ async function contextRun(h) {
 
   // MC8-MC10: the header menu.
   const menu = async (item) => { await pg.click('[data-testid=memories-menu]'); await pg.click(`[data-testid=${item}]`); };
+  // The switch flips in place, the sheet staying up (tend memories T54): flipped, the sheet is closed with its Close.
+  const menuSwitch = async () => {
+    await menu('menu-off');
+    await pg.waitForTimeout(300);
+    await pg.click('[data-testid=menu-close]');
+    await pg.waitForSelector('[data-testid=memories-menu-sheet]', { state: 'detached', timeout: 4000 }).catch(() => {});
+  };
   const hiddenOk = await attempt(async () => {
     await pg.click('[data-testid=resurfaced-more]');
     await pg.click('[data-testid=menu-hide]');
@@ -140,19 +147,75 @@ async function contextRun(h) {
   const drawn = () => pg.locator('[data-testid=menu-off]').evaluate((e) => ({ row: e.getAttribute('aria-checked'), input: e.querySelector('input')?.checked ?? null }));
   let drawnOn = null;
   let drawnOff = null;
+  // tend memories T54 (the owner's yes, Nov 21; its mock-up approved as drawn, decision 0252): what the sheet shows right
+  // after each tap on the switch, read with the sheet still up.
+  const t54 = {};
+  const sheetUp = () => pg.locator('[data-testid=memories-menu-sheet]').isVisible().catch(() => false);
+  const noteSays = () => pg.locator('[data-testid=menu-off-note]').innerText().catch(() => null);
+  const toastSays = () => pg.locator('[data-testid=memories-toast]').innerText().catch(() => '');
+  const focusInRow = () => pg.evaluate(() => !!document.activeElement?.closest('[data-testid=menu-off]'));
   const offOk = await attempt(async () => {
     await pg.click('[data-testid=hidden-back]');
     await pg.click('[data-testid=memories-menu]');
     drawnOn = await drawn();
+    const toastBefore = await toastSays();
     await pg.click('[data-testid=menu-off]');
     await pg.waitForTimeout(400);
-    await pg.click('[data-testid=memories-menu]');
     const says = await pg.locator('[data-testid=menu-off]').innerText();
     drawnOff = await drawn();
+    t54.off = { up: await sheetUp(), note: await noteSays(), focus: await focusInRow(), toast: (await toastSays()) === toastBefore };
+    // Pictured after the Modal's fade, at 390 and 320 px.
+    await pg.waitForTimeout(800);
+    await shot(pg, 'resurface-t54-contents-switch-off-390');
+    const was = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: was.height });
+    await pg.waitForTimeout(800);
+    t54.at320 = { up: await sheetUp(), note: await noteSays(), over: await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) };
+    await shot(pg, 'resurface-t54-contents-switch-off-320');
+    await pg.setViewportSize(was);
+    await pg.waitForTimeout(600);
+    // Tapped again, it reads On in place; and once more, Off, for the steps below.
+    await pg.click('[data-testid=menu-off]');
+    await pg.waitForTimeout(400);
+    t54.on = { up: await sheetUp(), note: await noteSays(), drawn: await drawn() };
+    await pg.click('[data-testid=menu-off]');
+    await pg.waitForTimeout(400);
+    t54.offAgain = { up: await sheetUp(), note: await noteSays(), drawn: await drawn() };
     await pg.click('[data-testid=menu-close]');
+    t54.closed = await pg.waitForSelector('[data-testid=memories-menu-sheet]', { state: 'detached', timeout: 4000 }).then(() => true, () => false);
     return /Off/.test(says) && (await pg.locator('[data-testid=resurfaced]').count()) === 0 && (await pg.locator('[data-testid=moment-card]').count()) > 0;
   });
   check(offOk, 'MC9: with the switch off there is no slip, the contents says Off, and the page stays');
+  check(t54.off?.up && t54.off.note === 'Off' && t54.off.focus && t54.off.toast && drawnOff?.row === 'false' && drawnOff?.input === false
+    && t54.at320?.up && t54.at320.note === 'Off' && t54.at320.over <= 0
+    && t54.on?.up && t54.on.note === 'On' && t54.on.drawn?.row === 'true' && t54.offAgain?.up && t54.offAgain.note === 'Off' && t54.closed,
+    `tend memories T54: a tap on Bring moments back leaves Contents up, the switch drawn off and its note reading Off in place, focus on its row, no toast; tapped again it reads On in place; Close then leaves (${JSON.stringify({ ...t54, drawnOff })})`);
+  // tend memories T54: with the switch flipped, Escape and a tap on the dimmed page leave the sheet as Close does.
+  {
+    const leftBy = {};
+    await pg.click('[data-testid=memories-menu]').catch(() => {});
+    await pg.waitForSelector('[data-testid=memories-menu-sheet]', { timeout: 4000 }).catch(() => {});
+    await pg.click('[data-testid=menu-off]').catch(() => {});
+    await pg.waitForTimeout(400);
+    const stayed = await sheetUp();
+    await pg.keyboard.press('Escape');
+    leftBy.escape = await pg.waitForSelector('[data-testid=memories-menu-sheet]', { state: 'detached', timeout: 4000 }).then(() => true, () => false);
+    await pg.click('[data-testid=memories-menu]').catch(() => {});
+    await pg.waitForSelector('[data-testid=memories-menu-sheet]', { timeout: 4000 }).catch(() => {});
+    await pg.click('[data-testid=menu-off]').catch(() => {});
+    await pg.waitForTimeout(400);
+    const spot = await pg.evaluate(() => {
+      const sheet = document.querySelector('[data-testid=memories-menu-sheet]')?.getBoundingClientRect();
+      for (const [x, y] of [[8, 8], [window.innerWidth - 8, 8], [8, window.innerHeight - 8], [window.innerWidth / 2, window.innerHeight - 8]])
+        if (sheet && !(x >= sheet.left && x <= sheet.right && y >= sheet.top && y <= sheet.bottom)) return [x, y];
+      return null;
+    });
+    if (spot) await pg.mouse.click(spot[0], spot[1]);
+    leftBy.scrim = !!spot && (await pg.waitForSelector('[data-testid=memories-menu-sheet]', { state: 'detached', timeout: 4000 }).then(() => true, () => false));
+    const offStill = (await prefsOf(pg))?.off === true;
+    check(stayed && leftBy.escape && leftBy.scrim && offStill,
+      `tend memories T54: after a flip, Escape and a tap on the dimmed page leave Contents, the switch as last set (${JSON.stringify({ stayed, ...leftBy, spot, offStill })})`);
+  }
   check(drawnOn?.row === 'true' && drawnOn?.input === true && drawnOff?.row === 'false' && drawnOff?.input === false,
     `tend memories audit 5: Contents' switch is drawn on while moments come back and off once switched off, its row and its picture alike (${JSON.stringify({ drawnOn, drawnOff })})`);
   const forgetOk = await attempt(async () => {
@@ -164,7 +227,7 @@ async function contextRun(h) {
   });
   check(forgetOk, 'MC10: Forget my choices asks once, says what returns, and keeps the switch off');
   const toastOk = await attempt(async () => {
-    await menu('menu-off');
+    await menuSwitch();
     await pg.click('[data-testid=resurfaced-more]');
     await pg.click('[data-testid=menu-hide]');
     // An earlier toast may still be up: wait for this choice's own.
@@ -212,7 +275,7 @@ async function contextRun(h) {
   check(forgetUndoOk, 'memories-context audit 5: Forget says so, and Undo restores what it cleared');
   // Audit 15: the switch survives a reload.
   const offKeptOk = await attempt(async () => {
-    await menu('menu-off');
+    await menuSwitch();
     // The choice is kept a moment after the tap: reload once it has landed.
     for (let i = 0; i < 30 && !((await prefsOf(pg)) ?? {}).off; i++) await pg.waitForTimeout(100);
     await pg.reload();
