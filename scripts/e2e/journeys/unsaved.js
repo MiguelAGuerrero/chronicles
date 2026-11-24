@@ -654,6 +654,110 @@ async function run(h) {
   const failKept = (await voices(failWalk)).length;
   check(failKept === 1 && !(await there('[data-testid=band-voice-retry]', 1000)),
     `tend tabs audit 42: the held memo's Retry lands in its walk (${failKept})`);
+
+  // tend replay T51 (the owner's "Place it by its time", Nov 20): a memo begun with no fix in the 15 s before it and none
+  // found (its one-fix read hears nothing), saved through the bar's Stop so it lands after Stop placed the walk's moments,
+  // is stored with no place; its card pins it where its start time falls on the path, between the fixes either side, not
+  // at the path's end, and Watch again plays it before the walker reaches the end. In a walk of its own: T41's check above
+  // counts the stored places (`pins === placedHere`), which this memo has none of.
+  try {
+    await c.addInitScript(() => {
+      // The page's map hooks (`__project`, `data-walker`), and a watch begun while `__noLocate` is set hears nothing, so
+      // the memo's one-fix read finds none while the walk's own watch, begun before, goes on.
+      window.__perf = window.__perf || {};
+      const geo = navigator.geolocation;
+      const watch = geo.watchPosition.bind(geo);
+      geo.watchPosition = (ok, err, o) => {
+        const deaf = !!window.__noLocate;
+        return watch((p) => { if (!deaf) ok(p); }, err, o);
+      };
+    });
+    await wide(390);
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=start]');
+    await pg.waitForSelector('[data-testid=cap-voice]', { timeout: 30000 });
+    const east = (m) => [h.start[0] + (m / 100) * h.dLon, h.start[1]];
+    const fix = async (m) => {
+      const [lon, lat] = east(m);
+      await c.setGeolocation({ longitude: lon, latitude: lat, accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    };
+    for (const m of [0, 4, 8, 12]) await fix(m);
+    const lastBefore = Date.now();
+    const unplacedWalk = await pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+        g.onsuccess = () => resolve((g.result.find((w) => w.ended_at == null) ?? {}).id ?? null);
+      };
+    }));
+    await pg.click('[data-testid=walk-minimize]', { timeout: 10000 });
+    await pg.waitForTimeout(1200);
+    await tabTo(pg, 'explore');
+    await pg.evaluate(() => { window.__noLocate = true; });
+    // No fix for more than 15 s, then the memo from the bar.
+    await pg.waitForTimeout(Math.max(0, 16500 - (Date.now() - lastBefore)));
+    await pg.click('[data-testid=bar-voice]', { timeout: 10000 });
+    await pg.waitForSelector('[data-testid=bar-voice-save]', { timeout: 10000 });
+    await pg.waitForTimeout(1500);
+    // The walker walks on while it records: the memo's start falls inside the trace.
+    for (const m of [72, 76, 80, 84, 88, 92, 96, 100]) await fix(m);
+    await pg.evaluate(() => { window.__slowBlob = 25000; });
+    await pg.click('[data-testid=bar-voice-save]');
+    await pg.waitForTimeout(900);
+    await hold('[data-testid=bar-stop]');
+    await pg.waitForTimeout(4500);
+    await hold('[data-testid=bar-stop]');
+    await pg.waitForURL(/\/replay\//, { timeout: 15000 }).catch(() => {});
+    for (let k = 0; k < 60 && (await voices(unplacedWalk)).length === 0; k++) await pg.waitForTimeout(500);
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 90000 }).catch(() => {});
+    await pg.waitForTimeout(2000);
+    await pg.evaluate(() => { window.__noLocate = false; });
+    const stored = await pg.evaluate((id) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => resolve(g.result.filter((m) => m.walk_id === id).map((m) => ({ kinds: m.pieces.map((x) => x.kind), lat: m.lat ?? null })));
+      };
+    }), unplacedWalk);
+    const card = await cardNow();
+    // Where the pin stands, against the fixes either side of the memo's start and the path's end, on screen.
+    const where = await pg.evaluate(([before, after, end]) => {
+      const pin = [...document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]')].find((e) => e.getBoundingClientRect().width > 0);
+      if (!pin || typeof window.__project !== 'function') return null;
+      const r = pin.getBoundingClientRect();
+      return { pinX: r.left + r.width / 2, pinBottom: r.bottom, before: window.__project(before), after: window.__project(after), end: window.__project(end), label: pin.getAttribute('aria-label') };
+    }, [east(12), east(72), east(100)]);
+    const between = !!where && where.pinX >= Math.min(where.before[0], where.after[0]) - 12 && where.pinX <= Math.max(where.before[0], where.after[0]) + 12
+      && Math.abs(where.end[0] - where.pinX) >= 20 && Math.abs(where.pinBottom - where.after[1]) <= 48;
+    const pinIn = card.pins.length === 1 && !!card.map && card.sheetTop != null
+      && card.pins.every((q) => q[0] >= card.map[0] && q[2] <= card.map[2] && q[1] >= card.map[1] && q[3] <= card.sheetTop);
+    await shot(pg, 'unsaved-bar-unplaced-memo-card-390');
+    await wide(320);
+    await pg.waitForTimeout(800);
+    await shot(pg, 'unsaved-bar-unplaced-memo-card-320');
+    await wide(390);
+    await pg.waitForTimeout(800);
+    check(!!unplacedWalk && stored.length === 1 && stored[0].kinds.includes('voice') && stored[0].lat == null && pinIn && between && card.hint,
+      `tend replay T51: a memo kept with no place is stored so, and its card pins it on the path where its start time falls, between the fixes either side, not at the end, with the card's hint (${JSON.stringify({ stored, pins: card.pins, map: card.map, sheetTop: card.sheetTop, hint: card.hint, where })})`);
+    // Watch again plays it before the walker reaches the end.
+    await pg.getByText('Watch again').click().catch(() => {});
+    const bubble = await pg.waitForSelector('[data-testid=memo-bubble]', { timeout: 60000 }).then(() => true, () => false);
+    const walkerAt = await pg.evaluate((end) => {
+      const el = [...document.querySelectorAll('[data-walker]')].filter((e) => !e.closest('[aria-hidden="true"]') && e.getBoundingClientRect().width > 0).pop();
+      const v = el?.getAttribute('data-walker');
+      if (!v || typeof window.__project !== 'function') return null;
+      const [a, b] = [window.__project(v.split(',').map(Number)), window.__project(end)];
+      return Math.hypot(a[0] - b[0], a[1] - b[1]);
+    }, east(100));
+    await shot(pg, 'unsaved-bar-unplaced-memo-watch-again-390');
+    check(bubble && walkerAt != null && walkerAt >= 10,
+      `tend replay T51: Watch again plays the unplaced memo before the walker reaches the end (bubble ${bubble}, walker ${walkerAt != null ? walkerAt.toFixed(1) : '-'} px from the end)`);
+  } catch (e) {
+    check(false, `step tend replay T51: ${String(e.message).split('\n')[0]}`);
+  }
   await c.close();
 }
 
@@ -671,6 +775,7 @@ module.exports = {
     'src/app/walk.tsx',
     'src/components/ui.tsx',
     'scripts/e2e/failStorage.js',
+    'src/lib/ceremony/story.ts',
   ],
   run,
 };
