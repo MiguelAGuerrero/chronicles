@@ -561,6 +561,8 @@ async function heldShot(h) {
       shownHeld: held.filter((f) => f.op === 1).length,
       closeWhileHeld: held.filter((f) => f.op === 1 && f.closeLive && f.closeName === 'Close').length,
       keptAfter: span.some((f) => f.held === 'false' && f.kept),
+      // tend captures audit 9: the camera's shot still on the stage on the last frame read (700 ms after the editor is up).
+      shotAtEnd: frames.length ? frames[frames.length - 1].shot : null,
     };
   };
   const whole = (r) => r.up && r.toCover != null && r.toCover < 1500 && r.toReady != null && r.toReady >= 2000 && r.frames > 10 && r.gone === 0 && r.firstOp === 1 && r.minOp === 1;
@@ -593,6 +595,8 @@ async function heldShot(h) {
     await pg.waitForTimeout(900);
     check(whole(r), `tend captures T62: at 320 px on the walk the photo covers the map from the picker's return, opaque from its first frame, until its editor is up (${say(r)})`);
     check(steady(r) && honest(r), `tend captures T62, audit 7: at 320 px on the walk the photo's box is still from while it is held, only ✕ shows until it is kept, then the editor's controls over it (${say(r)})`);
+    // tend captures audit 9: an untouched photo's full-size shot goes once the stored copy is drawn, with no blank frame.
+    check(r.shotAtEnd === false && r.blank === 0, `tend captures audit 9: at 320 px on the walk the camera's full-size photo leaves the stage once the stored one is drawn, and the picture never blinks (${say(r)})`);
   });
 
   // tend captures audit 8 (finding B): a video kept at full speed, the keep not held back. The keep revoked the picked blob

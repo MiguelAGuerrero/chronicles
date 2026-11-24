@@ -208,3 +208,15 @@ test('tend captures audit 8: a watched keep keeps its source until the shot leav
   assert.match(core, /shot\(s: Shot\): \{ turn: number; holds: boolean \};/);
   assert.match(core, /kept\(turn: number, k: KeptShot \| null, release: boolean\): void;/);
 });
+
+// tend captures audit 9 (the review's F8, the orchestrator's ruling R2, with audit 8): the camera's full-size photo stayed
+// decoded under the stored copy for as long as the look was untouched (about 48 MB for a 12 MP shot). It is let go once
+// the stored picture has loaded and been painted: then the two are the same picture in the same place, so nothing blinks.
+test('tend captures audit 9: the camera\'s full-size shot leaves the stage once the stored picture has loaded', () => {
+  const editor = src('components/edit/MediaEditor.tsx');
+  assert.match(editor, /const \[drawn, setDrawn\] = useState<string \| null>\(null\);/);
+  // Loaded, then one frame on for it to be painted, then the shot goes.
+  assert.match(editor, /const storedDrawn = \(\) => \{\s*const at = uri;\s*requestAnimationFrame\(\(\) => setDrawn\(at\)\);\s*\};/);
+  assert.match(editor, /<EditedPicture uri=\{uri\} W=\{size\.w\} H=\{size\.h\} edit=\{stageEdit\} width=\{rect\.width\} height=\{rect\.height\} onLoad=\{kind === 'photo' && props\.shot \? storedDrawn : undefined\} \/>/);
+  assert.match(editor, /const under = !!props\.shot && \(!!props\.held \|\| !rect \|\| \(kind === 'photo' && plainLook && \(!uri \|\| drawn !== uri\)\)\);/);
+});
