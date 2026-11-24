@@ -140,6 +140,7 @@ test('tend captures T62: the held shot is the editor minus its controls, and the
   // alone shows and works (tend captures audit 7: the top row's middle and Done, then the tools below, each hidden).
   assert.match(editor, /const hidden = props\.held \? HIDDEN : null;/);
   // (tend captures audit 12: the row's middle is unhidden for screen readers while it holds only the empty live line.)
+  // (tend captures audit 13: the middle is `QUIET` while it holds the live line, `hidden` otherwise.)
   assert.equal([...editor.matchAll(/style=\{(?:\[[^\]]*\bhidden\]|hidden)\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.(?:unread|\(props\.held && !words \? unread : \{\}\))\}/g)].length, 3, 'tend captures audit 7: the top row\'s middle, Done and the tools below');
   assert.match(editor, /\{ paddingBottom: insets\.bottom \+ 10 \}, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}/);
   // Mounted over a held shot, the Modal comes at once, the backdrop and the shot with it; otherwise it fades, as before.
@@ -164,7 +165,7 @@ test("tend captures audit 7: while the shot is held the editor's ✕ is shown in
   assert.match(top, /testID="edit-close" accessibilityRole="button" accessibilityLabel=\{words \? words\.close : 'Close'\}/);
   // Revert, "Photo kept" and Draw's Undo and Redo (the row's middle), and Done: hidden in their place, untouchable, unread.
   // (tend captures audit 12: unread only when it holds more than the empty live line, i.e. no kept words to come.)
-  assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.\(props\.held && !words \? unread : \{\}\)\}>/);
+  assert.match(top, /<View style=\{\[styles\.topMid, props\.held && words \? QUIET : hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.\(props\.held && !words \? unread : \{\}\)\}>/);
   assert.match(top, /<View style=\{hidden\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>\s*<Pressable testID="edit-done" [^>]*disabled=\{!!props\.held\}/);
   // The tools below: as before.
   assert.match(editor, /<View style=\{\[styles\.bottom, \{ paddingBottom: insets\.bottom \+ 10 \}, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>/);
@@ -251,7 +252,7 @@ test('tend captures audit 12: the kept line\'s live region is in the page, empty
   // (tend captures audit 12: while held `empty` holds and the tool stays Crop, so the line is always there.)
   assert.match(top, /\{words && empty && s\.tool !== 'draw' \? \(/);
   assert.match(top, /<Text testID="edit-kept" style=\{styles\.kept\} accessibilityLiveRegion="polite" numberOfLines=\{1\}>\{kept \? kept\.line : ''\}<\/Text>/);
-  assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.\(props\.held && !words \? unread : \{\}\)\}>/);
+  assert.match(top, /<View style=\{\[styles\.topMid, props\.held && words \? QUIET : hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.\(props\.held && !words \? unread : \{\}\)\}>/);
 });
 
 // tend captures audit 13 (the review's U3 = S7 = F6, WCAG 2.4.7): while held, the web's keyboard reached the hidden tools,

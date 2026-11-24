@@ -49,7 +49,11 @@ function pauseAudio(player: AudioPlayer) {
 const PLAIN: MediaEdit = emptyEdit();
 // While the shot is held its controls keep their room, so the shot never moves when they come (tend captures T62); the
 // ✕ alone shows and works meanwhile (tend captures audit 7).
-const HIDDEN = { opacity: 0 };
+// On the web also `visibility: hidden`, which keeps the room but takes nothing in it focus, react-native-web's Modal focus
+// trap's `.focus()` included (tend captures audit 13). The row's middle holding only the empty live line is only
+// transparent, so screen readers still hear it fill (audit 12).
+const HIDDEN = { opacity: 0, ...(Platform.OS === 'web' ? ({ visibility: 'hidden' } as object) : {}) };
+const QUIET = { opacity: 0 };
 
 const DRAW_TOOLS: { id: 'pen' | 'marker' | 'eraser'; label: string; icon: IconName }[] = [
   { id: 'pen', label: 'Pen', icon: 'pencil' },
@@ -229,7 +233,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
       {/* While held only the ✕ shows and works (tend captures audit 7): the rest keeps its room, hidden and untouchable. */}
       {/* While held it holds only the kept line's empty live region (tend captures audit 12): read, so its words are
           announced when they fill at the keep; invisible and untouchable meanwhile. */}
-      <View style={[styles.topMid, hidden]} pointerEvents={props.held ? 'none' : 'auto'} {...(props.held && !words ? unread : {})}>
+      <View style={[styles.topMid, props.held && words ? QUIET : hidden]} pointerEvents={props.held ? 'none' : 'auto'} {...(props.held && !words ? unread : {})}>
         {s.tool === 'draw' && (
           <>
             <Pressable testID="edit-undo" accessibilityRole="button" accessibilityLabel="Undo" accessibilityState={{ disabled: !s.past.length }} disabled={!s.past.length} onPress={() => dispatch({ type: 'undo' })} style={[styles.iconBtn, !s.past.length && styles.dim]} hitSlop={6}>
