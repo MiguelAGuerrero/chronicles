@@ -105,3 +105,9 @@ test('tend explore audit 46: the planner\'s title and the card\'s spoken button 
   const strip = readFileSync(new URL('../../../components/atlas/KindStrip.tsx', import.meta.url), 'utf8');
   assert.match(strip, /accessibilityLabel=\{suggestLabel\(kind\)\}/);
 });
+
+test('tend explore audit 48: the planner keeps no kind name of its own beside the one table', async () => {
+  // `kindName` in walkPlanner/service.ts had no reader (auditor F5): the one table's `nounOf` and `label` are the names.
+  const service = (await import('../../walkPlanner/service')) as Record<string, unknown>;
+  assert.equal('kindName' in service, false);
+});
