@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { afterCapture, editAfter, shotClosed, shotKept, shotTaken, type HeldShot } from '../../editOffer';
+import { afterCapture, editAfter, keptWords, shotClosed, shotKept, shotTaken, type HeldShot } from '../../editOffer';
 import { faced, type Faced } from '../../moment';
 import type { Capture } from '../../types';
 
@@ -133,7 +133,8 @@ test('tend captures T62: every surface that opens the editor after a capture han
 test('tend captures T62: the held shot is the editor minus its controls, and the editor after a cover does not fade in', () => {
   const editor = src('components/edit/MediaEditor.tsx');
   // Decision 0240: "Photo kept" is never said before it is.
-  assert.match(editor, /const kept = props\.justKept && !props\.held && kind !== 'voice' \? keptWords\(kind\) : null;/);
+  // (tend captures audit 11: the words are read once, `kept` only once not held.)
+  assert.match(editor, /const kept = words && !props\.held \? words : null;/);
   // The controls keep their room while held, so the shot never moves when they come: hidden, untouchable, unread; the ✕
   // alone shows and works (tend captures audit 7: the top row's middle and Done, then the tools below, each hidden).
   assert.match(editor, /const hidden = props\.held \? HIDDEN : null;/);
@@ -156,8 +157,9 @@ test("tend captures audit 7: while the shot is held the editor's ✕ is shown in
   // The ✕ is the top row's first child, outside anything hidden while held.
   assert.match(top, /^const top = \(\s*<View style=\{\[styles\.top, \{ paddingTop: insets\.top \+ 8 \}\]\}>\s*<Pressable testID="edit-close" /);
   assert.doesNotMatch(editor, /<View style=\{hidden\}[^>]*>\s*\{top\}/, 'the top row as a whole is no longer hidden while held');
-  // Its spoken name while held does not say the shot is kept: "Close", as `kept` is null until it is.
-  assert.match(top, /testID="edit-close" accessibilityRole="button" accessibilityLabel=\{kept \? kept\.close : 'Close'\}/);
+  // Its spoken name (tend captures audit 11, the owner's "Say it stays", decision 0263): from the start of the hold, the
+  // same as once kept, "Close, the photo stays as it is" (or the video).
+  assert.match(top, /testID="edit-close" accessibilityRole="button" accessibilityLabel=\{words \? words\.close : 'Close'\}/);
   // Revert, "Photo kept" and Draw's Undo and Redo (the row's middle), and Done: hidden in their place, untouchable, unread.
   assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>/);
   assert.match(top, /<View style=\{hidden\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>\s*<Pressable testID="edit-done" [^>]*disabled=\{!!props\.held\}/);
@@ -220,4 +222,16 @@ test('tend captures audit 9: the camera\'s full-size shot leaves the stage once 
   assert.match(editor, /const storedDrawn = \(\) => \{\s*const at = uri;\s*requestAnimationFrame\(\(\) => setDrawn\(at\)\);\s*\};/);
   assert.match(editor, /<EditedPicture uri=\{uri\} W=\{size\.w\} H=\{size\.h\} edit=\{stageEdit\} width=\{rect\.width\} height=\{rect\.height\} onLoad=\{kind === 'photo' && props\.shot \? storedDrawn : undefined\} \/>/);
   assert.match(editor, /const under = !!props\.shot && \(!!props\.held \|\| !rect \|\| \(kind === 'photo' && plainLook && \(!uri \|\| drawn !== uri\)\)\);/);
+});
+
+// tend captures audit 11 (the review's S3, the owner's answer in decision 0263, "Say it stays"): while the shot was held
+// its ✕ was named only "Close", bending 0240's audit 1 ("✕ never reads as throw it away"). It is named as once kept, from
+// the start of the hold: "Close, the photo stays as it is" / "Close, the video stays as it is"; on screen the ✕ alone.
+test('tend captures audit 11: the held shot\'s ✕ is named "Close, the photo stays as it is" from the start of the hold', () => {
+  const editor = src('components/edit/MediaEditor.tsx');
+  assert.match(editor, /const words = props\.justKept && kind !== 'voice' \? keptWords\(kind\) : null;/);
+  assert.match(editor, /const kept = words && !props\.held \? words : null;/, '"Photo kept" is still never said before it is (0240)');
+  assert.match(editor, /testID="edit-close" accessibilityRole="button" accessibilityLabel=\{words \? words\.close : 'Close'\}/);
+  assert.equal(keptWords('photo').close, 'Close, the photo stays as it is');
+  assert.equal(keptWords('video').close, 'Close, the video stays as it is');
 });

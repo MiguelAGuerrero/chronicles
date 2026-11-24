@@ -542,7 +542,9 @@ async function heldShot(h) {
   // transparent (ModalAnimation's passive effect), so the span is read from the first opaque frame; only the mount frame
   // before it may be transparent, and the first opaque frame comes within 250 ms of the app's first sight of the picker's
   // answer (the editor's root in the page). Shutter (the file input's change) to cover is logged as data.
-  const read = ({ up, frames, change = null }) => {
+  // tend captures audit 11 (the owner's answer, 0263, "Say it stays"): the ✕ is named "Close, the photo stays as it is"
+  // (or the video) from the start of the hold, as once kept.
+  const read = ({ up, frames, change = null }, kind = 'photo') => {
     const first = frames.findIndex((f) => f.ed);
     const opaque = first < 0 ? -1 : frames.findIndex((f, i) => i >= first && f.ed && f.op === 1);
     const ready = frames.findIndex((f) => f.doneLive);
@@ -573,7 +575,8 @@ async function heldShot(h) {
       doneWhileHeld: held.filter((f) => f.doneLive).length,
       // The ✕ is read on the frames the editor is drawn opaque (a transparent one is the first check's to say).
       shownHeld: held.filter((f) => f.op === 1).length,
-      closeWhileHeld: held.filter((f) => f.op === 1 && f.closeLive && f.closeName === 'Close').length,
+      closeWhileHeld: held.filter((f) => f.op === 1 && f.closeLive && f.closeName === `Close, the ${kind} stays as it is`).length,
+      closeNames: [...new Set(span.map((f) => f.closeName))],
       keptAfter: span.some((f) => f.held === 'false' && f.kept),
       // tend captures audit 9: the camera's shot still on the stage on the last frame read (700 ms after the editor is up).
       shotAtEnd: frames.length ? frames[frames.length - 1].shot : null,
@@ -596,10 +599,10 @@ async function heldShot(h) {
 
   for (const [kind, file] of [['photo', 'photo.jpg'], ['video', 'clip-4s.webm']]) {
     await step(`T62 walk ${kind}`, async () => {
-      const r = read(await capture('[data-testid=cap-photo]', file, `walk-${kind}-390`));
+      const r = read(await capture('[data-testid=cap-photo]', file, `walk-${kind}-390`), kind);
       check(whole(r), `tend captures T62: on the walk a ${kind} covers the map from the picker's return, opaque from the frame after its mount, until its editor is up, with the keep held back 2.5 s (${say(r)})`);
       check(steady(r), `tend captures T62: on the walk the ${kind}'s picture is there while it is held, and its box never moves until 500 ms after Done can be pressed (${say(r)})`);
-      check(honest(r), `tend captures T62, audit 7: on the walk while the ${kind} is held there is no "${kind === 'photo' ? 'Photo' : 'Video'} kept" and Done cannot be pressed, only ✕ named "Close"; once kept, the words and Done (${say(r)})`);
+      check(honest(r), `tend captures T62, audit 7, audit 11: on the walk while the ${kind} is held there is no "${kind === 'photo' ? 'Photo' : 'Video'} kept" and Done cannot be pressed, only ✕ named "Close, the ${kind} stays as it is"; once kept, the words and Done (${say(r)})`);
     });
   }
   // tend captures audit 10: a camera-sized photo (4032 x 3024), the picker's read of it the slowest part of its return.
@@ -627,7 +630,7 @@ async function heldShot(h) {
     const failed = [];
     const onFail = (q) => { if (q.url().startsWith('blob:')) failed.push(q.failure()?.errorText ?? 'failed'); };
     pg.on('requestfailed', onFail);
-    const r = read(await capture('[data-testid=cap-photo]', 'clip-4s.webm', 'walk-video-fast-390', 0));
+    const r = read(await capture('[data-testid=cap-photo]', 'clip-4s.webm', 'walk-video-fast-390', 0), 'video');
     await pg.waitForTimeout(1500);
     pg.off('requestfailed', onFail);
     const errs = h.errors.slice(errs0).filter((e) => /ERR_FILE_NOT_FOUND/.test(e));
@@ -695,7 +698,7 @@ async function heldShot(h) {
   await pg.waitForTimeout(1200);
   for (const [kind, file] of [['photo', 'photo.jpg'], ['video', 'clip-4s.webm']]) {
     await step(`T62 bar ${kind}`, async () => {
-      const r = read(await capture('[data-testid=bar-photo]', file, `bar-${kind}-390`));
+      const r = read(await capture('[data-testid=bar-photo]', file, `bar-${kind}-390`), kind);
       check(whole(r), `tend captures T62: from the recording bar a ${kind} covers the map from the picker's return, opaque from the frame after its mount, until its editor is up (${say(r)})`);
       check(steady(r) && honest(r),
         `tend captures T62, audit 7: from the recording bar the ${kind}'s box is still from while it is held, with no "kept" and no Done, only ✕, until its editor's controls come over it (${say(r)})`);
