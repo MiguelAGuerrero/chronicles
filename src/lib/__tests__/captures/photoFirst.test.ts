@@ -141,3 +141,34 @@ test('tend captures T62: the held shot is the editor minus its controls, and the
   // The shot is drawn on the stage until the stored picture is (a photo while its look is untouched, a video until sized).
   assert.match(editor, /\{under && shotRect && shotSize && \(/);
 });
+
+// tend captures audit 7 (the orchestrator's ruling on the batch's end pass): the held shot hid every control, so a keep
+// that hung left no way out on iOS (no Back), and the cover blocked the walk screen's Stop for as long as the keep ran.
+// While held, the editor's own ✕ is shown in its own place and works: it closes the held shot, the shot is still kept,
+// and no editor opens for it afterwards. Done, Revert and the tools stay hidden and untouchable until it is kept.
+test("tend captures audit 7: while the shot is held the editor's ✕ is shown in its place and closes it; Done, Revert and the tools stay hidden", () => {
+  const editor = src('components/edit/MediaEditor.tsx');
+  const top = editor.slice(editor.indexOf('const top = ('), editor.indexOf('const stage = ('));
+  // The ✕ is the top row's first child, outside anything hidden while held.
+  assert.match(top, /^const top = \(\s*<View style=\{\[styles\.top, \{ paddingTop: insets\.top \+ 8 \}\]\}>\s*<Pressable testID="edit-close" /);
+  assert.doesNotMatch(editor, /<View style=\{hidden\}[^>]*>\s*\{top\}/, 'the top row as a whole is no longer hidden while held');
+  // Its spoken name while held does not say the shot is kept: "Close", as `kept` is null until it is.
+  assert.match(top, /testID="edit-close" accessibilityRole="button" accessibilityLabel=\{kept \? kept\.close : 'Close'\}/);
+  // Revert, "Photo kept" and Draw's Undo and Redo (the row's middle), and Done: hidden in their place, untouchable, unread.
+  assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>/);
+  assert.match(top, /<View style=\{hidden\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>\s*<Pressable testID="edit-done" [^>]*disabled=\{!!props\.held\}/);
+  // The tools below: as before.
+  assert.match(editor, /<View style=\{\[styles\.bottom, \{ paddingBottom: insets\.bottom \+ 10 \}, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>/);
+
+  // Closed while held, the keep goes on and the shot is kept; the editor does not open for it afterwards, even when a
+  // later camera return holds nothing in its place (mid-memo, a Stop under way) and the screen opens the closed one.
+  const hook = src('components/edit/EditOffer.tsx');
+  assert.match(hook, /close: \(\) => \{\s*dropped\.current = \{ turn: turns\.current, piece: null \};/);
+  assert.match(hook, /kept: \(turn, k\) => \{\s*if \(k && dropped\.current\?\.turn === turn\) dropped\.current = \{ turn, piece: k\.id \};/);
+  assert.match(hook, /open: \(kept: KeptShot\) => \{\s*if \(dropped\.current\?\.piece === kept\.id\) return;\s*setTarget\(editAfter\(kept\)\);/);
+  // The pure view agrees: closed while held, kept, then opened by the screen: nothing.
+  const kept = { kind: 'photo' as const, id: 'm9', momentId: 'm9' };
+  const closed = shotClosed(shotTaken({ kind: 'photo', uri: 'blob:held' }, 9, true));
+  const m = moment('m9', [piece('m9', 'm9', 'photo', 1)]);
+  assert.deepEqual(view(shotKept(closed, 9, kept), editAfter(kept), [m]), { show: 'none' });
+});
