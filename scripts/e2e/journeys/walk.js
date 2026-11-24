@@ -1102,11 +1102,20 @@ async function checks(h) {
               const close = vis('voice-close');
               const pill = undo?.parentElement ?? null;
               const words = pill ? [...pill.querySelectorAll('div[dir=auto]')] : [];
-              return { undo: r(undo), close: r(close), pill: r(pill), cam: r(vis('cap-photo')), said: pill?.textContent ?? '', name: close?.getAttribute('aria-label') ?? null,
+              // tend walk-screen audit 28: the words' lines, counted by the tops of the text's own boxes.
+              const text = words.find((e) => /Voice memo discarded/.test(e.textContent ?? '')) ?? null;
+              let lines = 0;
+              if (text) { const rg = document.createRange(); rg.selectNodeContents(text); lines = new Set([...rg.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size; }
+              return { undo: r(undo), close: r(close), pill: r(pill), cam: r(vis('cap-photo')), mic: r(vis('cap-voice')), said: pill?.textContent ?? '', name: close?.getAttribute('aria-label') ?? null, lines,
                 whole: words.every((e) => e.scrollWidth <= e.clientWidth + 1), over: document.documentElement.scrollWidth - window.innerWidth, vw: window.innerWidth };
             });
             const fits = (a) => !!a.undo && !!a.close && !!a.pill && a.pill.x >= 0 && a.pill.x + a.pill.w <= a.vw && a.close.w >= 44 && a.close.h >= 44 && a.whole && a.over <= 0
               && /Voice memo discarded/.test(a.said) && a.name === 'Close, it stays discarded';
+            // tend walk-screen audit 28 (auditor F1, ux U1, U2): Close lies inside its pill, the pill ends 8 px or more left of
+            // the stack, and the words sit on one line.
+            const held = (a) => !!a.undo && !!a.close && !!a.pill && !!a.cam && !!a.mic
+              && a.close.x >= a.pill.x && a.close.x + a.close.w <= a.pill.x + a.pill.w && a.close.y >= a.pill.y && a.close.y + a.close.h <= a.pill.y + a.pill.h
+              && a.pill.x + a.pill.w <= Math.min(a.cam.x, a.mic.x) - 8 && a.lines === 1;
             const at390 = await pillAt();
             await shot(page, 'ws-t48-walk-pill-after-6s-390');
             const was = page.viewportSize();
@@ -1118,6 +1127,8 @@ async function checks(h) {
             await page.waitForTimeout(700);
             check(fits(at390) && fits(at320),
               `tend walk-screen T48: on the walk, 6 s after a discard, "Voice memo discarded" still has Undo and a 44 pt Close, whole on screen at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+            check(held(at390) && held(at320),
+              `tend walk-screen audit 28: on the walk the discard pill holds its Close, ends 8 px or more left of the stack, and its words keep one line, at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
             await page.locator('[data-testid=voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
             const closed = await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
             await page.waitForTimeout(800);

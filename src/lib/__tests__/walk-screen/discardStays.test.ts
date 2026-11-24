@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import * as memoSave from '../../media/memoSave';
 import { DISCARD_CLOSE_LABEL, setAside } from '../../media/memoSave';
 
 // T48, the owner's yes (Nov 19, "Undo + Close, stays (Recommended)", decision 0233, amending 0008's 5 s): "Voice memo
@@ -91,4 +92,25 @@ test('tend walk-screen T48: the paths that draw no Close keep the 5 s, so no pil
     assert.doesNotMatch(src, /closeDiscard/, `${file} draws no Close`);
   }
   assert.match(read('lib/useCaptures.ts'), /\nexport const UNDO_MS = 5000;/);
+});
+
+// tend walk-screen audit 28 (the batch's review: auditor F1, ux U1, U2, steward S3): at 320 px on the walk Close hung
+// outside its pill, over the capture stack, and the words wrapped to two lines at 390 and three at 320 on the ready
+// screen. When the row cannot hold the words on one line, they take a line of their own above Undo and Close, as the
+// dead-zone nudge lays out its pill below 360 (`nudgeNarrow`).
+test('tend walk-screen audit 28: the discard pill\'s words take their own line when the row cannot hold them', () => {
+  const stacks = (memoSave as Record<string, unknown>).discardPillStacks as ((room: number, fontScale?: number) => boolean) | undefined;
+  assert.equal(typeof stacks, 'function', 'a pure rule in lib/media/memoSave');
+  // The pills' room is the screen less the left inset and the stack's column: 278 px at 390, 208 at 320.
+  assert.equal(stacks!(278), true, 'at 390 the row cannot hold the words, Undo and Close');
+  assert.equal(stacks!(208), true, 'nor at 320');
+  assert.equal(stacks!(544), false, 'a wide screen keeps the one row');
+  assert.equal(stacks!(400, 1.5), true, 'larger text needs more room');
+  for (const [file, style] of [['components/MomentBar.tsx', 'pillStacked'], ['app/walk.tsx', 'undoStacked']] as const) {
+    const src = read(file);
+    const pill = /\{cap\.discarded && [^\n]*\(\n([\s\S]*?)\n {8}\)\}/.exec(src)?.[1] ?? '';
+    assert.match(pill, new RegExp(`stacked && styles\\.${style}`), `${file}: the pill takes the stacked layout when it must`);
+    assert.match(src, /discardPillStacks\(/, `${file}: from the rule`);
+    assert.match(src, new RegExp(`\\n  ${style}: \\{[^}]*flexWrap: 'wrap'`), `${file}: the words a line of their own, Undo and Close under them`);
+  }
 });

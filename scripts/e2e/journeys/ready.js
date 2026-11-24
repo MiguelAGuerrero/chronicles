@@ -497,8 +497,12 @@ async function run(h) {
         const close = vis('moment-voice-close');
         const pill = undo?.parentElement ?? null;
         const words = pill ? [...pill.querySelectorAll('div[dir=auto]')] : [];
+        // tend walk-screen audit 28: the words' lines, counted by the tops of the text's own boxes.
+        const text = words.find((e) => /Voice memo discarded/.test(e.textContent ?? '')) ?? null;
+        let lines = 0;
+        if (text) { const rg = document.createRange(); rg.selectNodeContents(text); lines = new Set([...rg.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size; }
         return {
-          undo: r(undo), close: r(close), pill: r(pill), cam: r(vis('moment-photo')), mic: r(vis('moment-voice')),
+          undo: r(undo), close: r(close), pill: r(pill), cam: r(vis('moment-photo')), mic: r(vis('moment-voice')), lines,
           said: pill?.textContent ?? '', name: close?.getAttribute('aria-label') ?? null,
           whole: words.every((e) => e.scrollWidth <= e.clientWidth + 1),
           over: document.documentElement.scrollWidth - window.innerWidth,
@@ -517,6 +521,13 @@ async function run(h) {
       await pg.waitForTimeout(600);
       check(/Voice memo discarded/.test(at390.said) && at390.name === 'Close, it stays discarded' && fits(at390, was.width) && fits(at320, 320),
         `tend walk-screen T48: on the ready screen, 6 s after a discard, "Voice memo discarded" still has Undo and a 44 pt Close, whole and left of the stack at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+      // tend walk-screen audit 28 (auditor F1, ux U1, U2): Close lies inside its pill, the pill ends 8 px or more left of the
+      // stack, and the words sit on one line.
+      const held = (a) => !!a.undo && !!a.close && !!a.pill && !!a.cam && !!a.mic
+        && a.close.x >= a.pill.x && a.close.x + a.close.w <= a.pill.x + a.pill.w && a.close.y >= a.pill.y && a.close.y + a.close.h <= a.pill.y + a.pill.h
+        && a.pill.x + a.pill.w <= Math.min(a.cam.x, a.mic.x) - 8 && a.lines === 1;
+      check(held(at390) && held(at320),
+        `tend walk-screen audit 28: on the ready screen the discard pill holds its Close, ends 8 px or more left of the stack, and its words keep one line, at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
       await pg.locator('[data-testid=moment-voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
       const closed = await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
       await pg.waitForTimeout(800);
