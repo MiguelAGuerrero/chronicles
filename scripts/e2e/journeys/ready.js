@@ -171,6 +171,69 @@ async function run(h) {
       const left = await pg.locator('[data-testid=start-settings]').count();
       check(tapped && left === 0, `ready NR7: a tap on the bar raises the settings, a tap on the grip lowers them (raised ${tapped}, left ${left})`);
     }
+    // tend walk-screen T45 (the owner's "Done + map tap", decision 0233): raised, the settings have a labelled Done at the
+    // top right of their first row, level with "Walk settings", which lowers them as Escape does and gives the stack back;
+    // and a tap on the map above the raised panel lowers them too, setting no destination.
+    {
+      const raiseByTap = async () => {
+        await pg.click('[data-testid=walk-stats]');
+        await pg.waitForSelector('[data-testid=start-settings]', { timeout: 5000 }).catch(() => {});
+        await pg.waitForTimeout(1200);
+      };
+      const lowered = () => pg.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).then(() => true, () => false);
+      const doneAt = () => pg.evaluate(() => {
+        const r = (b) => b && { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) };
+        const done = [...document.querySelectorAll('[data-testid=ready-done]')].find((e) => e.getBoundingClientRect().width > 0);
+        const bar = document.querySelector('[data-testid=ready-bar]');
+        const head = [...(bar?.querySelectorAll('[role=heading]') ?? [])].find((e) => e.getBoundingClientRect().width > 0);
+        let text = null;
+        if (head) { const rg = document.createRange(); rg.selectNodeContents(head); text = r(rg.getBoundingClientRect()); }
+        const word = done ? [...done.querySelectorAll('div[dir=auto]')].pop() : null;
+        return {
+          done: r(done?.getBoundingClientRect()), said: done?.textContent ?? null, bar: r(bar?.getBoundingClientRect()), head: head?.textContent ?? null, text,
+          whole: !!word && word.scrollWidth <= word.clientWidth + 1, over: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      });
+      const placed = (a) => !!a.done && !!a.bar && !!a.text && a.said === 'Done' && a.head === 'Walk settings' && a.whole && a.over <= 0
+        && a.done.w >= 44 && a.done.h >= 44 && a.done.x + a.done.w <= a.bar.x + a.bar.w && a.done.x + a.done.w >= a.bar.x + a.bar.w - 32
+        && a.text.x + a.text.w <= a.done.x && Math.abs(a.done.y + a.done.h / 2 - (a.text.y + a.text.h / 2)) <= 12;
+      await raiseByTap();
+      const at390 = await doneAt();
+      await shot(pg, 'ws-t45-done-390');
+      const was = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: was.height });
+      await pg.waitForTimeout(800);
+      const at320 = await doneAt();
+      await shot(pg, 'ws-t45-done-320');
+      await pg.setViewportSize(was);
+      await pg.waitForTimeout(800);
+      check(placed(at390) && placed(at320),
+        `tend walk-screen T45: raised, the ready bar's "Done" sits at the top right of its first row, level with "Walk settings", whole and 44 pt, at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+      await pg.locator('[data-testid=ready-done]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+      const byDone = await lowered();
+      await pg.waitForTimeout(600);
+      const barDone = await boxOf(pg, 'ready-bar');
+      const micAt = await boxOf(pg, 'moment-voice');
+      const stackFree = !!micAt && (await pg.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('[data-testid=moment-voice]'), [micAt.x + micAt.w / 2, micAt.y + micAt.h / 2]));
+      check(byDone && same(barDone, barRest) && stackFree,
+        `tend walk-screen T45: Done lowers the ready bar to rest, the capture stack in reach again (${JSON.stringify({ byDone, barDone, barRest, stackFree })})`);
+      // Raised again, a tap on the map above the panel: a spot where the map's own canvas is under the pointer.
+      await raiseByTap();
+      const up = await boxOf(pg, 'ready-bar');
+      const spot = await pg.evaluate((top) => {
+        for (const y of [top - 40, top / 2, top - 80, 90])
+          for (const x of [window.innerWidth / 2, window.innerWidth / 3, (2 * window.innerWidth) / 3])
+            if (y > 50 && document.elementFromPoint(x, y)?.classList.contains('maplibregl-canvas')) return [x, y];
+        return null;
+      }, up ? up.y : 0);
+      if (spot) await pg.mouse.click(spot[0], spot[1]);
+      const byMap = !!spot && (await lowered());
+      await pg.waitForTimeout(1200);
+      const barMap = await boxOf(pg, 'ready-bar');
+      const destAfter = await pg.locator('[data-testid=ready-dest]').count();
+      check(byMap && same(barMap, barRest) && destAfter === 0 && !(await metaOf(pg, 'nav')) && pathOf(pg) === `${BASE}/walk`,
+        `tend walk-screen T45: a tap on the map above the raised bar lowers it, and sets no destination (${JSON.stringify({ spot, up, byMap, barMap, destAfter })})`);
+    }
 
     // NR10 as T44 amends it (decision 0233, "Camera stays"): a memo in the stack; Start waits; the chevron saves it.
     await pg.click('[data-testid=moment-voice]');
