@@ -111,4 +111,6 @@ test('tend tabs audit 70: the band hides its discarded memo\'s pill and lets the
   assert.match(band, /const barStopFor = useStore\(barStop, \(s\) => \(walkId != null && s\?\.walkId === walkId \? s\.since : null\)\);/);
   assert.match(body(band, 'useEffect(() => {\n    if (barStopFor != null)', '}, [barStopFor]);'), /if \(barStopFor != null\) void capRef\.current\.closeDiscard\(\);/);
   assert.match(pill(band, '{cap.discarded && '), /^\{cap\.discarded && !recording && barStopFor == null && /, 'no pill while the bar stops its walk');
+  // (tend tabs audit 70: read as the walk the band files into, set as Stop begins and cleared by that same stop.)
+  assert.ok(band.indexOf('const barStopFor') > band.indexOf('const walkId = walk?.id ?? null;'));
 });

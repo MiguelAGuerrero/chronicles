@@ -170,6 +170,12 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     filedInto.current = walkId;
     if (was != null && was !== walkId) void capRef.current.closeDiscard();
   }, [walkId]);
+  // The bar's Stop under way for that walk (tend tabs audit 70): the pill hides and the memo is let go as it begins, so no
+  // Undo saves it between the Stop's memo gate and the walk's end, a memo the Stop never placed (walk-screen audit 33).
+  const barStopFor = useStore(barStop, (s) => (walkId != null && s?.walkId === walkId ? s.since : null));
+  useEffect(() => {
+    if (barStopFor != null) void capRef.current.closeDiscard();
+  }, [barStopFor]);
   const openId = useStore(momentPill.store, (st) => st.id);
   // The room left (storage awareness), as the band asked.
   const walking = !!walk;
@@ -680,8 +686,9 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               <Text style={styles.pillText}>{toast}</Text>
             </View>
           )}
-          {cap.discarded && !recording && (
-            // Undo and Close, staying until used (tend tabs T61, the walk's pill since tend walk-screen T48).
+          {cap.discarded && !recording && barStopFor == null && (
+            // Undo and Close, staying until used (tend tabs T61, the walk's pill since tend walk-screen T48); none while the
+            // bar stops the walk (tend tabs audit 70).
             <View style={[styles.pill, stacked && styles.discardStacked]} accessibilityLiveRegion="polite" testID="band-voice-undo">
               <Text style={[styles.pillText, stacked && styles.discardTextStacked]}>Voice note discarded</Text>
               <Pressable testID="band-voice-undo-act" accessibilityRole="button" onPress={() => cap.undoDiscard()} style={styles.pillBtn}>
