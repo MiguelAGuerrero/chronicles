@@ -25,6 +25,7 @@ import { space } from '../../lib/space';
 import { columnPills, holdCount } from '../../lib/space/sight';
 import { heldLabel } from '../../lib/space/core';
 import { memoLabel } from '../../lib/unsaved/core';
+import { DISCARD_CLOSE_LABEL, discardHint, discardPillStacks } from '../../lib/media/memoSave';
 import { formatElapsed } from '../../lib/summary';
 import { refLabel } from '../../lib/threads/lines';
 import type { LngLat } from '../../lib/types';
@@ -152,11 +153,23 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     onMoment,
     // In front, its pills say why for a capture that failed on a screen gone (unsaved captures UN9).
     sayHeld: !!focused && !props.disabled,
+    // Its discarded memo's pill stays until Undo, Close, the next capture or the band going, as on the walk (tend tabs
+    // T61, after tend walk-screen T48).
+    discardStays: true,
   });
   const capRef = useRef(cap);
   useEffect(() => {
     capRef.current = cap;
   });
+  // The walk it files into ended (from the bar's Stop or the walk's): the memo set aside for it is let go, so no Undo
+  // lands in a walk already over, as the walk's own Stop lets its memo go (tend walk-screen audit 33; tend tabs T61).
+  const walkId = walk?.id ?? null;
+  const filedInto = useRef(walkId);
+  useEffect(() => {
+    const was = filedInto.current;
+    filedInto.current = walkId;
+    if (was != null && was !== walkId) void capRef.current.closeDiscard();
+  }, [walkId]);
   const openId = useStore(momentPill.store, (st) => st.id);
   // The room left (storage awareness), as the band asked.
   const walking = !!walk;
@@ -511,7 +524,10 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
   // The line rides above the keyboard (JN19, audit 1): it rises by what the keyboard covers above whatever sits
   // under it (the tab bar, the recording bar), measured while the keyboard is down.
   const keyboard = useKeyboardHeight();
-  const { height: windowH } = useWindowDimensions();
+  const { height: windowH, width, fontScale } = useWindowDimensions();
+  // The discarded memo's words take a line of their own above Undo and Close when the column (the screen less its 16 px
+  // a side, 480 at most) cannot hold them on one row, as on the walk (tend walk-screen audit 28; tend tabs T61).
+  const stacked = discardPillStacks(Math.min(width - 32, 480), fontScale);
   const wrap = useRef<ComponentRef<typeof View>>(null);
   const [below, setBelow] = useState(0);
   const measure = () => {
@@ -587,7 +603,7 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
     </View>
   );
   const discard = (
-    <Pressable testID="band-voice-discard" accessibilityRole="button" accessibilityLabel="Discard voice note" accessibilityHint="Throws this recording away. You can undo for a few seconds." onPress={() => cap.discardVoice()} style={styles.textBtn}>
+    <Pressable testID="band-voice-discard" accessibilityRole="button" accessibilityLabel="Discard voice note" accessibilityHint={discardHint(true)} onPress={() => cap.discardVoice()} style={styles.textBtn}>
       <Text style={styles.textBtnText}>Discard</Text>
     </Pressable>
   );
@@ -663,7 +679,18 @@ function Line(props: LineProps & Handle & { walk: { id: string; here: LngLat | n
               <Text style={styles.pillText}>{toast}</Text>
             </View>
           )}
-          {cap.discarded && !recording && retryPill('band-voice-undo', 'Voice note discarded', () => cap.undoDiscard(), 'Undo')}
+          {cap.discarded && !recording && (
+            // Undo and Close, staying until used (tend tabs T61, the walk's pill since tend walk-screen T48).
+            <View style={[styles.pill, stacked && styles.discardStacked]} accessibilityLiveRegion="polite" testID="band-voice-undo">
+              <Text style={[styles.pillText, stacked && styles.discardTextStacked]}>Voice note discarded</Text>
+              <Pressable testID="band-voice-undo-act" accessibilityRole="button" onPress={() => cap.undoDiscard()} style={styles.pillBtn}>
+                <Text style={styles.pillBtnText}>Undo</Text>
+              </Pressable>
+              <Pressable testID="band-voice-close" accessibilityRole="button" accessibilityLabel={DISCARD_CLOSE_LABEL} onPress={() => cap.closeDiscard()} style={styles.pillClose}>
+                <Icon name="close" size={20} color={theme.bg} />
+              </Pressable>
+            </View>
+          )}
           {cap.unsaved && retryPill('band-voice-retry', memoLabel(cap.memosHeld, 'Voice note') ?? '', () => cap.retrySave())}
           {cap.held.length > 0 && retryPill('held-captures', heldLabel(cap.held), () => cap.retryHeld())}
           {!recording && focused && <SpaceLine />}
@@ -907,4 +934,9 @@ const styles = StyleSheet.create({
   pillText: { color: theme.bg, fontSize: 14, flex: 1 },
   pillBtn: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },
   pillBtnText: { color: theme.bg, fontSize: 14, fontWeight: '700' },
+  // 44 pt itself: react-native-web has no hitSlop (tend tabs T61).
+  pillClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -8, marginRight: -8 },
+  // The discard pill when its row cannot hold its words (tend walk-screen audit 28): the words a line, Undo and Close under.
+  discardStacked: { flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 4 },
+  discardTextStacked: { flexBasis: '100%' },
 });

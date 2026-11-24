@@ -23,8 +23,8 @@ const body = (src: string, from: string, to: string) => {
   const b = src.indexOf(to, a + from.length);
   return src.slice(a, b < 0 ? undefined : b);
 };
-/** The `useCaptures(` call's arguments, to its closing `);`. */
-const captures = (src: string) => body(src, 'useCaptures(', ');\n');
+/** The `useCaptures(` call's arguments, to its closing `});` (tend tabs T61: an option's own body may end a line with `);`). */
+const captures = (src: string) => body(src, 'useCaptures(', '});\n');
 /** The discarded memo's pill, from its condition to the end of its block. */
 const pill = (src: string, start: string) => {
   const a = src.indexOf(start);

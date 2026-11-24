@@ -21,6 +21,7 @@ import { BAR_WAIT_MS, barCapturesOff, barChevron, barDot, barGoesBack, barLineGa
 import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
+import { DISCARD_CLOSE_LABEL, discardHint, discardPillStacks } from '../lib/media/memoSave';
 import { settleWithin } from '../lib/settleWithin';
 import { barReminderUp, barStop, barStops, modalsUp, tabsHidden } from '../lib/tabsHidden';
 import { showWalk } from '../lib/walkNav';
@@ -64,8 +65,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const onError = useCallback((e: { message: string }) => {
     setSaid({ text: e.message, error: true });
   }, []);
-  // No Retry on the bar: a failure says where it is held (unsaved captures UN10).
-  const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError, { retryShown: false, shortWords: true });
+  // No Retry on the bar: a failure says where it is held (unsaved captures UN10). Its discarded memo's pill stays until
+  // Undo, Close, the next capture or the bar going, as on the walk (tend tabs T61, after tend walk-screen T48).
+  const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError, { retryShown: false, shortWords: true, discardStays: true });
   // On Memories the journal's open line files into the walk: the bar shows no capture there (decision 0112); on every
   // other tab the camera, the mic and the pencil (BC1, from T11).
   const path = usePathname();
@@ -76,7 +78,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const memoOn = cap.voiceStartedAt != null;
   const memoStartedAt = cap.voiceStartedAt;
   // The chevron at every width, never mid-memo (BC6, T58).
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   // Whether the walk is paused, read once for the chevron, the gaps and the glyph (tend tabs audit 65).
   const paused = pauses.some((p) => p.ended_at == null);
   const chevron = barChevron(width, memoOn, paused);
@@ -86,6 +88,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const gaps = barLineGaps(width, memoOn, paused);
   // Mid-memo, the line with Discard on it: its dot and paddings by width, so the time stays whole at 320 px (T60).
   const memoRow = barMemoLine(width);
+  // The discarded memo's words take a line of their own above Undo and Close when the pill's row (the screen less its
+  // 10 px a side) cannot hold them, as on the walk (tend walk-screen audit 28; tend tabs T61).
+  const stacked = discardPillStacks(width - 20, fontScale);
   // The pencil's page (BC4), the one the walk screen's pencil opens, over this tab.
   const [page, setPage] = useState<{ key: number } | null>(null);
   const pageRef = useRef<NotePageHandle>(null);
@@ -321,6 +326,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (barStopping(barStop.get(), walk.id, Date.now())) return;
     const mine = { walkId: walk.id, since: Date.now() };
     barStop.set(mine);
+    // The memo set aside is let go as Stop begins, so no Undo lands after the walk has ended (tend walk-screen audit 33's
+    // rule; tend tabs T61).
+    void cap.closeDiscard();
     try {
       // A hold past the bound, the Stop back, joins the end under way: its spinner again, its replay pushed once.
       await barStops.run(walk.id, endWalk);
@@ -336,13 +344,17 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const capturing = barCapturesOff({ capturing: cap.busy != null, stopping });
   return (
     <View>
-    {cap.discarded && !memoOn && (
-      // The walk screen's pill, on the page's ground just above the bar, in flow so it covers no control (BC9).
+    {cap.discarded && !memoOn && !stopping && (
+      // The walk screen's pill, on the page's ground just above the bar, in flow so it covers no control (BC9); Undo and
+      // Close, staying until used (tend tabs T61).
       <View style={styles.pillRow}>
-        <View testID="bar-discarded" style={styles.pill} accessibilityLiveRegion="polite">
-          <Text style={styles.pillText}>Voice memo discarded</Text>
+        <View testID="bar-discarded" style={[styles.pill, stacked && styles.discardStacked]} accessibilityLiveRegion="polite">
+          <Text style={[styles.pillText, stacked && styles.discardTextStacked]}>Voice memo discarded</Text>
           <Pressable testID="bar-voice-undo" accessibilityRole="button" onPress={() => void cap.undoDiscard()} style={({ pressed }) => [styles.pillBtn, pressed && styles.pressed]}>
             <Text style={styles.pillBtnText}>Undo</Text>
+          </Pressable>
+          <Pressable testID="bar-voice-close" accessibilityRole="button" accessibilityLabel={DISCARD_CLOSE_LABEL} onPress={() => void cap.closeDiscard()} style={styles.pillClose}>
+            <Icon name="close" size={20} color="rgba(255,255,255,0.75)" />
           </Pressable>
         </View>
       </View>
@@ -378,7 +390,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             id="bar-voice-discard"
             icon="trash-outline"
             label="Discard voice memo"
-            hint="Throws this recording away. You can undo for a few seconds."
+            hint={discardHint(true)}
             onPress={() => void discardMemo()}
             disabled={cap.busy === 'voice'}
           />
@@ -509,6 +521,11 @@ const styles = StyleSheet.create({
   pillText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   pillBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   pillBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  // 44 pt itself: react-native-web has no hitSlop (tend tabs T61).
+  pillClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
+  // The discard pill when its row cannot hold its words (tend walk-screen audit 28): the words a line, Undo and Close under.
+  discardStacked: { flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 4, borderRadius: 20, maxWidth: '100%' },
+  discardTextStacked: { flexBasis: '100%', paddingTop: 4 },
   reminder: {
     flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 12, borderRadius: 12, backgroundColor: theme.surface,
     maxWidth: 640, width: '100%', alignSelf: 'center',
