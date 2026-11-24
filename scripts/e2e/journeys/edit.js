@@ -793,6 +793,64 @@ async function heldShot(h) {
       `tend captures T43: the 20 s video is stored whole with its place and time, its trim the whole clip, its length said over the bar as any video's (${JSON.stringify({ row, label })})`);
   });
 
+  // tend captures audit 18 (auditor F2): a WebM with no length in its header (MediaRecorder's own, made here in the page:
+  // the loop adds no fixture file), picked from the camera. Since T43 it is kept whatever its length; it is measured as
+  // it is kept, so its stored length is its own and its trim reads it, never "Infinity" or "NaN".
+  await step('audit 18 walk video with no length', async () => {
+    const b64 = await pg.evaluate(async () => {
+      const cv = document.createElement('canvas');
+      cv.width = 320;
+      cv.height = 240;
+      const g = cv.getContext('2d');
+      const rec = new MediaRecorder(cv.captureStream(30), { mimeType: 'video/webm' });
+      const parts = [];
+      rec.ondataavailable = (e) => e.data.size && parts.push(e.data);
+      const stopped = new Promise((r) => { rec.onstop = r; });
+      let i = 0;
+      const paint = setInterval(() => { g.fillStyle = `hsl(${(i += 25) % 360},80%,50%)`; g.fillRect(0, 0, 320, 240); }, 50);
+      rec.start(200);
+      await new Promise((r) => setTimeout(r, 3000));
+      rec.stop();
+      await stopped;
+      clearInterval(paint);
+      const bytes = new Uint8Array(await new Blob(parts, { type: 'video/webm' }).arrayBuffer());
+      let bin = '';
+      for (let k = 0; k < bytes.length; k += 0x8000) bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
+      return btoa(bin);
+    });
+    const file = { name: 'no-length.webm', mimeType: 'video/webm', buffer: Buffer.from(b64, 'base64') };
+    const header = await pg.evaluate(async (b) => {
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.src = URL.createObjectURL(new Blob([Uint8Array.from(atob(b), (ch) => ch.charCodeAt(0))], { type: 'video/webm' }));
+      await new Promise((r) => { v.onloadedmetadata = r; v.onerror = r; });
+      return String(v.duration);
+    }, b64);
+    const res = await capture('[data-testid=cap-photo]', file, 'walk-video-nolength-390', 0, false);
+    await pg.waitForTimeout(800);
+    const tools = await pg.locator('[data-testid^=edit-tool-]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid').slice(10)));
+    let label = null;
+    if (tools.includes('trim')) {
+      await pg.click('[data-testid=edit-tool-trim]');
+      await pg.waitForTimeout(500);
+      label = await pg.locator('[data-testid=trim-label]').innerText().catch(() => null);
+    }
+    await closeEditor();
+    const row = await pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => {
+          const v = g.result.flatMap((m) => m.pieces.map((p) => ({ ...p, t: m.t }))).filter((p) => p.kind === 'video').sort((a, b) => b.t - a.t)[0];
+          resolve(v ? { body: v.body } : null);
+        };
+      };
+    }));
+    const ms = Number(row?.body);
+    check(header === 'Infinity' && res.up && ms >= 2500 && ms <= 3800 && tools.includes('trim') && /^0:00 – 0:0[23]$/.test(label ?? ''),
+      `tend captures audit 18: a picked WebM with no length in its header is measured as it is kept, and its trim reads its length, never Infinity (${JSON.stringify({ header, up: res.up, body: row?.body, tools, label })})`);
+  });
+
   // tend captures audit 7: ✕ while held closes the shot; it is still kept, and no editor opens for it once it is.
   await step('T62 walk close while held', async () => {
     const before = await pg.evaluate(() => new Promise((resolve) => {

@@ -191,3 +191,35 @@ test('VT9: a photo\u2019s and a video\u2019s tools and trim rules are as before'
   assert.equal(openSession('photo', { edit: null, caption: null, caption_y: null }, 'trim').tool, 'crop');
   assert.deepEqual(run(openSession('video', { edit: null, caption: null, caption_y: null }), trimTo(2000, 41_000)).state.edit.trim, { start_ms: 2000, end_ms: 41_000 });
 });
+
+test('tend captures audit 18: a video with no finite length offers no Trim, and a trim against a length that is not one changes nothing', async () => {
+  // Auditor F2: a WebM with no length in its header was kept with none, and the editor's Trim read "0:00 – Infinity:NaN".
+  const m = (await import('../../mediaEdit')) as unknown as { finiteMs?: (storedMs: unknown, playerS: number) => number };
+  const e = (await import('../../editSession')) as unknown as { toolsFor?: (kind: 'photo' | 'video' | 'voice', durationMs: number) => string[] };
+  assert.equal(typeof m.finiteMs, 'function');
+  assert.equal(m.finiteMs!('20000', NaN), 20000, 'the stored length first');
+  assert.equal(m.finiteMs!('0', 3.2), 3200, 'else the player\'s, when it is a length');
+  for (const s of [Infinity, NaN, 0, -1]) assert.equal(m.finiteMs!('0', s), 0, `${s}: no length`);
+  assert.equal(m.finiteMs!('Infinity', NaN), 0);
+  assert.equal(typeof e.toolsFor, 'function');
+  assert.deepEqual(e.toolsFor!('video', 0), TOOLS.video.filter((t) => t !== 'trim'));
+  assert.deepEqual(e.toolsFor!('video', 4000), TOOLS.video);
+  assert.deepEqual(e.toolsFor!('photo', 0), TOOLS.photo);
+  const v = openSession('video', { edit: null, caption: null, caption_y: null });
+  for (const duration of [Infinity, NaN, 0]) {
+    const after = step(v, { type: 'trim', start: 0, end: 2000, duration } as SessionEvent).state;
+    assert.equal(after.edit.trim, null, `a trim against ${duration} stores none`);
+  }
+});
+
+test('tend captures audit 18: a picked clip with no length is measured as it is kept, after its shot is held', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../../useCaptures.ts', import.meta.url), 'utf8');
+  const keep = src.slice(src.indexOf('const keepWatched'), src.indexOf("await guarded('photo'"));
+  assert.ok(keep.indexOf('camera?.shot(') >= 0 && keep.indexOf('videoLength(') > keep.indexOf('camera?.shot('), 'measured once the shot is held, so the map never shows meanwhile');
+  const web = readFileSync(new URL('../../media/index.web.ts', import.meta.url), 'utf8');
+  assert.match(web, /export function videoLength\(/);
+  const editor = readFileSync(new URL('../../../components/edit/MediaEditor.tsx', import.meta.url), 'utf8');
+  assert.match(editor, /finiteMs\(/);
+  assert.match(editor, /toolsFor\(kind, /);
+});
