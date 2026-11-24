@@ -489,8 +489,8 @@ const SAMPLE = () => {
       doneLive: live(done),
       closeLive: live(close),
       closeName: close?.getAttribute('aria-label') ?? null,
-      // Drawn inside Memories' composer (its Modal), not a Modal of its own (tend captures audit 17).
-      composer: !!ed?.closest('[data-testid=composer]'),
+      // Drawn inside Memories' composer's Modal (beside the composer's sheet), not a Modal of its own (tend captures audit 17).
+      composer: !!ed?.closest('[aria-modal=true]')?.querySelector('[data-testid=composer]'),
     });
     if (performance.now() - t0 < 20000) requestAnimationFrame(tick);
   };
