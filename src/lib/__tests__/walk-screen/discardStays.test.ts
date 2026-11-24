@@ -139,6 +139,7 @@ test('tend walk-screen audit 31: Discard\'s hint says the Undo stays where the p
   assert.equal(typeof hint, 'function', 'a pure line in lib/media/memoSave');
   assert.equal(hint!(true), 'Throws this recording away. You can undo it.');
   assert.equal(hint!(false), 'Throws this recording away. You can undo for a few seconds.');
+  // tend walk-screen audit 31: the stack's words come from its host, through `discardStays`.
   const stack = read('components/walk/CaptureStack.tsx');
   assert.match(stack, /hint=\{discardHint\(!!props\.discardStays\)\}/, 'the stack\'s Discard asks its host');
   assert.doesNotMatch(stack, /for a few seconds/, 'no fixed words in the stack');

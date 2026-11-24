@@ -1841,6 +1841,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <CaptureStack
         ref={saveRef}
         ids={{ photo: 'cap-photo', voice: 'cap-voice', note: 'cap-note', save: 'voice-save', discard: 'voice-discard' }}
+        // Its discarded memo's pill stays until used (T48): Discard's hint says so (tend walk-screen audit 31).
+        discardStays
         labels={{ photo: 'Take a photo or video', voice: 'Record a voice memo', note: 'Write a note' }}
         voiceStartedAt={cap.voiceStartedAt}
         busy={cap.busy}

@@ -54,3 +54,11 @@ export const DISCARD_ROW_PX = 340;
 export function discardPillStacks(room: number, fontScale = 1): boolean {
   return room < DISCARD_ROW_PX * Math.max(1, fontScale);
 }
+
+/**
+ * Discard's hint beside a memo recording, saying what its pill's Undo does: where the pill stays until used (T48) it can
+ * be undone; where it goes by itself, for a few seconds (tend walk-screen audit 31).
+ */
+export function discardHint(stays: boolean): string {
+  return stays ? 'Throws this recording away. You can undo it.' : 'Throws this recording away. You can undo for a few seconds.';
+}

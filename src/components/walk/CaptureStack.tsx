@@ -1,5 +1,6 @@
 import { forwardRef, type ComponentRef, type ForwardedRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { discardHint } from '../../lib/media/memoSave';
 import { formatElapsed } from '../../lib/summary';
 import { Icon, type IconName } from '../icons';
 import { Ticking } from '../Ticking';
@@ -18,6 +19,8 @@ type CaptureStackProps = {
   disabled?: boolean;
   /** While a gap's way is drawn, taps belong to the map (GW8). */
   hidden?: boolean;
+  /** The host's discarded memo's pill stays until used (T48), and Discard's hint says so (tend walk-screen audit 31). */
+  discardStays?: boolean;
   onPhoto: () => void;
   onVoice: () => void;
   onSave: () => void;
@@ -79,7 +82,7 @@ function Stack({ saveRef, ...props }: StackProps) {
               testID={props.ids.discard}
               icon="trash-outline"
               label="Discard voice memo"
-              hint="Throws this recording away. You can undo for a few seconds."
+              hint={discardHint(!!props.discardStays)}
               onPress={props.onDiscard}
               size={CAP_SMALL}
             />

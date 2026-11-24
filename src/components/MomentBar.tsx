@@ -240,6 +240,8 @@ export function CaptureRow(props: {
       </View>
       <CaptureStack
         ids={{ photo: `${p}-photo`, voice: `${p}-voice`, note: `${p}-note`, save: `${p}-voice-save`, discard: `${p}-voice-discard`, timer: `${p}-voice-timer` }}
+        // Its discarded memo's pill stays until used (T48): Discard's hint says so (tend walk-screen audit 31).
+        discardStays
         labels={props.labels ?? READY_LABELS}
         voiceStartedAt={cap.voiceStartedAt}
         busy={cap.busy}
