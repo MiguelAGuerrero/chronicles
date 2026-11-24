@@ -210,9 +210,17 @@ async function run(h) {
   await pg.evaluate(() => { window.__slowBlob = 2500; window.__failMedia = 1; });
   const picked = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=cap-photo]', { timeout: 10000 })]).catch(() => null);
   if (picked) await picked[0].setFiles(path.join(fixtures, 'photo.jpg'));
+  // From the camera's return the shot is held full screen over Stop (tend captures T62); its ✕ closes it while the keep
+  // still runs (tend captures audit 7), so Stop is held during the keep, the race this guards.
+  const held3 = await there('[data-testid=media-editor][data-held=true]', 2000);
+  await pg.click('[data-testid=edit-close]', { timeout: 2000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 2000 }).catch(() => {});
+  const stopShown3 = await pg.evaluate(() => !!document.querySelector('[data-testid=stop]'));
   await hold('[data-testid=stop]');
   await pg.waitForTimeout(3000);
   const waited = await pg.locator('body').innerText();
+  check(held3 && stopShown3 && (await pg.locator('[data-testid=media-editor]').count()) === 0,
+    `tend captures audit 7: the held shot's ✕ closes it during the keep, so the walk screen's Stop can be held, and no editor opens for the shot (${JSON.stringify({ held3, stopShown3 })})`);
   check(/Photo not saved yet\. Retry, or hold Stop again/.test(waited) && /\/walk/.test(pg.url()),
     `unsaved-captures audit 3: a photo failing while the walk screen's Stop waits is warned of, and the walk goes on (${pg.url().slice(-12)})`);
   if (await there('[data-testid=held-retry]', 2000)) await shown('[data-testid=held-retry]').first().click();
