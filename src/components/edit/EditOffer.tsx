@@ -36,9 +36,11 @@ export function useEditAfterCapture(captures: readonly Faced[], opts: { waits?: 
   useEffect(() => {
     shownNow.current = shown;
     if (!shown) return;
+    // The one set the hook keeps for its life (never replaced), read where the effect runs.
+    const pending = letGo.current;
     return () => {
       shownNow.current = null;
-      if (letGo.current.delete(shown)) dropTemp(shown);
+      if (pending.delete(shown)) dropTemp(shown);
     };
   }, [shown]);
   const camera: CameraWatch = {

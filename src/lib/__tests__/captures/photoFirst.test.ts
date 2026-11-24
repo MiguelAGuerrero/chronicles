@@ -208,7 +208,8 @@ test('tend captures audit 8: a watched keep keeps its source until the shot leav
   const hook = src('components/edit/EditOffer.tsx');
   assert.match(hook, /shot: \(s\) => \{[\s\S]{0,400}?if \(holds\) sources\.current\.set\(turn, s\.uri\);[\s\S]{0,200}?return \{ turn, holds \};/);
   assert.match(hook, /kept: \(turn, k, release\) => \{[\s\S]{0,300}?const uri = sources\.current\.get\(turn\);\s*sources\.current\.delete\(turn\);\s*if \(uri && release\) \{\s*if \(shownNow\.current === uri\) letGo\.current\.add\(uri\);\s*else dropTemp\(uri\);/);
-  assert.match(hook, /return \(\) => \{\s*shownNow\.current = null;\s*if \(letGo\.current\.delete\(shown\)\) dropTemp\(shown\);\s*\};\s*\}, \[shown\]\);/, 'closed, replaced or unmounted: let go');
+  // (tend captures audit 8: the set read in the effect, the same one for the hook's life, as the hooks lint asks.)
+  assert.match(hook, /const pending = letGo\.current;\s*return \(\) => \{\s*shownNow\.current = null;\s*if \(pending\.delete\(shown\)\) dropTemp\(shown\);\s*\};\s*\}, \[shown\]\);/, 'closed, replaced or unmounted: let go');
   // The watch says whether the screen holds the shot, and whether the keep left the file to the editor.
   const core = src('lib/editOffer.ts');
   assert.match(core, /shot\(s: Shot\): \{ turn: number; holds: boolean \};/);
