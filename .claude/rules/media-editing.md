@@ -62,8 +62,9 @@ paths:
 - **The editor after a capture holds the shot from the camera's return** (tend captures T62): a host passes
   `editAfter.camera` to `takePhoto` and draws `AfterCaptureEditor` (`edit/EditOffer`), never a `MediaEditor` of its own.
   The held shot and its editor are one element keyed by the shot's turn (`afterCapture`, `lib/editOffer`): a remount
-  would replay the Modal's fade over the map and lose the shot, whose file the keep moves (native) or whose blob it
-  revokes (web), so only an element already showing it can go on showing it. A host's `opens` repeats its own guard on
+  would replay the Modal's fade over the map and lose the shot. The held shot owns the picked file until it leaves the
+  view (tend captures audit 8): the keep is told `keepSource` (native copies, the web keeps the blob) and the hook lets
+  it go once the shot is closed, replaced or unmounted, if it was kept. A host's `opens` repeats its own guard on
   `editAfter.open`, asked as the camera returns. The cover ends in the same turn as the keep only because the host's
   `open` follows it in microtasks, before React renders: put no await between `takePhoto`'s answer and `editAfter.open`.
 - **react-native-web draws a new Modal's first frame transparent** (tend captures audit 10): `ModalAnimation` sets its
