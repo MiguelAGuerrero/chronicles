@@ -47,7 +47,8 @@ function stopWorld(over: Partial<{ finishVoice: () => Promise<unknown>; stopEnd:
     setStopping: (v: boolean) => log.push(`stopping ${v}`),
     setNotice: over.setNotice ?? ((n: { message: string }) => log.push(`notice ${n.message}`)),
     setEnded: say('ended'),
-    cap: { finishVoice: over.finishVoice ?? (async () => 'none') },
+    // tend walk-screen audit 33: Stop lets a memo set aside go as it begins, through the captures' Close.
+    cap: { finishVoice: over.finishVoice ?? (async () => 'none'), closeDiscard: async () => 'none' },
     lostAtStop: (s: string) => `lost: ${s}`,
     saveFailLine: () => 'memo',
     settleWithin: async () => void log.push('settled'),
