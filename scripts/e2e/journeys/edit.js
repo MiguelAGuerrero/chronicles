@@ -434,6 +434,7 @@ async function run(h) {
     });
     await c.close();
     await heldShot(h);
+    await longClipCard(h);
 }
 
 // tend captures T62 (the owner, Nov 24: "It'll jump straight back to the map for a little bit and then open up the
@@ -611,6 +612,54 @@ function heldKit(pg, { fixtures, shot, tag = 't62' }) {
   const honest = (r) => r.held > 5 && r.keptWhileHeld === 0 && r.doneWhileHeld === 0 && r.shownHeld > 5 && r.closeWhileHeld === r.shownHeld && r.keptAfter;
   const say = (r) => JSON.stringify(r);
   return { slowKeep, closeEditor, stopSampling, capture, spoken, read, whole, steady, honest, say };
+}
+
+/**
+ * tend captures audit 19 (decision 0264, the owner's "On its card, like a memo"): a walk with one 20 s web clip, kept whole
+ * (T43), ended: its card in the replay says its length as a memo's card does, "Video · 0:20", unprompted. Pictures at 390
+ * and 320.
+ */
+async function longClipCard(h) {
+  const { navUrl, BASE, start, check, shot, freshPage, scriptsDir, toStop } = h;
+  for (const width of [390, 320]) {
+    const { c, pg } = await freshPage(`edit-long-card-${width}`);
+    try {
+      await pg.setViewportSize({ width, height: width === 320 ? 640 : 844 });
+      await pg.goto(navUrl);
+      await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
+      await pg.waitForTimeout(1500);
+      await pg.click('[data-testid=start]');
+      await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      await c.setGeolocation({ longitude: start[0], latitude: start[1] + 0.000002, accuracy: 6 });
+      await pg.waitForTimeout(2500);
+      const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
+      await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'clip-20s.webm'));
+      await pg.waitForSelector('[data-testid=media-editor][data-held=false] [data-testid=edit-kept]', { timeout: 20000 });
+      await pg.click('[data-testid=edit-close]');
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 8000 });
+      await pg.waitForTimeout(1500);
+      await toStop(pg);
+      const b = await pg.locator('[data-testid=stop]').boundingBox();
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      await pg.waitForURL(/replay/, { timeout: 30000 });
+      await pg.waitForSelector('[data-testid=replay-card] video', { timeout: 60000 });
+      await pg.waitForTimeout(2500);
+      const said = await pg.locator('[data-testid=replay-card]').first().evaluate((el) => {
+        const cap = [...el.querySelectorAll('*')].filter((x) => x.childElementCount === 0 && (x.textContent || '').trim()).map((x) => x.textContent);
+        const label = [...el.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /^Video/.test(x.textContent || ''));
+        return { cap, spoken: el.getAttribute('aria-label'), whole: !!label && label.scrollWidth <= label.clientWidth + 1 };
+      });
+      await shot(pg, `tend-captures-audit-19-card-${width}`);
+      check(said.cap.includes('Video · 0:20') && /^Video · 0:20, /.test(said.spoken ?? '') && said.whole,
+        `tend captures audit 19: at ${width} px a kept 20 s video's replay card says "Video · 0:20", seen and spoken, whole (${JSON.stringify(said)})`);
+      if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]').catch(() => {});
+    } finally {
+      await c.close();
+    }
+  }
 }
 
 async function heldShot(h) {

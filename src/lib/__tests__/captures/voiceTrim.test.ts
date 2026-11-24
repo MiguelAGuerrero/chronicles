@@ -132,3 +132,16 @@ test('voice-trim audit 9: a memo with no length says no time anywhere', () => {
   assert.equal(memoLengthText({ body: '58000', edit: trimmed(2000, 41_000) }), '0:39');
   assert.equal(memoLengthText({ body: '58000' }), '0:58');
 });
+
+test('tend captures audit 19: a video\'s card says its kept length as a memo\'s does, "Video · 0:20"; none when it has none', async () => {
+  // Decision 0264, the owner's "On its card, like a memo": every video, long or short; a video with no length says none.
+  const v = (await import('../../voiceTrim')) as unknown as { lengthLabel?: (name: string, m: { body?: string | null; edit?: unknown }) => string };
+  assert.equal(typeof v.lengthLabel, 'function');
+  assert.equal(v.lengthLabel!('Video', { body: '20000' }), 'Video · 0:20');
+  assert.equal(v.lengthLabel!('Video', { body: '95400' }), 'Video · 1:35');
+  assert.equal(v.lengthLabel!('Busker', { body: '4008', edit: { v: 1, rotate: 0, crop: null, filter: 'original', strokes: [], trim: { start_ms: 0, end_ms: 2500 } } }), 'Busker · 0:02', 'a caption, and the kept part');
+  for (const none of ['0', '', null, undefined]) assert.equal(v.lengthLabel!('Video', { body: none }), 'Video', `${none}: no "0:00"`);
+  const { readFileSync } = await import('node:fs');
+  const cards = readFileSync(new URL('../../../components/ceremony/Cards.tsx', import.meta.url), 'utf8');
+  assert.match(cards, /showing\.kind === 'video' \? lengthLabel\(/, 'the replay\'s card says it');
+});
