@@ -82,12 +82,26 @@ test('WP10: A route well short of the distance is said to be so because there is
 });
 
 test('tend explore T49: the planner\'s sentences take each kind\'s noun, never its name with an "&"', () => {
-  assert.equal(title('viewpoints'), 'A walk for views');
-  assert.equal(densityHeading('viewpoints'), 'How many views the walk passes');
-  assert.equal(densityHeading('shops'), 'How many shops the walk passes');
+  // Its title and the density heading moved with decision 0264 (tend explore audit 46, below); its sentences keep the noun.
   assert.equal(densityHeading('parks'), 'How much green the walk passes');
   assert.equal(alsoLine([{ kind: 'viewpoints', level: 'plenty' }]), 'Also passes plenty of views');
   for (const k of ATLAS_ORDER) {
-    for (const s of [title(k), densityHeading(k), alsoLine([{ kind: k, level: 'some' }])!]) assert.ok(!/&/.test(s), `"${s}" takes the noun`);
+    for (const s of [densityHeading(k), alsoLine([{ kind: k, level: 'some' }])!]) assert.ok(!/&/.test(s), `"${s}" takes the noun`);
   }
+});
+
+test('tend explore audit 46: the planner\'s title and the card\'s spoken button take the kind\'s name; a plural kind\'s density heading names it along the walk', async () => {
+  // Decision 0264, the owner's "Accept all": titles and spoken names take the label, sentences keep the noun.
+  const w = (await import('../../walkPlanner/words')) as unknown as { title: (k: string) => string; densityHeading: (k: string) => string; suggestLabel?: (k: string) => string };
+  assert.equal(w.title('viewpoints'), 'A walk for views & oddities');
+  assert.equal(w.title('parks'), 'A walk for green');
+  assert.equal(typeof w.suggestLabel, 'function', 'the button\'s spoken name is the planner\'s words');
+  assert.equal(w.suggestLabel!('viewpoints'), 'Suggest a walk through views & oddities');
+  assert.equal(w.suggestLabel!('history'), 'Suggest a walk through history');
+  assert.equal(w.densityHeading('shops'), 'Shops along the walk');
+  assert.equal(w.densityHeading('viewpoints'), 'Views along the walk');
+  assert.equal(w.densityHeading('parks'), 'How much green the walk passes');
+  for (const k of ATLAS_ORDER) assert.ok(!/how many/i.test(w.densityHeading(k)), `${k}: no count's question`);
+  const strip = readFileSync(new URL('../../../components/atlas/KindStrip.tsx', import.meta.url), 'utf8');
+  assert.match(strip, /accessibilityLabel=\{suggestLabel\(kind\)\}/);
 });

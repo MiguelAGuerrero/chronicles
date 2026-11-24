@@ -586,8 +586,8 @@ test('tend explore T49: the card, the tile\'s spoken name and the explanation na
   assert.match(tileLabel(l, { walks: 0, last: null }, fmt), /Sights: Green: plenty, Views & oddities: some\./);
   // How the marks work names the kinds in the card's words, so "What I'm into" is found by them.
   const all = MARKS_EXPLAINED.join(' ');
-  assert.match(all, /Sights \(history, art, culture, green and views & oddities\)/);
-  assert.match(all, /Local life \(food, shops and nightlife\)/);
+  assert.match(all, /Sights \(History, Art, Culture, Green and Views & oddities\)/, 'the card\'s capitalised names (tend explore audit 46, decision 0264)');
+  assert.match(all, /Local life \(Food, Shops and Nightlife\)/);
 });
 
 test('tend explore T49: the map\'s spoken "?" names the kinds in the card\'s words', async () => {
@@ -603,4 +603,11 @@ test('tend explore audit 45: a kind row is two lines, the name over its amount w
   const row = src.slice(src.indexOf('export function KindRow'), src.indexOf('const styles'));
   assert.match(row, /<View style=\{styles\.kindText\}>\s*<Text style=\{styles\.kindName\}>\{label\}<\/Text>\s*<Text style=\{styles\.kindWord\}>\{STEP_WORDS\[step\]\}<\/Text>\s*<\/View>/);
   assert.ok(!/kindWord\} numberOfLines/.test(row), 'the word is never clipped to a line');
+});
+
+test('tend explore audit 46: How the marks work names the groups\' kinds as the card does, capitalised', async () => {
+  const { MARKS_EXPLAINED } = await import('../../atlas/atlas');
+  const all = MARKS_EXPLAINED.join(' ');
+  assert.ok(all.includes('Sights (History, Art, Culture, Green and Views & oddities) count only places worth finding'), all);
+  assert.ok(all.includes('Local life (Food, Shops and Nightlife) counts every place of its kind'), all);
 });

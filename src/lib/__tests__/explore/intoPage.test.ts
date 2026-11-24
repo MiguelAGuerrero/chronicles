@@ -140,3 +140,21 @@ test('tend explore T49: What I\'m into heads its sections in the card\'s words, 
   assert.match(page_, /case 'line':/);
   assert.match(page_, /testID=\{`into-line-\$\{c\.id\}`\}/);
 });
+
+test('tend explore audit 46: each muted line names only words from its category\'s rows; History\'s and Art\'s as the owner accepted', async () => {
+  // Decision 0264, "Accept all": History's line names all four of its kinds, Art's its subtypes, never a kind it does not hold.
+  const { SUBTYPES } = await import('../../discovery/subtypes');
+  const line = (c: CategoryId) => (categoryOf(c) as { line?: string }).line;
+  assert.ok(['Monuments, buildings, places of worship and cemeteries', 'Monuments, buildings, worship and cemeteries'].includes(line('history') ?? ''), line('history'));
+  assert.equal(line('art'), 'Statues, murals, fountains and signs');
+  assert.equal(line('parks'), 'Parks, gardens and nature');
+  assert.equal(line('culture'), 'Museums, theatres and community spaces');
+  assert.equal(line('viewpoints'), 'Viewpoints, attractions and curiosities');
+  for (const c of CATEGORY_ORDER) {
+    const ids = KINDS.filter((k) => k.category === c).map((k) => k.id as string);
+    const rows = [...KINDS.filter((k) => k.category === c).map((k) => k.label), ...SUBTYPES.filter((s) => ids.includes(s.parent as string)).map((s) => s.label)].join(' ').toLowerCase();
+    for (const word of (line(c) ?? '').toLowerCase().replace(/,/g, '').split(' ').filter((x) => x !== 'and')) {
+      assert.ok(rows.includes(word), `${c}'s line says "${word}", which none of its rows says`);
+    }
+  }
+});
