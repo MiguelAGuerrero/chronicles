@@ -110,4 +110,6 @@ test('tend explore audit 48: the planner keeps no kind name of its own beside th
   // `kindName` in walkPlanner/service.ts had no reader (auditor F5): the one table's `nounOf` and `label` are the names.
   const service = (await import('../../walkPlanner/service')) as Record<string, unknown>;
   assert.equal('kindName' in service, false);
+  // tend explore audit 48: and the service names no kind at all; its words are words.ts's.
+  assert.ok(!/discovery\/categories/.test(readFileSync(new URL('../../walkPlanner/service.ts', import.meta.url), 'utf8')));
 });

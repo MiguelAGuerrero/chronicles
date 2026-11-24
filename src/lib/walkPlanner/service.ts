@@ -1,6 +1,5 @@
 // @layer shell
 import { ATLAS_ORDER } from '../atlas/atlas';
-import { nounOf } from '../discovery/categories';
 import type { CategoryId, Place } from '../discovery/types';
 import { barsOf, passesBy } from '../discovery/bars';
 import { distanceM } from '../geo';
@@ -150,6 +149,3 @@ export async function startFrom(planner: ReturnType<typeof createPlanner>, req: 
   const again = await planner.plan({ ...req, round: 0, shown: [] });
   return again.routes.find((r) => r.preset === chosen.preset) ?? chosen;
 }
-
-/** A kind's noun in a sentence (tend explore T49, decision 0239). */
-export const kindName = (k: CategoryId): string => nounOf(k);
