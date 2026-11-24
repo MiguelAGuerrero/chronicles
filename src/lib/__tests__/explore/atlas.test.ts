@@ -572,9 +572,18 @@ test('tend explore T49: the card, the tile\'s spoken name and the explanation na
   // One table (decision 0239): the atlas keeps no names of its own, and none of their readers does.
   assert.equal('ATLAS_LABEL' in atlas, false, 'the atlas has no table of names beside CATEGORIES');
   const src = (f: string) => readFileSync(join(__dirname, '../../..', f), 'utf8');
-  for (const f of ['lib/atlas/atlas.ts', 'lib/atlas/waitingPins.ts', 'components/atlas/KindStrip.tsx', 'components/planner/RouteRows.tsx', 'lib/kindWalk/words.ts', 'lib/walkPlanner/words.ts', 'lib/walkPlanner/service.ts']) {
-    assert.ok(!/ATLAS_LABEL/.test(src(f)), `${f} reads the one table`);
-  }
+  // tend explore audit 49: "one table" as behaviour, not a name: no module but categories.ts maps the categories to names
+  // (a literal giving a capitalised name to three of the kinds, as main's `ATLAS_LABEL` did, whatever it is called).
+  const { readdirSync, statSync } = await import('node:fs');
+  const walk = (dir: string): string[] => readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n);
+    return statSync(p).isDirectory() ? (n === '__tests__' ? [] : walk(p)) : /\.tsx?$/.test(n) ? [p] : [];
+  });
+  const maps = walk(join(__dirname, '../../..')).filter((f) => !f.endsWith('discovery/categories.ts')).filter((f) => {
+    const text = readFileSync(f, 'utf8');
+    return ['history', 'parks', 'viewpoints'].every((k) => new RegExp(`\\b${k}: '[A-Z]`).test(text));
+  });
+  assert.deepEqual(maps, [], 'a second category-to-name map');
   assert.match(src('components/atlas/KindStrip.tsx'), /categoryOf\(kind\)/, 'the card\'s row reads the one table');
   assert.equal(CATEGORIES.length, 8);
   assert.equal(categoryOf('parks').label, 'Green');
