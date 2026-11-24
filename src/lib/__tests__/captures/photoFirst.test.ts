@@ -234,4 +234,6 @@ test('tend captures audit 11: the held shot\'s ✕ is named "Close, the photo st
   assert.match(editor, /testID="edit-close" accessibilityRole="button" accessibilityLabel=\{words \? words\.close : 'Close'\}/);
   assert.equal(keptWords('photo').close, 'Close, the photo stays as it is');
   assert.equal(keptWords('video').close, 'Close, the video stays as it is');
+  // (tend captures audit 11: the iOS announcement still says "Photo kept" only once kept, from `kept`.)
+  assert.match(editor, /const keptLine = kept\?\.line;/);
 });

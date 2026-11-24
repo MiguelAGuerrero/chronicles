@@ -87,8 +87,10 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
 }>(function MediaEditor(props, ref) {
   const c = props.capture;
   const kind = c.kind === 'video' ? 'video' : c.kind === 'voice' ? 'voice' : 'photo';
-  // Opened by itself after a capture: the shot is already kept (decision 0240, audit 1).
-  const kept = props.justKept && !props.held && kind !== 'voice' ? keptWords(kind) : null;
+  // Opened by itself after a capture: the shot is already kept (decision 0240, audit 1). Its ✕ says the shot stays from
+  // the start of the hold (the owner's "Say it stays", decision 0263; tend captures audit 11); "kept" only once it is.
+  const words = props.justKept && kind !== 'voice' ? keptWords(kind) : null;
+  const kept = words && !props.held ? words : null;
   // Mounted over a held shot, it comes at once, its backdrop with the shot: no fade from transparent over the map (T62).
   const [enter] = useState<'none' | 'fade'>(() => (props.shot ? 'none' : 'fade'));
   const hidden = props.held ? HIDDEN : null;
@@ -215,7 +217,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
 
   const top = (
     <View style={[styles.top, { paddingTop: insets.top + 8 }]}>
-      <Pressable testID="edit-close" accessibilityRole="button" accessibilityLabel={kept ? kept.close : 'Close'} onPress={() => dispatch({ type: 'close' })} style={styles.roundBtn} hitSlop={8}>
+      <Pressable testID="edit-close" accessibilityRole="button" accessibilityLabel={words ? words.close : 'Close'} onPress={() => dispatch({ type: 'close' })} style={styles.roundBtn} hitSlop={8}>
         <Icon name="close" size={24} color={theme.ink} />
       </Pressable>
       {/* While held only the ✕ shows and works (tend captures audit 7): the rest keeps its room, hidden and untouchable. */}
