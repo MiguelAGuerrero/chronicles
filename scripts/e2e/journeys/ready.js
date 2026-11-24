@@ -549,6 +549,26 @@ async function run(h) {
       const voicesAfterPhoto = (await rows(pg)).filter((r) => r.kind === 'voice').length;
       check(pillAgain && pillAfterPhoto === 0 && voicesAfterPhoto === voicesBefore,
         `tend walk-screen T48: a memo discarded again goes with the photo begun next, its pill with it (${JSON.stringify({ pillAgain, pillAtPhoto, pillAfterPhoto, voicesBefore, voicesAfterPhoto })})`);
+      // tend walk-screen audit 29 (auditor F2): a capture only begun keeps the memo set aside. Discarded, then the note's
+      // page opened and closed empty: the pill is still there, its Undo with it (then closed, so the steps below meet the
+      // screen as before and no memo is added).
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-discard]', { timeout: 10000 });
+      await pg.waitForTimeout(1400);
+      await pg.click('[data-testid=moment-voice-discard]');
+      const pillBegun = await pg.waitForSelector('[data-testid=moment-voice-undo]', { timeout: 5000 }).then(() => true, () => false);
+      await pg.click('[data-testid=moment-note]');
+      const pageOpen = await pg.waitForSelector('[data-testid=note-page]', { timeout: 5000 }).then(() => true, () => false);
+      await pg.waitForTimeout(600);
+      await pg.click('[data-testid=note-done]').catch(() => {});
+      await pg.waitForSelector('[data-testid=note-page]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(800);
+      const pillAfterNote = await pg.locator('[data-testid=moment-voice-undo]').filter({ visible: true }).count();
+      const voicesNote = (await rows(pg)).filter((r) => r.kind === 'voice').length;
+      await pg.locator('[data-testid=moment-voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+      await pg.waitForSelector('[data-testid=moment-voice-undo]', { state: 'detached', timeout: 3000 }).catch(() => {});
+      check(pillBegun && pageOpen && pillAfterNote === 1 && voicesNote === voicesBefore,
+        `tend walk-screen audit 29: a note page opened and closed empty keeps the memo set aside, its pill and Undo still there (${JSON.stringify({ pillBegun, pageOpen, pillAfterNote, voicesBefore, voicesNote })})`);
     }
 
     // A moment before Start (NR9).

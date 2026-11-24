@@ -115,3 +115,19 @@ test('tend walk-screen audit 28: the discard pill\'s words take their own line w
     assert.match(src, new RegExp(`\\n  ${style}: \\{[^}]*flexWrap: 'wrap'`), `${file}: the words a line of their own, Undo and Close under them`);
   }
 });
+
+// tend walk-screen audit 29 (the batch's review: auditor F2): a capture only begun threw the set-aside memo away: the step
+// ran in `stampNow`, before the camera's permission and its picker, and as the note's page opened. A camera cancelled or
+// refused, or a note page closed empty, kept nothing, yet the memo was gone. Only a capture kept replaces it (decision
+// 0233, "replaced by the next capture"), and a memo once it records.
+test('tend walk-screen audit 29: only a capture kept, or a memo recording, lets the set-aside memo go', () => {
+  const hook = read('lib/useCaptures.ts');
+  const step = "if (opts.discardStays) asideStep({ type: 'capture' });";
+  assert.ok(!body(hook, 'const stampNow', 'const startLocating').includes(step), 'a stamp taken is not a capture kept');
+  const addPiece = body(hook, 'async function addPiece', 'async function add(');
+  assert.ok(addPiece.indexOf(step) > addPiece.indexOf('await db.addPiece('), 'a piece kept lets it go, once stored');
+  const add = body(hook, 'async function add(', '\n  /**');
+  assert.ok(add.indexOf(step) > add.indexOf('await db.addMoment('), 'a moment kept lets it go, once stored');
+  const start = body(hook, 'const startVoice', 'async function stopRecorder');
+  assert.ok(start.indexOf(step) > start.indexOf('voice.record();'), 'a memo lets it go once it records');
+});
