@@ -545,8 +545,9 @@ async function fresh(h) {
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
       // ME23 as decision 0240 amends it (fix edit-after-capture; 0149's pill is gone): the bar's photo opens its editor by
-      // itself once accepted, on the tab it was taken from.
-      const opened = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
+      // itself once accepted, on the tab it was taken from. Read once kept: from the camera's return the shot is held in the
+      // editor with its controls hidden, before the photo is stored (tend captures T62).
+      const opened = await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 10000 }).then(() => true, () => false);
       const kept = await photosOf();
       check(opened && kept.length === 1 && !/\/walk/.test(new URL(pg.url()).pathname),
         `a photo from the bar's camera lands in the open walk, paused too, and opens its editor without opening the walk screen (NV9, ME23: ${opened}, ${kept.length})`);
