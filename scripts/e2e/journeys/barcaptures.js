@@ -301,6 +301,34 @@ async function run(h) {
       };
     });
     await shot(pg, 'barcaptures-t60-memo-320');
+    // tend tabs audit 69 (auditor F10, steward S7): the widest time the line meets, past ten minutes, whole beside Discard at
+    // 320 px. The page's clock is moved on 10.5 min for the reading alone (the memo's own start stays), then put back.
+    await pg.evaluate(() => {
+      window.__dateNowWas = Date.now;
+      const was = window.__dateNowWas;
+      Date.now = () => was() + 630000;
+    });
+    await pg.waitForTimeout(1600);
+    const long = await pg.evaluate(() => {
+      const q = (id) => document.querySelector(`[data-testid=recording-bar] [data-testid=${id}]`);
+      const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return b.width ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null; };
+      const t = q('bar-voice-timer');
+      const bar = r(document.querySelector('[data-testid=recording-bar]'));
+      const discard = r(q('bar-voice-discard'));
+      const time = r(t);
+      return {
+        text: t?.textContent ?? null, bar, discard, time,
+        whole: !!t && t.scrollWidth <= t.clientWidth + 1 && [...t.querySelectorAll('div')].every((e) => e.scrollWidth <= e.clientWidth + 1),
+        beside: !!discard && !!time && discard.x + discard.w <= time.x && Math.abs(discard.y + discard.h / 2 - (time.y + time.h / 2)) <= 3,
+        inside: !!bar && !!time && time.x + time.w <= bar.x + bar.w,
+        noScroll: document.documentElement.scrollWidth <= window.innerWidth,
+      };
+    });
+    await shot(pg, 'barcaptures-t60-memo-1000-320');
+    await pg.evaluate(() => { if (window.__dateNowWas) Date.now = window.__dateNowWas; });
+    await pg.waitForTimeout(1200);
+    check(/^1\d:\d\d$/.test(long.text ?? '') && long.whole && long.beside && long.inside && long.noScroll,
+      `tend tabs audit 69: at 320 px a memo past ten minutes shows its time whole beside Discard, inside the bar (${JSON.stringify(long)})`);
     await pg.click('[data-testid=bar-voice-save]').catch(() => {});
     await pg.waitForTimeout(1500);
     await pg.setViewportSize({ width: 390, height: 844 });
