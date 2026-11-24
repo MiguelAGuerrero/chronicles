@@ -655,6 +655,22 @@ async function longClipCard(h) {
       await shot(pg, `tend-captures-audit-19-card-${width}`);
       check(said.cap.includes('Video · 0:20') && /^Video · 0:20, /.test(said.spoken ?? '') && said.whole,
         `tend captures audit 19: at ${width} px a kept 20 s video's replay card says "Video · 0:20", seen and spoken, whole (${JSON.stringify(said)})`);
+      if (width === 390) {
+        // tend captures audit 20 (steward S6): with no fix sent after the capture, the walk's trace places the 20 s clip at
+        // Stop (useCaptures: "the trace places it at stop"), so its moment has a place once the walk has ended.
+        const placed = await pg.evaluate(() => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => {
+            const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+            g.onsuccess = () => {
+              const v = g.result.filter((m) => m.pieces.some((p) => p.kind === 'video')).sort((a, b) => b.t - a.t)[0];
+              resolve(v ? { lat: v.lat, lon: v.lon } : null);
+            };
+          };
+        }));
+        check(!!placed && placed.lat != null && placed.lon != null,
+          `tend captures audit 20: with no fix sent after it, the 20 s clip has its place once the walk is stopped, from the walk's trace (${JSON.stringify(placed)})`);
+      }
       if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]').catch(() => {});
     } finally {
       await c.close();
