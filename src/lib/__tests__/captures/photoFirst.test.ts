@@ -252,3 +252,16 @@ test('tend captures audit 12: the kept line\'s live region is in the page, empty
   assert.match(top, /<Text testID="edit-kept" style=\{styles\.kept\} accessibilityLiveRegion="polite" numberOfLines=\{1\}>\{kept \? kept\.line : ''\}<\/Text>/);
   assert.match(top, /<View style=\{\[styles\.topMid, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.\(props\.held && !words \? unread : \{\}\)\}>/);
 });
+
+// tend captures audit 13 (the review's U3 = S7 = F6, WCAG 2.4.7): while held, the web's keyboard reached the hidden tools,
+// Enter edited a shot not yet kept, and ✕ then asked "Discard these edits?" in the hidden row, so it looked dead. While
+// held the editor takes no event but `close`, and its chips and tools leave the Tab order (react-native-web's Pressable
+// sets its own tabIndex, so `focusable` alone is not enough there: `tabIndex` -1 too).
+test('tend captures audit 13: while the shot is held only ✕ acts, and the hidden chips and tools leave the Tab order', () => {
+  const editor = src('components/edit/MediaEditor.tsx');
+  assert.match(editor, /const dispatch = \(e: SessionEvent\) => \{\s*if \(saving\) return;\s*\/\/[^\n]*\n\s*if \(props\.held && e\.type !== 'close'\) return;/);
+  assert.match(editor, /const untabbed = props\.held \? \(\{ focusable: false, tabIndex: -1 \} as const\) : \{\};/);
+  const chip = editor.slice(editor.indexOf('const chip = ('), editor.indexOf('const controls = ('));
+  assert.match(chip, /<Pressable\s+key=\{testID\}\s+testID=\{testID\}[\s\S]*?\{\.\.\.untabbed\}/);
+  assert.match(editor, /testID=\{`edit-tool-\$\{t\}`\}[\s\S]{0,200}?\{\.\.\.untabbed\}/);
+});

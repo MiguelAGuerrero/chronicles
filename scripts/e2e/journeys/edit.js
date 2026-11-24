@@ -683,6 +683,42 @@ async function heldShot(h) {
       `tend captures audit 7: on the walk ✕ closes the held shot before its keep settles; the photo is kept and no editor opens for it (${JSON.stringify({ held, gone, editorAfter, before, after })})`);
   });
 
+  // tend captures audit 13 (U3, S7, F6): while held, the keyboard reaches only ✕: Tab from it lands on nothing hidden, Enter
+  // on a hidden tool changes nothing, and ✕ closes the shot in one press.
+  await step('T62 walk keyboard while held', async () => {
+    await slowKeep(2500);
+    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=cap-photo]', { timeout: 10000 })]);
+    await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
+    const held = await pg.waitForSelector('[data-testid=media-editor][data-held=true]', { timeout: 4000 }).then(() => true, () => false);
+    const stage = () => pg.evaluate(() => { const e = document.querySelector('[data-testid=media-editor][data-held=true] [data-testid=edit-stage]'); return e ? { tool: e.getAttribute('data-tool'), edit: e.getAttribute('data-edit') } : null; });
+    const before = await stage();
+    await pg.focus('[data-testid=media-editor] [data-testid=edit-close]').catch(() => {});
+    const reached = [];
+    for (let i = 0; i < 6; i++) {
+      await pg.keyboard.press('Tab');
+      reached.push(await pg.evaluate(() => {
+        const a = document.activeElement;
+        const ed = document.querySelector('[data-testid=media-editor]');
+        if (!a || !ed || !ed.contains(a)) return null;
+        return { id: a.getAttribute('data-testid'), hidden: !!a.closest('[aria-hidden=true]') || Number(getComputedStyle(a.closest('[style*=opacity]') ?? a).opacity) === 0 };
+      }));
+    }
+    const reachedHidden = reached.filter((x) => x && x.id !== 'edit-close' && (x.hidden || /^edit-(tool|rotate|aspect|crop|done|revert)/.test(x.id ?? '')));
+    // Enter on a hidden tool, focused by script (as a screen reader's cursor could): nothing changes.
+    await pg.focus('[data-testid=media-editor] [data-testid=edit-tool-filter]').catch(() => {});
+    await pg.keyboard.press('Enter');
+    await pg.waitForTimeout(300);
+    const after = await stage();
+    const stillHeld = (await pg.locator('[data-testid=media-editor][data-held=true]').count()) === 1;
+    await pg.click('[data-testid=media-editor] [data-testid=edit-close]', { timeout: 2000 }).catch(() => {});
+    const closedOnce = await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 1200 }).then(() => true, () => false);
+    await pg.waitForTimeout(3500);
+    const reopened = await pg.locator('[data-testid=media-editor]').count();
+    const said = { held, reached, reachedHidden, before, after, stillHeld, closedOnce, reopened };
+    check(held && reachedHidden.length === 0 && !!before && JSON.stringify(before) === JSON.stringify(after) && stillHeld && closedOnce && reopened === 0,
+      `tend captures audit 13: while the photo is held Tab from ✕ reaches nothing hidden, Enter on a hidden tool changes nothing, and ✕ closes it in one press (${JSON.stringify(said)})`);
+  });
+
   // No cover where no editor follows: the picker cancelled, and a photo taken mid-memo (T60: the editor waits for Save).
   await step('T62 walk no cover', async () => {
     const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=cap-photo]', { timeout: 10000 })]);
