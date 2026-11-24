@@ -346,11 +346,13 @@ test('tend captures T43: the camera keeps a web video over 15 s through the held
   const { join } = await import('node:path');
   const src = readFileSync(join(__dirname, '../../useCaptures.ts'), 'utf8');
   assert.ok(!/Videos can be up to/.test(src), 'no notice turns a long clip away');
-  assert.ok(!/MAX_VIDEO_S \* 1000/.test(src), 'no length is compared against a cap after the camera returns');
+  // tend captures audit 21: no length is compared at all after the camera returns, whatever the cap is called (the old
+  // scan looked for one name only); the edit journey's "tend captures T43" holds the behaviour.
   // The video branch: its length from the core, then the same keep as a photo's (held, kept, then the editor; 0263).
   const branch = src.slice(src.indexOf("if (asset.type === 'video')"), src.indexOf("kind: 'video'"));
   assert.match(branch, /pickedVideoMs\(asset\.duration, Platform\.OS === 'web'\)/);
   assert.ok(!/dropTemp/.test(branch), 'the clip is never dropped for its length');
+  assert.ok(!/\b(ms|duration)\b[^;\n]*[<>]=?/.test(branch), 'the video branch compares no length (tend captures audit 21)');
   assert.match(src, /videoMaxDuration: CAMERA_MAX_VIDEO_S/);
 });
 
