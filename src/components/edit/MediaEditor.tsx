@@ -124,6 +124,13 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   });
   const shotVideoSize = useVideoSize(shotPlayer, props.shot?.kind === 'video' && !videoSize ? shotUri : null);
   const shotSize = props.shot?.kind === 'photo' ? shotPhotoSize : props.shot?.kind === 'video' ? shotVideoSize : null;
+  // The stored photo, once loaded and painted (tend captures audit 9): the camera's full-size shot under it is let go
+  // then, not kept decoded for as long as the look is untouched.
+  const [drawn, setDrawn] = useState<string | null>(null);
+  const storedDrawn = () => {
+    const at = uri;
+    requestAnimationFrame(() => setDrawn(at));
+  };
   // A voice memo previews through its own player: no picture, only the kept part (VT3).
   const voice = useAudioPlayer(kind === 'voice' ? (uri ?? undefined) : undefined, { updateInterval: 100 });
   const voiceStatus = useAudioPlayerStatus(voice);
@@ -203,7 +210,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   // Under the stored picture until it is drawn: a photo while its look is untouched (then the two are the same picture in
   // the same place), a video until it is sized (T62).
   const plainLook = !edit.rotate && !edit.crop && edit.filter === 'original' && !edit.strokes.length;
-  const under = !!props.shot && (!!props.held || !rect || (kind === 'photo' && plainLook));
+  const under = !!props.shot && (!!props.held || !rect || (kind === 'photo' && plainLook && (!uri || drawn !== uri)));
   const empty = !edit.rotate && !edit.crop && edit.filter === 'original' && !edit.strokes.length && !edit.trim && !s.caption.trim();
 
   const top = (
@@ -261,7 +268,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
       {rect && size && (
         <View style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height, overflow: 'hidden' }} pointerEvents="none">
           {kind === 'photo' ? (
-            <EditedPicture uri={uri} W={size.w} H={size.h} edit={stageEdit} width={rect.width} height={rect.height} />
+            <EditedPicture uri={uri} W={size.w} H={size.h} edit={stageEdit} width={rect.width} height={rect.height} onLoad={kind === 'photo' && props.shot ? storedDrawn : undefined} />
           ) : (
             <VideoPicture player={player} W={size.w} H={size.h} edit={stageEdit} width={rect.width} height={rect.height} />
           )}

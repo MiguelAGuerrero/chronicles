@@ -215,7 +215,8 @@ test('tend captures audit 8: a watched keep keeps its source until the shot leav
 test('tend captures audit 9: the camera\'s full-size shot leaves the stage once the stored picture has loaded', () => {
   const editor = src('components/edit/MediaEditor.tsx');
   assert.match(editor, /const \[drawn, setDrawn\] = useState<string \| null>\(null\);/);
-  // Loaded, then one frame on for it to be painted, then the shot goes.
+  // Loaded, then one frame on for it to be painted, then the shot goes (tend captures audit 9: react-native-svg's web
+  // Image hands `onLoad` to its <image>, native's to its own load event).
   assert.match(editor, /const storedDrawn = \(\) => \{\s*const at = uri;\s*requestAnimationFrame\(\(\) => setDrawn\(at\)\);\s*\};/);
   assert.match(editor, /<EditedPicture uri=\{uri\} W=\{size\.w\} H=\{size\.h\} edit=\{stageEdit\} width=\{rect\.width\} height=\{rect\.height\} onLoad=\{kind === 'photo' && props\.shot \? storedDrawn : undefined\} \/>/);
   assert.match(editor, /const under = !!props\.shot && \(!!props\.held \|\| !rect \|\| \(kind === 'photo' && plainLook && \(!uri \|\| drawn !== uri\)\)\);/);
