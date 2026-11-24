@@ -223,3 +223,9 @@ test('tend captures audit 18: a picked clip with no length is measured as it is 
   assert.match(editor, /finiteMs\(/);
   assert.match(editor, /toolsFor\(kind, /);
 });
+
+test('tend captures audit 18: on a phone nothing is measured, the picker always saying a clip\'s length', async () => {
+  const { readFileSync } = await import('node:fs');
+  const native = readFileSync(new URL('../../media/index.native.ts', import.meta.url), 'utf8');
+  assert.match(native, /export async function videoLength\(_uri: string\): Promise<number> \{\s*return 0;\s*\}/);
+});

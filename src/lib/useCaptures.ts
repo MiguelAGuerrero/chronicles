@@ -19,7 +19,7 @@ import { nowPlaying, RECORDING } from './journal/nowPlaying';
 import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import type { CameraWatch } from './editOffer';
-import { dropTemp, keepFile, removeMedia } from './media';
+import { dropTemp, keepFile, removeMedia, videoLength } from './media';
 import { CAMERA_MAX_VIDEO_S, pickedVideoMs } from './mediaEdit';
 import { makeThumb } from './media/thumb';
 import { discardStep, failedMemo, memoFile, setAside, type SetAsideEvent } from './media/memoSave';
@@ -481,8 +481,11 @@ export function useCaptures(
     // kept (tend captures audit 8).
     const keepWatched = async (k: Keepable & { kind: 'photo' | 'video'; uri: string }) => {
       const seen = camera?.shot({ kind: k.kind, uri: k.uri });
+      // A clip whose length the picker could not read (a WebM with none in its header) is measured now, its shot already
+      // held, so its stored length is its own (tend captures audit 18); none (0) if it cannot be.
+      const ms = k.kind === 'video' && !k.ms ? await videoLength(k.uri).catch(() => 0) : k.ms;
       let released = false;
-      const r = await keepOrHold({ ...k, keepSource: !!seen?.holds }, () => {
+      const r = await keepOrHold({ ...k, ms, keepSource: !!seen?.holds }, () => {
         released = true;
       }).catch((e: unknown) => {
         if (seen) camera?.kept(seen.turn, null, false);

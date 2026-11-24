@@ -85,6 +85,10 @@ export const TOOLS: Record<MediaKind, EditTool[]> = {
   voice: ['trim'],
 };
 
+/** A kind's tools for one capture (tend captures audit 18): a video with no length known offers no Trim. */
+export const toolsFor = (kind: MediaKind, durationMs: number): EditTool[] =>
+  kind === 'video' && !(durationMs > 0) ? TOOLS.video.filter((t) => t !== 'trim') : TOOLS[kind];
+
 const captionOf = (text: string): string | null => text.trim() || null;
 const isFullCrop = (r: Rect | null) => !r || (r.x <= 1e-6 && r.y <= 1e-6 && r.w >= 1 - 1e-6 && r.h >= 1 - 1e-6);
 
@@ -179,7 +183,8 @@ export function step(s: Session, e: SessionEvent): { state: Session; effect: Ses
     case 'caption':
       return done({ ...s, caption: e.text, captionY: e.y });
     case 'trim': {
-      if (s.kind === 'photo') return done(s);
+      // A length that is not one (Infinity, NaN, none) is never trimmed against (tend captures audit 18).
+      if (s.kind === 'photo' || !Number.isFinite(e.duration) || e.duration <= 0) return done(s);
       const t = clampTrim(e.start, e.end, e.duration);
       return done({ ...s, edit: { ...s.edit, trim: isFullTrim(t, e.duration) ? null : t } });
     }

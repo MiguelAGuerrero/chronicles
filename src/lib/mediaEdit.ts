@@ -464,6 +464,16 @@ export function pickedVideoMs(duration: number | null | undefined, web: boolean)
   return Math.round(web ? duration * 1000 : duration);
 }
 
+/**
+ * A video's length in ms for its editor (tend captures audit 18): the stored one, else the player's when it is a length
+ * (a WebM with none in its header reads Infinity), else none (0).
+ */
+export function finiteMs(storedMs: unknown, playerS: number): number {
+  const stored = Number(storedMs);
+  if (Number.isFinite(stored) && stored > 0) return Math.round(stored);
+  return Number.isFinite(playerS) && playerS > 0 ? Math.round(playerS * 1000) : 0;
+}
+
 /** The longest a clip can be (the camera's cap on phones), for a source that says no length. */
 const LONGEST_S = CAMERA_MAX_VIDEO_S;
 

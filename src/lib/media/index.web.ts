@@ -100,6 +100,39 @@ export function probeVideoSize(uri: string): Promise<{ w: number; h: number } | 
 }
 
 /**
+ * A picked clip's length in ms where the picker gave none (tend captures audit 18): a MediaRecorder WebM has no length in
+ * its header (the picker reads Infinity), so a detached, muted <video> is sought far past its end, which makes the
+ * browser find the length (as `videoFrame` does). 0 (none) when it cannot be read within `waitMs`. Nothing leaves the page.
+ */
+export function videoLength(uri: string, waitMs = 8000): Promise<number> {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'metadata';
+    let settled = false;
+    const done = (ms: number) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(t);
+      v.removeAttribute('src');
+      v.load();
+      resolve(ms);
+    };
+    const t = setTimeout(() => done(0), waitMs);
+    const read = () => (Number.isFinite(v.duration) && v.duration > 0 ? Math.round(v.duration * 1000) : 0);
+    v.onerror = () => done(0);
+    v.onloadedmetadata = () => {
+      if (read()) return done(read());
+      v.ondurationchange = () => read() && done(read());
+      v.onseeked = () => done(read());
+      v.currentTime = 1e101;
+    };
+    v.src = uri;
+  });
+}
+
+/**
  * A video's still at `atSec`, at most `max` px on its long edge (video thumbnails VS1, VS8): a web exception, since
  * expo-video's web player cannot make one ("not supported on Web yet"). A detached, muted <video> loads the file from
  * its `blob:` URL, seeks to the frame and draws it on a canvas; the still is a `blob:` URL the image manipulator and

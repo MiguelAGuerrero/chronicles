@@ -6,11 +6,11 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { AccessibilityInfo, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CapturePatch } from '../../lib/captureBus';
-import { FULL_LINES_TEXT, openSession, step, TOOLS, type EditTool, type Session, type SessionEvent } from '../../lib/editSession';
+import { FULL_LINES_TEXT, openSession, step, toolsFor, type EditTool, type Session, type SessionEvent } from '../../lib/editSession';
 import { removeMedia } from '../../lib/media';
 import { keepEditedThumb } from '../../lib/media/thumb';
 import { thumbs } from '../../lib/thumbs';
-import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, emptyEdit, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
+import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, emptyEdit, finiteMs, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
 import { stillChanged, THUMB } from '../../lib/thumbPlan';
 import { formatElapsed } from '../../lib/format';
 import { voiceReachedEnd, voiceSpan, wholeMs } from '../../lib/voiceTrim';
@@ -146,6 +146,9 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
   const voiceStatus = useAudioPlayerStatus(voice);
   // A memo with no length on record is measured by its file (audit 3, 4).
   const durationMs = kind === 'voice' ? wholeMs(c.body, (voiceStatus.duration || 0) * 1000) : Number(c.body) || 0;
+  // A video's length, the stored one or the player's when it is one: none (and no Trim) for a WebM with no length in its
+  // header that could not be measured (tend captures audit 18).
+  const videoMs = kind === 'video' ? finiteMs(c.body, player.duration) : 0;
   // The press that restarts the preview names the position it left: until it moves, that is not the end (audit 2).
   const [restartedFrom, setRestartedFrom] = useState<number | null>(null);
 
@@ -423,8 +426,8 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
         </View>
       );
     }
-    if (s.tool === 'trim' && kind === 'video') {
-      const dur = durationMs || Math.round((player.duration || 0) * 1000);
+    if (s.tool === 'trim' && kind === 'video' && videoMs > 0) {
+      const dur = videoMs;
       return (
         <View style={styles.trimRow}>
           <TrimBar
@@ -475,7 +478,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
           <>
             <View style={styles.controls}>{controls}</View>
             <View style={styles.tools} accessibilityRole="tablist">
-              {TOOLS[kind].map((t) => {
+              {toolsFor(kind, kind === 'video' ? videoMs : durationMs).map((t) => {
                 const on = s.tool === t;
                 return (
                   <Pressable

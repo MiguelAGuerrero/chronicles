@@ -136,6 +136,14 @@ export async function videoFrame(uri: string, atSec: number, max: number): Promi
   }
 }
 
+/**
+ * A picked clip's length in ms where the picker gave none (tend captures audit 18): on a phone the picker always says it,
+ * so nothing is measured here (0, none).
+ */
+export async function videoLength(_uri: string): Promise<number> {
+  return 0;
+}
+
 export async function probeVideoSize(uri: string): Promise<{ w: number; h: number } | null> {
   const player = createVideoPlayer(uri);
   try {
