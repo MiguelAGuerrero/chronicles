@@ -1060,7 +1060,8 @@ async function checks(h) {
             await page.waitForSelector('[data-testid=options-card]', { timeout: 5000 }).catch(() => {});
             await page.waitForTimeout(900);
             const raisedBefore = await page.locator('[data-testid=options-card]').isVisible().catch(() => false);
-            const top = (await page.locator('[data-testid=options-card]').boundingBox())?.y ?? 0;
+            // tend walk-screen T45: read within 3 s or not at all, so a build without Done fails here and the run goes on.
+            const top = (await page.locator('[data-testid=options-card]').boundingBox({ timeout: 3000 }).catch(() => null))?.y ?? 0;
             const spot = await page.evaluate((t) => {
               for (const y of [t - 60, t / 2, t - 100, 120])
                 for (const x of [window.innerWidth / 2, window.innerWidth / 3, (2 * window.innerWidth) / 3])
