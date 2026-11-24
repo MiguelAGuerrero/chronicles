@@ -1150,6 +1150,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
     stoppingNow.current = true;
     // A photo's editor waiting on the memo opens no more: the replay comes (decision 0240's audits 3, 6; audit 20).
     editAfter.close();
+    // A memo set aside is let go and its pill goes: an Undo after the memo's save below would keep one Stop never placed
+    // (tend walk-screen audit 33). An Undo tapped before it is queued first and keeps it.
+    void cap.closeDiscard();
     // The walk stays on screen with the error, even if storage already closed it (audit 3).
     const couldNotStop = (e: unknown) =>
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
@@ -1803,7 +1806,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <Text style={styles.aheadText}>{aheadLine}</Text>
           </View>
         )}
-        {cap.discarded && !recordingVoice && !spot && !openMark && !options && !memory && (
+        {cap.discarded && !stopping && !recordingVoice && !spot && !openMark && !options && !memory && (
           // When the row cannot hold them, the words take a line of their own above Undo and Close (tend walk-screen audit 28).
           <View style={[styles.undo, stacked && styles.undoStacked]} accessibilityLiveRegion="polite">
             <Text style={[styles.undoText, stacked && styles.undoTextStacked]}>Voice memo discarded</Text>

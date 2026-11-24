@@ -167,6 +167,7 @@ test('tend walk-screen audit 32: a memo set aside once its screen has gone is le
 // an Undo after Stop's `finishVoice` saved a memo Stop never placed. When Stop begins, the memo set aside is let go and its
 // pill goes.
 test('tend walk-screen audit 33: Stop lets the walk\'s set-aside memo go and hides its pill', () => {
+  // tend walk-screen audit 33: the pill's own condition, and Stop's first steps.
   const walk = read('app/walk.tsx');
   assert.match(walk, /\{cap\.discarded && !stopping && /, 'no discard pill while stopping');
   const stop = body(walk, '  async function stop() {', 'const couldNotStop');
