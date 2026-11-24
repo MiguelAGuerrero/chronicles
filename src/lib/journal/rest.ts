@@ -111,3 +111,14 @@ export function restBox(o: Omit<RestInput, 'peek'>): { room: number; blankMin: n
 export function snapsToEnd(o: { web: boolean; armed: boolean; pinned: boolean; writing: boolean; moving: boolean; sliding: boolean }): boolean {
   return o.web && o.armed && o.pinned && !o.writing && !o.moving && !o.sliding;
 }
+
+/**
+ * Whether the sheet is kept at its end as its foot grows (tend tabs audit 72; the owner's "Stays; list scrolls clear",
+ * decision 0263): a pill that stays above the line (the band's discarded memo) must cover no entry's buttons, so a reader
+ * at the end, or near it by no more than the growth, is taken to the new end. `y`, `view` and `height` are the scroll
+ * as it stood before the growth; a reader who read back up the page is left there.
+ */
+export function footKeepsEnd(o: { grew: number; armed: boolean; y: number; view: number; height: number }): boolean {
+  if (!o.armed || o.grew <= 0) return false;
+  return o.y + o.view >= o.height - Math.max(24, o.grew);
+}

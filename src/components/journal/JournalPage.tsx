@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, us
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent, type ViewStyle } from 'react-native';
 import { dayHeading } from '../../lib/journal/lines';
 import type { JournalRow } from '../../lib/journal/page';
-import { anchorOf, peekMeasured, peekStart, restBox, sheetOpens, snapsToEnd, stickyDay } from '../../lib/journal/rest';
+import { anchorOf, footKeepsEnd, peekMeasured, peekStart, restBox, sheetOpens, snapsToEnd, stickyDay } from '../../lib/journal/rest';
 import type { MomentView } from '../../lib/resurface/types';
 import { useReducedMotion } from '../../lib/motion';
 import { theme } from '../ui';
@@ -174,6 +174,17 @@ export const JournalPage = forwardRef<JournalPageHandle, {
     if (!snapsToEnd({ web, armed: armed.current, pinned: pinned.current, writing, moving: moving.current, sliding: sliding.current })) return;
     scroll.current?.scrollToEnd({ animated: false });
   });
+
+  // The foot grew (a pill that stays above the line): a reader at the end, or near it, is kept there before the frame is
+  // painted, so the pill covers no entry's buttons (tend tabs audit 72; the owner's "Stays; list scrolls clear", 0263).
+  const footWas = useRef(props.footPad);
+  useLayoutEffect(() => {
+    const grew = props.footPad - footWas.current;
+    footWas.current = props.footPad;
+    if (!footKeepsEnd({ grew, armed: armed.current, y: at.current.y, view: at.current.view, height: at.current.height })) return;
+    pinned.current = true;
+    scroll.current?.scrollToEnd({ animated: false });
+  }, [props.footPad]);
 
   const { more, onMore } = props;
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {

@@ -151,7 +151,8 @@ test('tend tabs audit 72: a foot that grows under a reader at the page\'s end ke
   assert.equal(keeps({ grew: 0, armed: true, y: 1000, view: 600, height: 1600 }), false);
   assert.equal(keeps({ grew: -80, armed: true, y: 1000, view: 600, height: 1600 }), false);
   assert.equal(keeps({ grew: 80, armed: false, y: 1000, view: 600, height: 1600 }), false);
-  // The page reads it each time its foot changes, before the frame is painted.
+  // The page reads it each time its foot changes, before the frame is painted (tend tabs audit 72: `at` still holds the
+  // scroll as it stood before the growth, since the content's new size is told after layout).
   const page = read('components/journal/JournalPage.tsx');
   assert.match(page, /const footWas = useRef\(props\.footPad\);\s*useLayoutEffect\(\(\) => \{[\s\S]{0,400}?footKeepsEnd\(\{ grew, armed: armed\.current, y: at\.current\.y, view: at\.current\.view, height: at\.current\.height \}\)[\s\S]{0,200}?scroll\.current\?\.scrollToEnd\(\{ animated: false \}\);[\s\S]{0,40}?\}, \[props\.footPad\]\);/);
 });
