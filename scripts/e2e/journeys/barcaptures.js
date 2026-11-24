@@ -388,6 +388,76 @@ async function run(h) {
     await pg.waitForTimeout(1200);
   });
 
+  // tend tabs T61 (from T48 on the walk): the bar's discarded memo stays, with Undo and a 44 pt Close, until one is used
+  // or the next capture lets it go; its words a row with them at 390 px, a line above them at 320.
+  const barPill = () => pg.evaluate(() => {
+    const vis = (id) => [...document.querySelectorAll(`[data-testid=${id}]`)].find((e) => e.getBoundingClientRect().width > 0) ?? null;
+    const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }; };
+    const pill = vis('bar-discarded');
+    const close = vis('bar-voice-close');
+    const text = pill ? [...pill.querySelectorAll('div[dir=auto]')].find((e) => /Voice memo discarded/.test(e.textContent ?? '')) ?? null : null;
+    let lines = 0;
+    if (text) { const rg = document.createRange(); rg.selectNodeContents(text); lines = new Set([...rg.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size; }
+    return { pill: r(pill), undo: r(vis('bar-voice-undo')), close: r(close), text: r(text), lines, name: close?.getAttribute('aria-label') ?? null,
+      said: pill?.textContent ?? '', vw: window.innerWidth, over: document.documentElement.scrollWidth - window.innerWidth };
+  });
+  const inside = (a, b) => !!a && !!b && a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h;
+  const mid = (b) => b.y + b.h / 2;
+  const pillHolds = (a) => !!a.pill && !!a.undo && !!a.close && a.close.w >= 44 && a.close.h >= 44 && inside(a.close, a.pill) && inside(a.undo, a.pill)
+    && /Voice memo discarded/.test(a.said) && a.name === 'Close, it stays discarded' && a.pill.x >= 0 && a.pill.x + a.pill.w <= a.vw && a.over <= 0 && a.lines === 1;
+  const oneRow = (a) => !!a.text && !!a.undo && !!a.close && Math.abs(mid(a.text) - mid(a.undo)) <= 3 && Math.abs(mid(a.close) - mid(a.undo)) <= 3;
+  const stackedAbove = (a) => !!a.text && !!a.undo && !!a.close && a.text.y + a.text.h <= Math.min(a.undo.y, a.close.y) + 0.5 && Math.abs(mid(a.close) - mid(a.undo)) <= 3;
+  await step('t61', async () => {
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(1000);
+    const voices = await count('voice');
+    await memo();
+    await pg.click('[data-testid=bar-voice-discard]');
+    await there('[data-testid=bar-discarded]', 4000);
+    await pg.waitForTimeout(6000);
+    const at390 = await barPill();
+    await shot(pg, 't61-bar-pill-6s-390');
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await pg.waitForTimeout(900);
+    const at320 = await barPill();
+    await shot(pg, 't61-bar-pill-6s-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(900);
+    check(pillHolds(at390) && pillHolds(at320),
+      `tend tabs T61: on the bar, 6 s after a discard, "Voice memo discarded" still has Undo and a 44 pt Close named "Close, it stays discarded" inside the pill, whole on screen at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+    check(oneRow(at390) && stackedAbove(at320),
+      `tend tabs T61: on the bar the words, Undo and Close are one row at 390 px, and at 320 px the words are a line above Undo and Close (${JSON.stringify({ at390, at320 })})`);
+    const shownBefore = await pg.locator('[data-testid=bar-voice-close]').filter({ visible: true }).count();
+    await pg.click('[data-testid=bar-voice-close]', { timeout: 5000 }).catch(() => {});
+    const closed = await pg.waitForSelector('[data-testid=bar-discarded]', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
+    await pg.waitForTimeout(1500);
+    const after = await count('voice');
+    check(shownBefore === 1 && closed && after === voices, `tend tabs T61: on the bar Close takes the pill shown away, and the walk keeps no memo (${JSON.stringify({ shownBefore, closed, voices, after })})`);
+
+    // A photo kept from the bar lets a discarded memo go; so does a new memo, which alone is kept.
+    await memo();
+    await pg.click('[data-testid=bar-voice-discard]');
+    const pillA = await there('[data-testid=bar-discarded]', 4000);
+    const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 8000 }), pg.click('[data-testid=recording-bar] [data-testid=bar-photo]')]);
+    await chooser.setFiles(require('path').join(h.scriptsDir, 'fixtures', 'photo.jpg'));
+    await pg.waitForSelector('[data-testid=media-editor][data-held=false]', { timeout: 10000 }).catch(() => {});
+    await pg.click('[data-testid=edit-close]', { timeout: 5000 }).catch(() => {});
+    await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    await pg.waitForTimeout(1000);
+    const afterPhoto = await shown('[data-testid=bar-discarded]');
+    await memo();
+    await pg.click('[data-testid=bar-voice-discard]');
+    const pillB = await there('[data-testid=bar-discarded]', 4000);
+    await memo();
+    await pg.click('[data-testid=bar-voice-save]');
+    await settle('voice', voices);
+    await pg.waitForTimeout(1500);
+    const afterMemo = await shown('[data-testid=bar-discarded]');
+    const kept = await count('voice');
+    check(pillA && !afterPhoto && pillB && !afterMemo && kept === voices + 1,
+      `tend tabs T61: on the bar a photo kept, or a new memo, lets the discarded memo's pill go, and only the new memo is kept (${JSON.stringify({ pillA, afterPhoto, pillB, afterMemo, voices, kept })})`);
+  });
+
   // BC4: the pencil opens the note's page over the tab; words kept join the walk; an empty page keeps nothing.
   await step('bc4', async () => {
     const from = urls.length;
@@ -582,6 +652,23 @@ async function run(h) {
     if (still) await pg.click('[data-testid=bar-voice-save]');
     const saved = await settle('voice', voices);
     check(still && !early && saved, `recording-bar-captures audit 2: from Walks to Days mid-memo the memo keeps recording, then saves whole (${JSON.stringify({ still, early, saved })})`);
+  });
+
+  // tend tabs T61: a discard, then the bar's Stop held: the pill goes as Stop begins, and the ended walk holds no memo it set
+  // aside. Last: it ends the walk.
+  await step('t61 stop', async () => {
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(1000);
+    const voices = await count('voice');
+    await memo();
+    await pg.click('[data-testid=bar-voice-discard]');
+    const pill = await there('[data-testid=bar-discarded]', 4000);
+    await hold('[data-testid=recording-bar] [data-testid=bar-stop]', 1300);
+    const goneAtOnce = !(await shown('[data-testid=bar-discarded]'));
+    await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
+    await pg.waitForTimeout(3000);
+    const after = await count('voice');
+    check(pill && goneAtOnce && after === voices, `tend tabs T61: a discard, then the bar's Stop held: the pill goes as Stop begins, and the ended walk holds no discarded memo (${JSON.stringify({ pill, goneAtOnce, voices, after })})`);
   });
 
   await c.close();

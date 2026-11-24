@@ -788,6 +788,53 @@ async function run(h) {
   check(narrowRest.cut === false && oneRow(narrowRest) && !!narrowRec && narrowRec.h <= 64 && !narrowRec.over,
     `JN46: at 320 px "What’s on your mind?" is whole and the toolbar is one row, at rest and while a note records (${JSON.stringify({ narrowRest, narrowRec })})`);
 
+  // tend tabs T61 (from T48 on the walk): the band's discarded note stays, with Undo and a 44 pt Close, until one is used;
+  // its words a row with them at 390 px, a line above them at 320; Close keeps nothing.
+  const bandPill = () => pg.evaluate(() => {
+    const vis = (id) => [...document.querySelectorAll(`[data-testid=${id}]`)].find((e) => e.getBoundingClientRect().width > 0) ?? null;
+    const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }; };
+    const pill = vis('band-voice-undo');
+    const close = vis('band-voice-close');
+    const text = pill ? [...pill.querySelectorAll('div[dir=auto]')].find((e) => /Voice note discarded/.test(e.textContent ?? '')) ?? null : null;
+    let lines = 0;
+    if (text) { const rg = document.createRange(); rg.selectNodeContents(text); lines = new Set([...rg.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size; }
+    return { pill: r(pill), undo: r(vis('band-voice-undo-act')), close: r(close), text: r(text), lines, name: close?.getAttribute('aria-label') ?? null,
+      said: pill?.textContent ?? '', vw: window.innerWidth, over: document.documentElement.scrollWidth - window.innerWidth };
+  });
+  {
+    const inside = (a, b) => !!a && !!b && a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h;
+    const mid = (b) => b.y + b.h / 2;
+    const holds = (a) => !!a.pill && !!a.undo && !!a.close && a.close.w >= 44 && a.close.h >= 44 && inside(a.close, a.pill) && inside(a.undo, a.pill)
+      && /Voice note discarded/.test(a.said) && a.name === 'Close, it stays discarded' && a.pill.x >= 0 && a.pill.x + a.pill.w <= a.vw && a.over <= 0 && a.lines === 1;
+    const row = (a) => !!a.text && !!a.undo && !!a.close && Math.abs(mid(a.text) - mid(a.undo)) <= 3 && Math.abs(mid(a.close) - mid(a.undo)) <= 3;
+    const stacked = (a) => !!a.text && !!a.undo && !!a.close && a.text.y + a.text.h <= Math.min(a.undo.y, a.close.y) + 0.5 && Math.abs(mid(a.close) - mid(a.undo)) <= 3;
+    const voices = (await stored(pg)).moments.filter((m) => m.pieces.some((x) => x.kind === 'voice')).length;
+    await pg.click('[data-testid=open-line] [data-testid=band-voice]').catch(() => {});
+    await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=band-voice-discard]').catch(() => {});
+    await there('[data-testid=band-voice-undo]', 4000);
+    await pg.waitForTimeout(6000);
+    const at390 = await bandPill();
+    await shot(pg, 't61-band-pill-6s-390');
+    await pg.setViewportSize({ width: 320, height: 640 });
+    await pg.waitForTimeout(1200);
+    const at320 = await bandPill();
+    await shot(pg, 't61-band-pill-6s-320');
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(1200);
+    check(holds(at390) && holds(at320),
+      `tend tabs T61: on the band, 6 s after a discard, "Voice note discarded" still has Undo and a 44 pt Close named "Close, it stays discarded" inside the pill, whole on screen at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+    check(row(at390) && stacked(at320),
+      `tend tabs T61: on the band the words, Undo and Close are one row at 390 px, and at 320 px the words are a line above Undo and Close (${JSON.stringify({ at390, at320 })})`);
+    const shownBefore = await pg.locator('[data-testid=band-voice-close]').filter({ visible: true }).count();
+    await pg.click('[data-testid=band-voice-close]', { timeout: 5000 }).catch(() => {});
+    const closed = await pg.waitForSelector('[data-testid=band-voice-undo]', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
+    await pg.waitForTimeout(1500);
+    const after = (await stored(pg)).moments.filter((m) => m.pieces.some((x) => x.kind === 'voice')).length;
+    check(shownBefore === 1 && closed && after === voices, `tend tabs T61: on the band Close takes the pill shown away, and no note is kept (${JSON.stringify({ shownBefore, closed, voices, after })})`);
+  }
+
   // JN47-JN51 (decision 0179): an entry is written in the composer, a sheet over the journal with room to type.
   const sheetState = () => pg.evaluate(() => {
     const c = document.querySelector('[data-testid=composer]');
@@ -1230,6 +1277,27 @@ async function run(h) {
   const onWalkScreen = await pg.locator('[aria-label$=". Open"]').count();
   await pg.click('[data-testid=walk-minimize]').catch(() => {});
   await pg.waitForSelector('[data-testid=bar-stop]', { timeout: 10000 }).catch(() => {});
+  // tend tabs T61: a note discarded on the band with the walk open, then the bar's Stop: the band's pill goes, and no
+  // note lands in the ended walk.
+  const walkVoices = async () => (await stored(pg)).moments.filter((m) => m.walk_id === walk?.id && m.pieces.some((x) => x.kind === 'voice')).length;
+  const voicesT61 = await walkVoices();
+  await pg.click('[data-testid=open-line] [data-testid=band-voice]', { timeout: 5000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  await pg.click('[data-testid=band-voice-discard]').catch(() => {});
+  const pillT61 = await there('[data-testid=band-voice-undo]', 4000);
+  // Read frame by frame from the hold on, since the replay may come over the page as the walk ends: the band's pill and the
+  // journal page, each frame.
+  await pg.evaluate(() => {
+    window.__t61 = [];
+    const t0 = performance.now();
+    const tick = () => {
+      window.__t61.push({ t: Math.round(performance.now() - t0), page: !!document.querySelector('[data-testid=journal-page]') && !/replay/.test(location.pathname),
+        pill: [...document.querySelectorAll('[data-testid=band-voice-undo]')].some((e) => e.getBoundingClientRect().width > 0) });
+      if (performance.now() - t0 < 15000) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   const sb = await pg.locator('[data-testid=bar-stop]').boundingBox().catch(() => null);
   if (sb) {
     await pg.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
@@ -1238,7 +1306,16 @@ async function run(h) {
     await pg.mouse.up();
   }
   await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
+  // The pill went while the journal still showed (a frame with the page and no pill), not only with the page.
+  const frames61 = await pg.evaluate(() => window.__t61 ?? []).catch(() => []);
+  const lastPage = frames61.filter((f) => f.page).pop();
+  const pillGone = frames61.find((f) => f.page && !f.pill) ?? null;
+  const pillLeft = lastPage ? lastPage.pill : null;
+  await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
   await pg.waitForTimeout(2500);
+  const voicesAfterT61 = await walkVoices();
+  check(pillT61 && !!pillGone && pillLeft === false && voicesAfterT61 === voicesT61,
+    `tend tabs T61: a note discarded on the band, then the walk stopped from the bar: the band's pill goes as the walk ends, while the journal still shows, and the ended walk holds no discarded note (${JSON.stringify({ pillT61, pillGoneAt: pillGone?.t ?? null, pageLastAt: lastPage?.t ?? null, voicesT61, voicesAfterT61 })})`);
   await pg.goto(url);
   await there('[data-testid=memories]', 20000);
   await pg.waitForSelector(entries, { timeout: 15000 }).catch(() => {});
