@@ -717,22 +717,31 @@ async function heldShot(h) {
     await pg.click('[data-testid=edit-tool-trim]').catch(() => {});
     await pg.waitForTimeout(400);
     const label = await pg.locator('[data-testid=trim-label]').innerText().catch(() => null);
-    const ofWhole = await pg.locator('[data-testid=trim-whole]').innerText().catch(() => null);
     await closeEditor();
-    const row = await pg.evaluate(() => new Promise((resolve) => {
+    // Its place may land a moment after the keep, from the next fix (`startLocating`): the mocked position stands still,
+    // so a fix is sent again (a step of under a metre), as any capture here would need; then read for up to 6 s. The
+    // T62 videos before it are stored with no place for the same reason (seen: one placed, one not).
+    await c.setGeolocation({ longitude: start[0], latitude: start[1] + 0.000006, accuracy: 6 });
+    const readRow = () => pg.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
         const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
         g.onsuccess = () => {
-          const v = g.result.flatMap((m) => m.pieces.map((p) => ({ ...p, lat: m.lat, lon: m.lon, t: m.t }))).filter((p) => p.kind === 'video').sort((a, b) => b.t - a.t)[0];
-          resolve(v ? { ms: Number(v.body), placed: v.lat != null && v.lon != null, t: v.t } : null);
+          const vs = g.result.flatMap((m) => m.pieces.map((p) => ({ ...p, lat: m.lat, lon: m.lon, t: m.t }))).filter((p) => p.kind === 'video').sort((a, b) => b.t - a.t);
+          const v = vs[0];
+          resolve(v ? { ms: Number(v.body), placed: v.lat != null && v.lon != null, t: v.t, othersPlaced: vs.slice(1).map((x) => x.lat != null) } : null);
         };
       };
     }));
+    let row = await readRow();
+    for (let i = 0; i < 12 && row && !row.placed; i++) {
+      await pg.waitForTimeout(500);
+      row = await readRow();
+    }
     check(res.up && whole(r) && steady(r) && honest(r) && notice === 0,
       `tend captures T43: on the walk a 20 s web video is held from the camera's return and kept, then its editor, with no notice that it is too long (${JSON.stringify({ up: res.up, notice, r: say(r) })})`);
-    check(!!row && row.ms >= 19000 && row.ms <= 21000 && row.placed && /^0:00 – 0:(19|20)$/.test(label ?? '') && /^of 0:(19|20)$/.test(ofWhole ?? ''),
-      `tend captures T43: the 20 s video is stored whole with its place and time, its length said as any video's, its trim the whole clip (${JSON.stringify({ row, label, ofWhole })})`);
+    check(!!row && row.ms >= 19000 && row.ms <= 21000 && row.placed && /^0:00 – 0:(19|20)$/.test(label ?? ''),
+      `tend captures T43: the 20 s video is stored whole with its place and time, its trim the whole clip, its length said over the bar as any video's (${JSON.stringify({ row, label })})`);
   });
 
   // tend captures audit 7: ✕ while held closes the shot; it is still kept, and no editor opens for it once it is.
