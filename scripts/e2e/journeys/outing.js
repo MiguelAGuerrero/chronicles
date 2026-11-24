@@ -219,7 +219,53 @@ async function run(h) {
   await aroundHere();
   // OJ11, OJ15: one list of chips, shops and attractions alike, alphabetical.
   const chips = await pg.locator('[data-testid^=outing-want-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/[^\x20-\x7e]/g, '').trim()));
-  check(JSON.stringify(chips) === JSON.stringify(['Antiques', 'Art', 'Books', 'Culture', 'Green', 'History', 'Thrifting', 'Views']), `OJ11, OJ15: the chips are one alphabetical list (${chips.join(',')})`);
+  check(JSON.stringify(chips) === JSON.stringify(['Antiques', 'Art', 'Books', 'Culture', 'Green', 'History', 'Thrifting', 'Views & oddities']), `OJ11, OJ15: the chips are one alphabetical list (${chips.join(',')})`);
+  // tend explore T63 (decisions 0239, 0264): the attraction chips say the one table's names, "Views & oddities" the longest; on and off,
+  // at 390 and 320 px, every chip is whole: one line, nothing cut, inside the page, none over another, all one height.
+  {
+    const { categoryOf } = require('tsx/cjs/api').require('../../../src/lib/discovery/categories.ts', __filename);
+    const named = await pg.locator('[data-testid^=outing-want-]').evaluateAll((els) => els.map((e) => [e.getAttribute('data-testid').slice('outing-want-'.length), e.getAttribute('aria-label')]));
+    const kinds = named.filter(([id]) => ['art', 'culture', 'history', 'parks', 'viewpoints'].includes(id));
+    check(kinds.length === 5 && kinds.every(([id, said]) => said === categoryOf(id).label) && kinds.some(([id, said]) => id === 'viewpoints' && said === 'Views & oddities'),
+      `tend explore T63: the attraction chips say the one table's names, "Views & oddities" among them (${JSON.stringify(kinds)})`);
+    const measure = () => pg.evaluate(() => {
+      const vw = document.documentElement.clientWidth;
+      const boxes = [...document.querySelectorAll('[data-testid^=outing-want-]')].map((c) => {
+        const r = c.getBoundingClientRect();
+        const leaf = [...c.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /[A-Za-z]/.test(x.textContent || ''));
+        const range = document.createRange();
+        if (leaf) range.selectNodeContents(leaf);
+        const t = leaf ? range.getBoundingClientRect() : null;
+        return {
+          id: c.getAttribute('data-testid').slice('outing-want-'.length), left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height), w: Math.round(r.width),
+          lines: leaf ? new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size : 0, cut: !leaf || leaf.scrollWidth > leaf.clientWidth + 1,
+          inChip: !!t && t.left >= r.left - 0.5 && t.right <= r.right + 0.5, pressed: c.getAttribute('aria-pressed') === 'true',
+        };
+      });
+      const overlap = boxes.some((a, i) => boxes.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1));
+      return { vw, boxes, overlap, rows: new Set(boxes.map((b) => b.top)).size };
+    });
+    const whole = (m) => m.boxes.length === 8 && !m.overlap && m.boxes.every((b) => b.lines === 1 && !b.cut && b.inChip && b.left >= 16 && b.right <= m.vw - 16 && b.h >= 44 && b.h === m.boxes[0].h);
+    const vp = pg.viewportSize();
+    for (const width of [390, 320]) {
+      await pg.setViewportSize({ width, height: vp.height });
+      await pg.waitForTimeout(600);
+      for (const turn of [false, true]) {
+        if (turn) {
+          await pg.click('[data-testid=outing-want-viewpoints]');
+          await pg.waitForTimeout(400);
+        }
+        const m = await measure();
+        const v = m.boxes.find((b) => b.id === 'viewpoints');
+        check(whole(m), `tend explore T63: at ${width} px, "Views & oddities" ${v && v.pressed ? 'on' : 'off'}, every chip is whole, one line, inside the page and none over another (${JSON.stringify({ vw: m.vw, rows: m.rows, overlap: m.overlap, chips: m.boxes.map((b) => `${b.id} ${b.left}-${b.right}x${b.top} h${b.h} l${b.lines}${b.cut ? ' cut' : ''}${b.inChip ? '' : ' out'}${b.pressed ? ' on' : ''}`) })})`);
+        await shot(pg, `tend-explore-T63-chips-${width}-${v && v.pressed ? 'on' : 'off'}`);
+      }
+      await pg.click('[data-testid=outing-want-viewpoints]');
+      await pg.waitForTimeout(400);
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(600);
+  }
   // OJ12: shop chips start off.
   const pressed = async (id) => (await pg.locator(`[data-testid=outing-want-${id}]`).getAttribute('aria-pressed')) === 'true';
   check(!(await pressed('antiques')) && !(await pressed('books')) && !(await pressed('thrifting')) && (await pressed('history')), 'OJ12: shop chips start off; attractions follow "What I\'m into"');

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } 
 import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { matches } from '../../lib/outing/candidates';
+import { chipWord } from '../../lib/outing/chips';
 import { distanceM } from '../../lib/geo';
 import type { Waypoint } from '../../lib/nav/types';
 import type { JourneyPlan } from '../../lib/outing/journeyPlan';
@@ -139,7 +140,7 @@ export function OutingPage(props: {
       const labels: string[] = [];
       const slots = o.stops.map((s, i) => {
         const want = wants.find((w) => matches(w.match, s)) ?? wants[0];
-        if (want && !labels.includes(want.label)) labels.push(want.label);
+        if (want && !labels.includes(chipWord(want))) labels.push(chipWord(want));
         const m = o.stops.length < 2 ? 0 : distanceM(i === 0 ? o.path[0] : o.stops[i - 1].at, s.at);
         return { n: before[ci] + i, i, id: s.id, name: s.unfound ? null : s.name, word: want?.slotWord ?? 'a place', line: o.stops.length < 2 ? cap(want?.slotWord ?? 'a place') : slotLine(want?.slotWord ?? 'a place', m), m };
       });
@@ -175,7 +176,7 @@ export function OutingPage(props: {
   const capturing = !!j.walkId;
   // OJ21: a summary names only the chips its stops came from, never one that found nothing.
   const summary = (x: NonNullable<typeof j.journey>) => {
-    const labels = x.wants.filter((w) => x.chapters.some((c) => c.outing.stops.some((s) => matches(w.match, s)))).map((w) => w.label);
+    const labels = x.wants.filter((w) => x.chapters.some((c) => c.outing.stops.some((s) => matches(w.match, s)))).map(chipWord);
     return cardSummary({ places: x.chapters.map((c) => c.area.name), labels, footM: x.footM, roadM: j.roadMOf(x) }, j.units);
   };
   return (
