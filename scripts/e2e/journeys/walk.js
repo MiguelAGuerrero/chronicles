@@ -434,7 +434,10 @@ async function checks(h) {
         const memoStarted = await page.waitForSelector('[data-testid=voice-discard]', { timeout: 5000 }).then(() => true, () => false);
         check(memoStarted && (await page.locator('[data-testid=mark-card]').count()) === 0, 'CA3: Voice on the card closes it and starts a voice memo');
         await page.click('[data-testid=voice-discard]').catch(() => {});
-        await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached', timeout: 10000 }).catch(() => {});
+        // The discarded memo's pill stays until used since tend walk-screen T48: its Close lets it go, so the steps below
+        // meet the screen as before (and the walker stands no longer than before; T48's own check is at k 33).
+        await page.locator('[data-testid=voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+        await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached', timeout: 5000 }).catch(() => {});
         // CA4, CA7: Note on the card opens the note's page; closed empty, it keeps nothing and finds nothing.
         await openPlace();
         await page.click('[data-testid=mark-note]').catch(() => {});
@@ -1072,6 +1075,53 @@ async function checks(h) {
             const drawing = await walkMap().getAttribute('data-drawing').catch(() => null);
             check(raisedBefore && byMap && opened.length === 0 && (drawing ?? '0') === '0' && page.url() === urlBefore,
               `tend walk-screen T45: a tap on the map above the raised settings lowers them and opens nothing (${JSON.stringify({ raisedBefore, top, spot, byMap, opened, drawing })})`);
+          }
+          // tend walk-screen T48 (the owner's "Undo + Close, stays", decision 0233): a memo discarded on the walk; past the
+          // old five seconds the pill is still there with Undo and a 44 pt Close, whole and on screen at 390 and 320 px;
+          // Close takes it away, keeping nothing.
+          {
+            const voiceRows = () => page.evaluate(() => new Promise((resolve) => {
+              const req = indexedDB.open('chronicles');
+              req.onsuccess = () => {
+                const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+                g.onsuccess = () => resolve(g.result.filter((m) => m.pieces.some((x) => x.kind === 'voice')).length);
+              };
+            }));
+            const memosBefore = await voiceRows();
+            await page.click('[data-testid=cap-voice]');
+            await page.waitForSelector('[data-testid=voice-discard]', { timeout: 10000 });
+            await page.waitForTimeout(1500);
+            await page.click('[data-testid=voice-discard]');
+            await page.waitForSelector('[data-testid=voice-undo]', { timeout: 5000 }).catch(() => {});
+            await page.waitForTimeout(6000);
+            const pillAt = () => page.evaluate(() => {
+              const vis = (id) => [...document.querySelectorAll(`[data-testid=${id}]`)].find((e) => e.getBoundingClientRect().width > 0) ?? null;
+              const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }; };
+              const undo = vis('voice-undo');
+              const close = vis('voice-close');
+              const pill = undo?.parentElement ?? null;
+              const words = pill ? [...pill.querySelectorAll('div[dir=auto]')] : [];
+              return { undo: r(undo), close: r(close), pill: r(pill), cam: r(vis('cap-photo')), said: pill?.textContent ?? '', name: close?.getAttribute('aria-label') ?? null,
+                whole: words.every((e) => e.scrollWidth <= e.clientWidth + 1), over: document.documentElement.scrollWidth - window.innerWidth, vw: window.innerWidth };
+            });
+            const fits = (a) => !!a.undo && !!a.close && !!a.pill && a.pill.x >= 0 && a.pill.x + a.pill.w <= a.vw && a.close.w >= 44 && a.close.h >= 44 && a.whole && a.over <= 0
+              && /Voice memo discarded/.test(a.said) && a.name === 'Close, it stays discarded';
+            const at390 = await pillAt();
+            await shot(page, 'ws-t48-walk-pill-after-6s-390');
+            const was = page.viewportSize();
+            await page.setViewportSize({ width: 320, height: was.height });
+            await page.waitForTimeout(700);
+            const at320 = await pillAt();
+            await shot(page, 'ws-t48-walk-pill-320');
+            await page.setViewportSize(was);
+            await page.waitForTimeout(700);
+            check(fits(at390) && fits(at320),
+              `tend walk-screen T48: on the walk, 6 s after a discard, "Voice memo discarded" still has Undo and a 44 pt Close, whole on screen at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+            await page.locator('[data-testid=voice-close]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+            const closed = await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached', timeout: 3000 }).then(() => true, () => false);
+            await page.waitForTimeout(800);
+            const memosAfter = await voiceRows();
+            check(closed && memosAfter === memosBefore, `tend walk-screen T48: on the walk Close takes the pill away and keeps no memo (${JSON.stringify({ closed, memosBefore, memosAfter })})`);
           }
         });
         await page.click('[data-testid=pause-walk]');
