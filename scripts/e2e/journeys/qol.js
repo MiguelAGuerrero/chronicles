@@ -2010,12 +2010,71 @@ async function run(h) {
             `tend map audit 25: a loop walk at ${w}, its end ${apartPx != null ? apartPx.toFixed(1) : '-'} px from its start, shows the bullseye whole over the start (centre ${JSON.stringify(px && px.centre)}, band white ${band}/4, ring walked ${ring}/4; right, left, below, above from 4 to 9 px ${JSON.stringify(dirs)})`);
           await shot(pg9, `qol-21-loop-card-${w}`);
         };
+        // tend map T50 (the owner's "One combined mark", decision 0244): on the card, the loop's two ends within one marker's
+        // diameter on screen are one mark: the end's bullseye whole inside a white band (10 to 12 px out) and a ring in the
+        // trace's green (14 to 16 px out) in all four directions, each step 3:1 or more from the next in greyscale; zoomed
+        // in until they lie more than 22 px apart, the hollow start and the bullseye are drawn apart; zoomed out, one again.
+        const nearGreen = (cc) => Math.abs(cc[0] - 0x15) + Math.abs(cc[1] - 0x80) + Math.abs(cc[2] - 0x3d) <= 60;
+        const lum = (cc) => {
+          const ch = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+          return 0.2126 * ch(cc[0]) + 0.7152 * ch(cc[1]) + 0.0722 * ch(cc[2]);
+        };
+        const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+        const loopOne = async (w) => {
+          const ends = (await mapAttr('data-ends')) ?? '';
+          const [a, b] = ends.split('|');
+          const startAt = lonLatOf(a);
+          const endAt = lonLatOf(b);
+          const apart = () => pg9.evaluate(([p, q]) => { const [x, y] = [window.__project(p), window.__project(q)]; return Math.hypot(x[0] - y[0], x[1] - y[1]); }, [startAt, endAt]);
+          const together = await mapAttr('data-ends-together');
+          const apartPx = startAt && endAt ? await apart() : null;
+          await hideMarkers(true);
+          let px = null;
+          try { px = endAt ? await pixelsAround(endAt, 22, [2, 4, 6, 8, 10, 11, 12, 14, 15, 16], pg9) : null; } finally { await hideMarkers(false); }
+          // For each direction (right, left, below, above), the samples by radius.
+          const dirs = px ? [0, 1, 2, 3].map((k) => px.radial.map((q) => q[k])) : [];
+          const at = (d, r) => d[[2, 4, 6, 8, 10, 11, 12, 14, 15, 16].indexOf(r)];
+          const band = dirs.filter((d) => [10, 11, 12].filter((r) => isWhite(at(d, r))).length >= 2).length;
+          const ring = dirs.filter((d) => [14, 15, 16].filter((r) => nearGreen(at(d, r))).length >= 2).length;
+          const greenInside = dirs.filter((d) => [2, 4, 6, 8, 10, 11, 12].some((r) => nearGreen(at(d, r)))).length;
+          const steps = px ? { walkedWhite: ratio(px.centre, [255, 255, 255]), whiteGreen: ratio([255, 255, 255], at(dirs[0], 15)) } : null;
+          check(together === '1' && apartPx != null && apartPx <= 22 && px && nearWalked(px.centre) && band === 4 && ring === 4 && greenInside === 0
+            && steps && steps.walkedWhite >= 3 && steps.whiteGreen >= 3,
+            `tend map T50: on the card at ${w} the loop's two ends (${apartPx != null ? apartPx.toFixed(1) : '-'} px apart) are one mark: the bullseye whole, white 10 to 12 px out ${band}/4, the trace's green 14 to 16 px out ${ring}/4, no green inside ${greenInside}/4, steps ${JSON.stringify(steps)} (together ${together}; ${JSON.stringify(dirs)})`);
+          // Zoomed in until the two lie more than 22 px apart: two marks, the start hollow at its own point.
+          const z0 = Number(await mapAttr('data-zoom'));
+          const c0 = lonLatOf(await mapAttr('data-center'));
+          let z = z0;
+          let gap = apartPx ?? 0;
+          for (let i = 0; i < 12 && gap <= 26; i++) {
+            z += 0.5;
+            await pg9.evaluate(([cc, zz]) => window.__zoomTo(cc, zz), [endAt, z]);
+            await pg9.waitForTimeout(700);
+            gap = await apart();
+          }
+          await pg9.waitForTimeout(800);
+          const togetherIn = await mapAttr('data-ends-together');
+          await hideMarkers(true);
+          let pxS = null;
+          let pxE = null;
+          try { [pxS, pxE] = [await pixelsAround(startAt, 14, [], pg9), await pixelsAround(endAt, 14, [4, 5, 6, 7, 8, 9], pg9)]; } finally { await hideMarkers(false); }
+          await shot(pg9, `qol-22-loop-apart-${w}`);
+          // Out again to where it was: one mark once more.
+          await pg9.evaluate(([cc, zz]) => window.__zoomTo(cc, zz), [c0 ?? endAt, z0]);
+          await pg9.waitForTimeout(1200);
+          const togetherOut = await mapAttr('data-ends-together');
+          const gapOut = await apart();
+          check(togetherIn === '0' && gap > 22 && !!pxS && pxS.white && !!pxE && nearWalked(pxE.centre) && !pxE.white && togetherOut === '1' && gapOut <= 22,
+            `tend map T50: zoomed in at ${w} until the ends lie ${gap.toFixed(1)} px apart (zoom ${z0} → ${z}) they are two marks, the start hollow and the end a bullseye at their own points; out again (${gapOut.toFixed(1)} px), one mark (together ${togetherIn} → ${togetherOut}; start ${JSON.stringify(pxS && pxS.centre)}, end ${JSON.stringify(pxE && pxE.centre)})`);
+        };
         await holdApart('390');
         await loopEnd('390');
+        await loopOne('390');
         await pg9.setViewportSize({ width: 320, height: 568 });
         await pg9.goto(`${replayUrl}?ceremony=0`);
         await holdApart('320');
         await loopEnd('320');
+        await loopOne('320');
       } catch (e) {
         check(false, `tend map audit 25: the loop walk: ${String(e.message).split('\n')[0]}`);
       }
