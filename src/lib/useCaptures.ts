@@ -552,7 +552,8 @@ export function useCaptures(
   const discardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** One step of the memo set aside: lets go of the one it drops, and returns the one to keep. */
   const asideStep = (e: SetAsideEvent<StoppedMemo>): StoppedMemo | null => {
-    const r = setAside(setAsideRef.current, e);
+    // Taken once the screen has gone (a discard queued as it went), the memo is let go at once (audit 32).
+    const r = setAside(setAsideRef.current, e, !alive.current);
     setAsideRef.current = r.held;
     if (r.letGo) dropTemp(r.letGo.uri);
     if (alive.current) setDiscarded(r.held);

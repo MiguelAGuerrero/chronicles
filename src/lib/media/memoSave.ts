@@ -32,7 +32,10 @@ export function failedMemo(m: { file: string | null; outOfSpace: boolean }): { h
  * the one whose file is dropped.
  */
 export type SetAsideEvent<M> = { type: 'discard'; memo: M } | { type: 'undo' | 'close' | 'capture' | 'leave' };
-export function setAside<M>(held: M | null, e: SetAsideEvent<M>): { held: M | null; keep: M | null; letGo: M | null } {
+export function setAside<M>(held: M | null, e: SetAsideEvent<M>, gone = false): { held: M | null; keep: M | null; letGo: M | null } {
+  // Its screen gone (a discard still running as it went), nothing shows the pill or would let the memo go later: it is let
+  // go at once. The screen's leave already let go of any memo held before (tend walk-screen audit 32).
+  if (e.type === 'discard' && gone) return { held: null, keep: null, letGo: e.memo };
   if (e.type === 'discard') return { held: e.memo, keep: null, letGo: held };
   if (e.type === 'undo') return { held: null, keep: held, letGo: null };
   return { held: null, keep: null, letGo: held };

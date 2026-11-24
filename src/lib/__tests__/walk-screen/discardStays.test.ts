@@ -158,6 +158,7 @@ test('tend walk-screen audit 32: a memo set aside once its screen has gone is le
   assert.deepEqual(gone(null, { type: 'discard', memo: a }, true), { held: null, keep: null, letGo: a }, 'discarded with the screen gone: let go');
   assert.deepEqual(gone(null, { type: 'discard', memo: a }, false), { held: a, keep: null, letGo: null }, 'in front: set aside, as before');
   assert.equal(setAside.length, 2, 'still no clock: the screen\'s presence is the one more input');
+  // tend walk-screen audit 32: the hook's one step passes it.
   const hook = read('lib/useCaptures.ts');
   assert.match(body(hook, 'const asideStep', 'const resetAudioMode'), /setAside\(setAsideRef\.current, e, !alive\.current\)/, 'the hook says whether its screen is still there');
 });
