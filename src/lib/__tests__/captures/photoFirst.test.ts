@@ -306,3 +306,16 @@ test('tend captures audit 13: while held the crop row\'s scroller is no Tab stop
   // (tend captures audit 13: the same spread as the chips', nothing while not held.)
   assert.match(editor, /const untabbed = props\.held \? \(\{ focusable: false, tabIndex: -1 \} as const\) : \{\};/);
 });
+
+// tend captures audit 13, its second journey run: Tab from the held shot's ✕ still reached the last tool. react-native-web's
+// Modal traps focus by calling `.focus()` on its descendants in turn, and an element with tabIndex -1 accepts that. On the
+// web the hidden blocks (Done, the tools below) are also `visibility: hidden`, which keeps their room but takes nothing
+// in them focus; the row's middle, holding only the empty live line, stays visible to screen readers (audit 12).
+test('tend captures audit 13: on the web the held shot\'s hidden blocks take no focus, even a focus trap\'s', () => {
+  const editor = src('components/edit/MediaEditor.tsx');
+  assert.match(editor, /const HIDDEN = \{ opacity: 0, \.\.\.\(Platform\.OS === 'web' \? \(\{ visibility: 'hidden' \} as object\) : \{\}\) \};/);
+  assert.match(editor, /const QUIET = \{ opacity: 0 \};/);
+  const top = editor.slice(editor.indexOf('const top = ('), editor.indexOf('const stage = ('));
+  assert.match(top, /<View style=\{\[styles\.topMid, props\.held && words \? QUIET : hidden\]\}/, 'the live line\'s row is only transparent');
+  assert.match(top, /<View style=\{hidden\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>\s*<Pressable testID="edit-done"/);
+});
