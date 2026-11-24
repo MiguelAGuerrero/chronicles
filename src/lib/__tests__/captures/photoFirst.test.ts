@@ -132,9 +132,11 @@ test('tend captures T62: the held shot is the editor minus its controls, and the
   const editor = src('components/edit/MediaEditor.tsx');
   // Decision 0240: "Photo kept" is never said before it is.
   assert.match(editor, /const kept = props\.justKept && !props\.held && kind !== 'voice' \? keptWords\(kind\) : null;/);
-  // The controls keep their room while held, so the shot never moves when they come: hidden, untouchable, unread.
+  // The controls keep their room while held, so the shot never moves when they come: hidden, untouchable, unread; the ✕
+  // alone shows and works (tend captures audit 7: the top row's middle and Done, then the tools below, each hidden).
   assert.match(editor, /const hidden = props\.held \? HIDDEN : null;/);
-  assert.match(editor, /<View style=\{hidden\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}>\s*\{top\}/);
+  assert.equal([...editor.matchAll(/style=\{(?:\[[^\]]*\bhidden\]|hidden)\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}/g)].length, 3, 'tend captures audit 7: the top row\'s middle, Done and the tools below');
+  assert.match(editor, /\{ paddingBottom: insets\.bottom \+ 10 \}, hidden\]\} pointerEvents=\{props\.held \? 'none' : 'auto'\} \{\.\.\.unread\}/);
   // Mounted over a held shot, the Modal comes at once, the backdrop and the shot with it; otherwise it fades, as before.
   assert.match(editor, /const \[enter\] = useState<'none' \| 'fade'>\(\(\) => \(props\.shot \? 'none' : 'fade'\)\);/);
   assert.match(editor, /<Modal visible animationType=\{enter\} /);

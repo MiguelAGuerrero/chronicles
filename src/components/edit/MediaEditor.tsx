@@ -47,7 +47,8 @@ function pauseAudio(player: AudioPlayer) {
 
 // The shot as the camera gave it, drawn as the editor draws a capture with no edits (tend captures T62).
 const PLAIN: MediaEdit = emptyEdit();
-// While the shot is held its controls keep their room, so the shot never moves when they come (tend captures T62).
+// While the shot is held its controls keep their room, so the shot never moves when they come (tend captures T62); the
+// ✕ alone shows and works meanwhile (tend captures audit 7).
 const HIDDEN = { opacity: 0 };
 
 const DRAW_TOOLS: { id: 'pen' | 'marker' | 'eraser'; label: string; icon: IconName }[] = [
@@ -210,7 +211,8 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
       <Pressable testID="edit-close" accessibilityRole="button" accessibilityLabel={kept ? kept.close : 'Close'} onPress={() => dispatch({ type: 'close' })} style={styles.roundBtn} hitSlop={8}>
         <Icon name="close" size={24} color={theme.ink} />
       </Pressable>
-      <View style={styles.topMid}>
+      {/* While held only the ✕ shows and works (tend captures audit 7): the rest keeps its room, hidden and untouchable. */}
+      <View style={[styles.topMid, hidden]} pointerEvents={props.held ? 'none' : 'auto'} {...unread}>
         {s.tool === 'draw' && (
           <>
             <Pressable testID="edit-undo" accessibilityRole="button" accessibilityLabel="Undo" accessibilityState={{ disabled: !s.past.length }} disabled={!s.past.length} onPress={() => dispatch({ type: 'undo' })} style={[styles.iconBtn, !s.past.length && styles.dim]} hitSlop={6}>
@@ -231,9 +233,11 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
           </Pressable>
         )}
       </View>
-      <Pressable testID="edit-done" accessibilityRole="button" accessibilityLabel="Done" accessibilityState={{ busy: saving }} onPress={() => dispatch({ type: 'done' })} style={styles.doneBtn} hitSlop={8}>
-        {saving ? <ActivityIndicator color={theme.ink} /> : <Text style={styles.doneText}>Done</Text>}
-      </Pressable>
+      <View style={hidden} pointerEvents={props.held ? 'none' : 'auto'} {...unread}>
+        <Pressable testID="edit-done" accessibilityRole="button" accessibilityLabel="Done" accessibilityState={{ busy: saving }} disabled={!!props.held} onPress={() => dispatch({ type: 'done' })} style={styles.doneBtn} hitSlop={8}>
+          {saving ? <ActivityIndicator color={theme.ink} /> : <Text style={styles.doneText}>Done</Text>}
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -428,9 +432,7 @@ export const MediaEditor = forwardRef<MediaEditorHandle, {
       {/* The baker draws behind everything; the screen's own background hides it. */}
       {baker}
       <View style={[StyleSheet.absoluteFill, styles.screenBg]} pointerEvents="none" />
-      <View style={hidden} pointerEvents={props.held ? 'none' : 'auto'} {...unread}>
-        {top}
-      </View>
+      {top}
       {stage}
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 10 }, hidden]} pointerEvents={props.held ? 'none' : 'auto'} {...unread}>
         {error && (

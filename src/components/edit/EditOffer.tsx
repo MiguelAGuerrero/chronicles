@@ -15,6 +15,8 @@ export function useEditAfterCapture(captures: readonly Faced[], opts: { waits?: 
   const [target, setTarget] = useState<EditTarget | null>(null);
   const [shot, setShot] = useState<HeldShot | null>(null);
   const turns = useRef(0);
+  // A shot closed while held (its ✕, Escape, Back): the piece its keep answers is never opened (tend captures audit 7).
+  const dropped = useRef<{ turn: number; piece: string | null } | null>(null);
   const waits = !!opts.waits;
   const waitsNow = useRef(waits);
   const opensNow = useRef(opts.opens);
@@ -30,14 +32,21 @@ export function useEditAfterCapture(captures: readonly Faced[], opts: { waits?: 
       setShot(shotTaken(s, turn, !waitsNow.current && (opensNow.current?.() ?? true)));
       return turn;
     },
-    kept: (turn, k) => setShot((h) => shotKept(h, turn, k)),
+    kept: (turn, k) => {
+      if (k && dropped.current?.turn === turn) dropped.current = { turn, piece: k.id };
+      setShot((h) => shotKept(h, turn, k));
+    },
   };
   return {
     view,
     editing: view.show === 'editor' ? view.capture : null,
     camera,
-    open: (kept: KeptShot) => setTarget(editAfter(kept)),
+    open: (kept: KeptShot) => {
+      if (dropped.current?.piece === kept.id) return;
+      setTarget(editAfter(kept));
+    },
     close: () => {
+      dropped.current = { turn: turns.current, piece: null };
       setTarget(null);
       setShot(shotClosed);
     },
