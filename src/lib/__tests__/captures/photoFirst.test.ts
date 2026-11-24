@@ -267,3 +267,18 @@ test('tend captures audit 13: while the shot is held only ✕ acts, and the hidd
   // (tend captures audit 13: Done is disabled while held, and Revert while nothing is edited: both out of the order.)
   assert.match(editor, /testID="edit-done" [^>]*disabled=\{!!props\.held\}/);
 });
+
+// tend captures audit 14 (the review's F3): nothing read that the hook hands the screen's mask (`waits`, a memo recording,
+// T60 and decision 0261) to `afterCapture`: with `waits: false` there, a photo taken mid-memo would open its editor over
+// the memo. Read from the source: the hook passes its own `waits`, from the screen's option, into the pure view, and
+// asks it again as the camera returns; the screens that record a memo hand it over.
+test('tend captures audit 14: the editor\'s hook hands the screen\'s mid-memo mask to afterCapture', () => {
+  const hook = src('components/edit/EditOffer.tsx');
+  assert.match(hook, /const waits = !!opts\.waits;/);
+  assert.match(hook, /const view = afterCapture\(\{ shot, target, captures, waits \}\);/);
+  assert.match(hook, /useEffect\(\(\) => \{\s*waitsNow\.current = waits;/);
+  assert.match(hook, /const holds = !waitsNow\.current && /);
+  assert.match(src('app/walk.tsx'), /useEditAfterCapture\(cap\.captures, \{ waits: cap\.voiceStartedAt != null,/);
+  assert.match(src('components/MomentBar.tsx'), /useEditAfterCapture\(cap\.captures, \{ waits: recording \}\)/);
+  assert.match(src('components/RecordingBar.tsx'), /useEditAfterCapture\(cap\.captures, \{\s*waits: memoOn,/);
+});
