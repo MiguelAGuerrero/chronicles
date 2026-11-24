@@ -409,34 +409,6 @@ async function checks(h) {
         const vp = page.viewportSize();
         await page.setViewportSize({ width: 320, height: vp.height });
         await page.waitForTimeout(400);
-        {
-          // tend explore T49: at 320 px "Views & oddities" stays one line, its word, its dots and "Suggest a walk" beside it, none cut.
-          await page.locator('[data-testid=atlas-kind-viewpoints]').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
-          await page.waitForTimeout(300);
-          const row = await page.evaluate(() => {
-            const r = document.querySelector('[data-testid=atlas-kind-viewpoints]');
-            const walk = document.querySelector('[data-testid=atlas-kind-walk-viewpoints]');
-            const leaf = r && [...r.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /oddities/.test(x.textContent || ''));
-            if (!r || !leaf) return null;
-            const range = document.createRange();
-            range.selectNodeContents(leaf);
-            const lines = new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size;
-            const cut = [...r.querySelectorAll('*'), ...(walk ? walk.querySelectorAll('*') : [])].filter((x) => x.childElementCount === 0 && x.scrollWidth > x.clientWidth + 1).length;
-            const nameR = leaf.getBoundingClientRect();
-            const w = walk ? walk.getBoundingClientRect() : null;
-            // A kind at none has no "Suggest a walk" (its row has no press): then the row alone is read.
-            const word = r.querySelectorAll('*');
-            return { lines, cut, walk: !!w, overlap: !!w && nameR.right > w.left, inView: !w || w.right <= window.innerWidth, nameRight: Math.round(nameR.right), words: [...word].filter((x) => x.childElementCount === 0 && x.textContent).map((x) => x.textContent) };
-          });
-          check(!!row && row.lines === 1 && row.cut === 0 && !row.overlap && row.inView,
-            `tend explore T49: at 320 px "Views & oddities", its word, its dots and "Suggest a walk" (when it has one) fit one row (${JSON.stringify(row)})`);
-          await page.locator('[data-testid=atlas-kind-viewpoints]').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
-          await page.waitForTimeout(300);
-          await shot(page, 'tend-explore-T49-card-320');
-          // Back to "How the marks work" for tend explore 19's picture, as it was before this check.
-          await page.locator('[data-testid=atlas-how]').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
-          await page.waitForTimeout(300);
-        }
         await shot(page, 'tend-explore-19-how-320');
         await page.setViewportSize(vp);
         await page.waitForTimeout(400);
@@ -716,9 +688,64 @@ async function checks(h) {
     }
 }
 
+/**
+ * tend explore audit 45 (decision 0264, the owner's "Two-line rows"): every kind row is the name with its amount word under
+ * it, the dots and "Suggest a walk" trailing, so nothing is cut at 390 or 320. Fox Point's views read none in the shared
+ * world, so this page adds a viewpoint inside its ring (removed again after) and reads the "Views & oddities" row with its
+ * "Suggest a walk": the whole name and the whole word, the button on screen; and every row's word whole at 320.
+ */
+async function viewsRow(h) {
+  const { check, shot, at, features, areaTile } = h;
+  const lookout = { type: 'Feature', properties: { class: 'viewpoint', subclass: 'viewpoint', name: 'Fox Point Lookout' }, geometry: { type: 'Point', coordinates: at(1.4, 0.3) } };
+  features.push(lookout);
+  const { c, pg } = await h.freshPage('atlas-views');
+  try {
+    await pg.goto(h.exploreUrl);
+    const tile = await areaTile(pg, 'Fox Point');
+    await tile.click({ timeout: 15000 }).catch(() => {});
+    const button = await pg.waitForSelector('[data-testid=atlas-kind-walk-viewpoints]', { timeout: 60000 }).then(() => true, () => false);
+    const read = () => pg.evaluate(() => {
+      const whole = (x) => !!x && x.scrollWidth <= x.clientWidth + 1 && x.scrollHeight <= x.clientHeight + 1;
+      const leaves = (el) => [...el.querySelectorAll('*')].filter((x) => x.childElementCount === 0 && (x.textContent || '').trim());
+      const r = document.querySelector('[data-testid=atlas-kind-viewpoints]');
+      const w = document.querySelector('[data-testid=atlas-kind-walk-viewpoints]');
+      const name = r && leaves(r).find((x) => x.textContent === 'Views & oddities');
+      const word = r && leaves(r).find((x) => /^(none|some|plenty|lots)$/.test(x.textContent));
+      const b = w ? w.getBoundingClientRect() : null;
+      const rows = [...document.querySelectorAll('[data-testid^=atlas-kind-]:not([data-testid^=atlas-kind-walk-])')].map((row) => {
+        const wd = leaves(row).find((x) => /^(none|some|plenty|lots)$/.test(x.textContent));
+        return { id: row.getAttribute('data-testid').slice('atlas-kind-'.length), word: wd ? wd.textContent : null, whole: whole(wd) };
+      });
+      return {
+        walk: !!w, name: !!name && whole(name), word: word ? word.textContent : null, wordWhole: whole(word),
+        inView: !!b && b.left >= 0 && b.right <= window.innerWidth, overlap: !!b && !!name && name.getBoundingClientRect().right > b.left,
+        wordBelow: !!name && !!word && word.getBoundingClientRect().top >= name.getBoundingClientRect().bottom - 1,
+        rows,
+      };
+    });
+    for (const width of [390, 320]) {
+      await pg.setViewportSize({ width, height: 844 });
+      await pg.waitForTimeout(500);
+      await pg.locator('[data-testid=atlas-kind-viewpoints]').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+      await pg.waitForTimeout(400);
+      const row = await read();
+      check(button && row.walk && row.name && row.word && row.word !== 'none' && row.wordWhole && row.wordBelow && row.inView && !row.overlap,
+        `tend explore audit 45: at ${width} px the "Views & oddities" row with its "Suggest a walk" shows its whole name, its amount word whole under it, and the button on screen (${JSON.stringify({ ...row, rows: undefined })})`);
+      check(row.rows.length === 8 && row.rows.every((x) => x.word && x.whole),
+        `tend explore audit 45: at ${width} px every kind row's amount word is whole (${JSON.stringify(row.rows)})`);
+      await shot(pg, `tend-explore-audit-45-views-row-${width}`);
+    }
+  } finally {
+    features.splice(features.indexOf(lookout), 1);
+    await c.close();
+  }
+}
+
 // Alone: the walk journey first (the first walk, with its captures), then this.
 async function run(h) {
   await require('./walk').run(h);
+  // Before the checks: their run stops at a known flake (look-cancel), past which nothing runs.
+  await viewsRow(h);
   await checks(h);
 }
 
@@ -732,4 +759,5 @@ module.exports = {
   ],
   run,
   checks,
+  viewsRow,
 };
