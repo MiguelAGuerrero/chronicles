@@ -59,6 +59,13 @@ paths:
   asks before discarding (audit 5). Choices (pens, colours, filters, aspects,
   thicknesses) are radios with `aria-checked`; react-native-web ignores
   `aria-selected` on a button (audit 11).
+- **The editor after a capture holds the shot from the camera's return** (tend captures T62): a host passes
+  `editAfter.camera` to `takePhoto` and draws `AfterCaptureEditor` (`edit/EditOffer`), never a `MediaEditor` of its own.
+  The held shot and its editor are one element keyed by the shot's turn (`afterCapture`, `lib/editOffer`): a remount
+  would replay the Modal's fade over the map and lose the shot, whose file the keep moves (native) or whose blob it
+  revokes (web), so only an element already showing it can go on showing it. A host's `opens` repeats its own guard on
+  `editAfter.open`, asked as the camera returns. The cover ends in the same turn as the keep only because the host's
+  `open` follows it in microtasks, before React renders: put no await between `takePhoto`'s answer and `editAfter.open`.
 - **Saving out:** photos through `bakers.bake` (the web applies the matrix to
   the pixels); videos through `exportVideo` with the lines and caption as a
   clear PNG (`bakers.bakeOverlay`): the local module on phones, canvas +
