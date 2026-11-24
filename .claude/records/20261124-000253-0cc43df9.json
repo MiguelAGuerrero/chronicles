@@ -1,0 +1,133 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T44",
+        "--reason",
+        "the owner's yes, built in tend walk-screen T44"
+      ],
+      "target": "sha256:4b127a8ad7e1b03e98e1943979c36ce5b6f8934f5c97660c2e1c7c6fc7960948"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Mid-memo the recording bar's camera leaves** (2026-11-23)\n  Area: tabs. Seen: `src/components/RecordingBar.tsx` l.391-395: while the bar's own memo records, Discard takes the camera's place and the pencil's is left empty (BC2, `specs/recording-bar-captures/spec.md` l.49), so a photo of what the memo is about takes a Save first, where the walk screen's stack keeps its camera since `tend walk-screen T44` (T44's diff review: ux-reviewer U2, steward S4). Rests on: docs/VISION.md Always, \"Capture is one tap away on every screen you walk or capture from\", and Never, \"A capture behind a menu, a drawer or an extra tap\"; decision 0233's T44 answer, \"Camera stays (Recommended)\".\n  Recommended: the T44 shape on the bar: the camera keeps its place while a memo records, a photo taken then joins the memo's moment (`photoMidMemo`, `memoJoins` in `lib/pieceStamp`), and Discard sits on the line beside the time. Amends BC2. /vision: aligned (Honour: the photo arrives with the words said about it; one tap).\n  Precedent: Apple Voice Memos is one Record button with nothing else on screen (verified, docs/research/adjacent-apps.md, \"Capture in one tap\"); none found that takes a photo during a voice memo.\n  Otherwise: leave BC2 as it is, the bar's memo set apart from its camera.\n",
+      "number": "T60"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "@2"
+      ],
+      "body": "  Nov 23: the owner's yes, in person, 2026-11-23: \"Yes, file it as yes'd (Recommended)\" (decision 0261). Waits for a build.\n",
+      "target": "sha256:99c24f3dc959c43276cdde590a752ffc5fbed158bb20190bc26e5aaf876e4a69"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **NR10's, MS3's and the walk-screen rule's words after `tend walk-screen T44`** (Nov 23; the owner's \"Camera stays (Recommended)\", decision 0233; \"Keep the photo's\", \"Editor waits\" and \"Stays empty\", decision 0261). What ships: while a memo records, the camera keeps its slot (photos only), Stop & save the mic's, the note's slot is empty, and Discard then the timer sit in one row left of the stack; a photo taken then follows the memo, kept as the moment (its time and place the photo's) that the memo joins as a piece with its own earlier time, and its editor waits until the memo is saved or discarded. Still to say by hand: `specs/navigate-ready/spec.md` NR10 (l.87, \"Discard takes the camera's\"); `specs/moment-stacks/spec.md` MS3 (l.43, \"The moment's place and time stay its first capture's\", bent by the owner's \"Keep the photo's\"); `.claude/rules/walk-screen.md` l.72-73, \"Discard is smaller (48) and in the camera's slot\" (the run's line at the file's end says what ships). The loop only adds to a rule file (0135) and never edits a spec.\n"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **A feature's verbs and E-walk-screen-1's verb after decision 0261** (Nov 23; the owner's \"Earn and Honour (Recommended)\"). What holds: the walk-screen feature is ruled Earn and Honour, and E-walk-screen-1 serves Earn, \"the way they chose stays a glance, so their eyes go back to the street\". Still saying the old: `.claude/skills/tend/expectations.md` l.35-37, \"no other feature has a ruling\" (a skill the loop may not edit; `scripts/features.js` has no verb field, and the loop may not edit it either); and `docs/expectations/walk-screen.md`, E-walk-screen-1's `Serves: none; …`: `npm run expectations` has no operation that gives a proposed line, or one flagged `none`, a verb, and `check:tend` refuses an agent's hand edit (`editProblems`). The tooling's change, or the owner's hand.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] A photo whose save fails while a memo records is held for Retry apart from the memo: the memo is kept as its own moment (no photo moment to join), and Retry later keeps the photo as a second moment; begun from a place's card, both carry its place, so `onKept(…, place)` credits the place twice (`lib/useCaptures.ts`, `takePhoto` and `keepOrHold`). Fix: once the memo is kept, point the held photo's stamp at the memo's moment (`into`, place null), the `retryInto` fallback covering a moment gone; test `tend walk-screen audit N: a mid-memo photo held for Retry joins the memo's moment when retried` (T44's diff review, auditor 3, medium)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] On desktop web a video chosen while a memo records (the file chooser's `accept=\"image/*\"` is advisory) is kept apart from the memo: the video branch of `takePhoto` never joins it, and a card's place is credited twice (`lib/useCaptures.ts`). Join after either branch, or turn the video away in words (T44's diff review, auditor 5, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] The walk planner's and the outing page's capture stack (`components/planner/PlannerCapture.tsx`, hosted by `PlannerDrawer.tsx` and `OutingPage.tsx`) has the camera mid-memo since T44 with no journey check or picture; its full-width toast (`bottom: 140`) and a camera refusal's \"Open Settings\" stand over the memo row and Save; and its photo's editor still opens over the recording memo, where the owner's \"Editor waits\" (decision 0261) holds on the walk screen and Navigate's ready screen (T44's diff review, auditor 7, low; kept out of the run's files)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] Past ten minutes the memo's timer reads \"1 h 5 min\" style (`formatDuration`), and at 320 px the row it shares with Discard grows left toward the Layers button (Discard's left edge at about x 40 by estimate, inside Layers' 28-72, the hit squares sharing about 12 px vertically); the journeys measure only \"0:0x\" and `x >= 16`. A check at 320 with a long timer (Discard clear of Layers by 8 px), and a cap on the timer's growth or Discard over the timer below a fit width (`components/walk/CaptureStack.tsx`, `memoRow`) (T44's diff review, auditor 10 and ux U4, low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] Mid-memo the stack's reading order is camera, Save, Discard, the timer, while it is drawn Discard, the timer, Save: from Save a forward swipe meets Discard before the memo's status. Save, the timer, then Discard in the tree, drawn with `row-reverse`, keeps the look (`components/walk/CaptureStack.tsx`; WCAG 2.4.3, 1.3.2, not yet in ui-references) (T44's diff review, ux U3, low, opinion)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [loop] A photo's end could hand back a memo's held Save while the stopped memo still waits to be written (`guarded`'s `setBusy(null)`): `tend walk-screen audit 24` clears only a capture's own kind now, but no check lands in that window (the journey's held-slot check passes either way), so the fix is unheld by a test (T44's diff review, auditor 11, low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, an Android phone, and the iPhone's Safari (the web build), on Navigate's ready screen and on a walk, record a voice memo, tap the camera while it records, take a photo, return, talk five seconds more, then Save; play the memo back. **Expect:** the memo records through the camera whole (no gap, no stop: on iOS the audio session survives `UIImagePickerController`; on Android the recording goes on while the camera intent has the app in the background, and a process killed meanwhile loses no photo, though `getPendingResultAsync` is never read; on Safari `<input capture>` does not mute or end the live `getUserMedia` track, or `stopRecorder` keeps a short file); the photo's editor opens only after Save; the moment holds the memo and the photo. Never run on a phone. (T44, decisions 0233, 0261; T44's diff review, the auditor's native list)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on a 320-class phone at a larger and the largest text size, record a memo past ten minutes on Navigate's ready screen and on a walk. **Expect:** Discard and the timer stay whole in one row left of the stack, clear of the Layers button, Discard at least 44 pt. Never run on a phone. (T44; T44's diff review, ux U4)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Test organization"
+      ],
+      "body": "- [loop] The weekly full pass on `d595ae95` (Nov 24, `/tend inbox T44 yes`; `npm run e2e:all`, stopped at its two-hour limit during its reruns, the rest rerun alone with `--only`) is red in replay (20), edit (5), chronicle (4), placeoffer (2), reactions, resurface and where (1 each); also red when rerun alone, but edit (57 ok alone) and two of chronicle's four, which `scripts/e2e/flaky.json` lists (\"the card keeps the place passed as a low, by name\", \"a selected star settles into its ring\"); drive stopped at DW3 as before (above). Not yet compared with `main`. The red checks: chronicle \"a dragged sheet settles at a step (76 px)\" and \"section-bar audit 3: a drag up moves the bar to its list…\"; placeoffer \"PO5: with Places off a moment by two places is not asked about\" and \"PO5: turning Places on asks nothing about a moment kept before\"; reactions \"RL1, RL2: \"Idea\" under an entry opens the whole Ideas lens, and Back returns to the journal\"; resurface \"audit 12: a 4,000-character note keeps its card short and its actions in view\"; where \"WB10: no number in the panel with the layer on\"; replay's twenty in its log. Logs: `/tmp/claude-0/-workspace-chronicles/18c0adbd-a1f3-5a6a-af58-014872f7a509/scratchpad/e2e-all4/` (the pass) and `…/e2e-alone/` (alone), a session's scratchpad, not kept.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 23, `/tend inbox T44 yes`, one build** (opened from `aa70060f`; an inbox run: lenses 1-7 belong to a sweep and were not run).\n- T44, \"Mid-memo, the camera and the note leave the capture stack\", built as `tend walk-screen T44` (`48f1e243`, `346cd7bb`): while a memo records the camera keeps its slot (photos only; spoken \"Add a photo to this memo\"), Stop & save the mic's, the note's slot stays empty, and Discard then the timer sit in one row left of the stack; a photo taken then follows the memo, into the memo's moment or kept as the moment the memo joins through MS2's `into` (`photoMidMemo`, `memoJoins`). On the walk screen, Navigate's ready screen and the planner. No mock-up (decision 0259, \"in doubt, build and show\"): its pictures at 390 and 320 px went to the owner in the report.\n- The review (the auditor, the ux-reviewer and the steward, one round; 9 accepted, 6 deferred, none rejected, 4 to the owner, answered in person, decision 0261): `tend walk-screen audit 20` (the photo's editor waits until the memo is saved or discarded, \"Editor waits\"), `21` (Split out's anchor is the piece holding the moment's id), `22` (a photo mid-memo follows the memo, never the camera's open moment), `23` (the ready screen's held captures' pills wait mid-memo), `24` (the memo stops at the tap, then waits at most `PHOTO_JOIN_WAIT_MS` for its photo), `25` (the toast check measures once the toast is set), `26` (the photo-and-memo moment pictured, its times held: the photo's, \"Keep the photo's\"), `27` (the rule's and walk.tsx's words on Discard). Deferred `[loop]` to Navigate, ready: a held mid-memo photo split from its memo on Retry (medium), a desktop-web video mid-memo, the planner's stack mid-memo, a long timer at 320 toward Layers, the reading order, a race no check lands in.\n- Filed: T60 `[owner]` (tabs), \"Mid-memo the recording bar's camera leaves\", with the owner's yes. Decision 0261: the two-row bar does not fold (\"Two rows always\"), the walk screen is ruled Earn and Honour (E-walk-screen-1 serving Earn), and T44's three answers.\n- Lens 0: T44 serves E-walk-screen-5 in part (the note is not one tap mid-memo, by the owner's answer); its check stays pending. E-walk-screen-1 to 4 met by their checks.\n- Still waiting for a build with the owner's yes: T43 (`[arch]`, a G entry to shape), T45, T48, T49, T50, T51, T54, T60; one a run.\n- Open before the loop: NR10's, MS3's and the walk-screen rule's words; a feature's verbs and E-walk-screen-1's `Serves:` (no `npm run expectations` operation for it). Native: the camera over a recording memo on iOS, Android and the iPhone's Safari; a long timer at the largest text at 320 (`docs/NATIVE_UNVERIFIED.md`, Navigate, ready).\n- The balance reads outgrowing its base (six of the eight areas swept twice or more are rough). The e2e: ready, walk, launch, stacks, green. The weekly full pass on `d595ae95` is red in replay, edit, chronicle, placeoffer, reactions, resurface and where, most also alone, not yet compared with `main` (one `[loop]` item, Test organization). Nothing here has run on a phone.\n"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 {
-  "lastT": 59,
+  "lastT": 60,
   "lastG": 15,
   "balance": {
-    "date": "2026-11-23",
+    "date": "2026-11-24",
     "days": 14,
     "slicesGrown": [
       "BC",
@@ -24,7 +24,6 @@
       "GH",
       "GZ",
       "HB",
-      "HC",
       "JN",
       "MA",
       "MC",
@@ -39,12 +38,10 @@
       "NY",
       "OJ",
       "OM",
-      "OT",
       "PC",
       "PK",
       "PL",
       "PO",
-      "PP",
       "PR",
       "PS",
       "PW",
@@ -57,7 +54,6 @@
       "RT",
       "RX",
       "RY",
-      "SA",
       "SB",
       "SF",
       "SG",
@@ -76,9 +72,9 @@
       "XS"
     ],
     "commits": {
-      "growth": 187,
-      "refinement": 814,
-      "other": 849
+      "growth": 180,
+      "refinement": 816,
+      "other": 813
     },
     "areas": {
       "rough": [
@@ -155,7 +151,7 @@
       "line": "more than half of the areas swept twice or more, and more than three (ROUGH_SHARE 0.5, LIMITS.rough 3; decision 0250)"
     },
     "open": {
-      "openT": 9,
+      "openT": 8,
       "phoneT": 4,
       "openG": 8,
       "unansweredT": 0
@@ -167,7 +163,7 @@
       "bySection": {
         "From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, \"The line and the page\")": 3,
         "From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)": 6,
-        "From /tend": 13,
+        "From /tend": 12,
         "From the road engine's audit (2026-11-18)": 3,
         "From the outing journey's second audit (2026-11-18)": 1,
         "From the more-attractions audit (Nov 18)": 1,
@@ -177,7 +173,7 @@
         "From /slice reaction-links": 1,
         "From /slice: the row under the line": 3,
         "Next evolutions": 8,
-        "Open before the loop": 46
+        "Open before the loop": 47
       }
     },
     "unattributed": [
@@ -254,10 +250,10 @@
   },
   "declined": [],
   "compass": {
-    "date": "2026-11-22",
+    "date": "2026-11-23",
     "runs": 12,
     "shares": {
-      "first": 0.55,
+      "first": 0.36,
       "second": 1
     },
     "trend": "rising",
