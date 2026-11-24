@@ -1,0 +1,32 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, on Navigate's ready screen and then on a walk, pull the bar up; tap \"Done\"; pull it up again and tap the map above it; then with VoiceOver and TalkBack move to Done and activate it. **Expect:** Done sits at the top right of the panel's first row, level with \"Walk settings\" or \"This walk\", a 44 pt target the heading does not take; each lowers the panel as Back does; the map tap only lowers it (no destination, card or pin opens); Done is read as \"Done\" with the hint \"Lowers the walk settings\". Never run on a phone. (T45)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, on a walk, pull the settings up; with them raised tap a moment's pin, a \"?\" place and a memory pin above them, and long-press the map; on Navigate's ready screen, raised, tap a moment's pin and long-press the map; then with VoiceOver and TalkBack move from \"Walk settings\" (and \"This walk\") onward, activate Done, and scroll the raised settings. **Expect:** each tap or long press only lowers the settings: no card, viewer, place or destination opens (MapLibre RN's `PointAnnotation` and `ShapeSource` presses reach `lowerFirst` as the web's markers do; `tend walk-screen audit 30`); Done is read right after the heading, sits level with it, stays put as the settings scroll, and once activated the screen reader's focus lands on the numbers (`AccessibilityInfo.setAccessibilityFocus` through `focusOn`; `tend walk-screen audit 35`). Never run on a phone. (T45's diff review, the auditor's F4 and F8)\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T45",
+        "--reason",
+        "the owner's yes, built in tend walk-screen T45"
+      ],
+      "target": "sha256:b952997c98c03f9158490bab90e6c8b02246d4fe4d07da22611364ef2b040780"
+    }
+  ]
+}
