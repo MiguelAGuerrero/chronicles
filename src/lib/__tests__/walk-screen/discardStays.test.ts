@@ -148,3 +148,16 @@ test('tend walk-screen audit 31: Discard\'s hint says the Undo stays where the p
     assert.match(read(file).slice(at, at + 1200), /\n\s*discardStays\n/, `${file}: its pill stays, and its Discard says so`);
   }
 });
+
+// tend walk-screen audit 32 (the batch's review: auditor F6): a discard still running as its screen went leaked the memo's
+// file: the leave found nothing set aside, then the queued discard set the memo aside with the screen gone, and nothing was
+// left to let it go. A step taken once the screen has gone lets the memo go at once.
+test('tend walk-screen audit 32: a memo set aside once its screen has gone is let go at once', () => {
+  const a = { uri: 'blob:a' };
+  const gone = setAside as unknown as (held: unknown, e: unknown, gone?: boolean) => { held: unknown; keep: unknown; letGo: unknown };
+  assert.deepEqual(gone(null, { type: 'discard', memo: a }, true), { held: null, keep: null, letGo: a }, 'discarded with the screen gone: let go');
+  assert.deepEqual(gone(null, { type: 'discard', memo: a }, false), { held: a, keep: null, letGo: null }, 'in front: set aside, as before');
+  assert.equal(setAside.length, 2, 'still no clock: the screen\'s presence is the one more input');
+  const hook = read('lib/useCaptures.ts');
+  assert.match(body(hook, 'const asideStep', 'const resetAudioMode'), /setAside\(setAsideRef\.current, e, !alive\.current\)/, 'the hook says whether its screen is still there');
+});
