@@ -1,6 +1,6 @@
 import { useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, BackHandler, Platform, ScrollView, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import { Animated, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { MOTION } from '../../lib/motionTokens';
 import { useReducedMotion } from '../../lib/motion';
 import { theme } from '../ui';
@@ -22,7 +22,8 @@ const GRIP_UP = 28;
  * right (Start on the ready screen; Pause and Stop on the walk, so Start records in
  * place). A drag up on its grip or its summary, or a tap on the summary, raises it over
  * the map to show the walk settings (`children`); the actions stay at its foot at every
- * height. A drag down, Back or Escape lowers it. `idPrefix` names its test ids.
+ * height. A drag down, Back or Escape lowers it, and so do its Done and a tap on the map above it (T45, the screens'
+ * map handlers). `idPrefix` names its test ids.
  */
 export function ReadyBar(props: {
   up: boolean;
@@ -135,6 +136,17 @@ export function ReadyBar(props: {
       {(up || shown) && (
         <ScrollView style={styles.scroll} contentContainerStyle={{ paddingTop: GRIP_UP }}>
           {props.children}
+          {/* T45 (decision 0233): a labelled way down at the top right of the first row, as Escape lowers it. After the
+              settings, so it is drawn over their first row and read after it. */}
+          <Pressable
+            testID={`${id}-done`}
+            accessibilityRole="button"
+            accessibilityHint="Lowers the walk settings"
+            onPress={() => props.onUp(false)}
+            style={({ pressed }) => [styles.done, { right: at.right }, pressed && styles.pressed]}
+          >
+            <Text style={styles.doneText}>Done</Text>
+          </Pressable>
         </ScrollView>
       )}
       {/* The grip: the handle in the strip's top edge at rest, a thumb-tall strip pulled up. */}
@@ -217,6 +229,10 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ userSelect: 'none', cursor: 'grab' } as object) : {}),
   },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: theme.edge },
+  // The first row's height, from the grip down: level with its heading, in ink at the top right, as the reactions' Done.
+  done: { position: 'absolute', top: GRIP_UP - 6, minHeight: 44, minWidth: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
+  pressed: { opacity: 0.6 },
   // No fill of its own: the bar's, so the handle in the grip beneath shows through.
   foot: { paddingHorizontal: 16, paddingTop: 10, position: 'relative', zIndex: 3 },
   footInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, maxWidth: 640, width: '100%', alignSelf: 'center', minHeight: 48 },

@@ -51,3 +51,12 @@ test('tend walk-screen T45: a tap on the walk\'s map lowers its raised settings,
   assert.match(body.slice(lower), /^if \(options\) \{\s*raiseOptions\(false\);\s*return;\s*\}/, 'as Escape does (raiseOptions(false)), and nothing else');
   assert.ok(lower < body.indexOf('if (isDrawing)'), 'before the tap is a point of a drawing, a route\'s pick or a card');
 });
+
+// Found building it: a name of its own beside the word would break WCAG 2.2, 2.5.3 Label in Name, and Done must say where
+// it goes to a screen reader, as the summary's "Lower the walk settings" does.
+test('tend walk-screen T45: Done is spoken by its word, with a hint saying it lowers the settings', () => {
+  const bar = read('components/walk/ReadyBar.tsx');
+  const attrs = /<Pressable\s+testID=\{`\$\{id\}-done`\}([\s\S]*?)>\s*<Text/.exec(bar)?.[1] ?? '';
+  assert.doesNotMatch(attrs, /accessibilityLabel=/, 'its spoken name is the word it shows');
+  assert.match(attrs, /accessibilityHint="Lowers the walk settings"/, 'a hint saying what it does');
+});

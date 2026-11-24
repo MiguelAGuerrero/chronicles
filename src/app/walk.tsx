@@ -1396,6 +1396,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
         drawing={drawing.line}
         onPress={(at, radiusM) => {
           layers.closePanel();
+          // Raised, a tap on the map above the settings lowers them as Escape does, and does nothing else (T45, decision 0233).
+          if (options) {
+            raiseOptions(false);
+            return;
+          }
           // While drawing, every tap is a point along the way (GW3).
           if (isDrawing) {
             drawing.tap(at);

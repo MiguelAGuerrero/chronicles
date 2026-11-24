@@ -216,8 +216,11 @@ export function useReady(props: {
     landing: storefronts.view,
     // DC18: names only near you.
     storefrontNamesNear: namesNearYou(fix),
-    /** A tap on the map closes the Layers panel (ML4). */
-    onPress: () => layers.closePanel(),
+    /** A tap on the map closes the Layers panel (ML4), and lowers the raised bar as Escape does (T45, decision 0233). */
+    onPress: () => {
+      layers.closePanel();
+      if (up) setUp(false);
+    },
     trace: NONE,
     walked: NONE,
     fog: NONE,
