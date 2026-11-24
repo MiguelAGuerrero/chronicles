@@ -20,7 +20,7 @@ import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
-import { failedMemo, memoFile } from './media/memoSave';
+import { failedMemo, memoFile, setAside, type SetAsideEvent } from './media/memoSave';
 import { isOutOfSpace } from './space/core';
 import { unsaved } from './unsaved';
 import { folderOf, heldKey, heldWhere, keepInOrder, kindsOf, looseAfterEnd, retryInto, type Unsaved } from './unsaved/core';
@@ -52,7 +52,7 @@ const STOP_TIMEOUT_MS = 3000;
  * (T44); past it the memo is kept as a moment of its own (tend walk-screen audit 24).
  */
 const PHOTO_JOIN_WAIT_MS = 5000;
-/** How long a discarded memo can be brought back. */
+/** How long a discarded memo can be brought back on a path whose pill has no Close (`discardStays` off). */
 export const UNDO_MS = 5000;
 
 type Busy = CaptureKind | null;
@@ -132,6 +132,11 @@ export function useCaptures(
     sayHeld?: boolean;
     /** The recording bar's shorter words for a failure out of room (the owner, Nov 17; unsaved-captures audit 7). */
     shortWords?: boolean;
+    /**
+     * This path's discard pill has Undo and Close (T48, decision 0233): a discarded memo stays set aside until Undo,
+     * Close, the next capture or the screen going, never a timer. Without it, it goes after UNDO_MS.
+     */
+    discardStays?: boolean;
   } = {},
 ) {
   const enabled = walkId != null || !!opts.loose;
@@ -201,6 +206,8 @@ export function useCaptures(
     const st = stampFor(clockNow(), pos.current, into, place);
     // The reply is fixed when the capture begins (ui-conformance audit 10); a piece answers nothing.
     const s: Stamp = { t: st.t, at: st.at, walk: walkId, into: st.into, replyTo: st.into ? null : replyTo.current, place: st.place };
+    // The next capture begun replaces the memo set aside, where its pill stays (T48).
+    if (opts.discardStays) asideStep({ type: 'capture' });
     if (locate && st.locate) startLocating(s);
     return s;
   };
@@ -537,9 +544,18 @@ export function useCaptures(
     }
   };
 
-  /** A memo just discarded, kept for UNDO_MS so the discard can be undone. */
+  /** A memo just discarded, set aside so the discard can be undone (`setAside`); the ref is the truth, the state draws the pill. */
   const [discarded, setDiscarded] = useState<StoppedMemo | null>(null);
+  const setAsideRef = useRef<StoppedMemo | null>(null);
   const discardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** One step of the memo set aside: lets go of the one it drops, and returns the one to keep. */
+  const asideStep = (e: SetAsideEvent<StoppedMemo>): StoppedMemo | null => {
+    const r = setAside(setAsideRef.current, e);
+    setAsideRef.current = r.held;
+    if (r.letGo) dropTemp(r.letGo.uri);
+    if (alive.current) setDiscarded(r.held);
+    return r.keep;
+  };
 
   const resetAudioMode = () =>
     setAudioMode({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(() => {});
@@ -677,22 +693,19 @@ export function useCaptures(
     discardTimer.current = null;
   };
 
-  /** Stops the memo in progress and sets it aside; it is deleted after UNDO_MS unless undone. */
+  /**
+   * Stops the memo in progress and sets it aside, replacing one set aside before. Where the pill stays (T48) it waits
+   * for Undo, Close, the next capture or the screen going; elsewhere it is let go after UNDO_MS unless undone.
+   */
   const discardVoice = (): Promise<VoiceResult> =>
     trackMemo(enqueue(() =>
       withBusy(async () => {
         if (!voiceOn.current) return 'none';
         const m = await stopRecorder();
         forgetDiscarded();
-        setDiscarded((prev) => {
-          if (prev) dropTemp(prev.uri);
-          return m;
-        });
-        discardTimer.current = setTimeout(() => {
-          setDiscarded((cur) => {
-            if (cur === m) dropTemp(m.uri);
-            return cur === m ? null : cur;
-          });
+        asideStep({ type: 'discard', memo: m });
+        if (!opts.discardStays) discardTimer.current = setTimeout(() => {
+          if (setAsideRef.current === m) asideStep({ type: 'close' });
         }, UNDO_MS);
         return 'discarded';
       }),
@@ -702,13 +715,20 @@ export function useCaptures(
   const undoDiscard = (): Promise<VoiceResult> =>
     trackMemo(enqueue(() =>
       withBusy(async () => {
-        const m = discarded;
-        if (!m) return 'none';
         forgetDiscarded();
-        setDiscarded(null);
+        const m = asideStep({ type: 'undo' });
+        if (!m) return 'none';
         return keepMemo(m);
       }),
     ));
+
+  /** Close on the pill: the memo set aside stays discarded, its file let go now (T48). */
+  const closeDiscard = (): Promise<VoiceResult> =>
+    enqueue(async (): Promise<VoiceResult> => {
+      forgetDiscarded();
+      asideStep({ type: 'close' });
+      return 'none';
+    });
 
   // Leaving the screen mid-memo (browser Back, a reload) saves it rather than
   // losing it or leaving the mic on.
@@ -721,6 +741,11 @@ export function useCaptures(
     return () => {
       alive.current = false;
       if (voiceOn.current) finishRef.current().catch(() => {});
+      // A memo set aside is let go as its screen goes, never left behind (T48; docs/DEFERRED.md, Recording bar captures).
+      if (discardTimer.current) clearTimeout(discardTimer.current);
+      const gone = setAside(setAsideRef.current, { type: 'leave' }).letGo;
+      setAsideRef.current = null;
+      if (gone) dropTemp(gone.uri);
     };
   }, []);
   // A capture held on a screen gone, or on one with no Retry, says why here, once, as this screen in front shows its
@@ -836,6 +861,7 @@ export function useCaptures(
     finishVoice,
     discardVoice,
     undoDiscard,
+    closeDiscard,
     discarded: discarded != null,
     retrySave,
     /** Memos held for Retry, from every screen (UN2). */

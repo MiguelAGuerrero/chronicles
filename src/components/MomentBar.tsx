@@ -11,6 +11,7 @@ import { useStore } from '../lib/useStore';
 import { space } from '../lib/space';
 import { heldLabel } from '../lib/space/core';
 import { memoLabel } from '../lib/unsaved/core';
+import { DISCARD_CLOSE_LABEL } from '../lib/media/memoSave';
 import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
@@ -24,6 +25,7 @@ import { AddToMomentPill } from './walk/AddToMomentPill';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { LiftIn, theme } from './ui';
+import { Icon } from './icons';
 
 /**
  * Camera, mic and pencil on the ready screen (M1, NR9): a moment in one tap. Each moment asks for one fix as it
@@ -44,6 +46,7 @@ export function MomentBar(props: {
   const { onMoment } = props;
   const cap = useCaptures(null, null, null, props.onError, {
     loose: true,
+    discardStays: true, // Undo and Close, staying until used, closed or replaced by the next capture (T48, 0233).
     // In front, its pills say why for a capture that failed on a screen gone (unsaved captures UN9).
     sayHeld: props.focused !== false,
     // The pill (moment stacks, MS2, MS5): a new moment opens it; a piece keeps it.
@@ -206,6 +209,9 @@ export function CaptureRow(props: {
             <Pressable testID={`${p}-voice-undo`} accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.pillBtn}>
               <Text style={styles.pillBtnText}>Undo</Text>
             </Pressable>
+            <Pressable testID={`${p}-voice-close`} accessibilityRole="button" accessibilityLabel={DISCARD_CLOSE_LABEL} onPress={() => cap.closeDiscard()} style={styles.pillClose}>
+              <Icon name="close" size={20} color="rgba(255,255,255,0.75)" />
+            </Pressable>
           </View>
         )}
         {/* Held back while a memo records, as the walk holds its pills back (tend walk-screen audit 23). */}
@@ -289,6 +295,7 @@ const styles = StyleSheet.create({
   // 44 pt, as the walk's: react-native-web has no hitSlop (tend walk-screen 14).
   pillBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   pillBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  pillClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },

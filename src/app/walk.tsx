@@ -72,6 +72,7 @@ import { stopEnd } from '../lib/unsaved/stopEnd';
 import { formatDistance, formatDuration } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
+import { DISCARD_CLOSE_LABEL } from '../lib/media/memoSave';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
 import { routeLeanings } from '../lib/routeLeanings';
@@ -465,6 +466,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // stamp, and the explore hook (declared below) records the find. Filled in an effect once the hook is there.
   const placeKept = useRef<(place: string, momentId: string, piece: boolean) => void>(() => {});
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError, {
+    discardStays: true,
     // The pill (moment stacks MS2, MS5): a new moment opens it; a piece keeps it.
     onKept: (id, piece, place) => {
       if (piece) momentPill.piece(id);
@@ -1791,6 +1793,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
             <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
               <Text style={styles.undoBtnText}>Undo</Text>
             </Pressable>
+            {/* It stays until Undo, Close or the next capture (T48, decision 0233). */}
+            <Pressable testID="voice-close" accessibilityRole="button" accessibilityLabel={DISCARD_CLOSE_LABEL} onPress={() => cap.closeDiscard()} style={styles.undoClose}>
+              <Icon name="close" size={20} color="rgba(255,255,255,0.75)" />
+            </Pressable>
           </View>
         )}
         {walk && cap.unsaved && !recordingVoice && !spot && !openMark && !options && !memory && (
@@ -2376,6 +2382,7 @@ const styles = StyleSheet.create({
   undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  undoClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
   // 44 pt themselves, not by hit slop, which react-native-web lacks (tend walk-screen 14).
   nudgeClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginVertical: -8 },
   motionOn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },

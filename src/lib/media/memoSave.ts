@@ -24,3 +24,19 @@ export function failedMemo(m: { file: string | null; outOfSpace: boolean }): { h
   if (!m.file) return { hold: 'none', line: saveFailLine('voice', false), result: 'lost' };
   return { hold: 'here', line: saveFailLine('voice', m.outOfSpace), result: 'failed' };
 }
+
+/**
+ * A step of the memo set aside by a discard (T48, the owner's "Undo + Close, stays", decision 0233, amending 0008's
+ * 5 s; ui-patterns, decision 0113). No clock: it stays until it is used (Undo keeps it), closed, replaced by the next
+ * capture or discard, or its screen goes; each of those lets the one set aside go. `keep` is the memo to save, `letGo`
+ * the one whose file is dropped.
+ */
+export type SetAsideEvent<M> = { type: 'discard'; memo: M } | { type: 'undo' | 'close' | 'capture' | 'leave' };
+export function setAside<M>(held: M | null, e: SetAsideEvent<M>): { held: M | null; keep: M | null; letGo: M | null } {
+  if (e.type === 'discard') return { held: e.memo, keep: null, letGo: held };
+  if (e.type === 'undo') return { held: null, keep: held, letGo: null };
+  return { held: null, keep: null, letGo: held };
+}
+
+/** The discarded memo's Close, saying what it leaves, as the delete's Undo pill does (deletion `dismissLabel`). */
+export const DISCARD_CLOSE_LABEL = 'Close, it stays discarded';

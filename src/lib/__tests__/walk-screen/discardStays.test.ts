@@ -82,3 +82,13 @@ test('tend walk-screen T48: on those two screens no timer takes the memo; the ne
   assert.match(body(hook, '// Leaving the screen', '// A capture held'), /setAside\(setAsideRef\.current, \{ type: 'leave' \}\)/);
   assert.doesNotMatch(hook, /setDiscarded\(\(/, 'no effect runs inside a state updater');
 });
+
+test('tend walk-screen T48: the paths that draw no Close keep the 5 s, so no pill there waits with no way out', () => {
+  // The recording bar, the journal's band and the planner: Undo alone (or none), so the timer still lets the memo go.
+  for (const file of ['components/RecordingBar.tsx', 'components/journal/OpenLine.tsx', 'components/planner/PlannerCapture.tsx']) {
+    const src = read(file);
+    assert.doesNotMatch(src, /discardStays/, `${file} keeps the timer`);
+    assert.doesNotMatch(src, /closeDiscard/, `${file} draws no Close`);
+  }
+  assert.match(read('lib/useCaptures.ts'), /\nexport const UNDO_MS = 5000;/);
+});
