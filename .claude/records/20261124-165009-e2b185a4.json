@@ -1,0 +1,69 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] A photo or video goes back to the map for a moment before its editor fades in** (2026-11-24)\n  Area: captures. Seen: the owner, in person, Nov 24: \"there is a little bit of a visual jump when you're taking a photo and you go straight to the editor. It'll jump straight back to the map for a little bit and then open up the editor when there should be a clean transition.\" \"This happens on every moment capture. For camera or video.\" In the code (`a3bc5296`): `takePhoto` (`src/lib/useCaptures.ts`) awaits the keep once the camera returns, and only then does the screen open the editor; `useEditAfterCapture` (`src/components/edit/EditOffer.tsx`, through `editingOf`) draws nothing until the screen's list holds the piece; `MediaEditor` is a `Modal animationType=\"fade\"`, so it fades in from transparent over the map. Rests on: the owner's report.\n  Recommended: \"Photo first, editor over it\": from the camera's return the shot is held full screen on the editor's backdrop, drawn as the editor draws it (a photo's asset, a video's first frame), and once kept the editor's controls come over the same shot, with no fade from transparent and no jump; \"Photo kept\" and \"Video kept\" never before the shot is kept (decision 0240); no cover where no editor follows (a cancelled camera, a refused permission, mid-memo as T60 has it, the bar out of sight, Stop under way, the walk ended), and a keep that fails takes it away with its error as today. One mechanism for the walk, Navigate's ready screen, the recording bar, the journal's line, the planner and Add to this moment. /vision: aligned (Honour: the moment arrives whole, from the shutter to its editor); the held shot's ✕ is the proxy's ruling (tend captures audit 7), confirmed by the owner in 0263.\n  Precedent: none found in `docs/research/adjacent-apps.md`, which records no camera-to-editor hand-off (not yet recorded).\n  Otherwise: keep the editor's fade and only start it from the camera's return over a plain backdrop, or leave it.\n  The owner's answer (in person, Nov 24): declined to pick a shape and said \"proceed\"; the shape is the proxy's under the owner's delegation (decision 0157). The owner's later answers on the held shot are decision 0263.\n",
+      "number": "T62"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "@1",
+        "--reason",
+        "the proxy's yes under the owner's delegation (0157), 2026-11-24, on the owner's \"proceed\"; built in tend captures T62"
+      ],
+      "target": "sha256:7fcfd5b4b319283b5365ffd84c94e09439e9fef05caafe4d9674ca41d1277317"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media editing (ME1-ME23, decision 0090)",
+        "--after",
+        "(fix planner-edit, decision 0240's addendum)"
+      ],
+      "body": "- [ ] **Do:** since `tend captures T62`, on iOS and Android, take a photo and then a 10 s video with the system camera from the walk screen, Navigate's ready screen (its edge stack, and with Group captures on), the minimized walk's recording bar (on Explore), Memories' line (and its composer), the planner, and a viewer's Add to this moment; tap Use Photo (iOS) or the tick (Android) each time, and watch from the camera closing until the editor's controls are up; then once with a memo recording, once cancelling the camera, once with the storage full, and once tapping ✕ while the shot is held. **Expect:** once the camera has closed, the map never shows again before the editor; the shot is there at once, full screen on the editor's dark backdrop (a video's first frame, still), and its controls come over it without the picture moving, shrinking or blinking (no fade from transparent); \"Photo kept\" or \"Video kept\" only once the controls are there, and VoiceOver and TalkBack say it then; while the shot is held only its ✕ shows, VoiceOver and TalkBack name it \"Close, the photo stays as it is\" (or the video) and reach nothing hidden behind it, and ✕ or Android Back lets it go, the shot still kept, and no editor opens for it after (tend captures audits 7, 11, 12, 13); mid-memo nothing covers the screen until Save or Discard, then the editor fades in as before; a cancelled camera leaves the screen as it was; a failed save takes the shot away and says \"Photo not saved\" with Retry, and Retry keeps it. Also: iOS presents the held shot's Modal (`animationType` none) while the picker is still being dismissed, never refusing it; the picked file, copied (no longer moved) into the walk's folder while the shot is held, is gone from the picker's temporary folder once the editor closes (tend captures audit 8); a video's held shot plays on a second, muted, paused player for the editor's life, alongside the stored video's, without stutter or memory warnings; an untouched photo's camera original leaves the stage once the stored copy is drawn (audit 9), with no blink. Never run on a phone (T62).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media editing (ME1-ME23, decision 0090)",
+        "--after",
+        "a video's held shot plays on a second, muted, paused player"
+      ],
+      "body": "- [ ] **Do:** the owner's look (decision 0263, \"Ship, I'll look\"): on their iPhone, take a photo and a video from the walk screen and from the recording bar and watch the moment the camera closes. **Expect:** no glimpse of the map that reads as the jump of T62. If a glimpse still shows as the camera slides away (iOS dismisses the picker after it answers, before the held shot can be drawn), the dark cover raised as the camera opens (dropped on cancel) becomes the next entry. Never run on a phone (T62, 0263).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Captures, media and export"
+      ],
+      "body": "- [loop] On the web the held shot's first frame is drawn transparent (`tend captures audit 10`, the review's finding A): react-native-web's `ModalAnimation` sets a new Modal's style in a passive effect, so a frame painted between the commit and that effect shows the screen beneath (the map already on screen), whatever the `animationType`; the e2e bounds it at 250 ms from the editor's first frame (14 ms measured, two sampled frames). Drawing the held shot outside RNW's Modal would be a web exception to native-first for one frame, so it is left; native's Modal with `none` is not affected (unverified) (low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Chronicle journal, cut 1"
+      ],
+      "body": "- [loop] Memories' page narrowed with the band's discarded-memo pill up (390 px to 320, as a phone turned or a split screen): the page stays short of its end and the pill covers the last entry's Reaction, Respond, Thread and Edit (the review's picture `t61-band-pill-6s-320.png`; the journal journey reads it as data since `tend tabs audit 72`). A discard made at 320 px leaves no button under the pill, before and after audit 72's `footKeepsEnd`. Not proven why; likely the resize's scroll reads the reader as no longer at the end before the page's layout takes it there, which would hold with or without a pill (low)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 24, `/tend inbox` T61, T62: a second batch, one end pass** (opened from `a3bc5296`; the owner's batch procedure: each entry built test-first with unit tests only on one branch, the journeys and one review over the whole batch at its end, one push; inbox runs, so lenses 1-7 were not run).\n- Built: T61 `tend tabs T61` (`[loop]`, the loop's build of T48's split: the recording bar's and the journal band's discarded memo has Undo and a 44 pt Close and stays until used); T62 `tend captures T62` (the owner's own report, \"It'll jump straight back to the map for a little bit\": the photo or video is held full screen from the camera's return and the editor's controls come over it once kept, one element, no fade over the map; the shape is the proxy's under 0157, on the owner's \"proceed\"), with `tend captures audit 7` (the held shot's ✕ shows and closes it, the shot kept, no editor after).\n- The review (the auditor, the ux-reviewer and the steward, one round, with pictures): 16 accepted, 1 deferred, 0 rejected. Fixed: `tend captures audit 8` (the held shot owns the picked file until it leaves the view: no more ERR_FILE_NOT_FOUND on a video kept at full speed, the four \"no console errors\" reds green), `9` (the camera's full-size photo let go once the stored copy is drawn), `10` (the frame check read from the first opaque frame, a camera-sized photo among the captures), `11` (the held ✕ says the shot stays), `12` (the \"Photo kept\" live line in the page, empty, from the hold), `13` (only ✕ acts while held; on the web the hidden blocks take no focus, react-native-web's Modal focus trap included), `14`, `15` (scans of the hook's mid-memo mask and the editor's close and save), `16` (unsaved's Stop read where a press lands), `17` (the held shot read frame by frame on the ready screen's edge stack, Add to this moment, Memories' band, toolbar and composer, and the planner); `tend tabs audit 70` (the band's Undo hidden and its memo let go while the bar's Stop runs), `71` (a refused bar Stop keeps the discarded memo's Undo), `72` (Memories' page kept at its end as its foot grows; a discard at 320 px leaves no button under the pill, which the build before the fix already did: the review's picture came from the journey narrowing the screen with the pill up, filed). Deferred: the web's one transparent frame as the editor's Modal mounts (captures, low).\n- The owner's answers in person (decision 0263): no dark cover at the shutter, the owner looks on their iPhone, and the cover at the camera's opening is the next entry if the glimpse remains; the held ✕ says the shot stays; a shot closed while held is kept with no editor; the band's pill stays and the list scrolls clear of it.\n- The e2e on one export after the last source commit (`f32db260`), three groups side by side: barcaptures 34 ok, edit 78 (alone, after the journey's own two fixes), journal 109 (alone), launch 59, palette 13, planner 47, qol 237 (alone; the pass's tend map audit 25, 26, 34 are main's loop-walk race), ready 68, stacks 38, unsaved 47 (alone; UN11 flaky as on main), walk 162; none red alone.\n- Filed: DEFERRED the planner's Discard hint with no Undo (`[loop]`, tabs), the walk screen's Stop that still lets its discarded memo go as it begins (walk screen), Memories' page short of its end when narrowed with a pill up (Chronicle journal), the web's transparent mount frame (captures). Lens 0: captures' first lines drafted, E-captures-1 to 3 [proposed], for the owner; E-tabs-9 met by BC8.\n- Still waiting for a build with the owner's yes: T43 (`[arch]`), T49. Nothing here has run on a phone.\n"
+    }
+  ]
+}

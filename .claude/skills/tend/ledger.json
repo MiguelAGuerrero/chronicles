@@ -1,5 +1,5 @@
 {
-  "lastT": 61,
+  "lastT": 62,
   "lastG": 15,
   "balance": {
     "date": "2026-11-24",
@@ -65,8 +65,8 @@
     ],
     "commits": {
       "growth": 160,
-      "refinement": 816,
-      "other": 751
+      "refinement": 871,
+      "other": 750
     },
     "areas": {
       "rough": [
@@ -143,19 +143,19 @@
       "line": "more than half of the areas swept twice or more, and more than three (ROUGH_SHARE 0.5, LIMITS.rough 3; decision 0250)"
     },
     "open": {
-      "openT": 8,
+      "openT": 3,
       "phoneT": 4,
       "openG": 8,
       "unansweredT": 0
     },
     "inbox": {
-      "items": 90,
-      "unanswered": 53,
+      "items": 86,
+      "unanswered": 55,
       "phone": 4,
       "bySection": {
         "From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, \"The line and the page\")": 3,
         "From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)": 6,
-        "From /tend": 12,
+        "From /tend": 7,
         "From the road engine's audit (2026-11-18)": 3,
         "From the outing journey's second audit (2026-11-18)": 1,
         "From the more-attractions audit (Nov 18)": 1,
@@ -165,14 +165,14 @@
         "From /slice reaction-links": 1,
         "From /slice: the row under the line": 3,
         "Next evolutions": 8,
-        "Open before the loop": 49
+        "Open before the loop": 50
       }
     },
     "unattributed": [
       "The \"Passing a place\" slider moved during a walk with Places off never reaches the walk's own `walk_pass`:",
       "The mention picker still runs under the keyboard."
     ],
-    "unrated": 41,
+    "unrated": 42,
     "reading": "outgrowing its base",
     "propose": false,
     "why": "six of the eight areas swept twice or more are rough",
@@ -245,10 +245,10 @@
     "date": "2026-11-24",
     "runs": 12,
     "shares": {
-      "first": 0.67,
-      "second": 1
+      "first": 1,
+      "second": 0
     },
-    "trend": "flat",
-    "verdict": "the compass is not biting: tighten it"
+    "trend": "none",
+    "verdict": "too few refinement findings to say: 5 and 1 in the halves, 3 each at least"
   }
 }
