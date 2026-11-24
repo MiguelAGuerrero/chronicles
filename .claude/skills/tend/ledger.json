@@ -12,10 +12,7 @@
       "CT",
       "CX",
       "DC",
-      "DN",
       "DO",
-      "DW",
-      "EC",
       "EI",
       "EW",
       "FL",
@@ -30,8 +27,6 @@
       "MD",
       "MG",
       "MP",
-      "MS",
-      "MT",
       "NF",
       "NI",
       "NP",
@@ -44,13 +39,11 @@
       "PO",
       "PR",
       "PS",
-      "PW",
       "QC",
       "RC",
       "RE",
       "RF",
       "RL",
-      "RP",
       "RT",
       "RX",
       "RY",
@@ -63,7 +56,6 @@
       "TC",
       "TI",
       "TX",
-      "UC",
       "UN",
       "VT",
       "WB",
@@ -72,9 +64,9 @@
       "XS"
     ],
     "commits": {
-      "growth": 180,
+      "growth": 160,
       "refinement": 816,
-      "other": 813
+      "other": 751
     },
     "areas": {
       "rough": [
@@ -157,8 +149,8 @@
       "unansweredT": 0
     },
     "inbox": {
-      "items": 88,
-      "unanswered": 51,
+      "items": 90,
+      "unanswered": 53,
       "phone": 4,
       "bySection": {
         "From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, \"The line and the page\")": 3,
@@ -173,14 +165,14 @@
         "From /slice reaction-links": 1,
         "From /slice: the row under the line": 3,
         "Next evolutions": 8,
-        "Open before the loop": 47
+        "Open before the loop": 49
       }
     },
     "unattributed": [
       "The \"Passing a place\" slider moved during a walk with Places off never reaches the walk's own `walk_pass`:",
       "The mention picker still runs under the keyboard."
     ],
-    "unrated": 40,
+    "unrated": 41,
     "reading": "outgrowing its base",
     "propose": false,
     "why": "six of the eight areas swept twice or more are rough",
@@ -250,13 +242,13 @@
   },
   "declined": [],
   "compass": {
-    "date": "2026-11-23",
+    "date": "2026-11-24",
     "runs": 12,
     "shares": {
-      "first": 0.36,
+      "first": 0.67,
       "second": 1
     },
-    "trend": "rising",
+    "trend": "flat",
     "verdict": "the compass is not biting: tighten it"
   }
 }

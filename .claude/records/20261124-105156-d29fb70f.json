@@ -1,0 +1,74 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** since `tend tabs T60`, on an iPhone, an Android phone and the iPhone's Safari (the web build), minimize a walk to Explore, tap the recording bar's mic, then its camera while the memo records, take a photo, come back, talk five seconds more and tap the purple Save; play the memo back; then again, discarding the memo after the photo; then on a 320-class phone at a larger and the largest text size record past ten minutes, and with VoiceOver and TalkBack move along the bar. **Expect:** the memo records through the camera whole (as T44's item above says for the walk screen); the photo and the memo are one moment, the photo's time and place, the memo a piece before it; the photo's editor opens only once the memo is saved or discarded, on the tab the photo was taken from; Discard (44 pt), the time, the camera, Save, the empty slot and Stop stay in one row, the time whole, the camera read as \"Add a photo to this memo\". Never run on a phone. (T60)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, minimize a walk to Explore, start the recording bar's memo, take a photo (on a slow phone, or a large one) and, while it is still being saved, switch to Chronicle, then open a card or a sheet over the tabs; then on a 320-class phone record a memo past ten minutes. **Expect:** the memo is saved with the photo joined to it, and no photo editor opens on the new tab or over the card or sheet (iOS cannot present a Modal over a Modal; `leftMemo`, `tend tabs audit 68`); past ten minutes the time stays whole beside Discard in one row (`tend tabs audit 69`; the web pictured it at 320 px by a moved clock). Never run on a phone. (T60's diff review, the auditor's F3 and F10)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Tabs and the recording bar"
+      ],
+      "body": "- [loop] (low) Mid-memo the recording bar's camera sits about 6 px from Save, where Material asks 8 dp between targets (`barcaptures-t60-memo-390.png`; the geometry is older than `tend tabs T60`, which keeps the camera where it was) (the batch's review, ux U7, Nov 24)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Test organization"
+      ],
+      "body": "- [loop] Two checks are load-sensitive: walk.js's \"the dot moves on every fix\" and \"heading 5\" (also run by memories.js) went red when a longer stand came before them (T45's and T48's walk checks at k 14, moved to k 33) and when three journeys ran side by side; they pass alone. A wait on the dot's own movement rather than on time would hold them (the batch's end pass, Nov 24; judgment call 4)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The weekly full pass on `d595ae95`"
+      ],
+      "body": "  Nov 24 (the batch T45-T60's end pass, `tend/walk-screen-t45`): also red on a build of `main`'s source (`bf0815d2`), so not the batch's: gaps \"GW1\" and \"GW8\" (the run stops at `gap-keep`; not in the Nov 23 pass, so landed on `main` since), and qol's loop walk, which stops at its first Pause (\"tend map audit 34/26/25\": the replay's Pause never came) in some runs and passes in others, a race.\n",
+      "target": "sha256:ec9d0e13f284ae75228d256dd55003ba3e2ef8e9305123afc4f9f27c44dbcfbe"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **BC2's, BC9's, NR10's and decision 0008's words after the Nov 24 batch** (Nov 24; the owner's yeses to T48, \"Undo + Close, stays\" (decision 0233, amending 0008), and to T60, \"Yes, file it as yes'd\" (decision 0261)). What ships: on Navigate's ready screen and the walk a discarded memo's pill has Undo and Close and stays until used (`tend walk-screen T48`, audits 28-36); mid-memo the recording bar's camera keeps its place and Discard sits on the line before the time (`tend tabs T60`, audits 68, 69). Still saying the old: `specs/recording-bar-captures/spec.md` BC2 (l.49, \"Discard takes the camera's place\") and BC9 (the 5 s pill \"until T48\"); `specs/navigate-ready/spec.md` NR10 on the walk screen's memo row; decision 0008's \"undoable for 5 s\" (superseded by 0233, never edited); the walk-screen rule's l.73 \"undoable for 5 s\" and its T44 line on the bar's Discard (the run added lines saying what ships, 0135). The specs mirror the owner's doc: reword there and re-export.\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T60",
+        "--reason",
+        "the owner's yes, built in tend tabs T60"
+      ],
+      "target": "sha256:a27fe6281f01896c59f5014910545be3912245980a312f67204ca2fb09afa954"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 24, `/tend inbox` T45, T48, T50, T51, T54, T60: six builds in one batch, one end pass** (opened from `bf0815d2`; the owner's batch procedure, in person: each yes built test-first with unit tests only, one branch, the journeys and one review over the whole batch at its end, one push; inbox runs, so lenses 1-7 were not run).\n- Built, each on the owner's in-person yes: T45 `tend walk-screen T45` (raised settings: a labelled Done, and a map tap above lowers them; 0233); T48 `tend walk-screen T48` (a discarded memo's pill has Undo and Close and stays until used, on the ready screen and the walk; 0233, amending 0008); T50 `tend map T50` (a loop's two ends within 22 px drawn as one mark; 0244); T51 `tend replay T51` (a capture with no place pinned on the card where its time falls, the store never written); T54 `tend memories T54` (Contents' switch flips in place, the sheet staying up; 0252's approved mock-up); T60 `tend tabs T60` (mid-memo the recording bar's camera keeps its place, a photo joins the memo, Discard on the line; 0261). Journey checks for each in the end pass.\n- The review (the auditor, the ux-reviewer and the steward, one round over the batch's diff, with pictures): 12 accepted, 7 deferred, 1 rejected (U9, two pills on the walk: the owner's 0233 answer stands). Fixed: `tend walk-screen audit 28` (the discard pill's words on their own line above Undo and Close when the row cannot hold them, Close inside the pill at 320), `29` (a capture only begun keeps the memo set aside), `30` (raised, a pin, a place, a memory or a long press lowers the settings and opens nothing), `31` (Discard's hint \"You can undo it.\" where the pill stays), `32` (a discard landing after its screen went lets the memo go), `33` (Stop lets the set-aside memo go), `34` (a memo with no file is discarded with no Undo), `35` (Done pinned with its heading, read after it, focus to the numbers), `36` (T48's checks see the pill before Close); `tend tabs audit 68` (a photo saved after the bar's memo left sight opens no editor), `69` (a memo past ten minutes whole beside Discard at 320); `tend replay audit 21` (T51's pin check clear of the run's end before the gap).\n- The e2e, after the fixes (one export, `a1aa4a02`): walk 162 ok, ready 68, backup 18, barcaptures 29, unsaved 45, none red. The end pass before them ran 16 journeys; its reds were red on a build of `main`'s source too (gaps GW1 and GW8, resurface audit 12, replay's known reds, qol's loop-walk race) or a known flake (tabs NR2), filed with the full pass's reds.\n- Filed: T61 `[loop]` (tabs), the bar's and the band's discarded memo with no Close (T48's split, the review's D1). DEFERRED: a pin's stalk on the loop's mark and the mark's flicker at 22 px (map), a failed Contents write and a stray \"2025\" at 320 (Chronicle journal), the bar's camera 6 px from Save (tabs), two load-sensitive walk checks (test organization), the new reds noted on the full pass's item; F5 set as fixed with its sub-items kept, the no-file Undo removed (fixed). NATIVE_UNVERIFIED: each entry's device check, and the review's fixes'. Open before the loop: BC2's, BC9's, NR10's and 0008's words.\n- The owner's answers to the steward's four questions, in person (decision 0262): T51's pin with no mark; T48's staying pill within Restraint; T50's 22 px kept; the next walk-screen sweep drafts an Honour line for T48's Undo (carried in the ledger's walk-screen note).\n- Lens 0: E-walk-screen-5 met provisionally by pictures of the walk with the stack whole and one tap away after the fixes; E-map-6 met by its check; E-replay-1 failed (a late memo still unsaid on its card); E-memories-1 to 4 met by their checks in the memories journey run alone; E-tabs-9 met by BC8.\n- Still waiting for a build with the owner's yes: T43 (`[arch]`, a G entry to shape), T49. The balance reads outgrowing its base (six of the eight areas swept twice or more are rough). Nothing here has run on a phone.\n"
+    }
+  ]
+}
