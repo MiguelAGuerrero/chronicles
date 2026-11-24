@@ -282,3 +282,16 @@ test('tend captures audit 14: the editor\'s hook hands the screen\'s mid-memo ma
   assert.match(src('components/MomentBar.tsx'), /useEditAfterCapture\(cap\.captures, \{ waits: recording \}\)/);
   assert.match(src('components/RecordingBar.tsx'), /useEditAfterCapture\(cap\.captures, \{\s*waits: memoOn,/);
 });
+
+// tend captures audit 15 (the review's F10): ME23's scan once read each host's own `<MediaEditor … onClose onSave>`; since
+// T62 the hosts draw `AfterCaptureEditor`, and nothing read that it passes the host's close and save through. It does:
+// the editor's ✕ and Done reach the host's `editAfter.close()` and `cap.setEdit`, with the capture it draws.
+test('tend captures audit 15: the editor after a capture closes and saves through its host', () => {
+  const hook = src('components/edit/EditOffer.tsx');
+  const comp = hook.slice(hook.indexOf('export const AfterCaptureEditor'));
+  assert.match(comp, /function AfterCaptureEditor\(\{ view, overlay, onClose, onSave \}, ref\)/);
+  assert.match(comp, /<MediaEditor [^>]*onClose=\{onClose\} onSave=\{\(patch\) => onSave\(capture, patch\)\} \/>/);
+  for (const f of HOSTS) {
+    assert.match(src(f), /<AfterCaptureEditor [^>]*onClose=\{\(\) => editAfter\.close\(\)\} onSave=\{\(c, patch\) => cap\.setEdit\(c, patch\)\}/, `${f} closes and saves the editor through its own hook and captures`);
+  }
+});
