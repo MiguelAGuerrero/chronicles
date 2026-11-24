@@ -220,12 +220,20 @@ async function run(h) {
   const held3 = await there('[data-testid=media-editor][data-held=true]', 2000);
   await pg.click('[data-testid=edit-close]', { timeout: 2000 }).catch(() => {});
   await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 2000 }).catch(() => {});
-  const stopShown3 = await pg.evaluate(() => !!document.querySelector('[data-testid=stop]'));
+  // tend captures audit 16 (the review's F9): Stop is read where a press lands, not only in the page: the point at the
+  // middle of its box is Stop itself (or inside it), nothing over it, while the keep still runs.
+  const stopShown3 = await pg.evaluate(() => {
+    const st = [...document.querySelectorAll('[data-testid=stop]')].find((e) => e.getBoundingClientRect().width > 0);
+    if (!st) return false;
+    const b = st.getBoundingClientRect();
+    const hit = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+    return !!hit && st.contains(hit);
+  });
   await hold('[data-testid=stop]');
   await pg.waitForTimeout(3000);
   const waited = await pg.locator('body').innerText();
   check(held3 && stopShown3 && (await pg.locator('[data-testid=media-editor]').count()) === 0,
-    `tend captures audit 7: the held shot's ✕ closes it during the keep, so the walk screen's Stop can be held, and no editor opens for the shot (${JSON.stringify({ held3, stopShown3 })})`);
+    `tend captures audit 7, audit 16: the held shot's ✕ closes it during the keep, so the walk screen's Stop is the one under a press and can be held, and no editor opens for the shot (${JSON.stringify({ held3, stopShown3 })})`);
   check(/Photo not saved yet\. Retry, or hold Stop again/.test(waited) && /\/walk/.test(pg.url()),
     `unsaved-captures audit 3: a photo failing while the walk screen's Stop waits is warned of, and the walk goes on (${pg.url().slice(-12)})`);
   if (await there('[data-testid=held-retry]', 2000)) await shown('[data-testid=held-retry]').first().click();
