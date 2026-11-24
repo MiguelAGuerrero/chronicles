@@ -1012,6 +1012,68 @@ async function checks(h) {
         await page.waitForTimeout(600);
         check(optionsUp && moreUp?.[0] === 'true' && moreUp?.[1] === 'Lower the walk settings',
           `fix walk-strip-buttons audit 4: … opens the walk's settings and says it is expanded, named as the numbers name it (${JSON.stringify(moreUp)})`);
+        await measuredAside(async () => {
+          // tend walk-screen T45 (the owner's "Done + map tap", decision 0233): raised, the walk's settings have a labelled
+          // Done at the top right of their first row, level with "This walk", which lowers them as Escape does; raised again,
+          // a tap on the map above them lowers them and does nothing else: no card, gap card or drawing point opens. Set aside
+          // from the render budget (CM3), and made here, before the pause, where a stand no longer moves the dot's checks.
+          {
+            const doneAt = () => page.evaluate(() => {
+              const r = (b) => b && { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) };
+              const done = [...document.querySelectorAll('[data-testid=walk-done]')].find((e) => e.getBoundingClientRect().width > 0);
+              const card = document.querySelector('[data-testid=options-card]');
+              const bar = done?.closest('[data-testid=walk-strip], [data-testid=ready-bar]') ?? card?.parentElement?.parentElement ?? null;
+              const head = card ? [...card.querySelectorAll('[role=heading]')].find((e) => e.getBoundingClientRect().width > 0) : null;
+              let text = null;
+              if (head) { const rg = document.createRange(); rg.selectNodeContents(head); text = r(rg.getBoundingClientRect()); }
+              const word = done ? [...done.querySelectorAll('div[dir=auto]')].pop() : null;
+              return {
+                done: r(done?.getBoundingClientRect()), said: done?.textContent ?? null, card: r(card?.getBoundingClientRect()), bar: r(bar?.getBoundingClientRect()), head: head?.textContent ?? null, text,
+                whole: !!word && word.scrollWidth <= word.clientWidth + 1, over: document.documentElement.scrollWidth - window.innerWidth, vw: window.innerWidth,
+              };
+            });
+            const placed = (a) => !!a.done && !!a.text && a.said === 'Done' && a.head === 'This walk' && a.whole && a.over <= 0
+              && a.done.w >= 44 && a.done.h >= 44 && a.done.x + a.done.w <= a.vw && a.done.x + a.done.w >= a.vw - 48
+              && a.text.x + a.text.w <= a.done.x && Math.abs(a.done.y + a.done.h / 2 - (a.text.y + a.text.h / 2)) <= 12;
+            const lowered = () => page.waitForSelector('[data-testid=options-card]', { state: 'detached', timeout: 4000 }).then(() => true, () => false);
+            await page.click('[data-testid=walk-summary]');
+            await page.waitForSelector('[data-testid=options-card]');
+            await page.waitForTimeout(900);
+            const at390 = await doneAt();
+            await shot(page, 'ws-t45-walk-done-390');
+            const was = page.viewportSize();
+            await page.setViewportSize({ width: 320, height: was.height });
+            await page.waitForTimeout(700);
+            const at320 = await doneAt();
+            await shot(page, 'ws-t45-walk-done-320');
+            await page.setViewportSize(was);
+            await page.waitForTimeout(700);
+            check(placed(at390) && placed(at320),
+              `tend walk-screen T45: raised, the walk's "Done" sits at the top right of its first row, level with "This walk", whole and 44 pt, at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+            await page.locator('[data-testid=walk-done]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
+            const byDone = await lowered();
+            check(byDone, 'tend walk-screen T45: the walk\'s Done lowers its settings');
+            await page.click('[data-testid=walk-summary]');
+            await page.waitForSelector('[data-testid=options-card]', { timeout: 5000 }).catch(() => {});
+            await page.waitForTimeout(900);
+            const raisedBefore = await page.locator('[data-testid=options-card]').isVisible().catch(() => false);
+            const top = (await page.locator('[data-testid=options-card]').boundingBox())?.y ?? 0;
+            const spot = await page.evaluate((t) => {
+              for (const y of [t - 60, t / 2, t - 100, 120])
+                for (const x of [window.innerWidth / 2, window.innerWidth / 3, (2 * window.innerWidth) / 3])
+                  if (y > 60 && document.elementFromPoint(x, y)?.classList.contains('maplibregl-canvas')) return [x, y];
+              return null;
+            }, top);
+            const urlBefore = page.url();
+            if (spot) await page.mouse.click(spot[0], spot[1]);
+            const byMap = !!spot && (await lowered());
+            await page.waitForTimeout(1000);
+            const opened = await page.evaluate(() => ['mark-card', 'gap-card', 'spot-card', 'found-card'].filter((id) => document.querySelector(`[data-testid=${id}]`)));
+            const drawing = await walkMap().getAttribute('data-drawing').catch(() => null);
+            check(raisedBefore && byMap && opened.length === 0 && (drawing ?? '0') === '0' && page.url() === urlBefore,
+              `tend walk-screen T45: a tap on the map above the raised settings lowers them and opens nothing (${JSON.stringify({ raisedBefore, top, spot, byMap, opened, drawing })})`);
+          }
+        });
         await page.click('[data-testid=pause-walk]');
         await page.waitForSelector('text=Paused');
         await page.waitForTimeout(400);
