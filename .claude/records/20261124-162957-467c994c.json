@@ -1,0 +1,62 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T61",
+        "--reason",
+        "built in tend tabs T61 (a [loop] entry, the loop's build)"
+      ],
+      "target": "sha256:b285cea97180b5d84d7d6deecee0065db6dc683fb91546f2fa69d1a7ed47331d"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs",
+        "--after",
+        "since `tend tabs T60`, on an iPhone"
+      ],
+      "body": "- [ ] **Do:** since `tend tabs T61`, on a 320-class phone and a 390-class one (an iPhone SE, an iPhone 15, a small Android), at the default and the largest text size: minimize a walk to Explore, record a memo from the recording bar and Discard it; wait a minute, lock and unlock the phone, tap Undo; discard another and tap Close (✕), aiming at its edge; discard a third and take a photo from the bar; discard a fourth and hold the bar's Stop; discard a fifth while a photo is held for Retry, hold the bar's Stop (refused, it warns of the photo), then tap Undo. Then on Chronicle's Memories with the walk open and a few entries on the page, record a voice note from the band and Discard it, wait, tap Undo; discard another and tap Close; discard a third and stop the walk from the bar. With VoiceOver and TalkBack move along each pill. **Expect:** \"Voice memo discarded\" above the bar and \"Voice note discarded\" above the band, each with Undo and a 44 pt Close, stay until one is tapped (never leaving by themselves); Close takes a tap anywhere on its 44 pt circle, which has no hitSlop beyond it; below 360 px the words on a line of their own above Undo and Close; Undo after the wait keeps the memo in the walk; Close, the photo, the bar's Stop that ends the walk and the walk's end take the pill away and the memo stays gone, with no file of it left in the app's documents; a Stop that is refused gives the bar's pill back with its Undo, which keeps the memo (tend tabs audit 71); while the bar's Stop runs the band shows no Undo (tend tabs audit 70); the band's pill covers none of the page's buttons, Memories' list kept at its end (tend tabs audit 72); Close is read as \"Close, it stays discarded\"; Discard's hint is \"Throws this recording away. You can undo it.\". Never run on a phone. (T61)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Recording bar captures"
+      ],
+      "body": "- [loop] The planner's capture stack says \"Throws this recording away. You can undo for a few seconds.\" on its Discard, yet draws no discarded memo's pill, so there is no Undo to reach (`PlannerCapture`, `discardHint(false)`; the memo is set aside for `UNDO_MS` and let go unseen). Either the planner draws the bar's pill with Undo and Close (`discardStays: true`), or its Discard hint drops the Undo (found building `tend tabs T61`, Nov 24).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The discarded memo's pill and the bar's words sit in flow above the bar"
+      ],
+      "body": "  Nov 24: since `tend tabs T61` the bar's discarded memo's pill stays until Undo, Close, the next capture or the bar's Stop, so the tab's content stays moved up for as long as it shows, no longer five seconds.\n",
+      "target": "sha256:3c8820e922c291c3481ac54292b33619363e4fffbbe95e37f8f3abab598340a0"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] The walk screen's Stop lets its discarded memo go as it begins (`tend walk-screen audit 33`, `void cap.closeDiscard()` after `setStopping(true)`), so a Stop that is then refused (a memo lost at Stop, held captures warned of) or fails loses the pill's Undo; the recording bar's Stop keeps it until the end goes through since `tend tabs audit 71` (the review's F5). The same move on the walk (let it go past `stopEnd`'s warning; the pill already hides while stopping) changes audit 33's tested shape, so it waits for the next walk-screen sweep (low)\n"
+    },
+    {
+      "argv": [
+        "open",
+        "note",
+        "BC2's, BC9's, NR10's and decision 0008's words"
+      ],
+      "body": "  Nov 24 (`tend tabs T61`, the loop's build of T48's split): the recording bar's and the journal band's discarded memo now has Undo and Close and stays too, so BC9's \"5 s\" pill no longer ships anywhere; the walk-screen rule's T48 line (\"The recording bar, the journal's band and the planner draw no Close and keep `UNDO_MS`\") is now true of the planner alone (the run added a line after it, 0135).\n",
+      "target": "sha256:32282b1972d014fd13295e7a2453018651e205aa378307a1787f611b5911088b"
+    }
+  ]
+}
