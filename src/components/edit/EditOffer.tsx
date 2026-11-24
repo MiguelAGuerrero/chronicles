@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import type { CapturePatch } from '../../lib/captureBus';
 import { afterCapture, editAfter, shotClosed, shotKept, shotTaken, type AfterCapture, type CameraWatch, type EditTarget, type HeldShot, type KeptShot } from '../../lib/editOffer';
+import { dropTemp } from '../../lib/media';
 import { facedOf, type Faced } from '../../lib/moment';
 import { MediaEditor, type MediaEditorHandle } from './MediaEditor';
 
@@ -25,15 +26,38 @@ export function useEditAfterCapture(captures: readonly Faced[], opts: { waits?: 
     opensNow.current = opts.opens;
   });
   const view = afterCapture({ shot, target, captures, waits });
+  // The picked files the held shots read, by turn (tend captures audit 8): the keep leaves each in place, and once it is
+  // the editor's (`release`) it is let go as its shot leaves the view (closed, replaced, unmounted), or at once if it has
+  // already left. A failed keep's file stays with the holder for Retry.
+  const sources = useRef(new Map<number, string>());
+  const letGo = useRef(new Set<string>());
+  const shownNow = useRef<string | null>(null);
+  const shown = view.show === 'none' ? null : (view.shot?.uri ?? null);
+  useEffect(() => {
+    shownNow.current = shown;
+    if (!shown) return;
+    return () => {
+      shownNow.current = null;
+      if (letGo.current.delete(shown)) dropTemp(shown);
+    };
+  }, [shown]);
   const camera: CameraWatch = {
     shot: (s) => {
       turns.current += 1;
       const turn = turns.current;
-      setShot(shotTaken(s, turn, !waitsNow.current && (opensNow.current?.() ?? true)));
-      return turn;
+      const holds = !waitsNow.current && (opensNow.current?.() ?? true);
+      if (holds) sources.current.set(turn, s.uri);
+      setShot(shotTaken(s, turn, holds));
+      return { turn, holds };
     },
-    kept: (turn, k) => {
+    kept: (turn, k, release) => {
       if (k && dropped.current?.turn === turn) dropped.current = { turn, piece: k.id };
+      const uri = sources.current.get(turn);
+      sources.current.delete(turn);
+      if (uri && release) {
+        if (shownNow.current === uri) letGo.current.add(uri);
+        else dropTemp(uri);
+      }
       setShot((h) => shotKept(h, turn, k));
     },
   };

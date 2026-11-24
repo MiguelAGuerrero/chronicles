@@ -33,12 +33,16 @@ async function downscale(blob: Blob): Promise<Blob> {
   }
 }
 
-export async function keepFile(tempUri: string, walkId: string, name: string, _opts: { replace?: boolean } = {}): Promise<string> {
+/**
+ * `keepSource`: a held shot still reads the picked file (tend captures T62), so it is left in place and the editor lets
+ * it go once the shot leaves the view (tend captures audit 8).
+ */
+export async function keepFile(tempUri: string, walkId: string, name: string, opts: { replace?: boolean; keepSource?: boolean } = {}): Promise<string> {
   const blob = await downscale(await (await fetch(tempUri)).blob());
   const key = `walks/${walkId}/${name}`;
   await mediaStore.put(key, blob);
   // Only once it is stored: a failed put leaves the memo retryable.
-  if (tempUri.startsWith('blob:')) URL.revokeObjectURL(tempUri);
+  if (!opts.keepSource && tempUri.startsWith('blob:')) URL.revokeObjectURL(tempUri);
   return key;
 }
 

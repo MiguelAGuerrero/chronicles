@@ -125,7 +125,8 @@ test('tend captures T62: every surface that opens the editor after a capture han
   assert.match(caps, /camera\?\.kept\(seen\.turn, /, 'and told how the keep went');
   // The hook asks the screen, at the camera's return, whether its editor would open there.
   const hook = src('components/edit/EditOffer.tsx');
-  assert.match(hook, /shotTaken\(s, turn, !waitsNow\.current && \(opensNow\.current\?\.\(\) \?\? true\)\)/);
+  // tend captures audit 8: asked once, its answer both holds the shot and tells the keep to leave the picked file.
+  assert.match(hook, /const holds = !waitsNow\.current && \(opensNow\.current\?\.\(\) \?\? true\);[\s\S]{0,120}?setShot\(shotTaken\(s, turn, holds\)\);/);
   assert.match(hook, /<MediaEditor [^>]*key=\{view\.key\}[^>]*held=\{view\.show === 'held'\}[^>]*justKept/);
 });
 
@@ -167,7 +168,8 @@ test("tend captures audit 7: while the shot is held the editor's ✕ is shown in
   // later camera return holds nothing in its place (mid-memo, a Stop under way) and the screen opens the closed one.
   const hook = src('components/edit/EditOffer.tsx');
   assert.match(hook, /close: \(\) => \{\s*dropped\.current = \{ turn: turns\.current, piece: null \};/);
-  assert.match(hook, /kept: \(turn, k\) => \{\s*if \(k && dropped\.current\?\.turn === turn\) dropped\.current = \{ turn, piece: k\.id \};/);
+  // (tend captures audit 8: the keep also says whether the picked file is the editor's to let go.)
+  assert.match(hook, /kept: \(turn, k, release\) => \{\s*if \(k && dropped\.current\?\.turn === turn\) dropped\.current = \{ turn, piece: k\.id \};/);
   assert.match(hook, /open: \(kept: KeptShot\) => \{\s*if \(dropped\.current\?\.piece === kept\.id\) return;\s*setTarget\(editAfter\(kept\)\);/);
   // The pure view agrees: closed while held, kept, then opened by the screen: nothing.
   const kept = { kind: 'photo' as const, id: 'm9', momentId: 'm9' };

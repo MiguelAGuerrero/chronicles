@@ -57,10 +57,15 @@ export interface HeldShot extends Shot {
   closed: boolean;
 }
 
-/** How the camera tells the screen's editor what it returned (`shot`, which answers its turn) and how the keep went. */
+/**
+ * How the camera tells the screen's editor what it returned (`shot`, which answers its turn and whether the screen holds
+ * it) and how the keep went. Held, the shot reads the picked file until it leaves the view, so the keep leaves the file in
+ * place; `release` says it is then the editor's to let go (kept, or copied before its row failed), never the holder's for
+ * Retry (tend captures audit 8).
+ */
 export interface CameraWatch {
-  shot(s: Shot): number;
-  kept(turn: number, k: KeptShot | null): void;
+  shot(s: Shot): { turn: number; holds: boolean };
+  kept(turn: number, k: KeptShot | null, release: boolean): void;
 }
 
 /**

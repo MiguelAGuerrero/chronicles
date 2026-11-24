@@ -89,7 +89,8 @@ const clockNow = () => Date.now();
  * A photo, video or memo to keep: new, or held by the one holder for Retry (SA8; unsaved captures, decision 0196).
  * `path` is set once its file is kept, so a Retry after a failed row write never keeps the file twice (UN12).
  */
-type Keepable = Pick<Unsaved<Stamp>, 'kind' | 'stamp' | 'uri' | 'ext' | 'ms' | 'path'>;
+// `keepSource`: a held shot reads the picked file, so the keep leaves it in place (tend captures audit 8).
+type Keepable = Pick<Unsaved<Stamp>, 'kind' | 'stamp' | 'uri' | 'ext' | 'ms' | 'path'> & { keepSource?: boolean };
 
 interface StoppedMemo {
   uri: string | null;
@@ -368,7 +369,7 @@ export function useCaptures(
           const [m] = await db.getMomentsByIds([stamp.into]);
           if (retryInto(stamp.into, !!m) !== stamp.into) stamp = { ...stamp, into: null };
         }
-        return keepFile(uri, folderOf(stamp.walk), `${newId()}.${k.ext}`);
+        return keepFile(uri, folderOf(stamp.walk), `${newId()}.${k.ext}`, { keepSource: !!k.keepSource });
       },
       write: async (path) => {
         if (k.path && stamp.into) {
@@ -400,11 +401,15 @@ export function useCaptures(
     setError({ message: heldWhere(k.kind, outOfSpace, where(), !!opts.shortWords) });
   }
 
-  /** Keeps a new shot, or holds it with why in words (SA8, SA9). */
-  async function keepOrHold(k: Keepable & { kind: 'photo' | 'video' }): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> {
+  /**
+   * Keeps a new shot, or holds it with why in words (SA8, SA9). `released`: a held shot's file was copied before its row
+   * failed, so the holder retries from the copy and the picked one is the editor's to let go (tend captures audit 8).
+   */
+  async function keepOrHold(k: Keepable & { kind: 'photo' | 'video' }, released?: () => void): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> {
     const r = await keepCapture(k);
     if ('error' in r) {
-      holdFailed(k, r.path, r.error);
+      if (k.keepSource && r.path) released?.();
+      holdFailed(k.keepSource && r.path ? { ...k, uri: null } : k, r.path, r.error);
       return null;
     }
     return r.id ? { kind: k.kind, id: r.id, momentId: k.stamp.into ?? r.id } : null;
@@ -475,14 +480,19 @@ export function useCaptures(
    */
   const takePhoto = async (into: string | null = null, place: string | null = null, camera?: CameraWatch): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
     let kept: { kind: 'photo' | 'video'; id: string; momentId: string } | null = null;
-    // Told before the keep, and after it in the same turn as the screen's own answer (T62).
+    // Told before the keep, and after it in the same turn as the screen's own answer (T62). A shot the screen holds reads
+    // the picked file until it leaves the view: the keep leaves the file in place, and the editor lets it go once it is
+    // kept (tend captures audit 8).
     const keepWatched = async (k: Keepable & { kind: 'photo' | 'video'; uri: string }) => {
-      const turn = camera?.shot({ kind: k.kind, uri: k.uri });
-      const r = await keepOrHold(k).catch((e: unknown) => {
-        if (turn !== undefined) camera?.kept(turn, null);
+      const seen = camera?.shot({ kind: k.kind, uri: k.uri });
+      let released = false;
+      const r = await keepOrHold({ ...k, keepSource: !!seen?.holds }, () => {
+        released = true;
+      }).catch((e: unknown) => {
+        if (seen) camera?.kept(seen.turn, null, false);
         throw e;
       });
-      if (turn !== undefined) camera?.kept(turn, r);
+      if (seen) camera?.kept(seen.turn, r, !!r || released);
       return r;
     };
     await guarded('photo', async () => {
