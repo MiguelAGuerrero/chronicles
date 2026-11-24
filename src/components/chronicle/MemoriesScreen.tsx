@@ -644,8 +644,8 @@ export function MemoriesScreen() {
           setReactionsOpen(false);
           setHiddenOpen(true);
         }}
+        // The sheet stays up as the switch flips, its thumb and note moving in place as in Layers (tend memories T54).
         onToggle={() => {
-          setMenuOpen(false);
           void resurface.setOff(!state.prefs.off);
         }}
         onForget={() => {

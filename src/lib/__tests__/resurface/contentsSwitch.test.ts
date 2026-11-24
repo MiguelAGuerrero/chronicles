@@ -44,6 +44,11 @@ test('tend memories T54: a tap on Bring moments back flips the setting and leave
   assert.equal(closesSheet(toggles[0]), false, `the switch leaves the sheet up (${toggles[0]})`);
 });
 
+test('tend memories T54: the switch adds no word of its own: no toast, no other screen, its note alone says Off', () => {
+  const [toggle] = handlersOf(readFileSync(SCREEN, 'utf8'), 'MemoriesMenu', 'onToggle');
+  assert.doesNotMatch(toggle, /\bsay\(|Toast|set(Threads|Hidden|Reactions)Open/, `the switch only flips the setting (${toggle})`);
+});
+
 test('tend memories T54: Close, the scrim and Escape still leave the contents sheet', () => {
   const screen = readFileSync(SCREEN, 'utf8');
   const closes = handlersOf(screen, 'MemoriesMenu', 'onClose');

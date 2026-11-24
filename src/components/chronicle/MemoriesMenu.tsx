@@ -15,6 +15,8 @@ import { Button, theme } from '../ui';
  * Grouped (tend memories T53, the owner's yes, Nov 21; M1: "group them", a divider between groups): the views, the switch
  * drawn as one (SwitchRow, as in Layers and What I'm into), Your data, then Forget my choices set apart at the foot, by
  * place alone: no colour, no count, no heading.
+ * The switch flips in place (tend memories T54, the owner's yes, Nov 21): the sheet stays up, its thumb moves and its
+ * note reads Off; Close, the scrim and Escape leave.
  */
 export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () => void; onThreads: () => void; onReactions: () => void; onHidden: () => void; onToggle: () => void; onForget: () => void }) {
   const [confirming, setConfirming] = useState(false);
