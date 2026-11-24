@@ -1,5 +1,5 @@
 {
-  "lastT": 62,
+  "lastT": 63,
   "lastG": 15,
   "balance": {
     "date": "2026-11-24",
@@ -34,7 +34,6 @@
       "OJ",
       "OM",
       "PC",
-      "PK",
       "PL",
       "PO",
       "PR",
@@ -42,7 +41,6 @@
       "QC",
       "RC",
       "RE",
-      "RF",
       "RL",
       "RT",
       "RX",
@@ -64,9 +62,9 @@
       "XS"
     ],
     "commits": {
-      "growth": 160,
-      "refinement": 871,
-      "other": 750
+      "growth": 158,
+      "refinement": 921,
+      "other": 743
     },
     "areas": {
       "rough": [
@@ -143,19 +141,19 @@
       "line": "more than half of the areas swept twice or more, and more than three (ROUGH_SHARE 0.5, LIMITS.rough 3; decision 0250)"
     },
     "open": {
-      "openT": 3,
+      "openT": 2,
       "phoneT": 4,
       "openG": 8,
       "unansweredT": 0
     },
     "inbox": {
-      "items": 86,
-      "unanswered": 55,
+      "items": 85,
+      "unanswered": 54,
       "phone": 4,
       "bySection": {
         "From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, \"The line and the page\")": 3,
         "From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)": 6,
-        "From /tend": 7,
+        "From /tend": 6,
         "From the road engine's audit (2026-11-18)": 3,
         "From the outing journey's second audit (2026-11-18)": 1,
         "From the more-attractions audit (Nov 18)": 1,
@@ -172,7 +170,7 @@
       "The \"Passing a place\" slider moved during a walk with Places off never reaches the walk's own `walk_pass`:",
       "The mention picker still runs under the keyboard."
     ],
-    "unrated": 42,
+    "unrated": 43,
     "reading": "outgrowing its base",
     "propose": false,
     "why": "six of the eight areas swept twice or more are rough",
@@ -248,7 +246,7 @@
       "first": 1,
       "second": 0
     },
-    "trend": "none",
-    "verdict": "too few refinement findings to say: 5 and 1 in the halves, 3 each at least"
+    "trend": "falling",
+    "verdict": "the compass is biting"
   }
 }
