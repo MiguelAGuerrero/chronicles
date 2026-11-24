@@ -833,6 +833,34 @@ async function run(h) {
     await pg.waitForTimeout(1500);
     const after = (await stored(pg)).moments.filter((m) => m.pieces.some((x) => x.kind === 'voice')).length;
     check(shownBefore === 1 && closed && after === voices, `tend tabs T61: on the band Close takes the pill shown away, and no note is kept (${JSON.stringify({ shownBefore, closed, voices, after })})`);
+    // tend tabs audit 72 (U6, the owner's "Stays; list scrolls clear", 0263): at 320 px, 6 s after a discard, the band's
+    // staying pill covers no button of the page (the last entry's Reaction, Respond, Thread and Edit among them).
+    await pg.setViewportSize({ width: 320, height: 640 });
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=open-line] [data-testid=band-voice]').catch(() => {});
+    await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=band-voice-discard]').catch(() => {});
+    await there('[data-testid=band-voice-undo]', 4000);
+    await pg.waitForTimeout(6000);
+    const covered = await pg.evaluate(() => {
+      const p = [...document.querySelectorAll('[data-testid=band-voice-undo]')].find((e) => e.getBoundingClientRect().width > 0);
+      const page = document.querySelector('[data-testid=journal-page]');
+      if (!p || !page) return null;
+      const a = p.getBoundingClientRect();
+      const pb = page.getBoundingClientRect();
+      const under = [...page.querySelectorAll('[role=button]')].map((b) => ({ b, r: b.getBoundingClientRect() }))
+        .filter(({ r }) => r.width > 0 && r.bottom > pb.top && r.top < pb.bottom)
+        .filter(({ r }) => r.left < a.right && r.right > a.left && r.top < a.bottom && r.bottom > a.top)
+        .map(({ b, r }) => ({ name: b.getAttribute('aria-label') ?? b.textContent?.slice(0, 20), y: Math.round(r.y), h: Math.round(r.height) }));
+      return { pill: { y: Math.round(a.y), h: Math.round(a.height) }, under };
+    });
+    await shot(pg, 't61-band-pill-6s-320-discarded-there');
+    await pg.click('[data-testid=band-voice-close]', { timeout: 5000 }).catch(() => {});
+    await pg.waitForTimeout(800);
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.waitForTimeout(1200);
+    check(!!covered && covered.under.length === 0, `tend tabs audit 72: at 320 px, 6 s after a discard, the band's pill covers no button of the page, the list scrolled clear of it (${JSON.stringify(covered)})`);
   }
 
   // JN47-JN51 (decision 0179): an entry is written in the composer, a sheet over the journal with room to type.

@@ -130,3 +130,28 @@ test('tend tabs audit 71: a refused bar Stop keeps the discarded memo\'s Undo; t
   assert.ok(warnAt > 0 && closeAt > warnAt, 'let go only past the warning, once the end has gone through');
   assert.ok(closeAt < end.indexOf("feedback('success')"), 'before the bar goes');
 });
+
+// tend tabs audit 72 (the review's F7 = S8 = U6, the owner's answer in decision 0263, "Stays; list scrolls clear"): at
+// 320 px the band's staying pill sat over the last entry's buttons (t61-band-pill-6s-320.png): the foot grew under a
+// reader at the page's end and the page did not follow. When the foot grows while the reader is at (or near) its end,
+// the page is kept at its end, so the pill covers no button.
+test('tend tabs audit 72: a foot that grows under a reader at the page\'s end keeps the page at its end', async () => {
+  const rest = (await import('../../journal/rest')) as Record<string, unknown>;
+  const keeps = rest.footKeepsEnd as ((o: { grew: number; armed: boolean; y: number; view: number; height: number }) => boolean) | undefined;
+  assert.equal(typeof keeps, 'function', 'a pure rule in lib/journal/rest');
+  if (!keeps) return;
+  // At the end (the last 24 px, as `pinned` reads it), the foot grows by the pill's height: kept at the end.
+  assert.equal(keeps({ grew: 80, armed: true, y: 1000, view: 600, height: 1600 }), true);
+  assert.equal(keeps({ grew: 80, armed: true, y: 990, view: 600, height: 1600 }), true);
+  // Near it: within the growth itself.
+  assert.equal(keeps({ grew: 80, armed: true, y: 930, view: 600, height: 1600 }), true);
+  // Read back up the page: left where it is.
+  assert.equal(keeps({ grew: 80, armed: true, y: 600, view: 600, height: 1600 }), false);
+  // A foot that shrinks or stays, or a page not yet opened: nothing.
+  assert.equal(keeps({ grew: 0, armed: true, y: 1000, view: 600, height: 1600 }), false);
+  assert.equal(keeps({ grew: -80, armed: true, y: 1000, view: 600, height: 1600 }), false);
+  assert.equal(keeps({ grew: 80, armed: false, y: 1000, view: 600, height: 1600 }), false);
+  // The page reads it each time its foot changes, before the frame is painted.
+  const page = read('components/journal/JournalPage.tsx');
+  assert.match(page, /const footWas = useRef\(props\.footPad\);\s*useLayoutEffect\(\(\) => \{[\s\S]{0,400}?footKeepsEnd\(\{ grew, armed: armed\.current, y: at\.current\.y, view: at\.current\.view, height: at\.current\.height \}\)[\s\S]{0,200}?scroll\.current\?\.scrollToEnd\(\{ animated: false \}\);[\s\S]{0,40}?\}, \[props\.footPad\]\);/);
+});
