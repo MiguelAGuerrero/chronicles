@@ -82,3 +82,21 @@ test('tend walk-screen audit 30: raised, a pin, a place, a memory or a long pres
   assert.match(ready, /onPinPress: \(cs: Faced\[\]\) => \{\s*if \(up\) \{\s*setUp\(false\);\s*return;\s*\}/, 'the ready map: a pin tap lowers the raised bar');
   assert.match(ready, /onLongPress: \(p: LngLat\) => \{\s*if \(up\) \{\s*setUp\(false\);\s*return;\s*\}/, 'and a long press');
 });
+
+// tend walk-screen audit 35 (the batch's review: auditor F8, ux U5, U6): Done sat inside the settings' scroll, after their
+// content: read last, scrolled away with the first row, 6 px below "This walk" on the walk, and web focus fell to the page
+// once it lowered the panel. The first row (the screen's heading and Done) is pinned above the scroll, Done read right
+// after the heading and centred with it, and Done sends focus to the numbers.
+test('tend walk-screen audit 35: the raised panel\'s heading and Done are one row pinned above the scroll', () => {
+  const bar = read('components/walk/ReadyBar.tsx');
+  const head = bar.indexOf('testID={`${id}-head`}');
+  assert.ok(head >= 0, 'a first row of its own');
+  assert.ok(head < bar.indexOf('<ScrollView'), 'above the settings\' scroll, so it never scrolls away');
+  const row = bar.slice(head, bar.indexOf('<ScrollView'));
+  assert.ok(row.indexOf('{props.heading}') >= 0 && row.indexOf('{props.heading}') < row.indexOf('-done`}'), 'the heading, then Done: read in that order');
+  const style = /\n  done: \{([^}]*)\}/.exec(bar)?.[1] ?? '';
+  assert.doesNotMatch(style, /position: 'absolute'/, 'in the row\'s flow, centred with the heading');
+  assert.match(bar, /onPress=\{\(\) => \{\s*props\.onUp\(false\);\s*focusOn\(summaryRef\);\s*\}\}/, 'Done lowers it and sends focus to the numbers');
+  assert.match(read('components/walk/useReady.tsx'), /heading=\{<StartSettingsTitle \/>\}/, 'the ready screen\'s heading, "Walk settings"');
+  assert.match(read('app/walk.tsx'), /heading=\{<Text style=\{styles\.spotTitle\} accessibilityRole="header">This walk<\/Text>\}/, 'the walk\'s, "This walk"');
+});

@@ -209,9 +209,39 @@ async function run(h) {
       await pg.waitForTimeout(800);
       check(placed(at390) && placed(at320),
         `tend walk-screen T45: raised, the ready bar's "Done" sits at the top right of its first row, level with "Walk settings", whole and 44 pt, at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+      // tend walk-screen audit 35 (auditor F8, ux U5, U6): Done is pinned with its heading above the settings' scroll: read
+      // right after "Walk settings", level with it, unmoved when the settings scroll; Done sends focus to the numbers.
+      const pinnedAt = () => pg.evaluate(() => {
+        const bar = document.querySelector('[data-testid=ready-bar]');
+        const done = [...document.querySelectorAll('[data-testid=ready-done]')].find((e) => e.getBoundingClientRect().width > 0);
+        const order = [...(bar?.querySelectorAll('[role=heading], [role=button], [role=switch], [role=radio], [role=slider], [role=link], input') ?? [])]
+          .filter((e) => e.getBoundingClientRect().width > 0 && !e.closest('[data-testid=ready-summary]'));
+        const head = order.findIndex((e) => e.getAttribute('role') === 'heading' && e.textContent.trim() === 'Walk settings');
+        const scroller = [...(bar?.querySelectorAll('div') ?? [])].find((e) => e.scrollHeight > e.clientHeight + 20 && /(auto|scroll)/.test(getComputedStyle(e).overflowY));
+        return { head, done: order.indexOf(done), y: done ? Math.round(done.getBoundingClientRect().y) : null, scrolls: !!scroller };
+      });
+      const pinBefore = await pinnedAt();
+      await pg.evaluate(() => {
+        const bar = document.querySelector('[data-testid=ready-bar]');
+        const scroller = [...(bar?.querySelectorAll('div') ?? [])].find((e) => e.scrollHeight > e.clientHeight + 20 && /(auto|scroll)/.test(getComputedStyle(e).overflowY));
+        if (scroller) scroller.scrollTop = 240;
+      });
+      await pg.waitForTimeout(500);
+      const pinScrolled = await pinnedAt();
+      await pg.evaluate(() => {
+        const bar = document.querySelector('[data-testid=ready-bar]');
+        const scroller = [...(bar?.querySelectorAll('div') ?? [])].find((e) => e.scrollHeight > e.clientHeight + 20 && /(auto|scroll)/.test(getComputedStyle(e).overflowY));
+        if (scroller) scroller.scrollTop = 0;
+      });
+      await pg.waitForTimeout(400);
+      const level = (a) => !!a.done && !!a.text && Math.abs(a.done.y + a.done.h / 2 - (a.text.y + a.text.h / 2)) <= 4;
+      check(pinBefore.head >= 0 && pinBefore.done === pinBefore.head + 1 && pinBefore.scrolls && pinScrolled.y === pinBefore.y && level(at390) && level(at320),
+        `tend walk-screen audit 35: the ready bar's Done is read right after "Walk settings", level with it, and stays put as the settings scroll (${JSON.stringify({ pinBefore, pinScrolled, at390, at320 })})`);
       await pg.locator('[data-testid=ready-done]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
       const byDone = await lowered();
       await pg.waitForTimeout(600);
+      const focusAfter = await pg.evaluate(() => !!document.activeElement?.closest('[data-testid=ready-summary]'));
+      check(focusAfter, 'tend walk-screen audit 35: Done lowers the ready bar and sends focus to its numbers');
       const barDone = await boxOf(pg, 'ready-bar');
       const micAt = await boxOf(pg, 'moment-voice');
       const stackFree = !!micAt && (await pg.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('[data-testid=moment-voice]'), [micAt.x + micAt.w / 2, micAt.y + micAt.h / 2]));

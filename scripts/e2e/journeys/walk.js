@@ -1026,7 +1026,9 @@ async function checks(h) {
               const done = [...document.querySelectorAll('[data-testid=walk-done]')].find((e) => e.getBoundingClientRect().width > 0);
               const card = document.querySelector('[data-testid=options-card]');
               const bar = done?.closest('[data-testid=walk-strip], [data-testid=ready-bar]') ?? card?.parentElement?.parentElement ?? null;
-              const head = card ? [...card.querySelectorAll('[role=heading]')].find((e) => e.getBoundingClientRect().width > 0) : null;
+              // The heading in the walk's bar, in its settings or pinned above them (tend walk-screen audit 35).
+              const host = document.querySelector('[data-testid=walk-bar]') ?? card;
+              const head = host ? [...host.querySelectorAll('[role=heading]')].find((e) => e.getBoundingClientRect().width > 0) : null;
               let text = null;
               if (head) { const rg = document.createRange(); rg.selectNodeContents(head); text = r(rg.getBoundingClientRect()); }
               const word = done ? [...done.querySelectorAll('div[dir=auto]')].pop() : null;
@@ -1053,9 +1055,24 @@ async function checks(h) {
             await page.waitForTimeout(700);
             check(placed(at390) && placed(at320),
               `tend walk-screen T45: raised, the walk's "Done" sits at the top right of its first row, level with "This walk", whole and 44 pt, at 390 and 320 px (${JSON.stringify({ at390, at320 })})`);
+            // tend walk-screen audit 35 (auditor F8, ux U5, U6): Done is pinned with "This walk" above the settings' scroll,
+            // read right after it and level with it; Done sends focus to the numbers.
+            const readOrder = await page.evaluate(() => {
+              const bar = document.querySelector('[data-testid=walk-bar]');
+              const done = [...document.querySelectorAll('[data-testid=walk-done]')].find((e) => e.getBoundingClientRect().width > 0);
+              const order = [...(bar?.querySelectorAll('[role=heading], [role=button], [role=switch], [role=radio], [role=slider], [role=link], input') ?? [])]
+                .filter((e) => e.getBoundingClientRect().width > 0 && !e.closest('[data-testid=walk-summary]'));
+              const head = order.findIndex((e) => e.getAttribute('role') === 'heading' && e.textContent.trim() === 'This walk');
+              return { head, done: order.indexOf(done) };
+            });
+            const level = (a) => !!a.done && !!a.text && Math.abs(a.done.y + a.done.h / 2 - (a.text.y + a.text.h / 2)) <= 4;
+            check(readOrder.head >= 0 && readOrder.done === readOrder.head + 1 && level(at390) && level(at320),
+              `tend walk-screen audit 35: the walk's Done is read right after "This walk" and level with it, at 390 and 320 px (${JSON.stringify({ readOrder, at390, at320 })})`);
             await page.locator('[data-testid=walk-done]').filter({ visible: true }).first().click({ timeout: 5000 }).catch(() => {});
             const byDone = await lowered();
+            const focusAfter = await page.evaluate(() => !!document.activeElement?.closest('[data-testid=walk-summary]'));
             check(byDone, 'tend walk-screen T45: the walk\'s Done lowers its settings');
+            check(focusAfter, 'tend walk-screen audit 35: the walk\'s Done sends focus to its numbers');
             await page.click('[data-testid=walk-summary]');
             await page.waitForSelector('[data-testid=options-card]', { timeout: 5000 }).catch(() => {});
             await page.waitForTimeout(900);

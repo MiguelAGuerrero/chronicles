@@ -77,7 +77,8 @@ async function run(h) {
   const look = found ? await pg.evaluate(() => {
     const r = document.querySelector('[data-testid=your-data-row]');
     const b = r.getBoundingClientRect();
-    const title = [...document.querySelectorAll('[data-testid=start-settings] [role=heading]')].find((e) => e.textContent.trim() === 'Walk settings');
+    // In the ready bar: pinned above the settings' scroll since tend walk-screen audit 35.
+    const title = [...document.querySelectorAll('[data-testid=ready-bar] [role=heading]')].find((e) => e.textContent.trim() === 'Walk settings');
     const label = [...r.querySelectorAll('*')].find((e) => e.childElementCount === 0 && e.textContent.trim() === 'Your data');
     const last = [...document.querySelectorAll('[data-testid=start-settings] [role=button], [data-testid=start-settings] [role=radio], [data-testid=start-settings] [role=switch]')]
       .filter((e) => e.getBoundingClientRect().height > 0).pop();
