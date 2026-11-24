@@ -597,8 +597,11 @@ function heldKit(pg, { fixtures, shot, tag = 't62' }) {
       composer: span.some((f) => f.composer),
     };
   };
+  // tend captures audit 10: the mount's transparency is bounded by time, not by a count of sampled frames: headless
+  // Chromium runs requestAnimationFrame more often than it paints (two samples in 14 ms on the first run), so
+  // `mountFrames` is data; from the first opaque frame on, every frame is opaque, covered, no map.
   const whole = (r) => r.up && r.toCover != null && r.toCover < 1500 && r.toReady != null && r.toReady >= 2000 && r.frames > 10 && r.gone === 0
-    && r.mountFrames != null && r.mountFrames <= 1 && r.toOpaque != null && r.toOpaque <= 250 && r.minOp === 1;
+    && r.mountFrames != null && r.toOpaque != null && r.toOpaque <= 250 && r.minOp === 1;
   const steady = (r) => r.picWhileHeld && r.moved === 0 && r.blank === 0;
   const honest = (r) => r.held > 5 && r.keptWhileHeld === 0 && r.doneWhileHeld === 0 && r.shownHeld > 5 && r.closeWhileHeld === r.shownHeld && r.keptAfter;
   const say = (r) => JSON.stringify(r);
