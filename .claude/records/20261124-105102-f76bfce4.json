@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T51",
+        "--reason",
+        "the owner's yes, built in tend replay T51"
+      ],
+      "target": "sha256:c8c88bcbca5acbf27301a4234f61355fe8bbd8db71f93fe1d1559509c254e4c7"
+    }
+  ]
+}
