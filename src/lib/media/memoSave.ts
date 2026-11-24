@@ -41,6 +41,15 @@ export function setAside<M>(held: M | null, e: SetAsideEvent<M>, gone = false): 
   return { held: null, keep: null, letGo: held };
 }
 
+/**
+ * The step a Discard takes (tend walk-screen audit 34): a memo with its file is set aside for Undo; one whose stop timed out
+ * has none, so an Undo could only fail ("Couldn't save this voice memo."): nothing is set aside, no pill shows, and a memo
+ * set aside before is let go, as a discard replaces it.
+ */
+export function discardStep<M extends { uri: string | null }>(memo: M): SetAsideEvent<M> {
+  return memo.uri ? { type: 'discard', memo } : { type: 'close' };
+}
+
 /** The discarded memo's Close, saying what it leaves, as the delete's Undo pill does (deletion `dismissLabel`). */
 export const DISCARD_CLOSE_LABEL = 'Close, it stays discarded';
 

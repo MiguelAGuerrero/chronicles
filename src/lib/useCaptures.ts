@@ -20,7 +20,7 @@ import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
-import { failedMemo, memoFile, setAside, type SetAsideEvent } from './media/memoSave';
+import { discardStep, failedMemo, memoFile, setAside, type SetAsideEvent } from './media/memoSave';
 import { isOutOfSpace } from './space/core';
 import { unsaved } from './unsaved';
 import { folderOf, heldKey, heldWhere, keepInOrder, kindsOf, looseAfterEnd, retryInto, type Unsaved } from './unsaved/core';
@@ -708,7 +708,8 @@ export function useCaptures(
         if (!voiceOn.current) return 'none';
         const m = await stopRecorder();
         forgetDiscarded();
-        asideStep({ type: 'discard', memo: m });
+        // Set aside for Undo, unless it has no file to bring back (audit 34).
+        asideStep(discardStep(m));
         if (!opts.discardStays) discardTimer.current = setTimeout(() => {
           if (setAsideRef.current === m) asideStep({ type: 'close' });
         }, UNDO_MS);

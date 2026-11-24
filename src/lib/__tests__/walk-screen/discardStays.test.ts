@@ -72,7 +72,8 @@ test('tend walk-screen T48: on those two screens no timer takes the memo; the ne
   const hook = read('lib/useCaptures.ts');
   // The discard arms the timer only for a path whose pill has no Close.
   const discard = body(hook, 'const discardVoice', 'const undoDiscard');
-  assert.match(discard, /asideStep\(\{ type: 'discard', memo: m \}\)/, 'a discard sets the memo aside through setAside');
+  // tend walk-screen audit 34: through `discardStep`, which sets a memo with its file aside.
+  assert.match(discard, /asideStep\(discardStep\(m\)\)/, 'a discard sets the memo aside through setAside');
   assert.match(discard, /if \(!opts\.discardStays\) discardTimer\.current = setTimeout\(/, 'no timer where the pill stays');
   // Undo and Close go through the same step.
   assert.match(body(hook, 'const undoDiscard', 'const closeDiscard'), /asideStep\(\{ type: 'undo' \}\)/);
