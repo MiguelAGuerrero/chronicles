@@ -183,3 +183,7 @@ loop outside the screens' rendering, the camera as plan data, how a break is cro
 how a telling opens from the first beat's view and closes on the card's, with the date and the places passed). What
 stays behind (the pictures on the map, the stack) and a moment on screen (the scrim, the drift, videos in turn) are in
 `.claude/rules/replay-stage.md`.
+- **A video's card says its length as a memo's bubble does** (tend captures audit 19, decision 0264, the owner's "On its
+  card, like a memo"): `lengthLabel` (`lib/voiceTrim`) gives "Video · 0:20", a captioned one "Busker · 0:02", the kept
+  part's length; a video with none on record says its name alone, never "0:00". A long clip plays whole and holds its card
+  for its whole length (0203; the owner's "Whole, as built", 0264).

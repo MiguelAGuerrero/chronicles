@@ -82,3 +82,8 @@ paths:
   the pixels); videos through `exportVideo` with the lines and caption as a
   clear PNG (`bakers.bakeOverlay`): the local module on phones, canvas +
   MediaRecorder on the web (real time; MP4 or WebM as the browser records).
+- **A video with no length offers no Trim** (tend captures audit 18): a web clip whose header has none (MediaRecorder's
+  WebM; the picker reads Infinity) is measured as it is kept, after its shot is held (`videoLength`, `media/index.web.ts`,
+  the seek far past the end that `videoFrame` uses; a phone's picker always says it); the editor takes the player's
+  length only when it is one (`finiteMs`), offers no Trim with none (`toolsFor`), and a trim against a length that is not
+  one stores nothing (`editSession`).
