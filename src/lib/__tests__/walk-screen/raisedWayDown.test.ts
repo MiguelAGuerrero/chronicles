@@ -20,17 +20,18 @@ test('tend walk-screen T45: the raised panel has a labelled Done that lowers it 
   assert.ok(done, 'a Done button, `ready-done` or `walk-done`');
   const [whole, attrs] = done;
   assert.match(attrs, /accessibilityRole="button"/, 'a button to assistive tech');
-  assert.match(attrs, /onPress=\{\(\) => props\.onUp\(false\)\}/, 'it lowers the bar as Escape does');
+  assert.match(attrs, /onPress=\{\(\) => \{\s*props\.onUp\(false\);/, 'it lowers the bar as Escape does');
   assert.match(whole, />Done<\/Text>/, 'labelled in words, "Done"');
-  // Inside the raised panel's scroll, where its first row is: drawn only while the settings are.
-  const scroll = /<ScrollView[\s\S]*?<\/ScrollView>/.exec(bar)?.[0] ?? '';
-  assert.ok(scroll.includes('-done`}'), 'Done sits in the raised panel, with the settings');
+  // In the raised panel's first row, drawn only while the settings are.
+  // tend walk-screen audit 35: the row is pinned above the settings' scroll.
+  const head = /\{\(up \|\| shown\) && \(([\s\S]*?)<ScrollView/.exec(bar)?.[1] ?? '';
+  assert.ok(head.includes('-done`}'), 'Done sits in the raised panel, with the settings');
   // At the top right of the first row, a 44 pt target (ui-patterns).
   const style = /\n  done: \{([^}]*)\}/.exec(bar)?.[1] ?? '';
-  assert.match(style, /position: 'absolute'/, 'placed over the first row');
-  assert.match(style, /top: GRIP_UP/, 'level with the first row, below the grip');
+  const row = /\n  head: \{([^}]*)\}/.exec(bar)?.[1] ?? '';
+  assert.match(row, /marginTop: GRIP_UP/, 'level with the first row, below the grip');
   assert.match(style, /minHeight: 44/, 'a 44 pt target');
-  assert.match(attrs, /right: at\.right/, 'at the right, on the captures\' column edge');
+  assert.match(head, /paddingRight: at\.right/, 'at the right, on the captures\' column edge');
 });
 
 test('tend walk-screen T45: a tap on the ready map lowers the raised bar', () => {

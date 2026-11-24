@@ -1870,6 +1870,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onUp={raiseOptions}
         areaHeight={screenH}
         locked={recordingVoice}
+        heading={<Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>}
         // Named with what it draws, word for word, as the ready bar's twin is (tend walk-screen 12, audit 12): read each second
         // by the bar's own summary, never a live region.
         summaryLabel={(t) => walkSummaryLabel({ elapsedMs: walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0, distanceM: live.distanceM, rideM: live.rideM, units })}
@@ -1932,7 +1933,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }
       >
         <View testID="options-card" style={styles.drawer}>
-          <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
             {loaded && (
               <>
                 <Text style={styles.optionSection} accessibilityRole="header">“?” range</Text>

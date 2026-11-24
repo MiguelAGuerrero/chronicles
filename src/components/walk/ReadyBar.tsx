@@ -1,6 +1,7 @@
 import { useIsFocused } from 'expo-router';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Animated, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { focusOn } from '../../lib/focus';
 import { MOTION } from '../../lib/motionTokens';
 import { useReducedMotion } from '../../lib/motion';
 import { theme } from '../ui';
@@ -43,9 +44,13 @@ export function ReadyBar(props: {
   idPrefix?: 'ready' | 'walk';
   /** Mid-memo nothing raises the bar: a drag or a tap is refused before it moves it (audit 4). */
   locked: boolean;
+  /** The raised panel's heading ("Walk settings", "This walk"): pinned with Done above the settings (tend walk-screen audit 35). */
+  heading: ReactNode;
   children: ReactNode;
 }) {
   const at = useStackLayout();
+  // The numbers' button: Done sends focus there once it lowers the panel (tend walk-screen audit 35).
+  const summaryRef = useRef<ComponentRef<typeof View>>(null);
   const rest = BAR_H + at.insets.bottom;
   const full = raisedHeight(props.areaHeight, rest);
   const { up } = props;
@@ -134,20 +139,29 @@ export function ReadyBar(props: {
     <Animated.View testID={`${id}-bar`} style={[styles.bar, { height: h }]}>
       {!(up || shown) && <View style={styles.scroll} />}
       {(up || shown) && (
-        <ScrollView style={styles.scroll} contentContainerStyle={{ paddingTop: GRIP_UP }}>
-          {props.children}
-          {/* T45 (decision 0233): a labelled way down at the top right of the first row, as Escape lowers it. After the
-              settings, so it is drawn over their first row and read after it. */}
-          <Pressable
-            testID={`${id}-done`}
-            accessibilityRole="button"
-            accessibilityHint="Lowers the walk settings"
-            onPress={() => props.onUp(false)}
-            style={({ pressed }) => [styles.done, { right: at.right }, pressed && styles.pressed]}
-          >
-            <Text style={styles.doneText}>Done</Text>
-          </Pressable>
-        </ScrollView>
+        <>
+          {/* T45 (decision 0233): a labelled way down at the top right of the first row, as Escape lowers it. The row (the
+              heading, then Done) is pinned above the settings' scroll, so Done is read right after the heading, level with
+              it, and never scrolls away (tend walk-screen audit 35). */}
+          <View testID={`${id}-head`} style={[styles.head, { paddingLeft: at.right, paddingRight: at.right }]}>
+            <View style={styles.headText}>{props.heading}</View>
+            <Pressable
+              testID={`${id}-done`}
+              accessibilityRole="button"
+              accessibilityHint="Lowers the walk settings"
+              onPress={() => {
+                props.onUp(false);
+                focusOn(summaryRef);
+              }}
+              style={({ pressed }) => [styles.done, pressed && styles.pressed]}
+            >
+              <Text style={styles.doneText}>Done</Text>
+            </Pressable>
+          </View>
+          <ScrollView style={styles.scroll} contentContainerStyle={{ paddingTop: 6 }}>
+            {props.children}
+          </ScrollView>
+        </>
       )}
       {/* The grip: the handle in the strip's top edge at rest, a thumb-tall strip pulled up. */}
       <View
@@ -167,7 +181,7 @@ export function ReadyBar(props: {
       <View pointerEvents="box-none" style={[styles.foot, { paddingBottom: 10 + at.insets.bottom }]}>
         <View pointerEvents="box-none" style={styles.footInner}>
           {/* The numbers take hold of the bar too: a bigger target than the handle. */}
-          <Summary testID={`${id}-summary`} touch={{ ...dragProps, ...keys }} label={props.summaryLabel} tail={tail} up={up} locked={locked} toggle={toggle}>
+          <Summary ref={summaryRef} testID={`${id}-summary`} touch={{ ...dragProps, ...keys }} label={props.summaryLabel} tail={tail} up={up} locked={locked} toggle={toggle}>
             {props.summary}
           </Summary>
           {props.actions}
@@ -181,7 +195,7 @@ export function ReadyBar(props: {
  * The numbers' one button (audit 6). A label given as a function of the clock is read again each second, here alone, so
  * the name keeps step with the ticking text under it and the screen above is not re-rendered for it.
  */
-function Summary(props: {
+const Summary = forwardRef<ComponentRef<typeof View>, {
   testID: string;
   touch: object;
   label: string | ((now: number) => string);
@@ -190,7 +204,7 @@ function Summary(props: {
   locked: boolean;
   toggle: () => void;
   children: ReactNode;
-}) {
+}>(function Summary(props, ref) {
   const ticks = typeof props.label === 'function';
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -202,6 +216,7 @@ function Summary(props: {
   const { toggle } = props;
   return (
     <View
+      ref={ref}
       testID={props.testID}
       {...props.touch}
       focusable
@@ -216,7 +231,7 @@ function Summary(props: {
       {props.children}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   bar: {
@@ -229,8 +244,10 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ userSelect: 'none', cursor: 'grab' } as object) : {}),
   },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: theme.edge },
-  // The first row's height, from the grip down: level with its heading, in ink at the top right, as the reactions' Done.
-  done: { position: 'absolute', top: GRIP_UP - 6, minHeight: 44, minWidth: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  // The first row, from the grip down: the heading, and Done in ink at its right, as the reactions' Done (audit 35).
+  head: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: GRIP_UP - 6, minHeight: 44 },
+  headText: { flex: 1, minWidth: 0 },
+  done: { minHeight: 44, minWidth: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   pressed: { opacity: 0.6 },
   // No fill of its own: the bar's, so the handle in the grip beneath shows through.

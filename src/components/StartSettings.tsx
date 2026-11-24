@@ -34,6 +34,11 @@ const GROUP_NOTE = 'Captures join the moment just made; a separate moment takes 
  * (decision 0192) only with Explore chosen; then reminders and alerts, and distances. Each choice saves as it
  * changes (NV22); Start stays at the bar's foot below.
  */
+/** The raised ready bar's heading, pinned with its Done above these settings (tend walk-screen audit 35). */
+export function StartSettingsTitle() {
+  return <Text style={[styles.title, styles.titlePinned]} accessibilityRole="header">Walk settings</Text>;
+}
+
 export function StartSettings(props: {
   dest: Waypoint | null;
   fix: LngLat | null;
@@ -51,7 +56,6 @@ export function StartSettings(props: {
   const { units, range } = useDistance();
   return (
     <View testID="start-settings" style={styles.content}>
-      <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
       <Text style={styles.section} accessibilityRole="header">Destination</Text>
       {dest ? (
         <View style={styles.destRow}>
@@ -138,6 +142,8 @@ export function StartSettings(props: {
 
 const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', color: theme.ink, marginTop: 4 },
+  // In the bar's pinned first row, centred with Done (audit 35).
+  titlePinned: { marginTop: 0 },
   content: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
   section: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 6 },

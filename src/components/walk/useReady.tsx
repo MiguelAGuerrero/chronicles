@@ -8,7 +8,7 @@ import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
 import { LayersControl } from '../LayersControl';
 import { MomentBar } from '../MomentBar';
-import { StartSettings } from '../StartSettings';
+import { StartSettings, StartSettingsTitle } from '../StartSettings';
 import { Icon } from '../icons';
 import { Banner, Button, theme } from '../ui';
 import { useDistance } from '../../lib/useUnits';
@@ -313,6 +313,7 @@ export function useReady(props: {
         onUp={(u) => setUp(u && !memoOn)}
         areaHeight={screenH}
         locked={memoOn}
+        heading={<StartSettingsTitle />}
         summaryLabel={['0:00 · ' + distance(0), dest ? `To ${destLine(dest, fix, units)}` : null].filter(Boolean).join('. ')}
         summary={
           <>
