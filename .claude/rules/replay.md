@@ -135,6 +135,11 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 - `CaptureContent` plays a voice memo or video itself and is keyed by capture id, so
   moving on or skipping unmounts the player and stops the sound (the steps).
 - A capture after the last fix stops the path at its end. The path span is the trace.
+- **A capture with no place of its own is pinned where it is told** (`tend replay T51`, the owner's "Place it by its
+  time", Nov 20): one kept after Stop placed the walk's moments (a memo saved through Stop, no fix found) is stored
+  unplaced; the story places its copy at its moment's `at` (`placedWhereTold`): where its start time falls on the path,
+  or where the walker was last known before a gap or after the last fix. The card's pins are the story's captures, so
+  never pin from `data.captures`; the store is never written.
 - With a screen reader on (native only, since react-native-web always says yes), the
   replay skips the fog and path and steps through the story's moments, then the card.
 - The replay sets `playsInSilentMode` when it mounts, or memos are silent with the
