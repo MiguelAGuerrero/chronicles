@@ -274,7 +274,9 @@ async function run(h) {
     const pill = await there('[data-testid=bar-voice-undo]', 4000);
     const editorAfter2 = await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 }).then(() => true, () => false);
     await closeEditor();
-    await pg.waitForTimeout(6000);
+    // The pill stays until Undo or Close (tend tabs T61): Close lets the memo go.
+    await pg.click('[data-testid=bar-voice-close]', { timeout: 5000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
     const m3 = await pieces();
     const added = m3.filter((m) => !m2.some((o) => o.id === m.id));
     check(!editorMid2 && pill && editorAfter2 && added.length === 1 && added[0].kinds.join() === 'photo',

@@ -843,6 +843,9 @@ async function run(h) {
   check(!!mic50 && !!rec50.stop && rec50.stop.x === mic50.x && rec50.camOff !== 'true', `JN50: a voice note records in the composer, Stop where the mic was, the camera still working (${JSON.stringify({ mic50, rec50 })})`);
   await pg.click('[data-testid=composer] [data-testid=band-voice-discard]').catch(() => {});
   await pg.waitForTimeout(1200);
+  // The discarded note's pill stays until Undo or Close (tend tabs T61): Close, so it is not left over the page.
+  await pg.click('[data-testid=band-voice-close]', { timeout: 5000 }).catch(() => {});
+  await pg.waitForTimeout(600);
   // JN51: Open as a page carries the words to the note's page; closing it returns to the journal.
   await pg.click(input).catch(() => {});
   await pg.keyboard.type('Long enough for a page.', { delay: 10 });
