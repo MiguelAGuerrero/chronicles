@@ -77,6 +77,7 @@ test('tend walk-screen audit 30: raised, a pin, a place, a memory or a long pres
     assert.ok(at >= 0, `the walk map's ${prop}`);
     assert.match(walk.slice(at, at + 400), rest, `${prop} lowers the raised settings first`);
   }
+  // tend walk-screen audit 30: the ready screen's pin and long press, as its map tap (T45).
   const ready = read('components/walk/useReady.tsx');
   assert.match(ready, /onPinPress: \(cs: Faced\[\]\) => \{\s*if \(up\) \{\s*setUp\(false\);\s*return;\s*\}/, 'the ready map: a pin tap lowers the raised bar');
   assert.match(ready, /onLongPress: \(p: LngLat\) => \{\s*if \(up\) \{\s*setUp\(false\);\s*return;\s*\}/, 'and a long press');

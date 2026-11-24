@@ -1136,6 +1136,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
   );
 
 
+  // Raised, a tap on a pin, a place, a memory or a long press lowers the settings, as a tap on the map does, and does
+  // nothing else: no card or viewer opens over the panel (T45, decision 0233; tend walk-screen audit 30).
+  const lowerFirst = () => {
+    if (!options) return false;
+    raiseOptions(false);
+    return true;
+  };
+
   async function stop() {
     if (!walk || stopping) return;
     setStopping(true);
@@ -1389,7 +1397,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         now={pinNow}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
-        onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}
+        onPinPress={recordingVoice || stopping || isDrawing ? undefined : (cs: Faced[]) => {
+          if (lowerFirst()) return;
+          setViewing(cs);
+        }}
         walker={live.here}
         walkerSource={live.dot}
         glideWalker
@@ -1427,12 +1438,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
         memories={memories}
         onMemoryPress={recordingVoice || stopping || isDrawing ? undefined : (group, at) => {
+          if (lowerFirst()) return;
           setGapOpen(null);
           void openMemory(group, at);
         }}
         discoveries={explore.pins}
         spreadMarks
         onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
+          if (lowerFirst()) return;
           // A place offered after the moment: a tap ties the moment to it, no card (moment-assignment-fallback PO3).
           if (explore.take(id)) return;
           setSpot(null);
@@ -1460,6 +1473,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onBearingChange={bearing.set}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={(at, radiusM) => {
+          if (lowerFirst()) return;
           if (isDrawing) return;
           // Another card takes the slot: the stretch's card goes, rather than hiding and coming back (audit 7).
           setGapOpen(null);

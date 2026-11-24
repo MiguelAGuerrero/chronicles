@@ -226,8 +226,15 @@ export function useReady(props: {
     fog: NONE,
     captures: momentPins,
     // Mid-memo, pins do nothing, so a memo is never cut short (moments audit).
-    // Nor with the bar up: one Escape would close the viewer and the bar (audit 12).
-    onPinPress: (cs: Faced[]) => !memoOn && !up && setViewing(cs),
+    // With the bar up a pin opens nothing (one Escape would close the viewer and the bar, audit 12): it lowers the bar, as
+    // a tap on the map does (tend walk-screen audit 30).
+    onPinPress: (cs: Faced[]) => {
+      if (up) {
+        setUp(false);
+        return;
+      }
+      if (!memoOn) setViewing(cs);
+    },
     onViewChange: (v: { zoom: number }) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM),
     walker: fix,
     // No scale bar over a blank world while no fix places the map (T17).
@@ -236,7 +243,11 @@ export function useReady(props: {
     ring,
     // The destination is a long press on the ready map (NV23), never mid-memo or with the bar up.
     onLongPress: (p: LngLat) => {
-      if (memoOn || up) return;
+      if (up) {
+        setUp(false);
+        return;
+      }
+      if (memoOn) return;
       chooseDest({ at: p, label: 'Your spot', kind: 'point' });
     },
     fitBounds: ringBox ?? fit.bounds,
