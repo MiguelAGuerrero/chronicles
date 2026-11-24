@@ -162,3 +162,14 @@ test('tend walk-screen audit 32: a memo set aside once its screen has gone is le
   const hook = read('lib/useCaptures.ts');
   assert.match(body(hook, 'const asideStep', 'const resetAudioMode'), /setAside\(setAsideRef\.current, e, !alive\.current\)/, 'the hook says whether its screen is still there');
 });
+
+// tend walk-screen audit 33 (the batch's review: auditor F7): the walk's discard pill offered Undo while Stop was under way;
+// an Undo after Stop's `finishVoice` saved a memo Stop never placed. When Stop begins, the memo set aside is let go and its
+// pill goes.
+test('tend walk-screen audit 33: Stop lets the walk\'s set-aside memo go and hides its pill', () => {
+  const walk = read('app/walk.tsx');
+  assert.match(walk, /\{cap\.discarded && !stopping && /, 'no discard pill while stopping');
+  const stop = body(walk, '  async function stop() {', 'const couldNotStop');
+  assert.match(stop, /void cap\.closeDiscard\(\);/, 'Stop lets the memo set aside go as it begins');
+  assert.ok(stop.indexOf('cap.closeDiscard()') > stop.indexOf('setStopping(true)'), 'once the stop is under way');
+});
