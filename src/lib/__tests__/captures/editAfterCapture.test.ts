@@ -73,8 +73,10 @@ test('fix edit-after-capture audit 1: the editor after a capture says the photo 
   for (const f of HOSTS) assert.match(src(f), /<AfterCaptureEditor [^>]*view=/, `${f} draws the editor after a capture`);
   assert.match(src('components/edit/EditOffer.tsx'), /<MediaEditor [^>]*justKept[ />]/, 'the editor after a capture is told it opened after one');
   const editor = src('components/edit/MediaEditor.tsx');
-  assert.match(editor, /accessibilityLabel=\{kept \? kept\.close : 'Close'\}/, 'the ✕ is named for what it does after a capture');
-  assert.match(editor, /kept && empty && s\.tool !== 'draw' \?/, 'the kept line stands until the first edit, where Revert has nothing to revert');
+  // tend captures audit 11: the words are read once (`words`), the ✕ named by them from the start of the hold (0263).
+  assert.match(editor, /accessibilityLabel=\{words \? words\.close : 'Close'\}/, 'the ✕ is named for what it does after a capture');
+  // tend captures audit 12: the line stands from the hold, empty until kept.
+  assert.match(editor, /words && empty && s\.tool !== 'draw' \?/, 'the kept line stands until the first edit, where Revert has nothing to revert');
 });
 
 // fix edit-after-capture audit 3 (the auditor's F3, F5, F8, medium): a photo kept while its walk was stopping opened an
@@ -214,7 +216,8 @@ test('fix edit-after-capture audit 7: the composer\'s field lets go while its ed
 // than a 320 px phone, and the first stroke swapped it for the narrower Revert, moving Undo under the thumb. The kept
 // line stands only where Undo and Redo are not drawn.
 test('fix edit-after-capture audit 8: the kept line gives way to Revert while Draw\'s Undo and Redo are up', () => {
-  assert.match(src('components/edit/MediaEditor.tsx'), /\{kept && empty && s\.tool !== 'draw' \? \(/);
+  // (tend captures audit 12: `words`, the line mounted empty from the hold.)
+  assert.match(src('components/edit/MediaEditor.tsx'), /\{words && empty && s\.tool !== 'draw' \? \(/);
 });
 
 // fix edit-after-capture audit 9 (round 2's R6, low): every piece of a moment shares the moment's id, so an editor keyed
