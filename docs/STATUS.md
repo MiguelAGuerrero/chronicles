@@ -418,7 +418,7 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 - Lens 0: T44 serves E-walk-screen-5 in part (the note is not one tap mid-memo, by the owner's answer); its check stays pending. E-walk-screen-1 to 4 met by their checks.
 - Still waiting for a build with the owner's yes: T43 (`[arch]`, a G entry to shape), T45, T48, T49, T50, T51, T54, T60; one a run.
 - Open before the loop: NR10's, MS3's and the walk-screen rule's words; a feature's verbs and E-walk-screen-1's `Serves:` (no `npm run expectations` operation for it). Native: the camera over a recording memo on iOS, Android and the iPhone's Safari; a long timer at the largest text at 320 (`docs/NATIVE_UNVERIFIED.md`, Navigate, ready).
-- The balance reads outgrowing its base (six of the eight areas swept twice or more are rough). The e2e: ready, walk, launch, stacks, green. The weekly full pass on `d595ae95` is red in replay, edit, chronicle, placeoffer, reactions, resurface and where, most also alone, not yet compared with `main` (one `[loop]` item, Test organization). Nothing here has run on a phone.
+- The balance reads outgrowing its base (six of the eight areas swept twice or more are rough). The e2e: ready, walk, launch, stacks, green. The weekly full pass on `d595ae95` is red in replay, edit, chronicle, placeoffer, reactions, resurface and where, the same reds on `main` `aa70060f` (pre-existing; replay not compared; one `[loop]` item, Test organization). Nothing here has run on a phone.
 
 ### Open before the loop
 
