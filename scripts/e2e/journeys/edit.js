@@ -752,11 +752,9 @@ async function heldShot(h) {
       }));
     }
     const reachedHidden = reached.filter((x) => x && x.id !== 'edit-close' && (x.hidden || /^edit-(tool|rotate|aspect|crop|done|revert)/.test(x.id ?? '')));
-    // Enter on a hidden tool, focused by script (as a screen reader's cursor could): nothing changes. Since the hidden
-    // blocks are hidden from focus (tend captures audit 13), the tool may refuse the focus; then Enter is not pressed.
-    // The note at length: since the hidden
-    // blocks are `visibility: hidden` on the web the tool takes no focus at all; Enter is then not pressed (it would land
-    // on ✕, which has the focus).
+    // Enter on a hidden tool, focused by script (as a screen reader's cursor could): nothing changes. The hidden blocks are
+    // `visibility: hidden` on the web (tend captures audit 13), so the tool may take no focus at all; Enter is then not
+    // pressed, since it would land on ✕, which has the focus.
     const toolFocused = await pg.evaluate(() => {
       const t = document.querySelector('[data-testid=media-editor] [data-testid=edit-tool-filter]');
       t?.focus();
