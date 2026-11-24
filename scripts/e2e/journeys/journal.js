@@ -1293,7 +1293,9 @@ async function run(h) {
     const t0 = performance.now();
     const tick = () => {
       window.__t61.push({ t: Math.round(performance.now() - t0), page: !!document.querySelector('[data-testid=journal-page]') && !/replay/.test(location.pathname),
-        pill: [...document.querySelectorAll('[data-testid=band-voice-undo]')].some((e) => e.getBoundingClientRect().width > 0) });
+        pill: [...document.querySelectorAll('[data-testid=band-voice-undo]')].some((e) => e.getBoundingClientRect().width > 0),
+        // tend tabs audit 70: the bar's Stop under way (its spoken name while it stops).
+        stopping: [...document.querySelectorAll('[data-testid=bar-stop]')].some((e) => e.getAttribute('aria-label') === 'Stopping…') });
       if (performance.now() - t0 < 15000) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -1314,6 +1316,11 @@ async function run(h) {
   await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
   await pg.waitForTimeout(2500);
   const voicesAfterT61 = await walkVoices();
+  // tend tabs audit 70 (F4): from the first frame the bar's Stop is under way, the band shows no Undo.
+  const stopFrom = frames61.findIndex((f) => f.stopping);
+  const undoWhileStopping = stopFrom < 0 ? null : frames61.slice(stopFrom).filter((f) => f.page && f.pill).length;
+  check(stopFrom >= 0 && undoWhileStopping === 0 && voicesAfterT61 === voicesT61,
+    `tend tabs audit 70: a note discarded on the band, then the bar's Stop: from the frame the Stop is under way the band shows no Undo, and no note lands in the ended walk (${JSON.stringify({ stopAt: stopFrom < 0 ? null : frames61[stopFrom].t, undoWhileStopping, voicesT61, voicesAfterT61 })})`);
   check(pillT61 && !!pillGone && pillLeft === false && voicesAfterT61 === voicesT61,
     `tend tabs T61: a note discarded on the band, then the walk stopped from the bar: the band's pill goes as the walk ends, while the journal still shows, and the ended walk holds no discarded note (${JSON.stringify({ pillT61, pillGoneAt: pillGone?.t ?? null, pageLastAt: lastPage?.t ?? null, voicesT61, voicesAfterT61 })})`);
   await pg.goto(url);

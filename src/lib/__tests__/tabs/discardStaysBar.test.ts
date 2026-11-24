@@ -101,3 +101,14 @@ test('tend tabs T61: the band lets its set-aside memo go when the walk it files 
   const effect = body(band, 'const filedInto = useRef(', '}, [walkId]);');
   assert.match(effect, /if \(was != null && was !== walkId\) void capRef\.current\.closeDiscard\(\);/, 'the walk it files into ended');
 });
+
+// tend tabs audit 70 (the review's F4, the orchestrator's ruling R10): the band let its set-aside memo go only once the
+// walk it files into had ended, after the bar's `stopEnd`; an Undo tapped between the Stop's `memoGate.stopUnder` and
+// that end saved a memo the Stop never placed (walk-screen audit 33's concern). The band reads the bar's Stop: while
+// that Stop is under way for its walk, its pill hides and its memo is let go.
+test('tend tabs audit 70: the band hides its discarded memo\'s pill and lets the memo go while the bar\'s Stop is under way', () => {
+  const band = read(BAND);
+  assert.match(band, /const barStopFor = useStore\(barStop, \(s\) => \(walkId != null && s\?\.walkId === walkId \? s\.since : null\)\);/);
+  assert.match(body(band, 'useEffect(() => {\n    if (barStopFor != null)', '}, [barStopFor]);'), /if \(barStopFor != null\) void capRef\.current\.closeDiscard\(\);/);
+  assert.match(pill(band, '{cap.discarded && '), /^\{cap\.discarded && !recording && barStopFor == null && /, 'no pill while the bar stops its walk');
+});
