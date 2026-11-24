@@ -316,6 +316,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         return;
       }
       const { dropped } = r;
+      // The memo set aside is let go once the end has gone through, so no Undo lands in a walk already over; a Stop
+      // refused or failed keeps it, its pill back with Undo (tend tabs audit 71). Hidden while the Stop runs (T61).
+      void cap.closeDiscard();
       feedback('success');
       // A walk with nothing in it has no replay: the bar goes, and the pill offers Undo on this screen (EW1).
       if (!dropped) router.push(`/replay/${walk.id}`);
@@ -328,9 +331,6 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (barStopping(barStop.get(), walk.id, Date.now())) return;
     const mine = { walkId: walk.id, since: Date.now() };
     barStop.set(mine);
-    // The memo set aside is let go as Stop begins, so no Undo lands after the walk has ended (tend walk-screen audit 33's
-    // rule; tend tabs T61).
-    void cap.closeDiscard();
     try {
       // A hold past the bound, the Stop back, joins the end under way: its spinner again, its replay pushed once.
       await barStops.run(walk.id, endWalk);

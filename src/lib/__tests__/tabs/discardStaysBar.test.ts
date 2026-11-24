@@ -88,12 +88,12 @@ test('tend tabs T61: the pill\'s words take a line of their own when its row can
   }
 });
 
-test('tend tabs T61: the bar\'s Stop lets its set-aside memo go as it begins, and its pill goes', () => {
+test('tend tabs T61: the bar\'s Stop lets its set-aside memo go, and its pill goes while it runs', () => {
   const bar = read(BAR);
   assert.match(pill(bar, '{cap.discarded && '), /^\{cap\.discarded && !memoOn && !stopping && /, 'no pill while stopping');
-  const stop = body(bar, '  const stop = async () => {', '\n  };');
-  assert.match(stop, /void cap\.closeDiscard\(\);/, 'Stop lets the memo go');
-  assert.ok(stop.indexOf('cap.closeDiscard()') > stop.indexOf('barStop.set(mine)'), 'once the stop is under way');
+  // tend tabs audit 71: let go once the end goes through, no longer as Stop begins.
+  const end = body(bar, '  const endWalk = async () => {', '\n  };');
+  assert.match(end, /void cap\.closeDiscard\(\);/, 'Stop lets the memo go');
 });
 
 test('tend tabs T61: the band lets its set-aside memo go when the walk it files into ends', () => {
