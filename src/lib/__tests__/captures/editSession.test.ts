@@ -217,6 +217,8 @@ test('tend captures audit 18: a picked clip with no length is measured as it is 
   const src = readFileSync(new URL('../../useCaptures.ts', import.meta.url), 'utf8');
   const keep = src.slice(src.indexOf('const keepWatched'), src.indexOf("await guarded('photo'"));
   assert.ok(keep.indexOf('camera?.shot(') >= 0 && keep.indexOf('videoLength(') > keep.indexOf('camera?.shot('), 'measured once the shot is held, so the map never shows meanwhile');
+  // tend captures audit 18: the measured length rides on the keepable itself, so the keep keeps audit 8's shape.
+  assert.match(keep, /if \(k\.kind === 'video' && !k\.ms\) k = \{ \.\.\.k, ms: await videoLength\(k\.uri\)/);
   const web = readFileSync(new URL('../../media/index.web.ts', import.meta.url), 'utf8');
   assert.match(web, /export function videoLength\(/);
   const editor = readFileSync(new URL('../../../components/edit/MediaEditor.tsx', import.meta.url), 'utf8');

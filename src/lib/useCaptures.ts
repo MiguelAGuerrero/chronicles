@@ -483,9 +483,9 @@ export function useCaptures(
       const seen = camera?.shot({ kind: k.kind, uri: k.uri });
       // A clip whose length the picker could not read (a WebM with none in its header) is measured now, its shot already
       // held, so its stored length is its own (tend captures audit 18); none (0) if it cannot be.
-      const ms = k.kind === 'video' && !k.ms ? await videoLength(k.uri).catch(() => 0) : k.ms;
+      if (k.kind === 'video' && !k.ms) k = { ...k, ms: await videoLength(k.uri).catch(() => 0) };
       let released = false;
-      const r = await keepOrHold({ ...k, ms, keepSource: !!seen?.holds }, () => {
+      const r = await keepOrHold({ ...k, keepSource: !!seen?.holds }, () => {
         released = true;
       }).catch((e: unknown) => {
         if (seen) camera?.kept(seen.turn, null, false);
