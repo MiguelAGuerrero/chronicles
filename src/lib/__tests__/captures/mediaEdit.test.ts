@@ -6,7 +6,9 @@ import {
   applyMatrix,
   aspectRect,
   clampCrop,
+  CAMERA_MAX_VIDEO_S,
   clampTrim,
+  exportSpan,
   cropToRotated,
   cropFromRotated,
   editedSize,
@@ -350,4 +352,11 @@ test('tend captures T43: the camera keeps a web video over 15 s through the held
   assert.match(branch, /pickedVideoMs\(asset\.duration, Platform\.OS === 'web'\)/);
   assert.ok(!/dropTemp/.test(branch), 'the clip is never dropped for its length');
   assert.match(src, /videoMaxDuration: CAMERA_MAX_VIDEO_S/);
+});
+
+test('tend captures T43: an edit of a long web clip plays its whole length; only a clip with no length anywhere falls back to the camera\'s cap', () => {
+  assert.deepEqual(exportSpan(null, 95.4, 95400), { startS: 0, endS: 95.4 }, 'the browser\'s length, past 30 s');
+  assert.deepEqual(exportSpan(null, Infinity, 95400), { startS: 0, endS: 95.4 }, 'a WebM with no length: the stored one, past 30 s');
+  assert.deepEqual(exportSpan(null, Infinity, 0), { startS: 0, endS: CAMERA_MAX_VIDEO_S }, 'neither: the camera\'s cap, recorded in the captures rule');
+  assert.deepEqual(clampTrim(30_000, 95_000, 95_400), { start_ms: 30_000, end_ms: 95_000 }, 'a trim past 30 s holds');
 });

@@ -35,6 +35,10 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
 - **Video** comes from the camera button (the system camera's own video mode),
   capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
   recorder.
+- **A web clip is kept whole, whatever its length** (tend captures T43, decision 0233, the owner's "Keep it whole"): the
+  30 s cap is the phones' camera's own (`CAMERA_MAX_VIDEO_S`, `lib/mediaEdit`); a browser cannot cap a recording, so a
+  longer clip goes the way of any video (held shot, kept, its editor; 0263), its length from `pickedVideoMs` (the web's
+  seconds, a phone's ms; a length the browser cannot read is 0, so `exportSpan` then falls back to 30 s).
 
 ## A moment's pieces (decision 0123)
 

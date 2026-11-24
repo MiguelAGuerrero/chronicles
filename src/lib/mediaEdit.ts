@@ -449,8 +449,23 @@ const clock = (ms: number) => {
 /** "0:02 – 0:09" (ME14). */
 export const trimLabel = (start: number, end: number): string => `${clock(start)} – ${clock(end)}`;
 
+/**
+ * The phones' camera's cap on a clip, in seconds (decision 0003). The web's camera cannot be capped, and a longer clip
+ * is kept whole (tend captures T43, decision 0233).
+ */
+export const CAMERA_MAX_VIDEO_S = 30;
+
+/**
+ * A picked video's length in ms (tend captures T43): the web's picker says seconds, a phone's milliseconds; a length the
+ * browser cannot read (a WebM with none in its header: Infinity, NaN, 0) is none (0), never a number that is not one.
+ */
+export function pickedVideoMs(duration: number | null | undefined, web: boolean): number {
+  if (duration == null || !Number.isFinite(duration) || duration <= 0) return 0;
+  return Math.round(web ? duration * 1000 : duration);
+}
+
 /** The longest a clip can be (the camera's cap on phones), for a source that says no length. */
-const LONGEST_S = 30;
+const LONGEST_S = CAMERA_MAX_VIDEO_S;
 
 /**
  * The part of a video an export plays (media-editing audit 10): the trim, else

@@ -20,6 +20,7 @@ import { spareFresh } from './journal/target';
 import type { LocateResult } from './locate/types';
 import type { CameraWatch } from './editOffer';
 import { dropTemp, keepFile, removeMedia } from './media';
+import { CAMERA_MAX_VIDEO_S, pickedVideoMs } from './mediaEdit';
 import { makeThumb } from './media/thumb';
 import { discardStep, failedMemo, memoFile, setAside, type SetAsideEvent } from './media/memoSave';
 import { isOutOfSpace } from './space/core';
@@ -35,16 +36,11 @@ import type { Capture, CaptureKind, LngLat, Moment } from './types';
 /** A fix older than this is not trusted as "where the capture was taken". */
 /** A voice memo shorter than this was an accidental tap. */
 const MIN_VOICE_MS = 1000;
-/**
- * Longest video. A minute of phone video is 50 to 150 MB; the web gets less,
- * since a browser's storage is smaller and can be cleared.
- */
 /** A refused permission. A phone's Settings has a button (`openSettings`); a web page cannot open them, so it says where. */
 const accessOff = (what: 'Camera' | 'Microphone') =>
   Platform.OS === 'web'
     ? `${what} access is off for Chronicles. Allow it in your browser’s site settings, then try again.`
     : `${what} access is off for Chronicles.`;
-const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 /** How long a stop may take before it is given up on. */
 const STOP_TIMEOUT_MS = 3000;
@@ -512,7 +508,8 @@ export function useCaptures(
       const res = await ImagePicker.launchCameraAsync({
         mediaTypes: memo ? ['images'] : ['images', 'videos'],
         quality: 0.8,
-        videoMaxDuration: MAX_VIDEO_S,
+        // The phones' camera's own cap (decision 0003); the web's camera has none, and keeps a clip whole (T43, 0233).
+        videoMaxDuration: CAMERA_MAX_VIDEO_S,
         videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
       });
       if (res.canceled || !res.assets[0]) return;
@@ -520,16 +517,11 @@ export function useCaptures(
       // From here the file is being kept: Stop from the recording bar waits for it (capture-from-chronicle audit 6).
       const keeping = (async () => {
         if (asset.type === 'video') {
-          // The web picker reports seconds, native milliseconds.
-          const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
-          // Browsers cannot cap a recording, so an over-long clip is turned away here.
-          if (ms > MAX_VIDEO_S * 1000 + 500) {
-            dropTemp(asset.uri);
-            setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
-            return;
-          }
+          // Kept whole, whatever its length (tend captures T43, decision 0233): browsers cannot cap a recording, and the
+          // moment arrives as it was taken, through the same held shot and editor as any video (0263).
+          const ms = pickedVideoMs(asset.duration, Platform.OS === 'web');
           const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-          kept = await keepWatched({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
+          kept = await keepWatched({ kind: 'video', stamp, uri: asset.uri, ext, ms, path: null });
           return;
         }
         const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
