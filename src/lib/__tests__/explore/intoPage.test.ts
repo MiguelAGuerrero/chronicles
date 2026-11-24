@@ -119,3 +119,24 @@ test('WI15: Complexes\' switches follow the five sections, under their own pinne
   // Every kind's row comes before it.
   assert.ok(children.slice(0, at).every((c) => c.type !== 'complex'));
 });
+
+test('tend explore T49: What I\'m into heads its sections in the card\'s words, each with a muted line under its heading', async () => {
+  const { intoSections, intoChildren } = await page();
+  const sections = intoSections(KINDS, new Set());
+  const label = (c: CategoryId) => sections.find((s) => s.category === c)?.label;
+  assert.equal(label('parks'), 'Green');
+  assert.equal(label('viewpoints'), 'Views & oddities');
+  const children = intoChildren(sections, COMPLEX_KINDS).children as ({ type: string; id?: string; text?: string; label?: string })[];
+  for (const s of sections) {
+    const at = children.findIndex((c) => c.type === 'heading' && c.id === s.category);
+    const line = children[at + 1];
+    assert.equal(line.type, 'line', `${s.category}'s heading has a line under it`);
+    assert.equal(line.text, (categoryOf(s.category) as { line?: string }).line, `${s.category}'s line is the table's`);
+    assert.ok(line.text && line.text.length > 0 && !/\d/.test(line.text), `"${line.text}" is words, with no number`);
+  }
+  assert.equal((categoryOf('parks') as { line?: string }).line, 'Parks, gardens and nature');
+  // The page draws it, muted, and never as a kind row (whose testIDs start "kind-").
+  const page_ = source('components/IntoPage.tsx');
+  assert.match(page_, /case 'line':/);
+  assert.match(page_, /testID=\{`into-line-\$\{c\.id\}`\}/);
+});

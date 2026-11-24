@@ -563,3 +563,34 @@ test('SF7: a tile says "Storefronts along" its street, and a whole town says whe
   assert.match(tileLabel(l, { walks: 0, last: null }, fmt), /Storefronts along Wickenden Street\.$/);
   assert.match(marksExplained({ extent: 'outline' }).at(-1)!, /Where its storefronts gather is listed apart\.$/);
 });
+
+test('tend explore T49: the card, the tile\'s spoken name and the explanation name each kind from the one table, "Green" and "Views & oddities"', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { CATEGORIES, categoryOf } = await import('../../discovery/categories');
+  const atlas = (await import('../../atlas/atlas')) as Record<string, unknown>;
+  // One table (decision 0239): the atlas keeps no names of its own, and none of their readers does.
+  assert.equal('ATLAS_LABEL' in atlas, false, 'the atlas has no table of names beside CATEGORIES');
+  const src = (f: string) => readFileSync(join(__dirname, '../../..', f), 'utf8');
+  for (const f of ['lib/atlas/atlas.ts', 'lib/atlas/waitingPins.ts', 'components/atlas/KindStrip.tsx', 'components/planner/RouteRows.tsx', 'lib/kindWalk/words.ts', 'lib/walkPlanner/words.ts', 'lib/walkPlanner/service.ts']) {
+    assert.ok(!/ATLAS_LABEL/.test(src(f)), `${f} reads the one table`);
+  }
+  assert.match(src('components/atlas/KindStrip.tsx'), /categoryOf\(kind\)/, 'the card\'s row reads the one table');
+  assert.equal(CATEGORIES.length, 8);
+  assert.equal(categoryOf('parks').label, 'Green');
+  assert.equal(categoryOf('viewpoints').label, 'Views & oddities');
+  // The tile's spoken name says the card's words.
+  const steps = { history: 0, art: 0, culture: 0, parks: 2, viewpoints: 1, food: 0, shops: 0, nightlife: 0 } as const;
+  const area = row('Fox Point', east(400), { profile: { steps, strips: [], marks: [], sketch: { streets: [], grades: [[], [], []], parks: [] }, overture: null } as unknown as AtlasProfile });
+  const [l] = nearList([area], O, 'neighborhood', 'b1');
+  assert.match(tileLabel(l, { walks: 0, last: null }, fmt), /Sights: Green: plenty, Views & oddities: some\./);
+  // How the marks work names the kinds in the card's words, so "What I'm into" is found by them.
+  const all = MARKS_EXPLAINED.join(' ');
+  assert.match(all, /Sights \(history, art, culture, green and views & oddities\)/);
+  assert.match(all, /Local life \(food, shops and nightlife\)/);
+});
+
+test('tend explore T49: the map\'s spoken "?" names the kinds in the card\'s words', async () => {
+  const { waitingLabel } = await import('../../atlas/waitingPins');
+  assert.equal(waitingLabel('Fox Point', [{ key: 'a', category: 'parks' }, { key: 'b', category: 'viewpoints' }]), 'Waiting in Fox Point: green, views & oddities');
+});

@@ -11,6 +11,8 @@
 const slotsCore = () => require('tsx/cjs/api').require('../../../src/lib/atlas/overlaySlots.ts', __filename);
 // tend presence 6: the card's words are read from the app's own module, never a copied phrase (SIGHTS_LINE moved, places-layer ui 1).
 const atlasCore = () => require('tsx/cjs/api').require('../../../src/lib/atlas/atlas.ts', __filename);
+// tend explore T49 (decision 0239): the kinds' names are the one table's, read here, never copied.
+const categoriesCore = () => require('tsx/cjs/api').require('../../../src/lib/discovery/categories.ts', __filename);
 const roomOf = (page, town) => page.evaluate(() => {
   const canvas = document.querySelector('canvas.maplibregl-canvas')?.getBoundingClientRect();
   const els = ['atlas-title-card', 'atlas-search', 'outing-entry'].flatMap((id) => [...document.querySelectorAll(`[data-testid="${id}"]`)]);
@@ -225,6 +227,26 @@ async function checks(h) {
         const vp = page.viewportSize();
         await page.setViewportSize({ width: 320, height: vp.height });
         await page.waitForTimeout(400);
+        {
+          // tend explore T49: at 320 px "Views & oddities" stays one line, its word, its dots and "Suggest a walk" beside it, none cut.
+          const row = await page.evaluate(() => {
+            const r = document.querySelector('[data-testid=atlas-kind-viewpoints]');
+            const walk = document.querySelector('[data-testid=atlas-kind-walk-viewpoints]');
+            const leaf = r && [...r.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /oddities/.test(x.textContent || ''));
+            if (!r || !leaf) return null;
+            const range = document.createRange();
+            range.selectNodeContents(leaf);
+            const lines = new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size;
+            const cut = [...r.querySelectorAll('*'), ...(walk ? walk.querySelectorAll('*') : [])].filter((x) => x.childElementCount === 0 && x.scrollWidth > x.clientWidth + 1).length;
+            const nameR = leaf.getBoundingClientRect();
+            const w = walk ? walk.getBoundingClientRect() : null;
+            return { lines, cut, overlap: !!w && nameR.right > w.left, inView: !!w && w.right <= window.innerWidth };
+          });
+          check(!!row && row.lines === 1 && row.cut === 0 && !row.overlap && row.inView,
+            `tend explore T49: at 320 px "Views & oddities", its word, its dots and "Suggest a walk" fit one row (${JSON.stringify(row)})`);
+          await page.locator('[data-testid=atlas-kind-viewpoints]').scrollIntoViewIfNeeded().catch(() => {});
+          await shot(page, 'tend-explore-T49-card-320');
+        }
         await shot(page, 'tend-explore-audit-22-search-320');
         await page.setViewportSize(vp);
         await page.waitForTimeout(300);
@@ -348,6 +370,15 @@ async function checks(h) {
         // tend presence 6: the line is the module's SIGHTS_LINE, whatever its words (it no longer says "on the map", places-layer ui 1).
         check(line === atlasCore().SIGHTS_LINE && /“\?”/.test(line) && (await sec.locator('[data-testid=atlas-life-line]').count()) === 0,
           `SG1: one muted line under Sights ties it to the "?", none under Local life (${line})`);
+        // tend explore T49 (decision 0239): each row names its kind as "What I'm into" heads it, from the one table.
+        const named = await sec.locator('[data-testid^=atlas-kind-]:not([data-testid^=atlas-kind-walk-])').evaluateAll((els) => els.map((e) => {
+          const leaf = [...e.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /[A-Za-z]{3}/.test(x.textContent || ''));
+          return [e.getAttribute('data-testid').slice('atlas-kind-'.length), leaf ? leaf.textContent : null];
+        }));
+        const { categoryOf } = categoriesCore();
+        check(named.length === 8 && named.every(([c, t]) => t === categoryOf(c).label) && named.some(([c, t]) => c === 'parks' && t === 'Green')
+          && named.some(([c, t]) => c === 'viewpoints' && t === 'Views & oddities'),
+          `tend explore T49: the card's rows read "Green" and "Views & oddities", the one table's names (${JSON.stringify(named)})`);
         const levels = await sec.locator('[role=heading]').evaluateAll((els) => els.map((e) => [e.textContent, e.getAttribute('aria-level')]));
         const top = levels.find(([t]) => /What’s here/.test(t ?? ''));
         const sub = levels.filter(([t]) => /^(Sights|Local life)$/.test(t ?? ''));

@@ -80,3 +80,14 @@ test('WP10: A route well short of the distance is said to be so because there is
   assert.equal(lessGroundLine, 'There is only a little of it here.');
   assert.ok(!BANNED.test(lessGroundLine));
 });
+
+test('tend explore T49: the planner\'s sentences take each kind\'s noun, never its name with an "&"', () => {
+  assert.equal(title('viewpoints'), 'A walk for views');
+  assert.equal(densityHeading('viewpoints'), 'How many views the walk passes');
+  assert.equal(densityHeading('shops'), 'How many shops the walk passes');
+  assert.equal(densityHeading('parks'), 'How much green the walk passes');
+  assert.equal(alsoLine([{ kind: 'viewpoints', level: 'plenty' }]), 'Also passes plenty of views');
+  for (const k of ATLAS_ORDER) {
+    for (const s of [title(k), densityHeading(k), alsoLine([{ kind: k, level: 'some' }])!]) assert.ok(!/&/.test(s), `"${s}" takes the noun`);
+  }
+});

@@ -4,7 +4,8 @@
 // lists the same rows as the one opened from the walk's drawer (since decision 0192, its own page: specs/what-im-into-page).
 // E2E_ONLY=subtypes runs it alone.
 
-const HEADINGS = ['Art', 'History', 'Parks & green spaces', 'Culture', 'Viewpoints & oddities'];
+// tend explore T49 (decision 0239): the headings in the area card's words.
+const HEADINGS = ['Art', 'History', 'Green', 'Culture', 'Views & oddities'];
 
 async function run(h) {
   const { navUrl, BASE, at, check, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, freshPage, places, shot, switchLayer } = h;

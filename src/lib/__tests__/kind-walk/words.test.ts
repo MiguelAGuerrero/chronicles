@@ -48,3 +48,11 @@ test('KW1b: the sentences hold no digit but the distance', () => {
 test('KW2: a kind with nothing to walk through says so in words', () => {
   assert.equal(noneLine('parks'), 'No green to walk through here.');
 });
+
+test('tend explore T49: the kind walk\'s sentences take each kind\'s noun, never its name with an "&"', () => {
+  assert.equal(introLine('viewpoints'), 'A way through where views are concentrated here.');
+  assert.equal(introLine('shops'), 'A way through where shops are concentrated here.');
+  assert.equal(introLine('parks'), 'A way through where green is concentrated here.');
+  assert.equal(noneLine('viewpoints'), 'No views to walk through here.');
+  for (const k of ATLAS_ORDER) for (const s of [introLine(k), noneLine(k)]) assert.ok(!/&/.test(s), `"${s}" takes the noun`);
+});

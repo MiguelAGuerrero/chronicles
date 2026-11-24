@@ -613,6 +613,21 @@ async function run(h) {
   const offWrapped = await wrappedIn('[data-testid=into-page] [data-testid$=-note]');
   const offCount = await pg.locator('[data-testid=into-page] [data-testid$=-note]').count();
   check(offCount > 2 && offWrapped.length === 0, `WI18: at 320 px each kind's off line is one line (${offCount}; ${JSON.stringify(offWrapped)})`);
+  // tend explore T49 (decision 0239): under each category's heading a muted line in words ("Parks, gardens and nature"), one line at 320 px.
+  const intoLines = await pg.evaluate(() => {
+    // In document order, the headings, the rows and the lines: each line comes right after its own heading.
+    const order = [...document.querySelectorAll('[data-testid=into-page] [data-testid^=kind-heading-], [data-testid=into-page] [data-testid^=kind-], [data-testid=into-page] [data-testid^=into-line-]')]
+      .map((e) => e.getAttribute('data-testid')).filter((id, i, all) => all.indexOf(id) === i);
+    return [...document.querySelectorAll('[data-testid=into-page] [data-testid^=into-line-]')].map((e) => {
+      const leaf = [...e.querySelectorAll('*'), e].find((x) => x.childElementCount === 0 && /[A-Za-z]{3}/.test(x.textContent || ''));
+      const id = e.getAttribute('data-testid');
+      return { id, text: leaf ? leaf.textContent : '', color: leaf ? getComputedStyle(leaf).color : '', after: order[order.indexOf(id) - 1] ?? null };
+    });
+  });
+  const linesWrapped = await wrappedIn('[data-testid=into-page] [data-testid^=into-line-]');
+  check(intoLines.length === 5 && intoLines.every((l) => l.text && !/\d/.test(l.text) && l.color === 'rgb(89, 98, 115)' && l.after === `kind-heading-${l.id.slice('into-line-'.length)}`)
+    && intoLines.some((l) => l.text === 'Parks, gardens and nature') && linesWrapped.length === 0,
+    `tend explore T49: each category's heading has its muted line under it, in words, one line at 320 px (${JSON.stringify(intoLines)}; ${JSON.stringify(linesWrapped)})`);
   await shot(pg, 'into-page-320');
   await closeInto(pg);
   await pg.setViewportSize({ width: 390, height: 844 });
