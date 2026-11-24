@@ -613,7 +613,7 @@ async function run(h) {
   const offWrapped = await wrappedIn('[data-testid=into-page] [data-testid$=-note]');
   const offCount = await pg.locator('[data-testid=into-page] [data-testid$=-note]').count();
   check(offCount > 2 && offWrapped.length === 0, `WI18: at 320 px each kind's off line is one line (${offCount}; ${JSON.stringify(offWrapped)})`);
-  // tend explore T49 (decision 0239): under each category's heading a muted line in words ("Parks, gardens and nature"), one line at 320 px.
+  // tend explore T49 (decision 0239): under each category's heading a muted line in words ("Parks, gardens and nature").
   const intoLines = await pg.evaluate(() => {
     // In document order, the headings, the rows and the lines: each line comes right after its own heading.
     const order = [...document.querySelectorAll('[data-testid=into-page] [data-testid^=kind-heading-], [data-testid=into-page] [data-testid^=kind-], [data-testid=into-page] [data-testid^=into-line-]')]
@@ -624,15 +624,39 @@ async function run(h) {
       return { id, text: leaf ? leaf.textContent : '', color: leaf ? getComputedStyle(leaf).color : '', after: order[order.indexOf(id) - 1] ?? null };
     });
   });
-  const linesWrapped = await wrappedIn('[data-testid=into-page] [data-testid^=into-line-]');
+  // tend explore T49, audit 46 (decision 0264's amendment): the muted lines may wrap at 320 px (a layout call); each is
+  // whole at 390 and 320: nothing clipped, no ellipsis, nothing hidden, its rendered height holding every line it takes.
+  // The line count is logged, never asserted.
+  const linesWhole = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=into-page] [data-testid^=into-line-]')].map((e) => {
+    const cs = getComputedStyle(e);
+    const range = document.createRange();
+    range.selectNodeContents(e);
+    const rects = [...range.getClientRects()].filter((r) => r.width > 0);
+    const lines = new Set(rects.map((r) => Math.round(r.top))).size;
+    const lineH = rects.length ? rects[0].height : 0;
+    const box = e.getBoundingClientRect();
+    const clipped = e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1;
+    const ellipsis = /…$/.test(e.textContent || '') || cs.textOverflow === 'ellipsis' && /hidden|clip/.test(cs.overflowX + cs.overflow)
+      || (cs.webkitLineClamp && cs.webkitLineClamp !== 'none');
+    const hidden = cs.visibility === 'hidden' || Number(cs.opacity) === 0 || box.width === 0 || box.right > window.innerWidth + 1;
+    const tall = lines > 0 && box.height + 1 >= lines * lineH;
+    return { id: e.getAttribute('data-testid'), text: e.textContent, lines, h: Math.round(box.height), lineH: Math.round(lineH), whole: !clipped && !ellipsis && !hidden && tall };
+  }));
+  const at320 = await linesWhole();
+  await pg.setViewportSize({ width: 390, height: 700 });
+  await pg.waitForTimeout(600);
+  const at390 = await linesWhole();
+  await pg.setViewportSize({ width: 320, height: 700 });
+  await pg.waitForTimeout(600);
   check(intoLines.length === 5 && intoLines.every((l) => l.text && !/\d/.test(l.text) && l.color === 'rgb(89, 98, 115)' && l.after === `kind-heading-${l.id.slice('into-line-'.length)}`)
-    && intoLines.some((l) => l.text === 'Parks, gardens and nature') && linesWrapped.length === 0,
-    `tend explore T49: each category's heading has its muted line under it, in words, one line at 320 px (${JSON.stringify(intoLines)}; ${JSON.stringify(linesWrapped)})`);
-  // tend explore audit 46 (decision 0264): History's line names its four kinds; at 320 px it is one line, or the owner's
-  // shorter form is the one shown ("Monuments, buildings, worship and cemeteries"), which this says.
+    && intoLines.some((l) => l.text === 'Parks, gardens and nature') && at320.length === 5 && at390.length === 5 && [...at320, ...at390].every((l) => l.whole),
+    `tend explore T49: each category's heading has its muted line under it, in words, whole at 390 and 320 px, nothing clipped or hidden (${JSON.stringify(intoLines)}; 320: ${JSON.stringify(at320)}; 390: ${JSON.stringify(at390)})`);
+  // tend explore audit 46 (decision 0264): History's line names its four kinds in the owner's words, whole at 390 and 320 px.
   const history = intoLines.find((l) => l.id === 'into-line-history');
-  check(!!history && /^Monuments, buildings, (places of )?worship and cemeteries$/.test(history.text) && !linesWrapped.some((x) => /into-line-history/.test(x)),
-    `tend explore audit 46: at 320 px History's muted line names its four kinds on one line (${JSON.stringify(history)}; wrapped: ${JSON.stringify(linesWrapped)})`);
+  const h320 = at320.find((l) => l.id === 'into-line-history');
+  const h390 = at390.find((l) => l.id === 'into-line-history');
+  check(!!history && history.text === 'Monuments, buildings, places of worship and cemeteries' && !!h320 && h320.whole && !!h390 && h390.whole,
+    `tend explore audit 46: History's muted line names its four kinds in the owner's words, whole at 390 and 320 px (lines: ${h390 && h390.lines} at 390, ${h320 && h320.lines} at 320; ${JSON.stringify({ history, h320, h390 })})`);
   await shot(pg, 'into-page-320');
   await closeInto(pg);
   await pg.setViewportSize({ width: 390, height: 844 });

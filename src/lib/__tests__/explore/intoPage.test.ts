@@ -145,8 +145,8 @@ test('tend explore audit 46: each muted line names only words from its category\
   // Decision 0264, "Accept all": History's line names all four of its kinds, Art's its subtypes, never a kind it does not hold.
   const { SUBTYPES } = await import('../../discovery/subtypes');
   const line = (c: CategoryId) => (categoryOf(c) as { line?: string }).line;
-  // tend explore audit 46: the owner's longer form wrapped at 320 px (the into journey, Nov 24), so the shorter one, as the owner said.
-  assert.equal(line('history'), 'Monuments, buildings, worship and cemeteries');
+  // tend explore audit 46: the owner's own words (decision 0264); the muted lines may wrap at 320 px (the rulings' amendment).
+  assert.equal(line('history'), 'Monuments, buildings, places of worship and cemeteries');
   assert.equal(line('art'), 'Statues, murals, fountains and signs');
   assert.equal(line('parks'), 'Parks, gardens and nature');
   assert.equal(line('culture'), 'Museums, theatres and community spaces');

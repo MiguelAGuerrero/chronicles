@@ -23,7 +23,7 @@ export const CATEGORIES: readonly Category[] = [
   { id: 'art', label: 'Art', noun: 'art', line: 'Statues, murals, fountains and signs', icon: 'color-palette-outline' },
   { id: 'food', label: 'Food', noun: 'food', icon: 'cafe-outline' },
   { id: 'shops', label: 'Shops', noun: 'shops', plural: true, icon: 'bag-handle-outline' },
-  { id: 'history', label: 'History', noun: 'history', line: 'Monuments, buildings, worship and cemeteries', icon: 'library-outline' },
+  { id: 'history', label: 'History', noun: 'history', line: 'Monuments, buildings, places of worship and cemeteries', icon: 'library-outline' },
   { id: 'parks', label: 'Green', noun: 'green', line: 'Parks, gardens and nature', icon: 'leaf-outline' },
   { id: 'culture', label: 'Culture', noun: 'culture', line: 'Museums, theatres and community spaces', icon: 'ticket-outline' },
   { id: 'viewpoints', label: 'Views & oddities', noun: 'views', plural: true, line: 'Viewpoints, attractions and curiosities', icon: 'eye-outline' },
