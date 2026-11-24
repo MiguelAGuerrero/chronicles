@@ -48,8 +48,8 @@ export interface Shot {
 }
 
 /**
- * The shot a screen holds full screen from the camera's return until its editor is up (tend captures T62, the owner's
- * "Photo first, editor over it"): its turn, what it was kept as, and whether it was closed while held.
+ * The shot a screen holds full screen from the camera's return until its editor is up (tend captures T62, the proxy's
+ * shape under 0157, "Photo first, editor over it"): its turn, what it was kept as, and whether it was closed while held.
  */
 export interface HeldShot extends Shot {
   turn: number;

@@ -4,7 +4,8 @@
 // you go straight to the editor. It'll jump straight back to the map for a little bit and then open up the editor when
 // there should be a clean transition. This happens on every moment capture. For camera or video."): the camera returned,
 // the screen showed the map while the shot was kept and its list caught up, then the editor faded in from transparent.
-// "Photo first, editor over it": from the camera's return the shot is held full screen, drawn as the editor draws it on
+// "Photo first, editor over it" (tend captures T62: the proxy's shape under the owner's delegation, decision 0157, on the
+// owner's "proceed"; not the owner's own pick): from the camera's return the shot is held full screen, drawn as the editor draws it on
 // the editor's backdrop, and once it is kept the editor's controls come over the same shot, in the same element.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
