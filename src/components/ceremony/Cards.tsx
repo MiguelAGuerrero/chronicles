@@ -10,7 +10,7 @@ import { editedSize, isEmptyEdit, type MediaEdit } from '../../lib/mediaEdit';
 import type { Faced } from '../../lib/moment';
 import { useMediaUri } from '../../lib/useMediaUri';
 import { gridLabel } from '../../lib/quietLines';
-import { memoLengthMs } from '../../lib/voiceTrim';
+import { lengthLabel, memoLengthMs } from '../../lib/voiceTrim';
 import { EditedPicture, useNaturalSize } from '../edit/EditedPhoto';
 import { seekTo, useVideoSize, VideoPicture } from '../edit/EditedVideo';
 import { Icon, KIND_LABEL } from '../icons';
@@ -238,7 +238,9 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   const turn = useLive(ctx.live, (f) => overlayOf(f, 'card', key)?.turn ?? 0);
   const showing = (turn > 0 ? o.videos?.[turn - 1] : null) ?? o.capture;
   // A grid is named in the plural, a word and never a count (replay-ceremony ui 4).
-  const label = showing.caption || (grid && turn === 0 ? gridLabel(o.pieces?.length ?? 0) : KIND_LABEL[showing.kind]);
+  const named = showing.caption || (grid && turn === 0 ? gridLabel(o.pieces?.length ?? 0) : KIND_LABEL[showing.kind]);
+  // A video's card says its kept length as a memo's bubble does (tend captures audit 19, decision 0264): "Video · 0:20".
+  const label = showing.kind === 'video' ? lengthLabel(named, showing) : named;
   return (
     <View
       ref={pose}

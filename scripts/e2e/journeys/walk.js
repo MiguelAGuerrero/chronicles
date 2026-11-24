@@ -1570,6 +1570,9 @@ async function checks(h) {
         }
         const vbox = await page.locator('[data-testid=replay-card]').boundingBox();
         check(vbox && vbox.width < 300, `the video plays in a card, not full screen (${vbox && Math.round(vbox.width)} wide, RR12)`);
+        // tend captures audit 19 (decision 0264): its card says its length as a memo's does, "Video · 0:04".
+        const cardSays = await page.locator('[data-testid=replay-card] video').first().evaluate((v) => v.closest('[data-testid=replay-card]').getAttribute('aria-label'));
+        check(/^Video · 0:0[3-4], /.test(cardSays ?? ''), `tend captures audit 19: the 4 s video's replay card says its length, "Video · 0:04" (${cardSays})`);
         videoChecked = true;
       }
       if (!noteSeen && (await page.getByText('cardamom').count()) > 0) {

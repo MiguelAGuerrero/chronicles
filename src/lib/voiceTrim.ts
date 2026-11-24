@@ -48,6 +48,15 @@ export function memoLengthText(m: Memo): string | null {
   return len > 0 ? formatElapsed(len) : null;
 }
 
+/**
+ * A video's card, as a memo's (tend captures audit 19, decision 0264, the owner's "On its card, like a memo"): its name
+ * and its kept length, "Video · 0:20"; the name alone when it has no length on record, never "0:00".
+ */
+export function lengthLabel(name: string, m: Memo): string {
+  const text = memoLengthText(m);
+  return text ? `${name} · ${text}` : name;
+}
+
 /** "Voice memo, 0:39": the words wherever a memo is listed (VT10). */
 export function memoWords(m: Memo): string {
   const text = memoLengthText(m);
