@@ -323,3 +323,31 @@ test('ME21: a bad line or crop is dropped, the rest kept', () => {
   assert.equal(got.filter, 'warm');
   assert.equal(got.strokes.length, 1);
 });
+
+test('tend captures T43: a picked video\'s length is kept whole, whatever its length, and an unknown length is none', async () => {
+  // Typed loosely: written before the code (decision 0233, the owner's "Keep it whole").
+  const m = (await import('../../mediaEdit')) as unknown as { pickedVideoMs?: (duration: number | null | undefined, web: boolean) => number; CAMERA_MAX_VIDEO_S?: number };
+  assert.equal(typeof m.pickedVideoMs, 'function', 'the picker\'s length is read in the core');
+  const ms = m.pickedVideoMs!;
+  // The web picker says seconds, a phone's milliseconds.
+  assert.equal(ms(20, true), 20000, 'a 20 s web clip is 20 s, not turned away');
+  assert.equal(ms(95.4, true), 95400, 'a long web clip keeps its whole length');
+  assert.equal(ms(12000, false), 12000);
+  // A browser that cannot read the length (a WebM with none in its header) gives no length, never Infinity or NaN.
+  for (const unknown of [Infinity, NaN, 0, -1, null, undefined]) assert.equal(ms(unknown, true), 0, `${unknown} is no length`);
+  // The cap is the phones' camera's own (decision 0003, as 0233 leaves it): one number, 30 s.
+  assert.equal(m.CAMERA_MAX_VIDEO_S, 30);
+});
+
+test('tend captures T43: the camera keeps a web video over 15 s through the held shot and its editor, with no notice', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const src = readFileSync(join(__dirname, '../../useCaptures.ts'), 'utf8');
+  assert.ok(!/Videos can be up to/.test(src), 'no notice turns a long clip away');
+  assert.ok(!/MAX_VIDEO_S \* 1000/.test(src), 'no length is compared against a cap after the camera returns');
+  // The video branch: its length from the core, then the same keep as a photo's (held, kept, then the editor; 0263).
+  const branch = src.slice(src.indexOf("if (asset.type === 'video')"), src.indexOf("kind: 'video'"));
+  assert.match(branch, /pickedVideoMs\(asset\.duration, Platform\.OS === 'web'\)/);
+  assert.ok(!/dropTemp/.test(branch), 'the clip is never dropped for its length');
+  assert.match(src, /videoMaxDuration: CAMERA_MAX_VIDEO_S/);
+});

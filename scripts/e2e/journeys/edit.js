@@ -707,6 +707,34 @@ async function heldShot(h) {
       `tend captures audit 8: on the walk a video kept at full speed shows its shot's picture, never blank after, and no read of the picked file fails (${JSON.stringify(fast)})`);
   });
 
+  // tend captures T43 (decision 0233, the owner's "Keep it whole"): a 20 s web clip, past the 15 s the web once turned away,
+  // goes the way of any video: held from the camera's return, kept whole with its length, then its editor, whose trim
+  // runs the whole clip. Nothing says it was too long.
+  await step('T43 walk long video', async () => {
+    const res = await capture('[data-testid=cap-photo]', 'clip-20s.webm', 'walk-video-20s-390', 2500, false);
+    const r = read(res, 'video');
+    const notice = await pg.getByText(/Videos can be up to|That one was/).count();
+    await pg.click('[data-testid=edit-tool-trim]').catch(() => {});
+    await pg.waitForTimeout(400);
+    const label = await pg.locator('[data-testid=trim-label]').innerText().catch(() => null);
+    const ofWhole = await pg.locator('[data-testid=trim-whole]').innerText().catch(() => null);
+    await closeEditor();
+    const row = await pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => {
+          const v = g.result.flatMap((m) => m.pieces.map((p) => ({ ...p, lat: m.lat, lon: m.lon, t: m.t }))).filter((p) => p.kind === 'video').sort((a, b) => b.t - a.t)[0];
+          resolve(v ? { ms: Number(v.body), placed: v.lat != null && v.lon != null, t: v.t } : null);
+        };
+      };
+    }));
+    check(res.up && whole(r) && steady(r) && honest(r) && notice === 0,
+      `tend captures T43: on the walk a 20 s web video is held from the camera's return and kept, then its editor, with no notice that it is too long (${JSON.stringify({ up: res.up, notice, r: say(r) })})`);
+    check(!!row && row.ms >= 19000 && row.ms <= 21000 && row.placed && /^0:00 – 0:(19|20)$/.test(label ?? '') && /^of 0:(19|20)$/.test(ofWhole ?? ''),
+      `tend captures T43: the 20 s video is stored whole with its place and time, its length said as any video's, its trim the whole clip (${JSON.stringify({ row, label, ofWhole })})`);
+  });
+
   // tend captures audit 7: ✕ while held closes the shot; it is still kept, and no editor opens for it once it is.
   await step('T62 walk close while held', async () => {
     const before = await pg.evaluate(() => new Promise((resolve) => {

@@ -449,12 +449,10 @@ async function checks(h) {
           'CA7: a memo discarded and a note closed empty from the card find nothing and leave nothing pending');
             });
       if (k === 15) {
-        // The camera takes video too. The web caps clips at 15 s; a longer one is turned away.
+        // The camera takes video too. Since tend captures T43 (decision 0233) a web clip over 15 s is kept whole, as any
+        // other: the edit journey's "tend captures T43" checks it, so this walk keeps its one video, from the place's card.
         const fixtures = path.join(scriptsDir, 'fixtures');
-        let [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
-        await chooser.setFiles(path.join(fixtures, 'clip-20s.webm'));
-        await page.waitForSelector('text=/Videos can be up to 15 seconds/');
-        check(true, 'a video over the web limit is turned away');
+        let chooser;
         // Capture at a place (CA1-CA8): a tap on the place opens its card, which carries Camera, Voice and Note; a capture
         // started there finds the place when kept. Nothing is armed and nothing says "the next moment".
         check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 0, 'TC1: nothing is found by being near a place');
