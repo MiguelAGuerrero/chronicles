@@ -1447,8 +1447,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
         discoveries={explore.pins}
         spreadMarks
-        onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
-          if (lowerFirst()) return;
+        // Raised, a tap on a place only lowers the settings (audit 30): chosen here, so the handler holds no early return
+        // beside its clock read, which the React Compiler would take as a read during render.
+        onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : options ? () => void lowerFirst() : (id) => {
           // A place offered after the moment: a tap ties the moment to it, no card (moment-assignment-fallback PO3).
           if (explore.take(id)) return;
           setSpot(null);

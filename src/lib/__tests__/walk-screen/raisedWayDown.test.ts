@@ -70,7 +70,8 @@ test('tend walk-screen audit 30: raised, a pin, a place, a memory or a long pres
   for (const [prop, rest] of [
     ['onPinPress', /\(cs: Faced\[\]\) => \{\s*if \(lowerFirst\(\)\) return;/],
     ['onMemoryPress', /\(group, at\) => \{\s*if \(lowerFirst\(\)\) return;/],
-    ['onDiscoveryPress', /\(id\) => \{\s*if \(lowerFirst\(\)\) return;/],
+    // tend walk-screen audit 30: the place's handler is chosen by `options`, its body free of an early return (lint).
+    ['onDiscoveryPress', /options \? \(\) => void lowerFirst\(\) : \(id\) => \{/],
     ['onLongPress', /\(at, radiusM\) => \{\s*if \(lowerFirst\(\)\) return;/],
   ] as const) {
     const at = walk.indexOf(`        ${prop}={`);
