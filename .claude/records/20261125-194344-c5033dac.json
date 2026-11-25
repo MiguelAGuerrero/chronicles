@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Backup past one plain zip (one backup zip past 65,535 files or 4 GiB, by a ZIP64 writer and reader of our own around fflate's streams; nothing a person sees changes; BZ1-BZ7, decision 0256; from G14) | `tend/inbox-20261125-1923` | specced 2026-11-25; the plan with the steward |\n"
+    }
+  ]
+}

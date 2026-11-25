@@ -38,7 +38,7 @@ const FEATURES = [
     rule: 'backup',
     source: ['src/lib/backup/**', 'src/app/your-data.tsx', 'src/components/PageRow.tsx'],
     journeys: ['backup'],
-    specs: ['back-up-everything'],
+    specs: ['back-up-everything', 'backup-zip64'],
   },
   {
     name: 'recording',
@@ -569,6 +569,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'backup-zip64': { branch: 'tend/inbox-20261125-1923', since: '2026-11-25' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-18' },
