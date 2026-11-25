@@ -113,7 +113,7 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
   is now the map, with a field over it, "Where to?", that opens Explore's own search (towns and cities), and "Nowhere in particular" to
   stay around where you stand. With a place given, a sheet holds one list of chips, kinds of attraction (Art, Culture, Green, History,
   Views & oddities, on at first as "What I'm into" has them) beside kinds of shop (Antiques, Books, Thrifting, off at first); each chip on widens
-  what a stop may be. It offers up to three journeys, one per leaning ("Among the shops", "Past old places", "Through green"), in a row
+  what a stop may be. It offers up to three journeys, one per leaning ("Among the shops", "Past old places", "Through green and views"), in a row
   that scrolls sideways, each summarised in words with its distance on foot and drawn on the map; none is ranked or timed. Opening one
   shows its stops by kind, a loop when one can be made, else one way. A named place far from you offers "When I get there" beside
   Start, and that alone past what can be walked. The search box over chips and the Loop / One way switch of the first page are gone.
