@@ -108,3 +108,9 @@ test('tend explore audit 50: every attraction chip reads its label from the one 
     assert.equal(/categoryOf\('(\w+)'\)/.exec(r)?.[1], id, `${id} reads its own kind's name`);
   }
 });
+
+test('tend explore audit 52: no chip\'s word for a sentence holds an "&", whatever chips the list grows', async () => {
+  const { CHIPS, chipWord } = await import('../../outing/chips');
+  // Decision 0264: a sentence never carries a name with its "&"; a chip whose label has one must have a kind's noun to say.
+  for (const c of CHIPS) assert.doesNotMatch(chipWord(c), /&/, c.id);
+});
