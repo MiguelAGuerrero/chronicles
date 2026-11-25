@@ -31,14 +31,17 @@ export function awayLine(m: number, units: Units): string {
 
 const list = (xs: readonly string[]): string => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
-/** OJ21, RE17: a card's summary: the places in order, what it includes as the chips' own words, and the distance on foot when there is any. */
+/**
+ * OJ21, RE17: a card's summary: the places in order, what it includes by kind, in each chip's word for a sentence (`chipWord`: a kind's
+ * noun from the one table, a shop chip's label; decision 0264), and the distance on foot when there is any.
+ */
 export function cardSummary(j: { places: readonly (string | null)[]; labels: readonly string[]; footM: number; roadM?: number | null }, units: Units): string {
   const where = list(j.places.map((p) => p ?? HERE_LABEL));
   // RE17: the distance by road last, beside the distance on foot, where the road is known.
   return `${where}. ${list(j.labels)}.${j.footM > 0 ? ` ${formatDistance(j.footM, units)} on foot.` : ''}${j.roadM ? ` ${byRoadLine(j.roadM, units)}.` : ''}`;
 }
 
-/** OJ23: what a town holds of what you asked for, as the chips' own words; never how much or how good. */
+/** OJ23: what a town holds of what you asked for, in each chip's word for a sentence (`chipWord`, decision 0264); never how much or how good. */
 export const townLine = (labels: readonly string[]): string => `${list(labels.map((l, i) => (i ? l.toLowerCase() : l)))} here.`;
 
 /** OJ24: a chapter: a walk with its distance, or one stop. */

@@ -114,3 +114,12 @@ test('tend explore audit 52: no chip\'s word for a sentence holds an "&", whatev
   // Decision 0264: a sentence never carries a name with its "&"; a chip whose label has one must have a kind's noun to say.
   for (const c of CHIPS) assert.doesNotMatch(chipWord(c), /&/, c.id);
 });
+
+test('tend explore audit 53: the town line and a card\'s summary say they take each chip\'s word for a sentence, not the chips\' own words', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const words = readFileSync(join(__dirname, '../../outing/journeyWords.ts'), 'utf8');
+  // Decision 0264: the chip says "Views & oddities", the sentences "Views"; the notes on OJ21 and OJ23 say which word they take.
+  assert.doesNotMatch(words, /as the chips' own words/);
+  for (const oj of ['OJ21', 'OJ23']) assert.match(words, new RegExp(`${oj}[^/]*each chip's word for a sentence \\(\`chipWord\``), oj);
+});
