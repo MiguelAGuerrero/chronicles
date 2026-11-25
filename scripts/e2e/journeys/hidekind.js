@@ -110,8 +110,9 @@ async function run(h) {
   await openSheet();
   const qSaid = await pg.locator('[data-testid=kinds-sheet]').innerText().catch(() => '');
   await shot(pg, 'hidekind-unnamed-sheet');
-  check(/Buildings and structures/.test(qSaid) && /Mills/.test(qSaid) && !qSaid.includes(MILL) && !qSaid.includes('Grist'),
-    `HK4: a ? card's sheet names its kind and subtype, never the place (${JSON.stringify(qSaid)})`);
+  const qCut = await at320('hidekind-unnamed-sheet-320');
+  check(/Buildings and structures/.test(qSaid) && /Mills/.test(qSaid) && !qSaid.includes(MILL) && !qSaid.includes('Grist') && qCut.length === 0,
+    `HK4: a ? card's sheet names its kind and subtype, never the place (${JSON.stringify({ qSaid, qCut })})`);
   await pg.click('[data-testid=kinds-sheet-done]').catch(() => {});
   await sheetGone();
   await pg.click('[data-testid=mark-close]').catch(() => {});
@@ -167,6 +168,7 @@ async function run(h) {
   await pg.waitForTimeout(1200);
   const offP = { plaque: await shown(PLAQUE), memorial: await shown(MEMORIAL), up: (await pg.locator('[data-testid=kinds-sheet]').count()) === 1, on: (await rowOf('plaques'))?.on };
   await shot(pg, 'hidekind-plaques-off');
+  await at320('hidekind-plaques-off-320');
   await pg.click('[data-testid=kind-sheet-plaques]');
   await pg.waitForTimeout(1200);
   const backP = await shown(PLAQUE);
@@ -221,6 +223,14 @@ async function run(h) {
   });
   const back = await pg.locator('[aria-label="Walk, back"]:visible').count();
   await shot(pg, 'hidekind-into');
+  {
+    const was = pg.viewportSize();
+    await pg.setViewportSize({ width: 320, height: 700 });
+    await intoSettled(pg);
+    await shot(pg, 'hidekind-into-320');
+    if (was) await pg.setViewportSize(was);
+    await pg.waitForTimeout(500);
+  }
   check(page && !where.sheet && back === 1 && where.row != null && where.head != null && Math.abs(where.row - where.head) <= 16 && /at=monuments/.test(where.url),
     `HK6: What I’m into from the sheet opens the page at Monuments and memorials, Back reads Walk (${JSON.stringify({ where, back })})`);
   await pg.locator('[data-testid=kind-plaques]').click().catch(() => {});
@@ -236,10 +246,12 @@ async function run(h) {
   await openSheet();
   const towerRows = await pg.evaluate(() => [...document.querySelectorAll('[data-testid^=kind-sheet-]')].map((e) => e.getAttribute('aria-label')));
   await shot(pg, 'hidekind-clock-sheet');
+  await at320('hidekind-clock-sheet-320');
   await pg.click('[data-testid=kind-sheet-clock_towers]').catch(() => {});
   await pg.waitForTimeout(1200);
   const towers = { clock: await shown(CLOCK), water: await shown(WATER) };
   await shot(pg, 'hidekind-clock-off');
+  await at320('hidekind-clock-off-320');
   check(towerKinds === 'Buildings and structures · Clock towers' && JSON.stringify(towerRows) === '["Buildings and structures","Clock towers"]' && !towers.clock && towers.water,
     `HK9: a clock tower's sheet turns clock towers off; the water tower's pin stays (${JSON.stringify({ towerKinds, towerRows, towers })})`);
   await pg.click('[data-testid=kinds-sheet-done]').catch(() => {});

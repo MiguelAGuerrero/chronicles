@@ -115,8 +115,8 @@ export const DEFAULT_OFF: readonly Kind[] = SUBTYPES.filter((s) => !s.on).map((s
 /** Whether a kind is one of the small subtypes (XS17, XS18). */
 export const isSmallKind = (k: Kind | undefined): boolean => !!k && !!BY_KIND.get(k)?.small;
 
-/** Whether a kind is any subtype (a switch under its kind). */
-export const isSubtype = (k: Kind | undefined): boolean => !!k && BY_KIND.has(k);
+/** Whether a kind is any subtype (a switch under its kind); a retired one was (HK10: a kept item reads as it did). */
+export const isSubtype = (k: Kind | undefined): boolean => !!k && (BY_KIND.has(k) || Object.prototype.hasOwnProperty.call(RETIRED, k));
 
 /**
  * SP16, SP19: whether a place is a small place of a subset, by what it is (its classes), whatever kind a refinement has

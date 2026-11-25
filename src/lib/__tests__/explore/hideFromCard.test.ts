@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { isKindHidden } from '../../discovery/refinements';
+import { isSubtype } from '../../discovery/subtypes';
 import type { Kind } from '../../discovery/types';
 import { KINDS, kindOf, parseHidden, visibleMarks, foundLine, type ChecklistItem } from '../../explore/explore';
 import { withKind } from '../../explore/settingsChange';
@@ -174,6 +175,8 @@ test('HK10, poi-hide-from-card audit 2: a tower kept before the split reads as B
   assert.equal(isKindHidden(new Set<Kind>(['clock_towers', 'water_towers'] as Kind[]), old), true);
   assert.equal(isKindHidden(new Set<Kind>(['structures']), old), true);
   assert.equal(foundLine({ name: 'Town Hall Clock', category: 'history', generic: false, kind: old }), 'Found: Town Hall Clock · Water and clock towers');
+  // Still a subtype to the planner, the scenic routes and the outing (`p.generic && isSubtype(p.kind)`), as it was.
+  assert.equal(isSubtype(old), true);
 });
 
 test('HK10: closed with its place\'s kind off, the sheet leaves no card; a found place\'s card stays', async () => {
