@@ -586,6 +586,13 @@ async function checks(h) {
         const hereSaid = (await page.locator('[data-testid=mark-moments]').innerText().catch(() => '')).trim();
         check(foundCard && /^Moments here/.test(hereSaid) && lines.some((l) => /^A video, on this walk\b/.test(l)) && lines.length <= 3 && (await page.locator('[data-testid=mark-camera]').count()) === 1,
           `CA11: the found place's card says "Moments here" with the video in words, and offers the row (${JSON.stringify(lines)})`);
+        // poi-hide-from-card HK5 (the owner, Q3): a found place's card has no More and no kind line; its head is today's.
+        const foundHead = await page.evaluate(() => ({
+          more: !!document.querySelector('[data-testid=mark-more]'), kinds: !!document.querySelector('[data-testid=mark-kinds]'),
+          title: document.querySelector('[data-testid=mark-card] [role=heading]')?.textContent ?? '',
+        }));
+        check.todo(!foundHead.more && !foundHead.kinds && /^Hessian Memorial · /.test(foundHead.title),
+          `HK5: a found place's card has no More and no kind line; its head is today's name · kind (${JSON.stringify(foundHead)})`);
         await page.locator('[data-testid=mark-moment]').filter({ hasText: /^A video, / }).first().click().catch(() => {});
         const opened = await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
         check(opened, 'CA11: a line on the found card opens its moment in the viewer');
