@@ -289,6 +289,83 @@ async function run(h) {
     await pg.setViewportSize(vp);
     await pg.waitForTimeout(600);
   }
+  // tend outing T64 (the owner's yes in person, 2026-11-25): the leaning over parks and views is named "Through green and views",
+  // the longest leaning name; at 390 and 320 px it is whole on its card and as the opened journey's title: one line, nothing cut,
+  // inside its card and the page, the card above "See this journey", the title beside Back and not over it.
+  {
+    const NAME = 'Through green and views';
+    const measure = (sel) => pg.evaluate(([s]) => {
+      const vw = document.documentElement.clientWidth;
+      const el = document.querySelector(s);
+      if (!el) return null;
+      const leaf = el.childElementCount === 0 ? el : [...el.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /[A-Za-z]/.test(x.textContent || ''));
+      const box = el.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(leaf);
+      const t = range.getBoundingClientRect();
+      const cs = getComputedStyle(leaf);
+      return {
+        vw, text: (leaf.textContent || '').trim(), lines: new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size,
+        cut: leaf.scrollWidth > leaf.clientWidth + 1 || (cs.textOverflow === 'ellipsis' && t.right > leaf.getBoundingClientRect().right + 0.5),
+        textW: Math.round(t.width), leafL: Math.round(leaf.getBoundingClientRect().left), leafR: Math.round(leaf.getBoundingClientRect().right),
+        left: Math.round(box.left), right: Math.round(box.right), top: Math.round(box.top), bottom: Math.round(box.bottom), h: Math.round(box.height),
+        inBox: t.left >= box.left - 0.5 && t.right <= box.right + 0.5,
+      };
+    }, [sel]);
+    const vp = pg.viewportSize();
+    await only(['viewpoints']);
+    for (const width of [390, 320]) {
+      await pg.setViewportSize({ width, height: vp.height });
+      await pg.waitForSelector('[data-testid=outing-journey-0]', { timeout: 90000 }).catch(() => {});
+      await pg.waitForTimeout(600);
+      const card = await measure('[data-testid=outing-journey-0]');
+      const said = ((await pg.locator('[data-testid=outing-journey-0]').textContent().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
+      const name = await pg.evaluate(() => {
+        const el = document.querySelector('[data-testid=outing-journey-0]');
+        const leaf = el && [...el.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /[A-Za-z]/.test(x.textContent || ''));
+        if (!leaf) return null;
+        const r = document.createRange();
+        r.selectNodeContents(leaf);
+        const t = r.getBoundingClientRect();
+        const c = el.getBoundingClientRect();
+        return { text: leaf.textContent.trim(), lines: new Set([...r.getClientRects()].map((x) => Math.round(x.top))).size, cut: leaf.scrollWidth > leaf.clientWidth + 1, inCard: t.left >= c.left - 0.5 && t.right <= c.right + 0.5, w: Math.round(t.width), cardW: Math.round(c.width) };
+      });
+      const see = await pg.locator('[data-testid=outing-see]').boundingBox().catch(() => null);
+      check(!!card && !!name && !!see && name.text === NAME && name.lines === 1 && !name.cut && name.inCard && card.left >= 0 && card.bottom <= see.y + 0.5 && said.startsWith(NAME) && /\bViews\./.test(said),
+        `tend outing T64: at ${width} px the journey card reads "${NAME}" whole, one line, inside its card, the card above "See this journey" (${JSON.stringify({ name, card: card && { left: card.left, right: card.right, top: card.top, bottom: card.bottom }, see: see && Math.round(see.y), said })})`);
+      await shot(pg, `tend-outing-T64-card-${width}`);
+      await openJourney();
+      const title = await measure('[data-testid=outing-journey-name]');
+      const back = await pg.locator('[data-testid=outing-back]').boundingBox().catch(() => null);
+      check(!!title && !!back && title.text === NAME && title.lines === 1 && !title.cut && title.inBox && title.leafL >= back.x + back.width - 0.5 && title.right <= title.vw,
+        `tend outing T64: at ${width} px the opened journey's title reads "${NAME}" whole, one line, beside Back and inside the page (${JSON.stringify({ title, back: back && { x: Math.round(back.x), r: Math.round(back.x + back.width) } })})`);
+      await shot(pg, `tend-outing-T64-title-${width}`);
+      await backToChips();
+    }
+    // With the shops too, three cards: the last, "Through green and views", whole when brought into view at 320 px.
+    await only(['antiques', 'viewpoints']);
+    await pg.setViewportSize({ width: 320, height: vp.height });
+    await pg.waitForSelector('[data-testid=outing-journey-2]', { timeout: 90000 }).catch(() => {});
+    await pg.waitForTimeout(600);
+    await pg.click('[data-testid=outing-journey-2]').catch(() => {});
+    await pg.waitForTimeout(900);
+    const third = await pg.evaluate(() => {
+      const vw = document.documentElement.clientWidth;
+      const el = document.querySelector('[data-testid=outing-journey-2]');
+      const leaf = el && [...el.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /[A-Za-z]/.test(x.textContent || ''));
+      if (!leaf) return null;
+      const r = document.createRange();
+      r.selectNodeContents(leaf);
+      const t = r.getBoundingClientRect();
+      const c = el.getBoundingClientRect();
+      return { vw, text: leaf.textContent.trim(), lines: new Set([...r.getClientRects()].map((x) => Math.round(x.top))).size, cut: leaf.scrollWidth > leaf.clientWidth + 1, inCard: t.left >= c.left - 0.5 && t.right <= c.right + 0.5, inPage: t.left >= 0 && t.right <= vw, h: Math.round(c.height), heights: [...document.querySelectorAll('[data-testid^=outing-journey-]')].map((x) => Math.round(x.getBoundingClientRect().height)) };
+    });
+    check(!!third && third.text === NAME && third.lines === 1 && !third.cut && third.inCard && third.inPage,
+      `tend outing T64: at 320 px, among three journeys, the card "${NAME}" in view is whole, one line, inside its card and the page (${JSON.stringify(third)})`);
+    await shot(pg, 'tend-outing-T64-three-320');
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(600);
+  }
   await only([]);
   check((await pg.locator('[data-testid=outing-pick]').count()) === 1 && (await pg.locator('[data-testid^=outing-journey-]').count()) === 0, 'OJ14: with no chip on the page proposes nothing and says one plain line');
   check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'false', 'QC41: Include chains is off by default');
@@ -402,7 +479,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=outing-journey-1]', { timeout: 90000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const several = await pg.locator('[data-testid^=outing-journey-]').evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()));
-  check(several.length === 3 && /^A bit of each/.test(several[0]) && /^Among the shops/.test(several[1]) && /^Through green/.test(several[2]), `OJ17, OJ43: a mixed journey, then one per leaning (${several.join(' | ')})`);
+  check(several.length === 3 && /^A bit of each/.test(several[0]) && /^Among the shops/.test(several[1]) && /^Through green and views/.test(several[2]), `OJ17, OJ43: a mixed journey, then one per leaning (${several.join(' | ')})`);
   {
     const b1 = await pg.locator('[data-testid=outing-journey-1]').boundingBox().catch(() => null);
     const vw = pg.viewportSize()?.width ?? 0;
