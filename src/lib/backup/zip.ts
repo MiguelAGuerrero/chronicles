@@ -56,49 +56,55 @@ export interface Written {
   offset: number;
 }
 
-const concat = (a: Uint8Array, b: Uint8Array) => {
-  const o = new Uint8Array(a.length + b.length);
-  o.set(a);
-  o.set(b, a.length);
-  return o;
-};
-
 /**
  * An entry's central header: fflate's within a plain zip's limits; a size of 0xFFFFFFFF or more, or a local header at
  * that offset or past it, reads all ones there and carries the value in the ZIP64 extra field (0x0001), sizes first,
  * version 45.
  */
 export function centralHeader(w: Written, dos: number): Uint8Array {
+  const h = new Uint8Array(centralSize(w));
+  writeCentral(h, 0, w, dos);
+  return h;
+}
+
+const extraOf = (w: Written) => (w.size >= ZIP32.bytes ? 16 : 0) + (w.offset >= ZIP32.bytes ? 8 : 0);
+/** The bytes an entry's central header takes. */
+export const centralSize = (w: Written) => 46 + w.name.length + (extraOf(w) ? 4 + extraOf(w) : 0);
+
+/** Writes an entry's central header into `d` at `at`, in place; returns where the next one begins. */
+export function writeCentral(d: Uint8Array, at: number, w: Written, dos: number): number {
   const big = w.size >= ZIP32.bytes;
   const far = w.offset >= ZIP32.bytes;
-  const extra = (big ? 16 : 0) + (far ? 8 : 0);
-  const h = new Uint8Array(46 + w.name.length + (extra ? 4 + extra : 0));
-  put32(h, 0, SIG.central);
-  h[4] = extra ? 45 : 20;
-  h[6] = extra ? 45 : 20;
-  h[8] = 8;
-  h[9] = w.utf8 ? 8 : 0;
-  put32(h, 12, dos);
-  put32(h, 16, w.crc);
-  put32(h, 20, big ? ZIP32.bytes : w.size);
-  put32(h, 24, big ? ZIP32.bytes : w.size);
-  put16(h, 28, w.name.length);
-  put16(h, 30, extra ? 4 + extra : 0);
-  put32(h, 42, far ? ZIP32.bytes : w.offset);
-  h.set(w.name, 46);
+  const extra = extraOf(w);
+  put32(d, at, SIG.central);
+  d[at + 4] = extra ? 45 : 20;
+  d[at + 6] = extra ? 45 : 20;
+  d[at + 8] = 8;
+  d[at + 9] = w.utf8 ? 8 : 0;
+  put32(d, at + 12, dos);
+  put32(d, at + 16, w.crc);
+  put32(d, at + 20, big ? ZIP32.bytes : w.size);
+  put32(d, at + 24, big ? ZIP32.bytes : w.size);
+  put16(d, at + 28, w.name.length);
+  put16(d, at + 30, extra ? 4 + extra : 0);
+  put32(d, at + 42, far ? ZIP32.bytes : w.offset);
+  d.set(w.name, at + 46);
+  let x = at + 46 + w.name.length;
   if (extra) {
-    let x = 46 + w.name.length;
-    put16(h, x, 1);
-    put16(h, x + 2, extra);
+    put16(d, x, 1);
+    put16(d, x + 2, extra);
     x += 4;
     if (big) {
-      put64(h, x, w.size);
-      put64(h, x + 8, w.size);
+      put64(d, x, w.size);
+      put64(d, x + 8, w.size);
       x += 16;
     }
-    if (far) put64(h, x, w.offset);
+    if (far) {
+      put64(d, x, w.offset);
+      x += 8;
+    }
   }
-  return h;
+  return x;
 }
 
 /**
@@ -192,20 +198,21 @@ export function createZipWriter(out: (chunk: Uint8Array) => void, stamp: () => n
     return f;
   }
 
-  /** Writes the central directory and its end, each central header's time read now. */
+  /**
+   * Writes the central directory and its end, each central header's time read now: sized first, written into one
+   * array in place, handed over as one chunk (backup-zip64 audit 14).
+   */
   function end(): void {
     if (open || ended) throw new Error('a zip is ended once, after its last entry is done');
     ended = true;
     const start = at;
-    const headers = written.map((w) => centralHeader(w, stamp()));
-    const size = headers.reduce((n, h) => n + h.length, 0);
-    const tail = new Uint8Array(size);
+    const size = written.reduce((n, w) => n + centralSize(w), 0);
+    const last = endRecords(written.length, size, start);
+    const tail = new Uint8Array(size + last.length);
     let o = 0;
-    for (const h of headers) {
-      tail.set(h, o);
-      o += h.length;
-    }
-    emit(concat(tail, endRecords(written.length, size, start)));
+    for (const w of written) o = writeCentral(tail, o, w, stamp());
+    tail.set(last, o);
+    emit(tail);
   }
 
   return { entry, end };
@@ -233,6 +240,7 @@ export class ZipError extends Error {}
 export async function zipEntries(read: ReadAt, fileSize: number): Promise<ZipEntry[]> {
   const span = Math.min(fileSize, 22 + 0xffff);
   const tail = await read(fileSize - span, span);
+  if (tail.length !== span) throw new ZipError('the file reads short');
   let e = -1;
   for (let i = tail.length - 22; i >= 0; i--) {
     if (get32(tail, i) === SIG.end && i + 22 + get16(tail, i + 20) === tail.length) {
@@ -250,8 +258,9 @@ export async function zipEntries(read: ReadAt, fileSize: number): Promise<ZipEnt
     const loc = await read(endAt - 20, 20);
     if (get32(loc, 0) === SIG.locator) {
       const at = get64(loc, 8);
+      if (at + 56 > endAt - 20) throw new ZipError('a ZIP64 locator points past its own place');
       const z = await read(at, 56);
-      if (get32(z, 0) !== SIG.end64) throw new ZipError('a ZIP64 locator names no ZIP64 end record');
+      if (z.length !== 56 || get32(z, 0) !== SIG.end64) throw new ZipError('a ZIP64 locator names no ZIP64 end record');
       count = get64(z, 32);
       size = get64(z, 40);
       start = get64(z, 48);
@@ -260,6 +269,7 @@ export async function zipEntries(read: ReadAt, fileSize: number): Promise<ZipEnt
   }
   if (start + size !== dirEnd) throw new ZipError('the central directory is not where its end says');
   const dir = await read(start, size);
+  if (dir.length !== size) throw new ZipError('the central directory reads short');
   const entries: ZipEntry[] = [];
   let o = 0;
   while (o < dir.length) {
@@ -274,19 +284,32 @@ export async function zipEntries(read: ReadAt, fileSize: number): Promise<ZipEnt
     let offset = get32(dir, o + 42);
     if (o + 46 + n + x + c > dir.length) throw new ZipError('a central header runs past the directory');
     const name = strFromU8(dir.subarray(o + 46, o + 46 + n));
-    for (let p = o + 46 + n; p + 4 <= o + 46 + n + x; p += 4 + get16(dir, p + 2)) {
-      if (get16(dir, p) !== 1) continue;
-      let q = p + 4;
-      if (usize === ZIP32.bytes) {
-        usize = get64(dir, q);
-        q += 8;
+    // Each value set to all ones is carried by the ZIP64 field, in order; one left all ones, a field too short for what
+    // it carries, or an extra field running past the header's extras is refused (backup-zip64 audit 9).
+    const extrasEnd = o + 46 + n + x;
+    const owed = { usize: usize === ZIP32.bytes, csize: csize === ZIP32.bytes, offset: offset === ZIP32.bytes };
+    let carried = false;
+    for (let p = o + 46 + n; p < extrasEnd; ) {
+      if (p + 4 > extrasEnd || p + 4 + get16(dir, p + 2) > extrasEnd) throw new ZipError(`${name}'s extra field runs past its header`);
+      const len = get16(dir, p + 2);
+      if (get16(dir, p) === 1 && !carried) {
+        carried = true;
+        let q = p + 4;
+        const take = () => {
+          if (q + 8 > p + 4 + len) throw new ZipError(`${name}'s ZIP64 field is shorter than its values`);
+          const v = get64(dir, q);
+          q += 8;
+          return v;
+        };
+        if (owed.usize) usize = take();
+        if (owed.csize) csize = take();
+        if (owed.offset) offset = take();
       }
-      if (csize === ZIP32.bytes) {
-        csize = get64(dir, q);
-        q += 8;
-      }
-      if (offset === ZIP32.bytes) offset = get64(dir, q);
+      p += 4 + len;
     }
+    if (!carried && (owed.usize || owed.csize || owed.offset)) throw new ZipError(`${name} names a ZIP64 value it does not carry`);
+    // Its local header, name and bytes lie before the directory, whole (ours have no local extra field).
+    if (offset + 30 + n + usize > start) throw new ZipError(`${name}'s bytes run past where the directory begins`);
     if (method !== 0 || csize !== usize) throw new ZipError(`${name} is not stored as it is`);
     entries.push({ name, crc, size: usize, offset });
     o += 46 + n + x + c;
@@ -298,7 +321,7 @@ export async function zipEntries(read: ReadAt, fileSize: number): Promise<ZipEnt
 /** An entry's bytes in chunks, whole: its local header checked against the directory, its CRC checked at the end. */
 export async function* zipEntryChunks(read: ReadAt, e: ZipEntry, chunk = 1 << 20): AsyncGenerator<Uint8Array> {
   const h = await read(e.offset, 30);
-  if (get32(h, 0) !== SIG.local) throw new ZipError(`${e.name} has no local header`);
+  if (h.length !== 30 || get32(h, 0) !== SIG.local) throw new ZipError(`${e.name} has no local header`);
   const n = get16(h, 26);
   const name = await read(e.offset + 30, n);
   if (strFromU8(name) !== e.name) throw new ZipError(`${e.name}'s local header names another entry`);
@@ -306,7 +329,9 @@ export async function* zipEntryChunks(read: ReadAt, e: ZipEntry, chunk = 1 << 20
   const crc = new ZipPassThrough(e.name);
   crc.ondata = () => {};
   for (let o = 0; o < e.size; o += chunk) {
-    const c = await read(start + o, Math.min(chunk, e.size - o));
+    const want = Math.min(chunk, e.size - o);
+    const c = await read(start + o, want);
+    if (c.length !== want) throw new ZipError(`${e.name} reads short`);
     crc.push(c);
     yield c;
   }

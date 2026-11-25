@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { closeSync, ftruncateSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync, writeSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { strFromU8, strToU8, unzipSync, Zip, ZipPassThrough } from 'fflate';
 import { BACKUP_VERSION, readBackup } from '../../backup/core';
-import { centralHeader, createZipWriter, dosTime, endRecords, ZIP32, ZipError, zipEntries, zipEntryChunks, type ReadAt, type ZipEntry } from '../../backup/zip';
+import { centralHeader, createZipWriter, dosTime, endRecords, writeCentral, ZIP32, ZipError, zipEntries, zipEntryChunks, type ReadAt, type ZipEntry } from '../../backup/zip';
 
 // The backup's zip records, ours around fflate's streams (specs/backup-zip64, BZ3, BZ4, BZ6; decisions 0256, 0266).
 
@@ -29,9 +31,9 @@ const readOf = (b: Uint8Array): ReadAt => (o, l) => b.subarray(o, o + l);
 type Entries = [string, Uint8Array[]][];
 
 /** fflate's `Zip` with `ZipPassThrough` entries, as the backup wrote until this slice, with its clock held at `T`. */
-function fflateZip(files: Entries): Uint8Array {
+function fflateZip(files: Entries, clock: () => number = () => T): Uint8Array {
   const now = Date.now;
-  Date.now = () => T;
+  Date.now = clock;
   try {
     const out: Uint8Array[] = [];
     const z = new Zip((e, c) => {
@@ -50,9 +52,8 @@ function fflateZip(files: Entries): Uint8Array {
   }
 }
 
-function ourZip(files: Entries): Uint8Array {
-  const out: Uint8Array[] = [];
-  const w = createZipWriter((c) => out.push(c.slice()), () => dosOf(T));
+function ourZip(files: Entries, clock: () => number = () => T, out: Uint8Array[] = []): Uint8Array {
+  const w = createZipWriter((c) => out.push(c.slice()), () => dosOf(clock()));
   for (const [n, cs] of files) {
     const f = w.entry(n);
     cs.forEach((c, i) => f.push(c, i === cs.length - 1));
@@ -174,7 +175,7 @@ test('BZ4 a zip whose directory disagrees with its end is refused, never half li
   }, ZipError, 'a local header naming another entry is refused');
 });
 
-test('BZ6 the records are ours, over fflate\'s streams: no new dependency, no file past a limit committed', () => {
+test('BZ6 the records are ours, over fflate\'s streams: no new dependency, no file past a limit committed (a text check of the sources)', () => {
   const dir = join(root, 'src', 'lib', 'backup');
   for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts'))) {
     const src = readFileSync(join(dir, f), 'utf8');
@@ -189,7 +190,7 @@ test('BZ6 the records are ours, over fflate\'s streams: no new dependency, no fi
   assert.deepEqual(readdirSync(join(__dirname, 'fixtures')).sort(), ['backup-v1.sha256', 'backup-v1.zip'], 'no file past a limit is committed');
 });
 
-test('backup-zip64 audit 7: ZIP64 is the container\'s, outside BACKUP_VERSION, and every reader of a backup goes through backup/zip.ts', () => {
+test('backup-zip64 audit 7: ZIP64 is the container\'s, outside BACKUP_VERSION, and every reader of a backup goes through backup/zip.ts (a text check of the rule and the sources)', () => {
   assert.equal(BACKUP_VERSION, 1, 'the format stays version 1');
   const rule = readFileSync(join(root, '.claude', 'rules', 'backup.md'), 'utf8');
   assert.match(rule, /ZIP64 is the container's, outside `BACKUP_VERSION`; every reader of a backup goes through `backup\/zip\.ts`/);
@@ -207,8 +208,106 @@ test('backup-zip64 audit 7: ZIP64 is the container\'s, outside BACKUP_VERSION, a
   assert.deepEqual(readers, [], 'no module reads a zip with fflate\'s unzip');
 });
 
-test('backup-zip64 audit 3, audit 5: the spec\'s verb is the backup\'s, and its precedent claims no more than is recorded', () => {
+test('backup-zip64 audit 3, audit 5: the spec\'s verb is the backup\'s, and its precedent claims no more than is recorded (a text check of the spec)', () => {
   const spec = readFileSync(join(root, 'specs', 'backup-zip64', 'spec.md'), 'utf8');
   assert.match(spec, /^Verb: Return, Honour\b/m, 'the backup serves Return and Honour, not Earn');
   assert.doesNotMatch(spec, /whatever the library's size/, 'Apple Journal\'s one ZIP, its size limits unverified');
+});
+
+// The diff review (Nov 25): the auditor's F2, F4, F6, F7 (backup-zip64 audit 9, 11, 13, 14).
+
+/** One central header (`edit` may change its bytes) and the end, at `start` in a file holding nothing else. */
+async function listOne(w: Parameters<typeof centralHeader>[0], start: number, edit: (h: Uint8Array) => Uint8Array = (h) => h) {
+  const h = edit(centralHeader(w, dosOf(T)));
+  const tail = cat([h, endRecords(1, h.length, start)]);
+  return zipEntries(sparse(tail, start + tail.length), start + tail.length);
+}
+const NAME = strToU8('media/walks/w1/long.mov');
+const put32 = (d: Uint8Array, at: number, v: number) => Buffer.from(d.buffer, d.byteOffset, d.byteLength).writeUInt32LE(v >>> 0, at);
+const put16 = (d: Uint8Array, at: number, v: number) => Buffer.from(d.buffer, d.byteOffset, d.byteLength).writeUInt16LE(v, at);
+
+test('backup-zip64 audit 9: a header whose ZIP64 values are missing, short or past the directory is refused, never listed', async () => {
+  // A size of all ones with no ZIP64 field to carry it.
+  await assert.rejects(listOne({ name: NAME, utf8: false, crc: 1, size: 5, offset: 0 }, 2 ** 33, (h) => (put32(h, 20, ZIP32.bytes), put32(h, 24, ZIP32.bytes), h)), ZipError, 'a value left all ones');
+  // A ZIP64 field of eight bytes where two sizes need sixteen.
+  await assert.rejects(listOne({ name: NAME, utf8: false, crc: 1, size: 2 ** 32 + 5, offset: 0 }, 2 ** 34, (h) => (put16(h, 46 + NAME.length + 2, 8), h)), ZipError, 'a ZIP64 field shorter than its values');
+  // An extra field longer than the header's extras.
+  await assert.rejects(listOne({ name: NAME, utf8: false, crc: 1, size: 2 ** 32 + 5, offset: 0 }, 2 ** 34, (h) => (put16(h, 46 + NAME.length + 2, 40), h)), ZipError, 'an extra field running past its header');
+  // An entry whose data would run past where the directory begins (the auditor's 2^50).
+  await assert.rejects(listOne({ name: NAME, utf8: false, crc: 1, size: 2 ** 50, offset: 0 }, 1000), ZipError, 'data past the directory');
+  // A short read of an entry's bytes.
+  const good = ourZip(SETS['the JSON stores']);
+  const [first] = await zipEntries(readOf(good), good.length);
+  const short: ReadAt = (o, l) => good.subarray(o, o + (o >= 30 + first.name.length ? l - 1 : l));
+  await assert.rejects(async () => {
+    for await (const _ of zipEntryChunks(short, first)) void _;
+  }, ZipError, 'a short read');
+});
+
+test('backup-zip64 audit 11: a clock that moves on every read gives fflate\'s bytes, in zones far from UTC too', () => {
+  const zone = process.env.TZ;
+  try {
+    for (const tz of ['UTC', 'Pacific/Chatham', 'America/St_Johns']) {
+      process.env.TZ = tz;
+      // Ten seconds before the year turns in Chatham (UTC+13:45), each read 997 ms on.
+      const ticking = () => {
+        let t = Date.UTC(2026, 11, 31, 10, 14, 50);
+        return () => (t += 997);
+      };
+      for (const [what, files] of Object.entries(SETS)) {
+        const a = fflateZip(files, ticking());
+        const b = ourZip(files, ticking());
+        assert.equal(Buffer.compare(Buffer.from(a), Buffer.from(b)), 0, `${tz}, ${what}: the same bytes`);
+      }
+    }
+  } finally {
+    if (zone === undefined) delete process.env.TZ;
+    else process.env.TZ = zone;
+  }
+});
+
+test('backup-zip64 audit 13: the boundary records read by Python\'s zipfile, and 65,536 entries by unzip -t', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'chronicles-zip64-'));
+  try {
+    const cases: { path: string; size: number; offset: number }[] = [];
+    for (const size of [ZIP32.bytes - 1, ZIP32.bytes, 2 ** 40]) {
+      for (const offset of [0, ZIP32.bytes - 1, ZIP32.bytes, 2 ** 40 + 3]) {
+        const h = centralHeader({ name: NAME, utf8: false, crc: 0x1234abcd, size, offset }, dosOf(T));
+        const start = offset + 30 + NAME.length + size + (size >= ZIP32.bytes ? 24 : 16);
+        const tail = cat([h, endRecords(1, h.length, start)]);
+        const path = join(dir, `${cases.length}.zip`);
+        const fd = openSync(path, 'w');
+        try {
+          writeSync(fd, tail, 0, tail.length, start);
+          ftruncateSync(fd, start + tail.length);
+        } finally {
+          closeSync(fd);
+        }
+        cases.push({ path, size, offset });
+      }
+    }
+    const script = 'import json,sys,zipfile\nprint(json.dumps([[[i.filename,i.file_size,i.compress_size,i.header_offset,i.CRC] for i in zipfile.ZipFile(p).infolist()] for p in sys.argv[1:]]))';
+    const read: [string, number, number, number, number][][] = JSON.parse(execFileSync('python3', ['-I', '-c', script, ...cases.map((c) => c.path)], { encoding: 'utf8' }));
+    cases.forEach((c, i) => assert.deepEqual(read[i], [['media/walks/w1/long.mov', c.size, c.size, c.offset, 0x1234abcd]], `size ${c.size}, offset ${c.offset}`));
+    const many = ourZip(Array.from({ length: ZIP32.entries + 1 }, (_, i): [string, Uint8Array[]] => [`media/m/${i}.jpg`, [strToU8(`photo ${i}`)]]));
+    const path = join(dir, 'many.zip');
+    writeFileSync(path, many);
+    assert.match(execFileSync('unzip', ['-tq', path], { encoding: 'utf8' }), /No errors detected/);
+    assert.equal(execFileSync('unzip', ['-Z1', path], { encoding: 'utf8', maxBuffer: 64 * 2 ** 20 }).trim().split('\n').length, ZIP32.entries + 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('backup-zip64 audit 14: the directory and its end are written into one array, sized first, and handed over as one chunk', () => {
+  const w = { name: NAME, utf8: false, crc: 7, size: 2 ** 33, offset: 2 ** 33 };
+  const h = centralHeader(w, dosOf(T));
+  const d = new Uint8Array(h.length + 11);
+  assert.equal(writeCentral(d, 7, w, dosOf(T)), 7 + h.length, 'written in place, the next offset returned');
+  assert.deepEqual([...d.subarray(7, 7 + h.length)], [...h]);
+  const out: Uint8Array[] = [];
+  ourZip(SETS['the JSON stores'], () => T, out);
+  const last = out[out.length - 1];
+  const entries = SETS['the JSON stores'].length;
+  assert.equal(last.length, entries * 46 + SETS['the JSON stores'].reduce((n, [name]) => n + strToU8(name).length, 0) + 22, 'the directory and its end in one chunk');
 });

@@ -112,6 +112,15 @@ export function backupIO(): BackupIO {
       const f = uri ? new File(uri) : null;
       return f?.exists ? chunksOf(f) : null;
     },
+    // A backup file left by a run the system killed before its sheet closed, whatever its date (backup-zip64 audit 8).
+    sweep() {
+      try {
+        if (!dir.exists) return;
+        for (const f of dir.list()) if (f instanceof File && /^chronicles-backup-.*\.zip$/.test(f.name)) f.delete();
+      } catch {
+        // the system clears the cache anyway
+      }
+    },
     async room(refs) {
       return { free: await probe.free(), need: await mediaBytes(refs) };
     },

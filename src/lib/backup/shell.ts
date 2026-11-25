@@ -36,6 +36,11 @@ export interface BackupIO {
   schema: { store: string; version: number | null };
   /** A piece's file, in chunks, or null when it is gone. */
   readMedia(ref: string): Promise<AsyncIterable<Uint8Array> | null>;
+  /**
+   * Removes a backup file an earlier run left behind (killed before its share sheet closed), before the room is read,
+   * so its bytes count as free (backup-zip64 audit 8). A phone's; the web keeps nothing between runs.
+   */
+  sweep?(): void | Promise<void>;
   /** A phone's room left and the media's size, asked before anything is written (BK7). */
   room?(refs: string[]): Promise<{ free: number | null; need: number }>;
   /** Starts the file. */
@@ -143,6 +148,9 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
     const omits = pendingOmits(await waiting());
     const rows = withoutPending(await readRows(), omits);
     const pieces = rows.moments.flatMap((m) => m.pieces).filter((c) => c.file_path);
+    // A file a killed run left is not counted against the room (backup-zip64 audit 8); a sweep that fails is no reason
+    // not to try.
+    await (async () => io.sweep?.())().catch(() => {});
     if (io.room) {
       const { free, need } = await io.room(pieces.map((c) => c.file_path!));
       if (!hasRoom(free, need)) throw new BackupRefusal(NO_ROOM);

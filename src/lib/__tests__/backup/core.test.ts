@@ -250,7 +250,7 @@ test('back-up-everything audit 18: Back names the screen beneath, spoken on Andr
 
 // G14's build (specs/backup-zip64, decisions 0256, 0266): nothing a person sees changes but the retired refusal.
 
-test('BZ7, backup-zip64 audit 4: the page\'s words, the file\'s name and the line beside the button are today\'s; the too-large line is the web\'s alone', async () => {
+test('BZ7, backup-zip64 audit 4: the page\'s words, the file\'s name and the line beside the button are today\'s; the too-large line is the web\'s alone (text checks of the words and the page\'s imports)', async () => {
   const core = await import('../../backup/core');
   assert.deepEqual(
     {

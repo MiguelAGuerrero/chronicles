@@ -11,6 +11,7 @@ import { zipEntries, zipEntryChunks, type ReadAt } from '../../backup/zip';
 import type { Db } from '../../db/types';
 import type { Mark, Offered } from '../../discovery/types';
 import type { Capture, Moment, Walk } from '../../types';
+import { SPACE } from '../../space/core';
 import { fakeClock, memoryDb } from '../fakes';
 
 // The whole-app backup's writer over a fake store (specs/back-up-everything, BK2, BK5-BK8, BK11, BK12, BK14; specs/backup-zip64,
@@ -527,18 +528,74 @@ test('BZ5, backup-zip64 audit 1: past 4 GiB the web refuses in words and keeps n
   assert.equal(web.discarded, 1, 'the file begun is dropped');
   assert.equal(await db.getMeta('backup_last'), '1000', '"Last backup made" as it was');
   assert.equal(w.store.get().last, 1000);
-  // A phone: no refusal; a write that fails part way is the failure line, no file kept.
-  let n = 0;
+  // A phone is not cut at 4 GiB (BZ2 holds the file made past it): its write runs on past 4 GiB, and a write that fails
+  // there, the disk full, is the failure line, no file kept.
+  let seen = 0;
   const phone = runIO('ios', media, {
-    write() {
-      if ((n += 1) > 3) throw new Error('disk full');
+    write(c) {
+      seen += c.length;
+      if (seen > 2 ** 32 + 512 * 1024) throw new Error('disk full');
     },
   });
   await w.backUp(phone);
+  assert.ok(seen > 2 ** 32, `the phone wrote past 4 GiB (${seen} bytes)`);
   assert.equal(w.store.get().failed, FAILED);
   assert.equal(phone.delivered, 0);
   assert.equal(phone.discarded, 1);
   assert.equal(await db.getMeta('backup_last'), '1000');
+});
+
+// The diff review (Nov 25): the auditor's F1 and F5 (backup-zip64 audit 8, 12).
+
+test('backup-zip64 audit 8: a backup file left by a killed run is swept before the room is read, its bytes counted free', async () => {
+  const db = await seeded();
+  const order: string[] = [];
+  // A killed run left a file as large as twice the level kept clear: with it there is no room, without it there is.
+  const left = 2 * SPACE.veryLowBytes;
+  let leftover = true;
+  const io = memoryIO(FILES, {
+    sweep() {
+      order.push('sweep');
+      leftover = false;
+    },
+    async room() {
+      order.push('room');
+      return { free: SPACE.veryLowBytes + 1000 + (leftover ? 0 : left), need: 1000 };
+    },
+  });
+  const w = createBackupWriter({ db, clock: fakeClock(NOW) });
+  await w.backUp(io);
+  assert.deepEqual(order, ['sweep', 'room'], 'swept first');
+  assert.equal(w.store.get().failed, null, 'the leftover\'s room is counted free, so the backup is made');
+  assert.equal(io.delivered, 1);
+});
+
+test('backup-zip64 audit 12: on the web a file of exactly 4,294,967,295 bytes is made, and one byte more is refused', async () => {
+  const library = async () => {
+    const db = memoryDb();
+    await db.addMoment(moment('long', null, W1, [piece('long', 'long', W1, { kind: 'video', file_path: 'walks/moments/long.mov', body: null })]));
+    return db;
+  };
+  const make = async (n: number) => {
+    const io = runIO('web', (ref) => (ref === 'walks/moments/long.mov' ? zeros(n) : null));
+    const w = createBackupWriter({ db: await library(), clock: fakeClock(NOW) });
+    await w.backUp(io);
+    return { io, failed: w.store.get().failed };
+  };
+  // What the file holds beside the video does not depend on its size.
+  const probe = await make(MiB);
+  const beside = probe.io.size() - MiB;
+  const exact = await make(2 ** 32 - 1 - beside);
+  assert.equal(exact.failed, null);
+  assert.equal(exact.io.size(), 2 ** 32 - 1, 'the largest plain zip is made');
+  assert.equal(exact.io.delivered, 1);
+  const tail = Buffer.from(await exact.io.read(exact.io.size() - 42, 42));
+  assert.notEqual(tail.readUInt32LE(0), 0x07064b50, 'and plain: no ZIP64 locator');
+  assert.equal(tail.readUInt32LE(20), 0x06054b50);
+  const over = await make(2 ** 32 - beside);
+  assert.equal(over.failed, TOO_LARGE, 'one byte more is refused');
+  assert.equal(over.io.delivered, 0);
+  assert.equal(over.io.discarded, 1);
 });
 
 test('BZ3 the seeded library\'s backup is fflate\'s Zip\'s bytes, entry by entry, for the same clock', async () => {
