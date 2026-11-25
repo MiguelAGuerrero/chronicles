@@ -1,0 +1,83 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Back up everything (BK1-BK14, decisions 0241, 0249)"
+      ],
+      "body": "- [owner] A backup of a large library (tens of gigabytes, minutes of writing) may be cut short by the screen lock, the app sent to the background mid-write; keeping the screen awake while a backup is made would change what the phone does while the page is open, so it waits for the owner (the backup-zip64 diff review's auditor F1, medium; deferred by the run, not built).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Back up everything (BK1-BK14, decisions 0241, 0249)"
+      ],
+      "body": "- [loop] On the web the 4 GiB refusal is decided at the chunk that crosses it (`backup/shell.ts`, `byteLimit`), after the web's `backupIO()` has held up to 4 GiB in the tab (`lib/export/index.web.ts`); iPhone Safari may lose the tab first. Refusing before `open` when the media's Blob sizes alone pass the limit needs the web's io to report those sizes, a change in `lib/export` beyond the backup-zip64 slice; keep the crossing cut as the backstop (the diff review's auditor F3, engineering, low; test `backup-zip64 audit` next: the web refuses before anything is written).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Back up everything (BK1-BK14, decisions 0241, 0249)"
+      ],
+      "body": "- [loop] On a phone \"Last backup made\" moves once the share sheet closes (decision 0249), whatever the target did: a backup past 4 GiB saved to a FAT32 card, or to an Android content URI that cannot take it, fails there and the line still claims a file was made (pre-existing; the backup-zip64 diff review's auditor, engineering, low; device only, `docs/NATIVE_UNVERIFIED.md`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture",
+        "--after",
+        "open a backup past 65,535 files and one past 4 GiB"
+      ],
+      "body": "- [ ] **Do:** on a phone with less room than the backup needs but more than the room check asks for (fill it with a large video while a backup of a big library is made), and once more with the app killed mid-backup and opened again. **Expect:** a write that fails (ENOSPC from `FileHandle.writeBytesSync`, past 2^31 or 2^32 bytes) says \"The backup could not be made, and no file was kept. Try again.\" and nothing is left under the cache's `exports/`; after the kill, the next backup sweeps the leftover `chronicles-backup-*.zip` before the room is read (backup-zip64 audit 8) and is made; a `delete()` that fails stays quiet. Never run on a phone. (BZ2, BZ5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture",
+        "--after",
+        "on a phone with less room than the backup needs"
+      ],
+      "body": "- [ ] **Do:** back up a library of about 20 GB on an iPhone and an Android phone, once with the screen left to lock, and save it through the share sheet to Files, to Drive, to a FAT32 card (Android) and to an Android content URI. **Expect:** how long fflate's CRC takes in Hermes over 20 GB, written down; whether the screen lock cuts it short (if so, the `[owner]` keep-awake item in `docs/DEFERRED.md` is answered); each target either keeps the whole file or says it could not, and \"Last backup made\" moves when the sheet closes whatever the target did (decision 0249). Never run on a phone. (BZ2)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "note",
+        "open a backup past 65,535 files and one past 4 GiB"
+      ],
+      "body": "  Also a streaming reader (libarchive's `bsdtar` without seeking, Archive Utility if it streams) on an entry past 4 GiB: its local header has no ZIP64 field and version 20, its data descriptor eight-byte sizes, as Go's `archive/zip` writes; readers of the central directory read it (UnZip 6.00, Python), a streaming one may not (the backup-zip64 diff review's auditor F8, rejected as a change).\n",
+      "target": "sha256:42632c80d4ba1f199a59ee687b691afa7e48d1bd1c24322ba27c573fde6faa13"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Backup past one plain zip (the backup zip"
+      ],
+      "body": "| Backup past one plain zip (the backup zip's records and reader are ours around fflate's streams: fflate's bytes within 65,535 entries and 4 GiB, ZIP64 past them; the web keeps its refusal past 4 GiB, a phone makes the file; nothing a person sees changes but that refusal; BZ1-BZ7, decisions 0256, 0266; from G14) | built; web and unit tests only; a phone has never written a file past 4 GiB | tests first, then the code, 2026-11-25 (`check:test-first` 7 of 7); written and read back past each limit by our reader, `unzip -t` and Python's `zipfile` | `specs/backup-zip64/spec.md` | the steward's plan review, 2026-11-25: 7 accepted (backup-zip64 audit 1-7), 3 owner's answers (decision 0266); the diff review (auditor), 2026-11-25: 7 fixed (backup-zip64 audit 8, 9, 11-14; BZ5's phone half), 1 deferred to the owner (keep-awake), 1 filed low (audit 10), 1 rejected |\n",
+      "target": "sha256:796b645d6a7bf23e1ba892e984c5787f407bbcfa957919c547f1ac8cbbbb63c2"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Backup past one plain zip (the backup zip"
+      ],
+      "body": "| Backup past one plain zip (the backup zip's records and reader are ours around fflate's streams: fflate's bytes within 65,535 entries and 4 GiB, ZIP64 past them; the web keeps its refusal past 4 GiB, a phone makes the file; nothing a person sees changes but that refusal; BZ1-BZ7, decisions 0256, 0266; from G14) | built; web and unit tests only; a phone has never written a file past 4 GiB | tests first, then the code, 2026-11-25 (`check:test-first` 7 of 7); written and read back past each limit by our reader, `unzip -t` and Python's `zipfile` | `specs/backup-zip64/spec.md` | the steward's plan review, 2026-11-25: 7 accepted (backup-zip64 audit 1-7), 3 owner's answers (decision 0266); the diff review (auditor), 2026-11-25: 7 accepted, 6 fixed (backup-zip64 audit 8, 9, 11-14) and 1 filed low (audit 10, it needs the web's io), 1 deferred to the owner (keep-awake), 1 rejected |\n",
+      "target": "sha256:3f27e3d0b79b7a7c3652d185e082d8099aeb650dce70eb4970e70ad32a30f45d"
+    }
+  ]
+}

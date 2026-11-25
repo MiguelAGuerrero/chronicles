@@ -128,5 +128,18 @@ Built 2026-11-25 under `/tend inbox G14 yes` on `tend/inbox-20261125-1923`, from
   ("Past the sights" over it), green on its rerun; on `main` (842dc419) it failed 1 of 3 (`e2e:baseline`), at another
   step. No screen changed.
 - **Left the backup area no rougher** (`node scripts/tend.js base --here backup`: unseen, nothing above low open).
-- **Native:** never run on a phone; two items in `docs/NATIVE_UNVERIFIED.md`, "Media and capture" (a phone's write
-  past 4 GiB and 65,535 files; Archive Utility and Explorer).
+- **The diff review** (the auditor, 2026-11-25, one round): correct within and past both limits for every reader that
+  runs here, the differential a real comparison with main. Eight findings: seven accepted, six fixed test first (backup-zip64
+  audit 8 a leftover file swept before the room is read, the phone's io in `lib/export/index.native.ts` the one file
+  outside `backup/`; 9 the reader refuses a ZIP64 value it does not carry, a short ZIP64 field, an extra field past its
+  header, bytes past the directory and a short read; 11 a clock moving on every read, in zones far from UTC; 12 the web
+  at exactly 4,294,967,295 bytes and one more; 13 the boundary records by Python's `zipfile`, 65,536 entries by `unzip
+  -t`; 14 the directory written in one array). F3, the web refusing before anything is written, needs the web's io to
+  report sizes: filed `[loop]` low in `docs/DEFERRED.md` instead (audit 10 not built). Keeping the screen awake while
+  making: `[owner]` medium in `docs/DEFERRED.md`, not built. F8 (a streaming reader past 4 GiB) rejected as a change,
+  noted for the device. BZ5's phone half now writes past 4 GiB before its write fails; the text checks say they are.
+  The differential now holds the clock apart (a moving clock, `Date.now()` held far off for the branch), runs in UTC and
+  Chatham, checks the old writer is main's, and compares six failures: 0 bytes differ, the same state.
+- **Native:** never run on a phone; four items in `docs/NATIVE_UNVERIFIED.md`, "Media and capture" (a phone's write
+  past 4 GiB and 65,535 files; Archive Utility and Explorer, and a streaming reader; a full disk and a killed run; 20 GB
+  with the screen locking and each share target).
