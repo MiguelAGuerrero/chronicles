@@ -1,0 +1,39 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T64",
+        "--reason",
+        "the owner's yes in person, 2026-11-25 (\"T64 as a quick batch (Recommended)\"; the words: \"Through green and views (Recommended)\"); built in tend outing T64, the review's fixes tend outing audits 1-3 and decision 0265"
+      ],
+      "target": "sha256:1a9e427f589132714b1b34669cbcdbb75e5c9d156faf2d33caaa11b7bba52d2e"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **OJ18's and SHF27's leaning names, after `tend outing T64` and audits 1-3** (Nov 25; the owner's yes in person to T64, 2026-11-25, \"T64 as a quick batch (Recommended)\", the words \"Through green and views (Recommended)\"; and \"Keep words, allow wrapping (Recommended)\", decision 0265). What ships: the outing's leaning over parks and viewpoints is named \"Through green and views\" (`lib/outing/leanings.ts`), its id, chips and order kept; the name may wrap on its card and as the opened journey's title, never cut. Still saying the old: `specs/outing-journey/spec.md` OJ18 (l.158), whose examples are both stale (\"Along the storefronts\" for \"Among the shops\", and \"Through green\"); suggested: (\"Among the shops\", \"Past old places\", \"Through green and views\"); `specs/shop-facets/spec.md` SHF27 (l.116), the leanings (\"Among the shops\", \"Past old places\", \"Through green\", \"A bit of each\"); suggested: \"Through green and views\" in its place; `specs/outing-journey/mock.html` l.158 is historical and stays. The scenic routes' \"Through green\" (`specs/scenic-routes/`) is another table and stays. The loop never edits a spec; the specs mirror the owner's doc: reword there and re-export.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing",
+        "--after",
+        "switch \"Views & oddities\" on and off"
+      ],
+      "body": "- [ ] **Do:** on a phone 320 pt wide and on one 390 pt wide, at the default text size and at the first step up, with no walk and then with a walk recording (minimize it and open Plan an outing again from Explore), switch only \"Views & oddities\" on, read the journey card \"Through green and views\", then open it. **Expect:** the opened journey's title wraps rather than cuts, \"views\" always visible, with Back level with its first line; the card's name wraps rather than cuts; at the default size with no walk both stay on one line (`tend outing T64`, `tend outing audit 1`, decision 0265; pictured on the web only, at 390 and 320 px).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 25, `/tend inbox` T64: a fifth batch, one end pass** (opened from `f311d4e4`; the owner's yes in person, 2026-11-25, \"T64 as a quick batch (Recommended)\", the words \"Through green and views (Recommended)\"; built test-first with unit tests only, the journeys and one review at the end, one push; an inbox run, so lenses 1-7 were not run).\n- Built: T64 `tend outing T64`: the outing's leaning over parks and viewpoints is named \"Through green and views\" (`lib/outing/leanings.ts`), its id, chips and order kept. The name is shown on a journey's card and as the opened journey's title, and nothing builds a sentence or a spoken label on it. The scenic routes' \"Through green\" (`nav/scenic.ts`) is another table and stays.\n- The review (the auditor, the ux-reviewer and the steward, one round, with pictures at 390 and 320 px, branch and main): 6 accepted, 1 rejected, 0 deferred, 0 filed. The owner answered in person after it, \"Keep words, allow wrapping (Recommended)\", decision 0265. Fixed: `tend outing audit 1` (the opened title may wrap beside Back, level with its first line, never cut; whole on its card and as the title with a walk recording at 390 and 320 px, where it takes two lines at 320; one line at the default text with no walk), `2` (PRODUCT.md names the leaning), `3` (the outing rule's line: a leaning is named for all it holds; its name a phrase, not a category title; the scenic table apart; it may wrap). Rejected as a change: \"views\" for a journey of views and oddities, and the leaning-wide name on a journey of one kind (ux U2, the steward's Silent 1 and 2): the owner's words, chosen with the chip in view, the entry's \"Otherwise\" not taken. No mock-up was needed: words only, a layout allowed to wrap, pictured at 320 and 390.\n- The e2e on one export after the last source change: outing 91 ok, journey 47 ok, launch 59 ok, nothing red or flaky (before the review: outing 86 to 87, journey 47, startfar 10). The T64 checks and the OJ17/OJ43 check seen failing on main's build; audit 1's 320 px title check seen failing on the build before it (`cut`, 201 px in 149 px). \"tend map audit 51\" is the known flake, red on main's build too.\n- Filed: no entry. \"Open before the loop\": OJ18's and SHF27's leaning names; NATIVE_UNVERIFIED the journey's name wrapping on a phone, no walk and recording (Plan an outing). Lens 0: outing's first lines, E-outing-1 to 4, drafted in the steward's words and proposed for the owner to ratify; each met, provisionally (E-outing-1, 3 and 4 by their own checks in the final outing run; E-outing-2, its check pending, by the four pictures of the walk-recording state).\n- Still saying the old: `specs/outing-journey/spec.md` OJ18 (l.158, also \"Along the storefronts\" for \"Among the shops\"), `specs/shop-facets/spec.md` SHF27 (l.116); `specs/outing-journey/mock.html` l.158 (historical).\n- The balance: outgrowing its base (six of the eight areas swept twice or more are rough). The weekly full pass, due since 2026-11-23 (the last on 2026-11-16), was not run, per the owner's batch procedure: the batch runs the journeys of its own checks.\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}

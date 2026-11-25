@@ -25,7 +25,6 @@
       "MA",
       "MC",
       "MD",
-      "MG",
       "MP",
       "NF",
       "NI",
@@ -42,10 +41,8 @@
       "RC",
       "RE",
       "RL",
-      "RT",
       "RX",
       "RY",
-      "SB",
       "SF",
       "SG",
       "SP",
@@ -58,13 +55,12 @@
       "VT",
       "WB",
       "WI",
-      "WT",
       "XS"
     ],
     "commits": {
-      "growth": 158,
-      "refinement": 939,
-      "other": 743
+      "growth": 149,
+      "refinement": 878,
+      "other": 716
     },
     "areas": {
       "rough": [
@@ -147,7 +143,7 @@
       "unansweredT": 1
     },
     "inbox": {
-      "items": 86,
+      "items": 87,
       "unanswered": 57,
       "phone": 4,
       "bySection": {
@@ -163,7 +159,7 @@
         "From /slice reaction-links": 1,
         "From /slice: the row under the line": 3,
         "Next evolutions": 8,
-        "Open before the loop": 52
+        "Open before the loop": 53
       }
     },
     "unattributed": [
@@ -241,13 +237,13 @@
   },
   "declined": [],
   "compass": {
-    "date": "2026-11-24",
+    "date": "2026-11-25",
     "runs": 12,
     "shares": {
-      "first": 0.5,
+      "first": 0,
       "second": 0
     },
     "trend": "none",
-    "verdict": "too few refinement findings to say: 2 and 3 in the halves, 3 each at least"
+    "verdict": "too few refinement findings to say: 1 and 3 in the halves, 3 each at least"
   }
 }
