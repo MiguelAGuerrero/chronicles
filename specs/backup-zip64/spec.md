@@ -112,4 +112,21 @@ backup journey runs as it is (BZ7).
 
 ## Record
 
-Not built yet.
+Built 2026-11-25 under `/tend inbox G14 yes` on `tend/inbox-20261125-1923`, from `origin/main` 842dc419.
+
+- **Passed:** BZ1-BZ7 and backup-zip64 audit 1-7, each written first as a todo (`check:test-first backup-zip64`: 7 of
+  7) and its wiring reverted once to see it fail (the ZIP64 end forced off: BZ1, BZ4; `byteLimit` forced to none: BZ5,
+  BZ7; a fixed header time: BZ3; the 8-byte descriptor off: BZ2, once its descriptor check was added). BZ7's words pass
+  before and after by design. `npm test` (3,969), typecheck, lint, `check:docs`, `check:vision`.
+- **Past the limits:** a backup of 70,000 photos (web io), read back whole by our reader, `unzip -t` and fflate's
+  `unzipSync`; one with a video of 4 GiB and a MiB before 70,000 photos, and one of two videos of 2 GiB and a MiB (phone
+  io), read back whole by our reader and Python's `zipfile`, sparse on disk and removed. `shell.test.ts` takes about 80 s.
+- **Within them:** an old/new differential (main's writer against this one, the clock held) over an empty library, a
+  seeded library, odd refs, a waiting delete and an empty file, and exactly 65,535 entries, on a web and a phone io:
+  0 bytes differ, and the page's state the same after no room and a failed write (the run's scratchpad, for the review).
+- **Journeys:** `backup` green, its file untouched (BZ7); `launch` stopped once on the branch at the Layers click
+  ("Past the sights" over it), green on its rerun; on `main` (842dc419) it failed 1 of 3 (`e2e:baseline`), at another
+  step. No screen changed.
+- **Left the backup area no rougher** (`node scripts/tend.js base --here backup`: unseen, nothing above low open).
+- **Native:** never run on a phone; two items in `docs/NATIVE_UNVERIFIED.md`, "Media and capture" (a phone's write
+  past 4 GiB and 65,535 files; Archive Utility and Explorer).

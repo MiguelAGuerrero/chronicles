@@ -623,7 +623,9 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
   the share sheet on a phone (the room read first; the file deleted from the phone's cache after). Under the button,
   "Last backup made October 3", or "Not backed up yet"; files that were gone are named by kind in words. No size, count
   or gauge, nothing celebrates, and nothing else ever reminds you to back up. The file names its format version, and
-  the app reads every version it has written; restoring from it is the next slice. Built on web, native unverified.
+  the app reads every version it has written; restoring from it is the next slice. A library of any size is one
+  zip (ZIP64 past 65,535 files or 4 GiB; decisions 0256, 0266; specs/backup-zip64), but on the web, which holds the file
+  in memory, a backup past 4 GiB is refused in words. Built on web, native unverified.
 - There is no Settings screen, no dark mode (light forced), and no account.
 
 ## Platforms

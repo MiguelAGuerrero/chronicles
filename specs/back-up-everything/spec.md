@@ -158,6 +158,10 @@ Built Nov 20-21 (from G10, `/tend inbox G10 yes`, branch `tend/inbox-20261120-23
 sheet, the cache file and the room on a phone have never run on a device (`docs/NATIVE_UNVERIFIED.md`, "Media and
 capture").
 
+- **Past one plain zip** (Nov 25, `specs/backup-zip64`, decisions 0256, 0266): the zip's records are ours, ZIP64 past
+  65,535 entries or 4 GiB; audit 12 and 13's tests now hold the backup written and read back whole (BZ1, BZ2). BK11's
+  too-large line is said only on the web past 4 GiB, which holds the file in memory; a phone makes the file (BZ5).
+
 - **BK1-BK14 pass**: tests first `21227ba` (`check:test-first` 14 of 14); the Db reads `f796ea1` (contract cases over
   the fake, IndexedDB and SQLite); the format, reader and writer `08099eb` (`src/lib/__tests__/backup/core.test.ts`,
   `shell.test.ts`, the frozen `fixtures/backup-v1.zip` pinned by `backup-v1.sha256`); the page, the row and the

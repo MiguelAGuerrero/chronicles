@@ -1,0 +1,56 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture",
+        "--after",
+        "Your data\", then \"Back up everything\", and save the zip to Files (iOS)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone whose library holds more than 4 GiB of photos and videos (one video past 4 GiB if one can be made), and on one with more than 65,535 photos, tap \"Your data\", then \"Back up everything\", and save the zip to Files or Downloads; copy it to a computer and run `unzip -t` on it. **Expect:** no refusal; the share sheet offers one `chronicles-backup-<date>.zip` past 4 GiB, written through `backupIO()`'s `FileHandle.writeBytesSync` (no write of a file this size has ever run on a phone); `unzip -t` finds no error and lists every photo, video and memo under `media/`; a phone without room still says so (BK7). Never run on a phone. (BZ1, BZ2, BZ5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media and capture",
+        "--after",
+        "on an iPhone and an Android phone whose library holds more than 4 GiB"
+      ],
+      "body": "- [ ] **Do:** open a backup past 65,535 files and one past 4 GiB (both written by the phone, or by `shell.test.ts`'s BZ1 and BZ2 with the file kept) in macOS's Archive Utility and in Windows' Explorer. **Expect:** both open the zip and show every entry; a video past 4 GiB extracts whole. Never run (decision 0256 names them; the tests use UnZip 6.00 and Python's `zipfile`, backup-zip64 audit 2). If one cannot open it, the page says nothing (decision 0266). (BZ1, BZ2)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Restore from a backup: the second slice of decision 0241",
+        "--reason",
+        "its web sub-item widened past several hundred MB by the backup-zip64 plan review (backup-zip64 audit 1, decision 0266)"
+      ],
+      "body": "- Restore from a backup: the second slice of decision 0241's L, on `backup/core`'s reader; it adds what is in the file, moments deleted since it was made included (the owner, in person, 2026-11-20, decision 0249), never overwrites or deletes; neither `offered` nor the checklists come back as a list of what is left (the steward, Never and decision 0230); a carried transcript stays a cache (back-up-everything audit 3). The page names no Restore until then.\n  - On the web the zip is held as Blob parts until it downloads whole (as `exportWalk` does); on iPhone Safari a library with long videos may fail or be slow there (brief, engineering unknowns). Past 4 GiB in bytes the web refuses in words, \"This backup would be too large for one file, so it was not made.\" (the owner, decision 0266; phones write ZIP64 past it); below that, a library past what the tab can hold fails with \"The backup could not be made, and no file was kept. Try again.\" however often it is tried, and nothing says why. Untested: a test needs a browser with a memory ceiling and a library of several hundred megabytes to a few gigabytes (BK6; backup-zip64 audit 1).\n  - The app's own drop of an empty walk waiting for Undo is not saved for a relaunch (`volatile`, EW9), so the backup holds that walk, with no moment; a split or a join waiting is backed up as stored, losing nothing the person kept (BK14).\n",
+      "target": "sha256:1fb4860df7d174f814d0b8d52cc28b5b0c549e0c7ac4f229237e5af63a985b75"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--after",
+        "Back up everything (Your data"
+      ],
+      "body": "| Backup past one plain zip (the backup zip's records and reader are ours around fflate's streams: fflate's bytes within 65,535 entries and 4 GiB, ZIP64 past them; the web keeps its refusal past 4 GiB, a phone makes the file; nothing a person sees changes but that refusal; BZ1-BZ7, decisions 0256, 0266; from G14) | built; web and unit tests only; a phone has never written a file past 4 GiB | tests first, then the code, 2026-11-25 (`check:test-first` 7 of 7); written and read back past each limit by our reader, `unzip -t` and Python's `zipfile` | `specs/backup-zip64/spec.md` | the steward's plan review, 2026-11-25: 7 accepted (backup-zip64 audit 1-7), 3 owner's answers (decision 0266); the diff review (auditor) pending |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Backup past one plain zip"
+      ],
+      "target": "sha256:c1ac80373b8369101152505319ffa232da790d3885e60789c90cbe1a1abfa756"
+    }
+  ]
+}

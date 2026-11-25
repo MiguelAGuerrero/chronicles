@@ -386,7 +386,7 @@ Captures and media
   splitPlace.ts              where a piece split out goes: the trace at its time, a pause's start, the last fix before a gap (MS16)
   split/                     Split out through the Undo window (shell.ts, index.ts): shown at once, stored after (MS16)
   export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers; `backupIO()` per platform for the whole-app backup (the share sheet and the room on a phone, a download on the web)
-  backup/                   the whole-app backup (specs/back-up-everything): core.ts the format (`chronicles-backup`, version 1), every store and meta key classified, the reader and its upgrade chain, a waiting delete left out, the page's words; shell.ts the writer over db and clock; index.ts the instance
+  backup/                   the whole-app backup (specs/back-up-everything): core.ts the format (`chronicles-backup`, version 1), every store and meta key classified, the reader and its upgrade chain, a waiting delete left out, the page's words, `byteLimit` (the web's 4 GiB, decision 0266); zip.ts the zip's records and their reader, ours around fflate's `ZipPassThrough` (fflate's bytes within 65,535 entries and 4 GiB, ZIP64 past them; specs/backup-zip64); shell.ts the writer over db and clock; index.ts the instance
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
   deletion/index.ts          the one Undo window wired to timers and storage; useDeletions.ts: useHidden / useVisible
