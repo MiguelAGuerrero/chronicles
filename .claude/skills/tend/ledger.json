@@ -1,8 +1,8 @@
 {
-  "lastT": 63,
+  "lastT": 64,
   "lastG": 15,
   "balance": {
-    "date": "2026-11-24",
+    "date": "2026-11-25",
     "days": 14,
     "slicesGrown": [
       "BC",
@@ -63,7 +63,7 @@
     ],
     "commits": {
       "growth": 158,
-      "refinement": 921,
+      "refinement": 939,
       "other": 743
     },
     "areas": {
@@ -141,19 +141,19 @@
       "line": "more than half of the areas swept twice or more, and more than three (ROUGH_SHARE 0.5, LIMITS.rough 3; decision 0250)"
     },
     "open": {
-      "openT": 2,
+      "openT": 1,
       "phoneT": 4,
       "openG": 8,
-      "unansweredT": 0
+      "unansweredT": 1
     },
     "inbox": {
-      "items": 85,
-      "unanswered": 54,
+      "items": 86,
+      "unanswered": 57,
       "phone": 4,
       "bySection": {
         "From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, \"The line and the page\")": 3,
         "From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)": 6,
-        "From /tend": 6,
+        "From /tend": 5,
         "From the road engine's audit (2026-11-18)": 3,
         "From the outing journey's second audit (2026-11-18)": 1,
         "From the more-attractions audit (Nov 18)": 1,
@@ -163,11 +163,12 @@
         "From /slice reaction-links": 1,
         "From /slice: the row under the line": 3,
         "Next evolutions": 8,
-        "Open before the loop": 50
+        "Open before the loop": 52
       }
     },
     "unattributed": [
       "The \"Passing a place\" slider moved during a walk with Places off never reaches the walk's own `walk_pass`:",
+      "The atlas journey stops at `look-cancel` (a 30 s click timeout after \"tend explore audit 22:",
       "The mention picker still runs under the keyboard."
     ],
     "unrated": 43,
@@ -243,10 +244,10 @@
     "date": "2026-11-24",
     "runs": 12,
     "shares": {
-      "first": 1,
+      "first": 0.5,
       "second": 0
     },
-    "trend": "falling",
-    "verdict": "the compass is biting"
+    "trend": "none",
+    "verdict": "too few refinement findings to say: 2 and 3 in the halves, 3 each at least"
   }
 }

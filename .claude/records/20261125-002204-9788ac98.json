@@ -1,0 +1,52 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T63",
+        "--reason",
+        "the owner's yes in person, 2026-11-24 (\"T63 as a quick batch (Recommended)\"); built in tend explore T63, the review's fixes tend explore audits 50-54"
+      ],
+      "target": "sha256:d480f09c037a0d18cf85dce5e6598e9866dc378b065da04940d5f875cf92a134"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] The outing's \"Through green\" names a journey of views with no green stop** (2026-11-25)\n  Area: outing. Seen: `src/lib/outing/leanings.ts` l.16 (`{ id: 'green', name: 'Through green', chips: ['parks', 'viewpoints'] }`): with only \"Views & oddities\" on, the journey is titled \"Through green\" over three \"A view or an oddity\" stops (picture: the outing journey's `tend-explore-T63-town-320`); main does the same (the T63 review: ux U3, steward Silent 1). Rests on: `docs/research/ui-references.md` section 1.13, H2 (\"Use words, phrases, and concepts familiar to the user\").\n  Recommended: the leaning is named for what it holds, parks and views together, in words the owner picks, pictured at 320 px on the journey card and the opened journey's title. /vision: aligned (Earn: a journey's name says what it holds; words only, no rank, count or measure).\n  Precedent: none found (the leanings are their own list, `leanings.ts`, OJ17-OJ18).\n  Otherwise: viewpoints get a leaning of their own, or leave it.\n",
+      "number": "T64"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **OJ21's \"as the chips' own words\", and OJ23, after `tend explore T63` and audits 50-54** (Nov 25; the owner's yes in person to T63, 2026-11-24, \"T63 as a quick batch (Recommended)\"; decisions 0239 and 0264). What ships: the outing's \"viewpoints\" chip and its spoken name read the one table's name, \"Views & oddities\"; a card's summary and the town line take each chip's word for a sentence (`chipWord`, `lib/outing/chips.ts`), the kind's noun, so they still read \"Views\" (\"Around here. Views. 745 m on foot.\", \"Views here.\"), as decision 0264 has sentences keep the noun. Still saying the old: `specs/outing-journey/spec.md` OJ21 (l.164), a card's summary \"as the chips' own words\"; suggested: \"…what it includes by kind, in each chip's word for a sentence (a kind's noun from the one table, a shop chip's label)…\"; and OJ23 (l.173), which builds the town line \"only from a closed table of the atlas's own words\" (the code's note on it said \"as the chips' own words\", reworded in tend explore audit 53): the same rewording, if the owner wants the town line's words named there too. The loop never edits a spec; the specs mirror the owner's doc: reword there and re-export.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Plan an outing"
+      ],
+      "body": "- [ ] **Do:** on a phone, at its narrowest width and at the largest text size, open \"Plan an outing\", pick a place or \"Nowhere in particular\", and switch \"Views & oddities\" on and off; with VoiceOver, then TalkBack, move through the chips; with only \"Views & oddities\" on, read a journey card and open it. **Expect:** the chips stay one alphabetical list, \"Views & oddities\" last, whole (it may wrap inside its pill at the largest text, nothing lost or cut, none over another); the screen reader says \"Views & oddities\" plainly and its selected state; the card's summary and the town line say \"Views\", never \"Views & oddities\" (`tend explore T63`, audits 50-53).\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 25, `/tend inbox` T63: a fourth batch, one end pass** (opened from `6282c3e6`; the owner's yes in person, 2026-11-24, \"T63 as a quick batch (Recommended)\"; built test-first with unit tests only, the journeys and one review at the end, one push; an inbox run, so lenses 1-7 were not run).\n- Built: T63 `tend explore T63` (decisions 0239, 0264): the outing's \"viewpoints\" chip and its spoken name read the one table's name, \"Views & oddities\" (`categoryOf`), its id, aliases, match and slot word kept; it stays last of the alphabetical row. A card's summary and the town line take `chipWord`, the kind's noun, so they still read \"Views\". Every other attraction chip already matched the table (Art, Culture, Green, History); the shop chips have no row in it.\n- The review (the auditor, the ux-reviewer and the steward, one round, with pictures at 390 and 320 px): 7 accepted, 1 filed, 1 rejected. Fixed: `tend explore audit 50` (all five attraction chips read `categoryOf`, none a literal; the run's rule line says so), `51` (the chips' source checks: any quote, and the page's sentences held by what builds them), `52` (no chip's word for a sentence holds an \"&\"), `53` (journeyWords' notes on OJ21 and OJ23), `54` (PRODUCT.md names the chip). Kept as is: at 320 px with the chip off the row wraps to a fourth line (ordinary wrapping in a scroll view). Rejected: \"How far to look\" under the pinned card at 320 px (opinion; main the same).\n- The e2e on one export after the last source change: outing 82 ok; before the review, journey 47, startfar 10, outing 79 and \"tend map audit 51\" flaky (passed alone). The name checks seen failing on main's build; the row and sentence checks are guards that pass there too.\n- Filed: T64 [owner] the outing's \"Through green\" naming a journey of views with no green stop; \"Open before the loop\": OJ21's \"as the chips' own words\", and OJ23; NATIVE_UNVERIFIED the chip row at the largest text and with a screen reader (Plan an outing). E-explore-1 met provisionally.\n- Still saying the old: `specs/outing-journey/spec.md` OJ21 (l.164), \"as the chips' own words\", and OJ23 (l.173), the town line's words; `specs/outing-journey/plan.md` l.32 and `specs/outing-journey/mock.html` l.159 (historical).\n- Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 25, `/tend inbox` T63: a fourth batch, one end pass** (opened from `6282c3e6`; the owner's yes in person, 2026-11-24, \"T63 as a quick batch (Recommended)\"; built test-first with unit tests only, the journeys and one review at the end, one push; an inbox run, so lenses 1-7 were not run).\n- Built: T63 `tend explore T63` (decisions 0239, 0264): the outing's \"viewpoints\" chip and its spoken name read the one table's name, \"Views & oddities\" (`categoryOf`), its id, aliases, match and slot word kept; it stays last of the alphabetical row. A card's summary and the town line take `chipWord`, the kind's noun, so they still read \"Views\". Every other attraction chip already matched the table (Art, Culture, Green, History); the shop chips have no row in it.\n- The review (the auditor, the ux-reviewer and the steward, one round, with pictures at 390 and 320 px): 7 accepted, 1 filed, 1 rejected. Fixed: `tend explore audit 50` (all five attraction chips read `categoryOf`, none a literal; the run's rule line says so), `51` (the chips' source checks: any quote, and the page's sentences held by what builds them), `52` (no chip's word for a sentence holds an \"&\"), `53` (journeyWords' notes on OJ21 and OJ23), `54` (PRODUCT.md names the chip). Kept as is: at 320 px with the chip off the row wraps to a fourth line (ordinary wrapping in a scroll view). Rejected: \"How far to look\" under the pinned card at 320 px (opinion; main the same).\n- The e2e on one export after the last source change: outing 82 ok; before the review, journey 47, startfar 10, outing 79 and \"tend map audit 51\" flaky (passed alone). The name checks seen failing on main's build; the row and sentence checks are guards that pass there too.\n- Filed: T64 [owner] the outing's \"Through green\" naming a journey of views with no green stop; \"Open before the loop\": OJ21's \"as the chips' own words\", and OJ23; NATIVE_UNVERIFIED the chip row at the largest text and with a screen reader (Plan an outing). E-explore-1 met provisionally by its own check (atlas, 236 ok, on the final export).\n- Still saying the old: `specs/outing-journey/spec.md` OJ21 (l.164), \"as the chips' own words\", and OJ23 (l.173), the town line's words; `specs/outing-journey/plan.md` l.32 and `specs/outing-journey/mock.html` l.159 (historical).\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}
