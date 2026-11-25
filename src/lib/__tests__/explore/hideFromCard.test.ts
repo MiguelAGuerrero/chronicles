@@ -9,9 +9,9 @@ import type { Kind } from '../../discovery/types';
 import { KINDS, kindOf, parseHidden, visibleMarks, foundLine, type ChecklistItem } from '../../explore/explore';
 import { withKind } from '../../explore/settingsChange';
 import type { ExploreSettings } from '../../explore/settings';
+import { classesOfArchive, subsetOf } from '../../presence/presence';
 
 const DEFAULT_SETTINGS: ExploreSettings = { hidden: new Set(), rangeM: 100, passM: 8, haptic: false };
-import { classesOfArchive, subsetOf } from '../../presence/presence';
 
 // Loaded in each test, so a todo fails for its own reason while the module lacks what it names.
 const card = () => import('../../explore/placeCard');
