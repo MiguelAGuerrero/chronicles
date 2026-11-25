@@ -154,3 +154,30 @@ accepted 8, deferred 0, rejected 0.
 - S6 (low): the found card's head; the owner, today's (Q3). HK5; no change.
 - Plan call 2 (the subtype row with its kind off): kept, off and dimmed. HK3; audit 6. Plan call 6 (a failed read):
   What I'm into's sentence from one constant. HK10; audit 7. Calls 3, 4 and 7: as written.
+
+## Record
+
+Built 2026-11-25 under `/tend inbox G12 yes` on `tend/inbox-20261125-2132`, from `origin/main` 98e6b9de.
+
+- **Passed:** HK1-HK10 and poi-hide-from-card audit 1-7, each written first as a todo (the unit tests in
+  `explore/hideFromCard.test.ts`, the `hidekind` journey's checks, HK5's in the `walk` journey), then made real with its
+  code, each unit test's wiring reverted once and seen failing (the retired kind's hiding, its words and its subtype; the
+  stored `towers`; presence's split; the "?" head; the found head; the locked row; the card that goes; the failed read;
+  the gate's `at`; the scroll that waits for heights).
+- **The tables moved with it:** the class tree (XS3), the kinds' order (E16 and its kin), presence's fingerprint (p12
+  added beside p11), the p11 asserts and the atlas's and the archive's codes (`a16.p12`, a16.p11 rows read again).
+- **Journeys:** `hidekind` (new, 17 checks, pictures at 390 and 320) and `launch` green after the last code change; `walk`
+  (163 checks, HK5's among them), `marks`, `into`, `subtypes` and `small-places` green on the branch before the last
+  core-only change (the retired kind a subtype again); `placeoffer` fails "PO5: with Places off a moment by two places is
+  not asked about" here and on `main` 98e6b9de 3 runs of 3 (`e2e:baseline`), not this slice's.
+- **Old/new differentials against main** (the run's scratchpad, for the review): every word and switch of the screens
+  other than the card, the sheet and What I'm into (a find's line for every kind, "Passed …", the Found list's rows, what
+  a kind is to the planner, the scenic routes and the outing, an area's bars for seven stored choices, the card's capture
+  line, the places each choice hides): only What I'm into's rows differ, and the new kinds' own answers; over the live
+  places-us archive (places-us-20261123.40, 173,704 places): 1,288 water towers and 21 clock towers change kind, nothing
+  else of any place moves, and no stored choice hides or shows a place differently.
+- **The base:** `node scripts/tend.js base --here explore walk-screen presence` reads as it did before the slice (explore
+  and walk-screen rough by a change since their sweeps, this slice's among walk-screen's; presence's two mediums); left
+  each area no rougher by an open item.
+- **Native:** never run on a phone; two items in `docs/NATIVE_UNVERIFIED.md`, "Navigation and tabs" (the sheet over the
+  walk's map, its switches and closes, the spoken names; What I'm into at the kind's row from it).

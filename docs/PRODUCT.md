@@ -224,7 +224,7 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
   archive adds what the app could not show before: waterfalls, caves, hot springs and old trees (a new kind, Nature),
   botanical gardens, zoos and aquariums (a kind of their own), fountains, concert halls,
   observatories and carousels; listed buildings split into bridges, mills, stations, lighthouses, courthouses, forts,
-  towers, old machines and old taverns; ghost towns (off by default) apart from ruins; markers apart from plaques.
+  clock towers and water towers (each its own switch since decision 0254), old machines and old taverns; ghost towns (off by default) apart from ruins; markers apart from plaques.
   Small things start off unless they are art. An area's bars count the subtypes by the size of the stop (a plaque a
   quarter, a little library a half) only for a reader who has them on; small places never keep a park a park, never lean a
   route, and a museum passed is never lost among plaques.
@@ -364,8 +364,12 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
 - **No Explore mode** (decision 0234; a walk starts with the layers the ready map shows, and a switch on it is remembered for every map, decision 0260). The walk's Layers panel lists **Places**: "?" marks
   within range (60-300 m), with the range ring while the settings are up, an optional pocket alert (a double-tap once per place, on phones and
   browsers that can buzz; its row says it needs Places on), and a place's card carrying **Camera**, **Voice** and **Note**
-  at any distance, a "?" too except on a ride (decisions 0246, 0247: a place is a point, and a long bridge's far end is still the bridge):
-  a capture begun there finds the place, with nothing armed for a later one, and one taken near a place from the
+  at any distance, a "?" too except on a ride (decisions 0246, 0247: a place is a point, and a long bridge's far end is still the bridge).
+  An unfound place's card names its kind under the name ("Monuments and memorials · Plaques"; a "?" says "A place to find"
+  alone) and has **More** at its top right, which opens **Show on the map** (decision 0254, `specs/poi-hide-from-card`): the
+  kind and its subtype as What I'm into's own switches, acting at once on the map behind, then "What I’m into ›", which opens
+  the page at that kind with Back reading "Walk"; a found place's card has no More (a find shows whatever its kind). A capture
+  begun on a card finds the place, with nothing armed for a later one, and one taken near a place from the
   stack finds nothing by itself, so a find needs Places on. Taken within 30 m of places you haven't found, it brings one quiet line at the
   top of the map instead (decision 0251): "Was this photo about Old Bridge?" with Yes and Leave it; with several places they become choices
   on the map (a ring, their names) and a tap ties the moment to one. A tie shows "Found: Old Bridge" with Undo; Leave it keeps the moment
@@ -605,7 +609,8 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
   off", never a count; none as installed), and a little space above a kind that follows a subtype;
   at large text the rows drop their icons and indents so labels wrap only between words; every switch saves as it
   changes. In the walk's drawer the row is a short section of its own, "Explore", after the walk's settings. A walk
-  goes on under it; the row and the page carry no count. Built on web, native unverified.
+  goes on under it; the row and the page carry no count. A place's card reaches the same page from its More (decision
+  0254). Built on web, native unverified.
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a

@@ -105,3 +105,10 @@ plan's questions and the review's four calls, Nov 18, are in its Decisions. Subt
   `[role=switch][data-testid]`: the Switch inside it is a `role=switch` of its own; `E2E_ONLY=into` is the
   slice's journey (pictures `into-*`). The journeys that read kinds open the page: subtypes, small-places, marks, walk,
   tabs, complexes; nudge checks the pocket alert stays in the drawer.
+- **A second way in, from a place's card** (specs/poi-hide-from-card HK6, decision 0254): the card's More opens its kinds
+  sheet (`components/walk/PlaceKinds`), whose "What I’m into ›" closes the sheet first (one modal at a time, and the Modal
+  never stands over the page) and then calls `openInto('walk', <the title row's kind>)`: `/into?from=walk&at=<kind>`. The
+  route reads `at` through `intoAt` (a kind of `KINDS`, else none) and the page scrolls once, with no animation, when
+  every child above that row has its height (`intoScrollY`: the row's top less its heading's height, so the row stands
+  under its pinned heading); never again on that visit. The sheet's switches are this page's (`useExploreSettings`), so
+  either one turned back on brings the places back.

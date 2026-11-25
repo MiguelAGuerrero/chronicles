@@ -1,0 +1,44 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--after",
+        "Backup past one plain zip"
+      ],
+      "body": "| Hide a kind from its card (an unfound place's card on the walk names its kind under the name and has More, opening \"Show on the map\": its kind and subtype as What I'm into's switches, acting at once, then the page at that kind; a \"?\" card's kind only in its sheet; a found card as today; clock towers apart from water towers, `PRESENCE_CODE` p12; HK1-HK10, decision 0254, from G12) | built; web and unit tests only; the sheet over the walk map has never run on a phone | tests first, then the code, 2026-11-25; the `hidekind` journey (new) green at 390 and 320; old/new differentials against main: the words of every other screen, and the live places-us archive (1,309 towers change kind, nothing else) | `specs/poi-hide-from-card/spec.md` | the steward's plan review, 2026-11-25: 8 accepted (poi-hide-from-card audit 1-7), 3 owner's answers; the diff review pending |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Hide a kind of place from its card"
+      ],
+      "target": "sha256:aa4640671ebd8b06c37fc443067ba12b9c5feb5cec93c4c18d699dc241ad249b"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs",
+        "--after",
+        "(WI20)"
+      ],
+      "body": "- [ ] **Do:** on a phone, from a place's card's More on a walk, tap \"What I’m into ›\". **Expect:** the sheet is gone, What I'm into opens with Monuments and memorials (the card's kind) just under its pinned History heading, Back reads \"‹ Walk\" (Android: the route's own arrow, \"Walk, back\"), and Back returns to the walk with the map as it was (HK6)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigation and tabs",
+        "--after",
+        "(WI20)"
+      ],
+      "body": "- [ ] **Do:** on an iPhone and an Android phone, on a walk with Places on, tap a place you have not found, then More (…) at its card's top right; turn its subtype off, then its kind, then both back on; close the sheet by Done, by a tap on the dimmed map and (Android) by Back. **Expect:** the sheet \"Show on the map\" rises over the walk's map with the card under it, the pins of the switched kind leave the map behind at once and come back, the subtype's row dims while its kind is off, each close leaves the card, and nothing is left over the map; VoiceOver and TalkBack read \"More, button\" and each row as a switch with \"Part of …\" on the subtype (HK1-HK3, HK7)\n"
+    }
+  ]
+}

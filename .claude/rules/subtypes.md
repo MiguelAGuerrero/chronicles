@@ -56,3 +56,14 @@ come from chronicles-data's contract (v4 brought the subtypes, its ST1-ST10; v6 
   the same Bridges row and never unnamed. Natural national
   monuments (contract v7's `natural_monument`, `by_type`) are the subtype Natural monuments under Nature, never History
   (audit 18). `PRESENCE_CODE` p10 (typed bridges), nothing carried. The data ships after the app (the app leaves out a class it does not know).
+- **Clock towers apart from water towers** (specs/poi-hide-from-card HK9, decision 0254, amending 0191's plan row): two
+  subtypes under Buildings and structures, `clock_towers` and `water_towers`, presence's `clock_tower` and `water_tower`
+  each its own subset (`PRESENCE_CODE` p12, nothing carried: an area's tally keeps each subset's share by its key). A
+  stored `towers` off, with neither new kind known, keeps both off (`parseHidden`, `RETIRED`). Water towers has no glyph
+  of its own: the table's plain dot (the owner, Nov 25).
+- **A retired kind** (`RETIRED`, HK10; trap): a split leaves the old id in checklist items (kept until the area's next
+  read: a tile build, or its archive block's places changing) and in finds (for good), and no store holds a place's
+  class to tell which new kind it is. So the old id stays in `Kind`, `kindParent` reads its parent, `isKindHidden` hides
+  it when its parent is off or every kind that replaced it is, `isSubtype` holds, and `kindOf` keeps its old words ("Found:
+  … · Water and clock towers"); never let `kindOf` fall to `KINDS[0]` ("Public art"). A place's card and sheet read it as
+  its parent alone (`cardKinds`). A split of another subtype adds its row here the same way.
