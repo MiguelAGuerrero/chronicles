@@ -166,7 +166,7 @@ const FEATURES = [
       'src/app/into.tsx', 'src/lib/intoNav.ts', 'src/lib/intoGate.ts', 'src/lib/walkName.ts',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities', 'freelook', 'small-places', 'placesearch', 'subtypes', 'openmaps', 'openmaps-chronicle', 'into', 'placeoffer'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life', 'tap-to-capture-places', 'capture-at-a-place', 'places-layer', 'modes-to-layers', 'town-identity', 'moment-assignment-fallback'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds', 'whole-towns', 'community-parks', 'free-look', 'small-places', 'place-search', 'explore-go-here', 'go-here-everywhere', 'explore-subtypes', 'more-attractions', 'open-in-maps-here', 'what-im-into-page', 'sights-and-local-life', 'tap-to-capture-places', 'capture-at-a-place', 'places-layer', 'modes-to-layers', 'town-identity', 'moment-assignment-fallback', 'poi-hide-from-card'],
   },
   {
     name: 'kind-walk',
@@ -572,6 +572,7 @@ const IN_PROGRESS = {
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
+  'poi-hide-from-card': { branch: 'tend/inbox-20261125-2132', since: '2026-11-25' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
