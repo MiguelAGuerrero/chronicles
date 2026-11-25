@@ -52,7 +52,9 @@ export const SUBTYPES: readonly Subtype[] = [
   { kind: 'lighthouses', parent: 'structures', label: 'Lighthouses', plural: 'Lighthouses', single: 'A lighthouse', on: true, small: false },
   { kind: 'civic_buildings', parent: 'structures', label: 'Courthouses and halls', plural: 'Civic buildings', single: null, on: true, small: false },
   { kind: 'forts', parent: 'structures', label: 'Forts and armories', plural: 'Forts', single: null, on: true, small: false },
-  { kind: 'towers', parent: 'structures', label: 'Water and clock towers', plural: 'Towers', single: null, on: true, small: false },
+  // HK9 (decision 0254, amending 0191's plan row): clock towers apart from water towers, each its own switch.
+  { kind: 'clock_towers', parent: 'structures', label: 'Clock towers', plural: 'Clock towers', single: null, on: true, small: false },
+  { kind: 'water_towers', parent: 'structures', label: 'Water towers', plural: 'Water towers', single: null, on: true, small: false },
   { kind: 'old_machines', parent: 'structures', label: 'Old machines', plural: 'Old machines', single: 'An old machine', on: true, small: false },
   { kind: 'piers', parent: 'structures', label: 'Piers and boardwalks', plural: 'Piers', single: null, on: true, small: false },
   { kind: 'taverns', parent: 'structures', label: 'Old taverns and inns', plural: 'Old taverns', single: null, on: true, small: false },
@@ -89,6 +91,23 @@ export const SUBTYPES: readonly Subtype[] = [
 ];
 
 const BY_KIND = new Map(SUBTYPES.map((s) => [s.kind, s]));
+
+/** A kind no row holds any more: its old words, its parent and the kinds that took its place. */
+export interface RetiredKind {
+  label: string;
+  parent: Kind;
+  now: readonly Kind[];
+}
+
+/**
+ * HK10 (specs/poi-hide-from-card, poi-hide-from-card audit 2): kinds retired by a split. A checklist item keeps the kind of
+ * its read until its area is read again (E4, E13), and a find keeps it for good, but no store holds a place's class to tell
+ * which new kind it is. Such an item is its parent's, hidden when its parent is off or every kind that replaced it is, and
+ * a find of it keeps its old words.
+ */
+export const RETIRED: Readonly<Partial<Record<Kind, RetiredKind>>> = {
+  towers: { label: 'Water and clock towers', parent: 'structures', now: ['clock_towers', 'water_towers'] },
+};
 
 /** SP7, SP8, XS6: the subtypes that start off. */
 export const DEFAULT_OFF: readonly Kind[] = SUBTYPES.filter((s) => !s.on).map((s) => s.kind);

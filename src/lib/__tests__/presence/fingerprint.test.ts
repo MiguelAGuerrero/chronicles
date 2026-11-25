@@ -15,6 +15,8 @@ import * as p from '../../presence/presence';
  */
 const FINGERPRINTS: Readonly<Record<string, string>> = {
   p11: '97f1b1134c5b0b0c680c76664a92dcf829e25cff9a189d4ebd6eb98dfe439654',
+  // poi-hide-from-card HK9 (decision 0254): clock towers apart from water towers.
+  p12: '77be4ad8bca56a7cafc22b51d30f2058a22ebb90f16b055c23615b292dd9c917',
 };
 
 const NAMES = [

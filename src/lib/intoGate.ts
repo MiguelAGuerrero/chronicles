@@ -6,7 +6,8 @@
  * page is up or one is on its way (for `pendingMs`, or until the page mounts), and a detour counts only on the blur that
  * follows its push, within `pendingMs`.
  */
-export type IntoHref = '/into' | { pathname: '/into'; params: { from: 'walk' } };
+/** HK6 (specs/poi-hide-from-card): `at`, the kind's row the page opens at, from a place's card. */
+export type IntoHref = '/into' | { pathname: '/into'; params: { from?: 'walk'; at?: string } };
 
 export function createIntoNav(p: { push: (href: IntoHref) => void; now: () => number; pendingMs?: number }) {
   const pendingMs = p.pendingMs ?? 1500;
@@ -15,12 +16,13 @@ export function createIntoNav(p: { push: (href: IntoHref) => void; now: () => nu
   let detourAt: number | null = null;
   return {
     /** `from: 'walk'` when opened from the walk's drawer: its Back then names the walk (WI20). False when refused. */
-    open(from: 'walk' | 'ready' = 'ready'): boolean {
+    open(from: 'walk' | 'ready' = 'ready', at?: string): boolean {
       const t = p.now();
       if (up || t < pendingUntil) return false;
       pendingUntil = t + pendingMs;
       detourAt = t;
-      p.push(from === 'walk' ? { pathname: '/into', params: { from: 'walk' } } : '/into');
+      const params = { ...(from === 'walk' ? { from: 'walk' as const } : {}), ...(at ? { at } : {}) };
+      p.push(Object.keys(params).length ? { pathname: '/into', params } : '/into');
       return true;
     },
     /** Whether the screen is being left for the page; asked once, on that blur. */

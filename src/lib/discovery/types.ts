@@ -28,7 +28,14 @@ export type Kind =
   /** Subtypes of contract v4, each a switch under its kind (XS3, decision 0191). */
   | 'statues' | 'murals' | 'fountains' | 'signs'
   | 'markers' | 'war_memorials' | 'battlefields' | 'archaeological_sites'
-  | 'bridges' | 'mills' | 'stations' | 'lighthouses' | 'civic_buildings' | 'forts' | 'towers' | 'old_machines' | 'taverns' | 'mausoleums'
+  | 'bridges' | 'mills' | 'stations' | 'lighthouses' | 'civic_buildings' | 'forts' | 'old_machines' | 'taverns' | 'mausoleums'
+  /** Clock towers apart from water towers (specs/poi-hide-from-card HK9, decision 0254). */
+  | 'clock_towers' | 'water_towers'
+  /**
+   * Retired at p12 (HK9, HK10): "Water and clock towers", the two towers' one row before. No row, no switch: a checklist item
+   * or a find kept before the split may still carry it (`RETIRED`, `discovery/subtypes.ts`).
+   */
+  | 'towers'
   | 'gardens' | 'community_gardens' | 'waterfalls' | 'caves' | 'hot_springs' | 'old_trees'
   | 'observatories' | 'concert_halls' | 'carousels'
   | 'nature_reserves' | 'piers' | 'amusement_parks' | 'natural_monuments'

@@ -38,8 +38,12 @@ import { notableBeyondNeighbourhood, notableName } from './notable';
  *     Overture's historic site a storefront with no mark (tend presence audit 2, the owner, Nov 20); a park, a cemetery or a
  *     memorial site weighs nothing toward a complex's shopping word (tend presence audit 3, COMPLEX_CODE c2); weights and marks
  *     changed, so nothing is carried.
+ * p12: clock towers apart from water towers (specs/poi-hide-from-card HK9, decision 0254): `water_tower` and `clock_tower`
+ *     are each their own subset; weights, bars, categories and kinds are as they were, but an area's tally keeps each
+ *     subset's share by its key, and a p11 row's `towers` share would light a bar whatever the new switches say, so
+ *     nothing is carried.
  */
-export const PRESENCE_CODE = 'p11';
+export const PRESENCE_CODE = 'p12';
 
 /**
  * PS9, presence-readers audit 2: the codes whose rows stand under this one, read by the atlas (`CARRIED`, `atlas.ts`) and the
@@ -102,8 +106,9 @@ const DEFS = {
   lighthouse: { weight: FULL, category: 'history', kind: 'structures', subset: 'lighthouses' },
   civic_building: { weight: FULL, category: 'history', kind: 'structures', subset: 'civic_buildings' },
   fort: { weight: FULL, category: 'history', kind: 'structures', subset: 'forts' },
-  water_tower: { weight: HALF, bar: HALF, category: 'history', kind: 'structures', subset: 'towers' },
-  clock_tower: { weight: HALF, bar: HALF, category: 'history', kind: 'structures', subset: 'towers' },
+  // HK9 (specs/poi-hide-from-card, decision 0254): each tower its own subtype.
+  water_tower: { weight: HALF, bar: HALF, category: 'history', kind: 'structures', subset: 'water_towers' },
+  clock_tower: { weight: HALF, bar: HALF, category: 'history', kind: 'structures', subset: 'clock_towers' },
   old_machine: { weight: HALF, bar: HALF, category: 'history', kind: 'structures', subset: 'old_machines' },
   tavern: { weight: FULL, storefront: true, category: 'history', kind: 'structures', subset: 'taverns' },
   mausoleum: { weight: HALF, bar: HALF, category: 'history', kind: 'cemeteries', subset: 'mausoleums' },

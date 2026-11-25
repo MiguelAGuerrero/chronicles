@@ -3,7 +3,7 @@ import type { RoadFeature } from '../streets';
 import { outlinesOf } from './green';
 import { communityParks } from './parkKind';
 import { refine, type Refinement } from './refine';
-import { SUBTYPE_REFINEMENTS } from './subtypes';
+import { RETIRED, SUBTYPE_REFINEMENTS } from './subtypes';
 import type { Kind, Place } from './types';
 
 /*
@@ -20,7 +20,8 @@ export const refineRead = (places: readonly Place[], read: { landcover?: RoadFea
   refine(places, { outlines: outlinesOf(read.landcover), archive: read.archive ?? [] }, REFINEMENTS);
 
 /** PC20: a kind's parent, from the registry. */
-export const kindParent = (kind: Kind, refinements: readonly Refinement[] = REFINEMENTS): Kind | undefined => refinements.find((r) => r.child === kind)?.parent;
+export const kindParent = (kind: Kind, refinements: readonly Refinement[] = REFINEMENTS): Kind | undefined =>
+  refinements.find((r) => r.child === kind)?.parent ?? RETIRED[kind]?.parent;
 
 /** PC20: the kind, then its parent, then its parent's parent. */
 export function kindChain(kind: Kind, refinements: readonly Refinement[] = REFINEMENTS): Kind[] {
@@ -30,7 +31,8 @@ export function kindChain(kind: Kind, refinements: readonly Refinement[] = REFIN
 }
 
 /** PC20, PC22: whether a kind is switched off, by itself or by a parent. A place with no kind is never hidden by a kind. */
-export const isKindHidden = (hidden: ReadonlySet<Kind>, kind: Kind | undefined): boolean => !!kind && kindChain(kind).some((k) => hidden.has(k));
+export const isKindHidden = (hidden: ReadonlySet<Kind>, kind: Kind | undefined): boolean =>
+  !!kind && (kindChain(kind).some((k) => hidden.has(k)) || !!RETIRED[kind]?.now.every((k) => hidden.has(k)));
 
 /** PC20, PC23: how a kind's switch reads: `on` as seen, `locked` while a parent is off (it cannot be switched on under it). */
 export function kindSwitch(hidden: ReadonlySet<Kind>, kind: Kind): { on: boolean; locked: boolean } {

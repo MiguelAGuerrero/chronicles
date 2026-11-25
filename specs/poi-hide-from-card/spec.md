@@ -139,19 +139,18 @@ What I'm into opened from the sheet with Back "Walk" at Monuments and memorials,
 Aligned, no breach. Triaged by the run's coordinator, the owner answering the three questions in person (Decisions):
 accepted 8, deferred 0, rejected 0.
 
-- **S1** (medium): the "?" card's kind line said more than E7 lets a "?" say; the owner: only in the sheet (Q1). HK1;
+- S1 (medium): the "?" card's kind line said more than E7 lets a "?" say; the owner: only in the sheet (Q1). HK1;
   poi-hide-from-card audit 1.
-- **S2** (medium): a tower read before the split. The steward asked that a `towers` item take its kind from its place's
+- S2 (medium): a tower read before the split. The steward asked that a `towers` item take its kind from its place's
   class in the places cache. It cannot: the cache stores no classes (`db/index.web.ts` l.855 leaves them out of the
   stored object; `sqliteStore.ts`'s `place` table has no column for them), so the class is reachable only by a migration
-  or a checklist rebuild, neither in this slice. Kept: the retired reading (HK10; audit 2). It heals itself: towers come
-  only from the places archive, and a checklist built from an older archive version is rebuilt at the next version
-  (`archiveStale`, weekly), or at the next tile build. Rebuilding a checklist that holds `towers` on entry (amends E4)
-  is filed for the owner.
-- **S3** (medium): the gate's "a find stays" and "turning it back on there brings the places back" had no test. HK3;
+  or a checklist rebuild, neither in this slice. Kept: the retired reading (HK10; audit 2). It heals with the area's next
+  read: at the next tile build (E4), or once the places in its archive block change (`archiveStale`, PP13); towers come
+  only from the places archive. Rebuilding a checklist that holds `towers` on entry (amends E4) is filed for the owner.
+- S3 (medium): the gate's "a find stays" and "turning it back on there brings the places back" had no test. HK3;
   audit 3.
-- **S4** (low): "no number" against the card's "43 m away". HK8; audit 4.
-- **S5** (low): Water towers' glyph; the owner, the plain dot (Q2). HK8; audit 5.
-- **S6** (low): the found card's head; the owner, today's (Q3). HK5; no change.
+- S4 (low): "no number" against the card's "43 m away". HK8; audit 4.
+- S5 (low): Water towers' glyph; the owner, the plain dot (Q2). HK8; audit 5.
+- S6 (low): the found card's head; the owner, today's (Q3). HK5; no change.
 - Plan call 2 (the subtype row with its kind off): kept, off and dimmed. HK3; audit 6. Plan call 6 (a failed read):
   What I'm into's sentence from one constant. HK10; audit 7. Calls 3, 4 and 7: as written.

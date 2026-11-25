@@ -274,3 +274,28 @@ export function intoHeadingH(label: string, width: number, fontScale: number): n
 
 /** WI23: Complexes' rows wear an icon each (`complexes/kinds`, where a complex's kinds are named). */
 export { COMPLEX_ICON } from '../complexes/kinds';
+
+/** HK6 (specs/poi-hide-from-card): `?at=` read as a kind of the page's rows, else none. */
+export function intoAt(raw: string | string[] | undefined): Kind | null {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  return v && KINDS.some((k) => k.id === v) ? (v as Kind) : null;
+}
+
+/**
+ * HK6: where the page scrolls so `at`'s row stands just under its pinned heading: the row's top less its heading's
+ * height. Null until every child above the row has its height, or when the row is not drawn (its kind under one off).
+ */
+export function intoScrollY(children: readonly IntoChild[], heights: readonly (number | undefined)[], at: Kind, headH: (label: string) => number): number | null {
+  const i = children.findIndex((c) => c.type === 'row' && c.row.id === at);
+  if (i < 0) return null;
+  let top = 0;
+  let heading: string | null = null;
+  for (let j = 0; j < i; j++) {
+    const h = heights[j];
+    if (h == null) return null;
+    top += h;
+    const c = children[j];
+    if (c.type === 'heading') heading = c.label;
+  }
+  return Math.max(0, top - (heading ? headH(heading) : 0));
+}

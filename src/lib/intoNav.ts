@@ -9,9 +9,12 @@ import { createIntoNav } from './intoGate';
  */
 const nav = createIntoNav({ push: (href) => router.push(href), now: () => Date.now() });
 
-/** `from: 'walk'` when opened from the walk's drawer during a walk: its Back then names the walk (WI20). */
-export function openInto(from: 'walk' | 'ready' = 'ready'): void {
-  nav.open(from);
+/**
+ * `from: 'walk'` when opened from the walk's drawer during a walk: its Back then names the walk (WI20). `at`: the kind's
+ * row the page opens at, from a place's card (specs/poi-hide-from-card HK6).
+ */
+export function openInto(from: 'walk' | 'ready' = 'ready', at?: string): void {
+  nav.open(from, at);
 }
 
 /** Whether the screen is being left for the page; asked once, on that blur. */

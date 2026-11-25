@@ -44,7 +44,8 @@ const TREE: [string, string, string][] = [
   ['small_memorial', 'history', 'small_memorials'], ['battlefield', 'history', 'battlefields'], ['archaeological_site', 'history', 'archaeological_sites'],
   ['monument', 'history', 'monuments'], ['bridge', 'history', 'bridges'], ['mill', 'history', 'mills'], ['station', 'history', 'stations'],
   ['lighthouse', 'history', 'lighthouses'], ['civic_building', 'history', 'civic_buildings'], ['fort', 'history', 'forts'],
-  ['water_tower', 'history', 'towers'], ['clock_tower', 'history', 'towers'], ['historic_machine', 'history', 'old_machines'],
+  ['water_tower', 'history', 'water_towers'], ['clock_tower', 'history', 'clock_towers'], // HK9 (decision 0254): two rows since p12
+  ['historic_machine', 'history', 'old_machines'],
   ['tavern', 'history', 'taverns'], ['old_stone', 'history', 'old_stones'], ['building_structure', 'history', 'structures'],
   ['church', 'history', 'churches'], ['wayside_shrine', 'history', 'wayside_shrines'], ['cemetery', 'history', 'cemeteries'], ['mausoleum', 'history', 'mausoleums'],
   ['garden', 'parks', 'gardens'], ['community_garden', 'parks', 'community_gardens'],

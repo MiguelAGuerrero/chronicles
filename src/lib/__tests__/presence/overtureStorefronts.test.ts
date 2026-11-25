@@ -78,6 +78,7 @@ test('tend presence 2: Overture\'s classes are read only by density and complexe
 });
 
 test('tend presence 2: a weight moved, so the presence code moves on with nothing carried (p11)', () => {
-  assert.equal(presence.PRESENCE_CODE, 'p11');
+  // p12 since poi-hide-from-card HK9 (clock towers apart from water towers), which carries none either.
+  assert.equal(presence.PRESENCE_CODE, 'p12');
   assert.deepEqual(presence.PRESENCE_CARRIED, []);
 });

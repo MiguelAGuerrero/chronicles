@@ -63,7 +63,7 @@ test('E16, PW4, RP8, PK11, PC6, SP10, XS2: the kinds in the settings order (Curi
     [
       'public_art', 'statues', 'murals', 'fountains', 'signs',
       'monuments', 'markers', 'plaques', 'war_memorials', 'small_memorials', 'battlefields', 'archaeological_sites',
-      'structures', 'bridges', 'mills', 'stations', 'lighthouses', 'civic_buildings', 'forts', 'towers', 'old_machines', 'piers', 'taverns', 'old_stones',
+      'structures', 'bridges', 'mills', 'stations', 'lighthouses', 'civic_buildings', 'forts', 'clock_towers', 'water_towers', 'old_machines', 'piers', 'taverns', 'old_stones',
       'churches', 'wayside_shrines', 'cemeteries', 'mausoleums',
       'parks', 'community_parks', 'gardens', 'community_gardens', 'nature_reserves', 'nature', 'waterfalls', 'caves', 'hot_springs', 'natural_monuments', 'old_trees',
       'museums', 'observatories', 'theatres', 'concert_halls', 'community', 'little_libraries', 'carousels',

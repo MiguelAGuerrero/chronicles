@@ -3,7 +3,11 @@ import { distanceM } from '../geo';
 import { kindsClause } from '../pins';
 import { dayPartLine } from '../resurface/context';
 import type { CaptureKind, LngLat, Moment } from '../types';
-import { EXPLORE_RULES } from './explore';
+import { isKindHidden, kindChain, kindSwitch } from '../discovery/refinements';
+import { RETIRED } from '../discovery/subtypes';
+import type { Kind } from '../discovery/types';
+import { EXPLORE_RULES, kindHint, kindOf } from './explore';
+import { INTO_UNREAD } from './intoPage';
 
 /**
  * A place's card on the walk (specs/capture-at-a-place, decision 0224 as amended by 0246 and 0247): at any distance it
@@ -91,3 +95,68 @@ export function hereBounds(at: LngLat): [number, number, number, number] {
   const dLon = PLACE_REACH_M / (111_320 * Math.cos((at[1] * Math.PI) / 180));
   return [at[0] - dLon, at[1] - dLat, at[0] + dLon, at[1] + dLat];
 }
+
+/*
+ * Hide a kind of place from its card (specs/poi-hide-from-card HK1-HK10, decision 0254): an unfound place's card has
+ * More, which opens "Show on the map": its kind as a title row and its subtype as a subtitle row, each the switch What
+ * I'm into shows. The words are the kinds' own (`KINDS`), never a count.
+ */
+
+/** HK2: the sheet's title. */
+export const KINDS_SHEET_TITLE = 'Show on the map';
+
+/**
+ * HK1, HK2: a place's kind as the card and its sheet say it: the kind at the top of its chain as the title, the place's
+ * own kind as the subtitle when it has a parent (a subtype, a community park). A retired kind (HK10) is its parent's
+ * alone: its own switch is gone.
+ */
+export function cardKinds(kind: Kind): { title: Kind; subtitle: Kind | null; line: string } {
+  const chain = kindChain(kind);
+  const title = chain[chain.length - 1];
+  const subtitle = title === kind || RETIRED[kind] ? null : kind;
+  return { title, subtitle, line: subtitle ? `${kindOf(title).label} · ${kindOf(subtitle).label}` : kindOf(title).label };
+}
+
+/**
+ * HK1, HK4, HK5 (the owner's Q1 and Q3, Nov 25; poi-hide-from-card audit 1): the card's head. A named unfound place: its
+ * name, the kind line under it, More. A "?": "A place to find" alone, with More (its kind only in the sheet). A found
+ * place: today's "name · kind", no line and no More.
+ */
+export function cardHead(o: { name: string; kind: Kind; named: boolean; found: boolean }): { title: string; line: string | null; more: boolean } {
+  if (o.found) return { title: `${o.name} · ${kindOf(o.kind).label}`, line: null, more: false };
+  if (!o.named) return { title: 'A place to find', line: null, more: true };
+  return { title: o.name, line: cardKinds(o.kind).line, more: true };
+}
+
+/** A row of the sheet: a switch, the title's heavier, the subtitle's stepped in; no icon (audit 5). */
+export interface KindsSheetRow {
+  id: Kind;
+  label: string;
+  depth: number;
+  heavy: boolean;
+  on: boolean;
+  /** HK3, audit 6: under a kind that is off, the subtype's row stays, off and dimmed, and does nothing. */
+  locked: boolean;
+  /** A subtype says its kind, as on What I'm into ("Part of Monuments and memorials"). */
+  hint?: string;
+}
+
+/** HK2, HK3, HK6: the sheet's rows from the reader's switches, and the kind What I'm into opens at (the title's). */
+export function kindsSheet(kind: Kind, hidden: ReadonlySet<Kind>): { rows: KindsSheetRow[]; at: Kind } {
+  const { title, subtitle } = cardKinds(kind);
+  const row = (id: Kind, depth: number): KindsSheetRow => {
+    const sw = kindSwitch(hidden, id);
+    const hint = kindHint(id);
+    return { id, label: kindOf(id).label, depth, heavy: depth === 0, on: sw.on, locked: sw.locked, ...(hint ? { hint } : {}) };
+  };
+  return { rows: subtitle ? [row(title, 0), row(subtitle, 1)] : [row(title, 0)], at: title };
+}
+
+/** HK10, audit 7: the switches only once the reader's choices are read; a failed read says What I'm into's sentence. */
+export function kindsSheetBody(settings: object | null, failed: boolean): { rows: boolean; line: string | null } {
+  if (settings) return { rows: true, line: null };
+  return { rows: false, line: failed ? INTO_UNREAD : null };
+}
+
+/** HK10: the sheet closed with its place's kind off leaves no card: its pin has left the map. A find stays (0115). */
+export const cardGoes = (o: { kind: Kind; found: boolean }, hidden: ReadonlySet<Kind>): boolean => !o.found && isKindHidden(hidden, o.kind);

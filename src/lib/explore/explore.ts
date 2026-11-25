@@ -7,7 +7,7 @@ import { isMarkable } from '../discovery/noise';
 import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
 import { isKindHidden, kindParent } from '../discovery/refinements';
-import { DEFAULT_OFF, foundRows, keepTheLows, passedNames, SUBTYPES } from '../discovery/subtypes';
+import { DEFAULT_OFF, foundRows, keepTheLows, passedNames, RETIRED, SUBTYPES } from '../discovery/subtypes';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
@@ -68,7 +68,7 @@ const SUBTYPE_ICON: Partial<Record<Kind, string>> = {
   markers: 'trail-sign-outline', plaques: 'document-text-outline', war_memorials: 'ribbon-outline', small_memorials: 'flower-outline',
   battlefields: 'shield-outline', archaeological_sites: 'hammer-outline',
   bridges: 'git-commit-outline', mills: 'aperture-outline', stations: 'train-outline', lighthouses: 'bulb-outline', civic_buildings: 'briefcase-outline',
-  forts: 'shield-half-outline', towers: 'time-outline', old_machines: 'construct-outline', taverns: 'beer-outline', old_stones: 'pin-outline',
+  forts: 'shield-half-outline', clock_towers: 'time-outline', old_machines: 'construct-outline', taverns: 'beer-outline', old_stones: 'pin-outline',
   wayside_shrines: 'flame-outline', mausoleums: 'cube-outline',
   gardens: 'sunny-outline', community_gardens: 'nutrition-outline', waterfalls: 'rainy-outline', caves: 'triangle-outline', hot_springs: 'thermometer-outline',
   old_trees: 'git-network-outline', nature_reserves: 'binoculars-outline', piers: 'boat-outline', natural_monuments: 'prism-outline',
@@ -127,7 +127,13 @@ export function kindHint(id: Kind): string | undefined {
   return parent ? `Part of ${kindOf(parent).label}` : undefined;
 }
 
-export const kindOf = (id: Kind): KindInfo => KINDS.find((k) => k.id === id) ?? KINDS[0];
+export const kindOf = (id: Kind): KindInfo => {
+  const k = KINDS.find((x) => x.id === id);
+  if (k) return k;
+  // HK10: a kind retired by a split (a find of "Water and clock towers") keeps its old words, under its parent's heading.
+  const old = RETIRED[id];
+  return old ? { id, label: old.label, icon: 'ellipse-outline', category: kindOf(old.parent).category } : KINDS[0];
+};
 
 /** The checklist an area keeps: kept, never purged; rebuilt when its build is old (E4, E13). */
 export interface ChecklistArea {
@@ -651,6 +657,16 @@ export function passedLine(places: { name: string; generic: boolean }[]): string
   return names ? `Passed ${names} without stopping` : null;
 }
 
+/** The retired kinds a stored list names (HK9): `kindsIn` drops them, since no row holds them. */
+const retiredIn = (raw: string | null): Kind[] => {
+  try {
+    const v = raw ? JSON.parse(raw) : [];
+    return (Array.isArray(v) ? v : []).filter((k): k is Kind => typeof k === 'string' && Object.prototype.hasOwnProperty.call(RETIRED, k));
+  } catch {
+    return [];
+  }
+};
+
 const kindsIn = (raw: string | null): Kind[] => {
   try {
     const v = raw ? JSON.parse(raw) : [];
@@ -668,6 +684,11 @@ const kindsIn = (raw: string | null): Kind[] => {
 export function parseHidden(raw: string | null, known: string | null = null): Set<Kind> {
   const out = new Set(kindsIn(raw));
   const knew = kindsIn(known);
+  // HK9 (decision 0254): "Water and clock towers" off before the split keeps both towers off; a reader who has seen the new
+  // rows keeps their own choice.
+  for (const [old, r] of Object.entries(RETIRED) as [Kind, NonNullable<(typeof RETIRED)[Kind]>][]) {
+    if (retiredIn(raw).includes(old) && !r.now.some((k) => knew.includes(k))) for (const k of r.now) out.add(k);
+  }
   if (out.has('museums') && !knew.includes('community')) out.add('community');
   // XS7: zoos and attractions were under "Viewpoints and attractions": off there keeps them off in their own kind.
   if (out.has('viewpoints') && !knew.includes('attractions')) out.add('attractions');
