@@ -97,3 +97,15 @@ test('OJ43: a mixed journey whose stops all came from one leaning is not offered
   const r = await plan(['antiques', 'history'], SHOPS);
   assert.deepEqual(r.journeys.map((j) => j.leaning), ['shops']);
 });
+
+test('tend outing T64: the leaning over parks and viewpoints is named "Through green and views"; its id, chips and place kept', async () => {
+  const { LEANINGS } = await import('../../outing/leanings');
+  assert.deepEqual(LEANINGS.map((l) => [l.id, l.name, [...l.chips]]), [
+    ['shops', 'Among the shops', ['antiques', 'books', 'thrifting']],
+    ['old', 'Past old places', ['history', 'culture', 'art']],
+    ['green', 'Through green and views', ['parks', 'viewpoints']],
+  ]);
+  // A journey of views alone, no green stop in it, carries the name that says it holds views.
+  const r = await plan(['viewpoints']);
+  assert.deepEqual(r.journeys.map((j) => [j.leaning, j.name]), [['green', 'Through green and views']]);
+});
