@@ -21,14 +21,14 @@ A warning only: the slice builds its own criteria and takes none of those items 
 | `src/lib/discovery/subtypes.ts` | `SUBTYPES`: "Water and clock towers" becomes two rows in its place under Buildings and structures, "Clock towers" (plural "Clock towers") and "Water towers" (plural "Water towers"), both `on`, neither small (HK9). `RETIRED`: `towers` → its label "Water and clock towers", its parent `structures`, and the kinds that replaced it. |
 | `src/lib/discovery/refinements.ts` | `kindParent` reads a retired kind's parent; `isKindHidden` hides a retired kind when its parent is off or every kind that replaced it is (HK10). |
 | `src/lib/presence/presence.ts` | `water_tower` → subset `water_towers`, `clock_tower` → `clock_towers` (weights, bars, categories and kinds unchanged); `PRESENCE_CODE` p12, `PRESENCE_CARRIED` empty: an atlas tally keeps each subset's share by its key, and a p11 row's `towers` share would light a bar whatever the new switches say, so every area is derived again, as at p6-p11. The fingerprint test records p12. |
-| `src/lib/explore/explore.ts` | `SUBTYPE_ICON` for the two (`time-outline` for clock towers, as the shared row had; `beaker-outline` for water towers, unused elsewhere); `parseHidden`: a stored `towers` with no `clock_towers` known puts both off (HK9); `kindOf` names a retired kind by its old label (a find of one still reads "Water and clock towers", HK10). |
-| `src/lib/explore/placeCard.ts` | `cardKinds(kind)`: the card's title row (the kind at the top of its chain) and subtitle row (the kind itself when it has a parent; none for a retired one), and the card's muted line "<title> · <subtitle>"; `cardMore(found)` (no More on a found card, HK5); `KINDS_SHEET_TITLE` "Show on the map". Pure; the words only from `KINDS`. |
+| `src/lib/explore/explore.ts` | `SUBTYPE_ICON` for the two (`time-outline` for clock towers, as the shared row had; water towers none, so the table's fallback, the plain dot: the owner, Q2); `parseHidden`: a stored `towers` with no `clock_towers` known puts both off (HK9); `kindOf` names a retired kind by its old label (a find of one still reads "Water and clock towers", HK10). |
+| `src/lib/explore/placeCard.ts` | `cardKinds(kind)`: the card's title row (the kind at the top of its chain) and subtitle row (the kind itself when it has a parent; none for a retired one), and the card's muted line "<title> · <subtitle>"; `cardHead(o)`: the head's words and whether it has More and a kind line (a "?" reads "A place to find" alone with More; a found card today's "name · kind", no More, no line; HK1, HK4, HK5); `KINDS_SHEET_TITLE` "Show on the map". Pure; the words only from `KINDS`. |
 | `src/lib/explore/intoPage.ts` | `intoAt(raw)`: a `?at=` parameter read as a kind of `KINDS`, else none; `intoScrollY(children, heights, at, headH)`: where the page scrolls so that kind's row stands just under its pinned heading, null until every row above it is measured. |
 | `src/lib/intoGate.ts`, `src/lib/intoNav.ts` | `open(from, at?)`: `/into?from=walk&at=<kind>`; the gate and the detour as today. |
 | `src/app/into.tsx` | Reads `at` through `intoAt` and hands it to the page. |
 | `src/components/IntoPage.tsx` | `at`: once the rows above it are measured, one `scrollTo` (no animation), never again on that visit. |
 | `src/components/walk/PlaceKinds.tsx` (new, view) | The sheet (`components/Modal`, as `MemoryMenu`): the head row "Show on the map" and Done (ink, 44 pt); the title row and the subtitle row, `SwitchRow`s (the title heavy, the subtitle indented, its hint "Part of …" as What I'm into's); a hairline; "What I’m into ›" (`PageRow`, as the drawer's row). Its own copy of the settings through `useExploreSettings` (null until read: no switch drawn; a failed read says so in words). A switch saves at once (`setKind`: `withKind`, `saveSettings`), which the walk hears (`onSettings`). |
-| `src/app/walk.tsx` | The card's head: the name (or "A place to find") with the muted kind line under it, and More at the top right for an unfound place; `kindsFor` state opening the sheet; the sheet closing on Done, the dimmed map, Back (the Modal's `onRequestClose`) and Escape (react-native-web's Modal, only while it is up); "What I’m into ›" closes the sheet, then `openInto('walk', title kind)`; closing with the card's kind now off closes the card too (HK10). |
+| `src/app/walk.tsx` | The card's head from `cardHead`: a named unfound place's name with the muted kind line under it, a "?" as today, a found place as today; More at the top right of an unfound one; `kindsFor` state opening the sheet; the sheet closing on Done, the dimmed map, Back (the Modal's `onRequestClose`) and Escape (react-native-web's Modal, only while it is up); "What I’m into ›" closes the sheet, then `openInto('walk', title kind)`; closing with the card's kind now off closes the card too (HK10). |
 
 Thirteen source files (the entry estimated about nine: `intoGate.ts`, `intoPage.ts`, `refinements.ts` and `into.tsx`
 are the parameter's and the retired kind's homes). Tests, the journey and the records are apart.
@@ -58,7 +58,7 @@ All in `src/lib/__tests__/explore/hideFromCard.test.ts` (feature `explore`) unle
 | HK7 | (view only) | "HK7: Done, the dimmed map and Escape each close the sheet, the card staying" |
 | HK8 | "HK8: no numeral in the card's line or the sheet's words" | "HK8: no digit in the sheet; the capture row first and unchanged" |
 | HK9 | "HK9: Clock towers and Water towers are two rows, both on; the shared switch off keeps both off" (and presence: `clock_tower` → `clock_towers`, `water_tower` → `water_towers`, nothing else moved) | "HK9: a clock tower's sheet turns clock towers off; the water tower's pin stays" |
-| HK10 | "HK10: a tower kept before the split is shown or hidden as the old switch said, and a find of one reads Water and clock towers"; "HK10: the sheet draws no switch before the settings are read" (`kindsSheet` state from `intoBody`) | "HK10: closed with the plaque's kind off, the sheet leaves no card" |
+| HK10 | "HK10, poi-hide-from-card audit 2: a tower kept before the split reads as Buildings and structures, hidden when its parent or both new switches are off, and a find of one reads Water and clock towers"; "HK10, audit 7: the sheet draws no switch before the settings are read, and a failed read says What I'm into's sentence" | "HK10: closed with the plaque's kind off, the sheet leaves no card" |
 
 Existing tests that pin the old table move with it, each named for its criterion: `explore/subtypes.test.ts` (the class
 table: `water_tower` and `clock_tower` to their own subtypes), `explore/explore.test.ts` (the kinds' order: Clock towers,
@@ -104,7 +104,7 @@ nothing new per fix or per frame). The page's scroll: one `scrollTo` after layou
 landing row on first open is the cost every presence bump has had (`docs/DEFERRED.md` names none open for it). No harness
 needed: nothing runs per fix or per frame that did not.
 
-## The judgment calls (for the steward)
+## The judgment calls (ruled at the plan review; the spec's "Steward")
 
 1. **The "?" card's muted line** (HK1): criterion 1 reads "an unfound place's card", so the "?" card gets the kind line
    too ("A place to find" over "Monuments and memorials · Plaques"). Its pin already speaks its category ("History"), and
@@ -118,8 +118,8 @@ needed: nothing runs per fix or per frame that did not.
    it, not to the subtype's row.
 5. **A retired `towers`** (HK10): read as Buildings and structures alone on the card and in the sheet (no subtitle row,
    whose switch no longer exists), hidden when both new switches are off or its parent is; a find keeps its old words.
-6. **Water towers' icon**: `beaker-outline` (no Ionicons glyph is a water tower; the clock keeps `time-outline`).
-7. **The failed read** (HK10): "Your choices couldn’t be read just now." in the sheet, What I'm into's row still there.
+6. **Water towers' icon**: the plain dot, `ellipse-outline` (the owner, Q2).
+7. **The failed read** (HK10): What I'm into's sentence, `INTO_UNREAD`, in the sheet, its row to the page still there.
 
 ## Deferred
 
@@ -130,3 +130,10 @@ Nothing of G12's criteria. "Not this one" and "Show less like this" stay out (th
 No native module. Never run on a phone: the Modal sheet over the walk map with a card up, its switches acting under it,
 Back on Android closing it, VoiceOver's "More" and the switches' hints, and What I'm into's scroll to a row
 (`docs/NATIVE_UNVERIFIED.md`, one item each in "Map, walk screen and motion polish").
+
+## After the plan review (Nov 25)
+
+The steward's S1-S6 and calls 2 and 6 are in the spec (HK1, HK3, HK5, HK8, HK10; poi-hide-from-card audit 1-7, each
+with a test named so in `hideFromCard.test.ts` or the `hidekind` journey). Call 1 now reads: the "?" card's head stays
+"A place to find" (the owner, Q1). Call 5: the class is in no store (the spec's "Steward", S2), so the retired reading
+stays, and rebuilding a checklist that holds `towers` is filed for the owner.

@@ -41,6 +41,16 @@ Open: none (the look approved as redrawn, Nov 21)
 - **The look, approved as redrawn**: More opens "Show on the map": the kind as a title row and its subtype as a subtitle
   row, each a switch acting at once (the switches are their own undo, so no Undo slab).
 
+The owner's answers to the steward's three questions (in person, 2026-11-25; the owner's own, not a proxy's; none amends
+0254, which already puts a "?" card's kind in its sheet):
+
+- **A "?" card's head stays as today** ("Only in More sheet (Recommended)"): "A place to find", at any distance and on a
+  ride; its kind and subtype appear only in its More sheet (HK4).
+- **Water towers' row draws the plain dot** ("Plain dot (Recommended)"): `ellipse-outline`, the table's own fallback, on
+  What I'm into; the sheet's rows draw no icon.
+- **A found card's head is today's** ("Keep today's found head (Recommended)"): "Hessian Memorial · War memorials", no
+  More and no kind line (HK5).
+
 ## Mock-up
 
 Drawing: https://claude.ai/artifact/B2rLDb6EvciUx6LaUFJVHC#artboard-MenuSwitches (docs/mockups/poi-hide-from-card/MenuSwitches.dc.html)
@@ -84,29 +94,36 @@ own cards of shops and sights, not a find's, and stay as they are.
 G12's nine, in its words, numbered with the slice's prefix; HK10 is the states they imply (slice step 2).
 
 1. **HK1** (the owner's task: "toggle off points of interest based on a card … that applies over the category") An
-   unfound place's card on the walk, named or "?", has More (…) at its top right, in ink, 44 pt, spoken "More"; under
-   the name ("A place to find" for a "?") a muted line names its kind and, when it has one, its subtype ("Monuments and
-   memorials · Plaques"). **Finding:** someone told only "stop being shown plaques" finds More on the plaque's card they
+   unfound place's card on the walk has More (…) at its top right, in ink, 44 pt, spoken "More"; under the name a muted
+   line names its kind and, when it has one, its subtype ("Monuments and memorials · Plaques"). A "?" card has More too,
+   and its head reads "A place to find" alone, as today (the owner, Q1; poi-hide-from-card audit 1). **Finding:** someone told only "stop being shown plaques" finds More on the plaque's card they
    just opened, by the three dots people know as More, and the sheet it opens by the word "Plaques".
 2. **HK2** More opens a sheet, "Show on the map" with Done: the kind as a title row with its switch, its subtype (when it
    has one) as an indented subtitle row with its switch, then "What I’m into ›". A kind with no subtype shows its title
    row alone.
 3. **HK3** Each switch is the one What I'm into shows (`withKind`, `saveSettings`) and acts at once, the sheet staying
    up: the subtype off hides only that subtype, the kind off hides the kind and its subtypes; the map behind follows at
-   once, and turning a switch back on brings the places back.
+   once, and turning a switch back on, in the sheet or in What I'm into, brings the places back. A found place of the
+   kind stays drawn (0115: kinds filter what you see, never what exists; poi-hide-from-card audit 3). With the kind off,
+   its subtype's row stays in place, off and dimmed, spoken "Part of …", and a tap on it does nothing (audit 6).
 4. **HK4** A "?" card's sheet names its kind and subtype, never the place.
-5. **HK5** A found place's card has no More (a find shows whatever its kind; its head unchanged).
+5. **HK5** A found place's card has no More and no kind line: its head is today's ("Hessian Memorial · War memorials",
+   the owner, Q3).
 6. **HK6** "What I’m into ›" opens the page from the walk (Back reads "Walk" while a walk is open, as from the drawer's
    row) at that kind's row: the title row's kind under its pinned heading.
 7. **HK7** Done, a tap on the dimmed map, Back and Escape close the sheet (only while the walk is focused).
-8. **HK8** No count, number or accent colour in the sheet or the card; the capture row unchanged and first.
+8. **HK8** No count or numeral in the sheet or the card's kind line, and no accent colour in either; the card's distance
+   line as today; the capture row unchanged and first (poi-hide-from-card audit 4). The sheet's rows draw no icon; the
+   Water towers row on What I'm into draws the plain dot (the owner, Q2; audit 5).
 9. **HK9** "Water and clock towers" becomes "Clock towers" and "Water towers", each a switch, both on by default; a reader
    with the shared switch off keeps both off.
 10. **HK10** (the states the criteria imply) The sheet draws its switches only once the reader's choices are read, and
-    says so in words if they cannot be (no switch that would save defaults over them, as What I'm into, WI9). Closed with
-    its place's kind now off, the sheet leaves no card for a place no longer on the map. A tower kept before the split
-    (a checklist item read under the old table, a find) is shown or hidden as the old switch said until its area is read
-    again, and a find of one still reads "Water and clock towers".
+    if they cannot be it says What I'm into's own sentence (`INTO_UNREAD`, one constant; audit 7), with no switch that
+    would save defaults over them (WI9). Closed with its place's kind now off, the sheet leaves no card for a place no
+    longer on the map. A tower kept before the split (a checklist item read under the old table, a find) reads as its
+    parent, Buildings and structures, and is hidden when its parent is off or both new switches are, until its area is
+    read again; a find of one still reads "Water and clock towers" (audit 2: its place's class is in no store, see
+    "Steward").
 
 ## Tests
 
@@ -116,3 +133,25 @@ rows (HK1, HK2, HK4, HK5, HK8 words), the switches (HK3), the page's row to open
 390 x 844 and 320 with Places on: a plaque's card, its sheet, Plaques off with the war memorial staying, the kind off and
 back on, a clock tower's sheet with the water tower's pin staying, a "?" card's sheet, a found place's card with no More,
 What I'm into opened from the sheet with Back "Walk" at Monuments and memorials, Done, the dimmed map, Escape.
+
+## Steward (the plan, Nov 25)
+
+Aligned, no breach. Triaged by the run's coordinator, the owner answering the three questions in person (Decisions):
+accepted 8, deferred 0, rejected 0.
+
+- **S1** (medium): the "?" card's kind line said more than E7 lets a "?" say; the owner: only in the sheet (Q1). HK1;
+  poi-hide-from-card audit 1.
+- **S2** (medium): a tower read before the split. The steward asked that a `towers` item take its kind from its place's
+  class in the places cache. It cannot: the cache stores no classes (`db/index.web.ts` l.855 leaves them out of the
+  stored object; `sqliteStore.ts`'s `place` table has no column for them), so the class is reachable only by a migration
+  or a checklist rebuild, neither in this slice. Kept: the retired reading (HK10; audit 2). It heals itself: towers come
+  only from the places archive, and a checklist built from an older archive version is rebuilt at the next version
+  (`archiveStale`, weekly), or at the next tile build. Rebuilding a checklist that holds `towers` on entry (amends E4)
+  is filed for the owner.
+- **S3** (medium): the gate's "a find stays" and "turning it back on there brings the places back" had no test. HK3;
+  audit 3.
+- **S4** (low): "no number" against the card's "43 m away". HK8; audit 4.
+- **S5** (low): Water towers' glyph; the owner, the plain dot (Q2). HK8; audit 5.
+- **S6** (low): the found card's head; the owner, today's (Q3). HK5; no change.
+- Plan call 2 (the subtype row with its kind off): kept, off and dimmed. HK3; audit 6. Plan call 6 (a failed read):
+  What I'm into's sentence from one constant. HK10; audit 7. Calls 3, 4 and 7: as written.
