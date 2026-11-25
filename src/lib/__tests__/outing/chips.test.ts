@@ -62,8 +62,9 @@ test('tend explore T63: each attraction chip reads its kind\'s name from the one
   assert.deepEqual(views.aliases, ['viewpoints', 'lookouts', 'oddities', 'curiosities']);
   assert.deepEqual(views.match, { kind: ['viewpoints'] });
   assert.equal(views.slotWord, 'a view or an oddity');
-  // The name is read from the table, not copied into the chips.
-  assert.doesNotMatch(readFileSync(join(__dirname, '../../outing/chips.ts'), 'utf8'), /'Views & oddities'|'Views'/);
+  // The name is read from the table, not copied into the chips (tend explore audit 51: in any quote, or a template literal).
+  const code = readFileSync(join(__dirname, '../../outing/chips.ts'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  assert.doesNotMatch(code, /['"`]Views(?: & oddities)?['"`]/);
   // Alphabetical by label, it stays last.
   assert.deepEqual(CHIPS.map((c) => c.label), ['Antiques', 'Art', 'Books', 'Culture', 'Green', 'History', 'Thrifting', 'Views & oddities']);
 });
@@ -82,11 +83,15 @@ test('tend explore T63: the outing\'s sentences keep the noun, "views", never th
   assert.equal(townLine([word(by('history')), word(by('viewpoints'))]), 'History and views here.');
   assert.equal(townLine([word(by('viewpoints')), word(by('parks'))]), 'Views and green here.');
   assert.equal(cardSummary({ places: ['Lyon'], labels: [word(by('antiques')), word(by('viewpoints'))], footM: 0 }, 'km'), 'Lyon. Antiques and Views.');
-  // The page builds its sentences from that word, never from the label.
+  // The page builds its sentences from that word, never from the label (tend explore audit 51: both sentences, by what they are
+  // built from, not by refusing two old spellings).
   const { readFileSync } = await import('node:fs');
   const { join } = await import('node:path');
   const page = readFileSync(join(__dirname, '../../../components/outing/OutingPage.tsx'), 'utf8');
-  assert.doesNotMatch(page, /labels\.push\(want\.label\)|\.map\(\(w\) => w\.label\)/, 'the town line and the card summary take chipWord');
+  const pushes = [...page.matchAll(/labels\.push\(([^;]*)\);/g)].map((m) => m[1]);
+  assert.ok(pushes.length >= 1 && pushes.every((p) => /^chipWord\(\w+\)$/.test(p)), `the town line's words are each chip's chipWord (${pushes.join(' | ')})`);
+  assert.match(page, /townLine\(c\.labels\)/, 'the town line is given those words');
+  assert.match(page, /const labels = [^;]*\.map\(chipWord\);\s*return cardSummary\(\{[^}]*\blabels\b/, 'a card\'s summary is given each chip\'s chipWord');
 });
 
 test('tend explore audit 50: every attraction chip reads its label from the one table, none a literal of any quote', async () => {
