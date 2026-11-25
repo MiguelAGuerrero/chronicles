@@ -641,6 +641,63 @@ async function run(h) {
     if ((await pg.locator('[data-testid=outing-arrival]').count()) > 0) said = await pg.locator('[data-testid=outing-arrival]').innerText();
   }
   check(NAMES.includes(said.trim()), `QC19: within reach of a stop the walk says its name (${said})`);
+  // tend outing audit 1 (the T64 review's A1-A3, U1; the owner in person, 2026-11-25: "Keep words, allow wrapping (Recommended)";
+  // decision 0265): while a walk records, the capture stack narrows the sheet; "Through green and views" is whole on its card and
+  // as the opened journey's title at 390 and 320 px, never cut: either may wrap (the line count logged), Back level with the
+  // title's first line, and the card inside the page.
+  {
+    await pg.click('[data-testid=walk-minimize]').catch(() => {});
+    await pg.waitForSelector('[data-testid=tab-explore]', { timeout: 15000 }).catch(() => {});
+    await pg.click('[data-testid=tab-explore]').catch(() => {});
+    await pg.locator('[data-testid=outing-entry]').waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(1000);
+    await pg.click('[data-testid=outing-entry]').catch(() => {});
+    await pg.waitForSelector('[data-testid=outing-want-viewpoints]', { timeout: 30000 }).catch(() => {});
+    await backToChips();
+    await only(['viewpoints']);
+    const NAME = 'Through green and views';
+    const whole = (sel) => pg.evaluate(([s]) => {
+      const vw = document.documentElement.clientWidth;
+      const el = document.querySelector(s);
+      const leaf = el && (el.childElementCount === 0 ? el : [...el.querySelectorAll('*')].find((x) => x.childElementCount === 0 && /[A-Za-z]/.test(x.textContent || '')));
+      if (!leaf) return null;
+      const r = document.createRange();
+      r.selectNodeContents(leaf);
+      const t = r.getBoundingClientRect();
+      const b = el.getBoundingClientRect();
+      const lb = leaf.getBoundingClientRect();
+      const cs = getComputedStyle(leaf);
+      const rects = [...r.getClientRects()];
+      const first = rects[0];
+      return {
+        vw, text: (leaf.textContent || '').trim(), lines: new Set(rects.map((x) => Math.round(x.top))).size,
+        cut: leaf.scrollWidth > leaf.clientWidth + 1 || leaf.scrollHeight > leaf.clientHeight + 1 || (cs.textOverflow === 'ellipsis' && t.right > lb.right + 0.5),
+        inBox: t.left >= b.left - 0.5 && t.right <= b.right + 0.5 && t.top >= b.top - 0.5 && t.bottom <= b.bottom + 0.5,
+        left: Math.round(b.left), right: Math.round(b.right), firstMid: first ? Math.round(first.top + first.height / 2) : null, textW: Math.round(t.width), slot: Math.round(lb.width),
+      };
+    }, [sel]);
+    const vp = pg.viewportSize();
+    for (const width of [390, 320]) {
+      await pg.setViewportSize({ width, height: vp.height });
+      await pg.waitForSelector('[data-testid=outing-journey-0]', { timeout: 90000 }).catch(() => {});
+      await pg.waitForTimeout(800);
+      const stack = (await pg.locator('[data-testid=plan-cap-photo]').count()) === 1;
+      const card = await whole('[data-testid=outing-journey-0]');
+      check(stack && !!card && card.text === NAME && !card.cut && card.inBox && card.left >= 0 && card.right <= card.vw,
+        `tend outing audit 1: at ${width} px while a walk records, the card reads "${NAME}" whole, nothing cut, inside its card, the card inside the page (${JSON.stringify({ stack, card })})`);
+      await shot(pg, `tend-outing-audit-1-recording-card-${width}`);
+      await openJourney();
+      const title = await whole('[data-testid=outing-journey-name]');
+      const back = await pg.locator('[data-testid=outing-back]').boundingBox().catch(() => null);
+      const level = !!back && !!title && title.firstMid != null && Math.abs(back.y + back.height / 2 - title.firstMid) <= 3;
+      check(!!title && title.text === NAME && !title.cut && title.inBox && title.right <= title.vw && !!back && title.left >= back.x + back.width - 0.5 && level,
+        `tend outing audit 1: at ${width} px while a walk records, the opened journey's title reads "${NAME}" whole, nothing cut, beside Back and level with its first line (${JSON.stringify({ title, back: back && { x: Math.round(back.x), r: Math.round(back.x + back.width), mid: Math.round(back.y + back.height / 2) } })})`);
+      console.log(`tend outing audit 1: at ${width} px while recording, the card's name takes ${card?.lines} line(s), the title ${title?.lines}`);
+      await shot(pg, `tend-outing-audit-1-recording-title-${width}`);
+      await backToChips();
+    }
+    await pg.setViewportSize(vp);
+  }
   await c.close();
   places.files = {};
   places.manifest = JSON.stringify({ schema: 1, regions: [] });

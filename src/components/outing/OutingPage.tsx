@@ -302,7 +302,8 @@ export function OutingPage(props: {
                 <Icon name="chevron-back" size={18} color={theme.ink} />
                 <Text style={styles.swapText}>{BACK_LABEL}</Text>
               </Pressable>
-              <Text style={[styles.jname, styles.grow]} numberOfLines={1} accessibilityRole="header" testID="outing-journey-name">{j.journey!.name}</Text>
+              {/* tend outing audit 1 (decision 0265): the name may wrap, never cut; Back stays level with its first line. */}
+              <Text style={[styles.jname, styles.grow, styles.jtitle]} accessibilityRole="header" testID="outing-journey-name">{j.journey!.name}</Text>
             </View>
             <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
               {chapters.length > 1 ? <Text style={styles.line} testID="outing-summary">{summary(j.journey!)}</Text> : null}
@@ -403,7 +404,9 @@ const styles = StyleSheet.create({
   field: { flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center' },
   fieldMain: { flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 12, paddingRight: 8 },
   clear: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderBottomWidth: 1, borderColor: theme.line },
+  bar: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 16, borderBottomWidth: 1, borderColor: theme.line },
+  // One line is Back's 44 px: its first line sits level with Back's label, and a second line grows the bar downward.
+  jtitle: { paddingVertical: 12, lineHeight: 20 },
   segment: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, borderColor: theme.edge, overflow: 'hidden' },
   segBtn: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, backgroundColor: theme.surface },
   segDivide: { borderLeftWidth: 1, borderColor: theme.edge },
