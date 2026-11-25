@@ -5,7 +5,7 @@ import { Icon } from '../components/icons';
 import { IntoPage, IntoTitle } from '../components/IntoPage';
 import { useOpenWalkInfo } from '../components/OpenWalk';
 import { theme } from '../components/ui';
-import { intoBack, intoHeader, intoMeasures } from '../lib/explore/intoPage';
+import { intoAt, intoBack, intoHeader, intoMeasures } from '../lib/explore/intoPage';
 import { intoShown } from '../lib/intoNav';
 
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
@@ -23,7 +23,10 @@ export default function IntoRoute() {
   // From the walk's drawer, Back reads the walk screen's name, the arrow and the word (WI20, audit 14); a link with no
   // walk open has no walk beneath, so it stays "Go back" (audit 10).
   const walkOpen = !!useOpenWalkInfo().walk;
-  const back = intoBack(useLocalSearchParams<{ from?: string }>().from, walkOpen);
+  const params = useLocalSearchParams<{ from?: string; at?: string }>();
+  const back = intoBack(params.from, walkOpen);
+  // From a place's card (specs/poi-hide-from-card HK6): the page opens at its kind's row.
+  const at = intoAt(params.at);
   // At large text the word would squeeze the title to nothing: Back keeps its arrow alone there, still heard as "Walk,
   // back" (WI21), as iOS drops a back title that has no room.
   const win = useWindowDimensions();
@@ -60,7 +63,7 @@ export default function IntoRoute() {
             : {}),
         }}
       />
-      <IntoPage onWidth={setWidth} />
+      <IntoPage onWidth={setWidth} at={at} />
     </>
   );
 }

@@ -591,7 +591,7 @@ async function checks(h) {
           more: !!document.querySelector('[data-testid=mark-more]'), kinds: !!document.querySelector('[data-testid=mark-kinds]'),
           title: document.querySelector('[data-testid=mark-card] [role=heading]')?.textContent ?? '',
         }));
-        check.todo(!foundHead.more && !foundHead.kinds && /^Hessian Memorial · /.test(foundHead.title),
+        check(!foundHead.more && !foundHead.kinds && /^Hessian Memorial · /.test(foundHead.title),
           `HK5: a found place's card has no More and no kind line; its head is today's name · kind (${JSON.stringify(foundHead)})`);
         await page.locator('[data-testid=mark-moment]').filter({ hasText: /^A video, / }).first().click().catch(() => {});
         const opened = await page.locator('[data-testid=viewer-close]').filter({ visible: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);

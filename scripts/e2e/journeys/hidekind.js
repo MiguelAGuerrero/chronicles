@@ -63,7 +63,8 @@ async function run(h) {
     for (let k = 0; fromX + k * 0.05 <= toX + 1e-9; k++) await standAt(at(fromX + k * 0.05, -0.5));
   };
   const openCard = async (label) => {
-    await pg.locator(`.maplibregl-map [data-testid=mark-pin][aria-label^="${label}"]`).first().click({ timeout: 5000 }).catch(() => {});
+    // Pins near one another are spread and overlap: the pin is pressed itself, as a screen reader's activation would.
+    await pg.locator(`.maplibregl-map [data-testid=mark-pin][aria-label^="${label}"]`).first().evaluate((e) => e.click()).catch(() => {});
     return pg.waitForSelector('[data-testid=mark-card]', { timeout: 5000 }).then(() => true, () => false);
   };
   const openSheet = async () => {
@@ -104,12 +105,12 @@ async function run(h) {
   // HK4: the mill, 80 m off, is a "?": its card's head reads "A place to find" alone; its sheet names its kind, never it.
   const qOpen = await openCard('A place to find. Open');
   const qHead = await pg.locator('[data-testid=mark-card]').innerText().catch(() => '');
-  check.todo(qOpen && /^A place to find/.test(qHead) && !(await pg.locator('[data-testid=mark-kinds]').count()) && (await pg.locator('[data-testid=mark-more]').count()) === 1,
+  check(qOpen && /^A place to find/.test(qHead) && !(await pg.locator('[data-testid=mark-kinds]').count()) && (await pg.locator('[data-testid=mark-more]').count()) === 1,
     `poi-hide-from-card audit 1: a ? card's head reads A place to find alone, with More (${JSON.stringify(qHead.slice(0, 80))})`);
   await openSheet();
   const qSaid = await pg.locator('[data-testid=kinds-sheet]').innerText().catch(() => '');
   await shot(pg, 'hidekind-unnamed-sheet');
-  check.todo(/Buildings and structures/.test(qSaid) && /Mills/.test(qSaid) && !qSaid.includes(MILL) && !qSaid.includes('Grist'),
+  check(/Buildings and structures/.test(qSaid) && /Mills/.test(qSaid) && !qSaid.includes(MILL) && !qSaid.includes('Grist'),
     `HK4: a ? card's sheet names its kind and subtype, never the place (${JSON.stringify(qSaid)})`);
   await pg.click('[data-testid=kinds-sheet-done]').catch(() => {});
   await sheetGone();
@@ -131,11 +132,11 @@ async function run(h) {
     };
   });
   await shot(pg, 'hidekind-card');
-  check.todo(pOpen && !!head.more && head.more.w >= 44 && head.more.h >= 44 && head.label === 'More' && head.ink === 'rgb(29, 36, 48)'
+  check(pOpen && !!head.more && head.more.w >= 44 && head.more.h >= 44 && head.label === 'More' && head.ink === 'rgb(29, 36, 48)'
     && head.more.right >= head.card.right - 24 && head.more.top <= head.card.top + 24 && head.kinds === 'Monuments and memorials · Plaques',
     `HK1: a plaque's card has More at its top right, 44 pt, in ink, spoken More, the kind line under the name (${JSON.stringify(head)})`);
   const cardCut = await at320('hidekind-card-320');
-  check.todo(cardCut.length === 0, `HK1: the card's words whole at 320 px, the long name wrapping, never cut (${JSON.stringify(cardCut)})`);
+  check(cardCut.length === 0, `HK1: the card's words whole at 320 px, the long name wrapping, never cut (${JSON.stringify(cardCut)})`);
 
   // HK2: More opens Show on the map with Done, the kind, its subtype indented, then What I'm into.
   const up = await openSheet();
@@ -146,7 +147,7 @@ async function run(h) {
   const mon = await rowOf('monuments');
   const plq = await rowOf('plaques');
   await shot(pg, 'hidekind-sheet');
-  check.todo(up && /^Show on the map/.test(sheet.text) && /Done/.test(sheet.text) && JSON.stringify(sheet.rows) === '["kind-sheet-monuments","kind-sheet-plaques"]'
+  check(up && /^Show on the map/.test(sheet.text) && /Done/.test(sheet.text) && JSON.stringify(sheet.rows) === '["kind-sheet-monuments","kind-sheet-plaques"]'
     && mon?.on === 'true' && plq?.on === 'true' && plq.left > mon.left && /What I’m into/.test(sheet.text) && sheet.text.indexOf('What I’m into') > sheet.text.indexOf('Plaques'),
     `HK2: More opens Show on the map with Done, Monuments and memorials, Plaques indented, then What I’m into (${JSON.stringify({ sheet, mon, plq })})`);
   // HK8: no digit in the sheet, no icon in its rows; the capture row first and unchanged under it.
@@ -156,10 +157,10 @@ async function run(h) {
     const cam = b('mark-camera'), go = b('mark-go');
     return { cam: !!cam, first: !!cam && !!go && cam.bottom <= go.top + 1 };
   });
-  check.todo(!/\d/.test(sheet.text) && icons === 0 && capture.cam && capture.first,
+  check(!/\d/.test(sheet.text) && icons === 0 && capture.cam && capture.first,
     `HK8, poi-hide-from-card audit 4, 5: no digit and no icon in the sheet; the capture row first (${JSON.stringify({ icons, capture })})`);
   const sheetCut = await at320('hidekind-sheet-320');
-  check.todo(sheetCut.length === 0, `HK2: the sheet's words whole at 320 px (${JSON.stringify(sheetCut)})`);
+  check(sheetCut.length === 0, `HK2: the sheet's words whole at 320 px (${JSON.stringify(sheetCut)})`);
 
   // HK3: Plaques off takes the plaque off the map at once, the memorial stays, the sheet up; on brings it back.
   await pg.click('[data-testid=kind-sheet-plaques]');
@@ -169,7 +170,7 @@ async function run(h) {
   await pg.click('[data-testid=kind-sheet-plaques]');
   await pg.waitForTimeout(1200);
   const backP = await shown(PLAQUE);
-  check.todo(!offP.plaque && offP.memorial && offP.up && offP.on === 'false' && backP,
+  check(!offP.plaque && offP.memorial && offP.up && offP.on === 'false' && backP,
     `HK3: Plaques off takes the plaque off the map at once, the war memorial stays, the sheet up; on brings it back (${JSON.stringify({ offP, backP })})`);
   // HK3, audit 6: the kind off takes the memorial too; its subtype's row stays, off and dimmed, and a tap does nothing.
   await pg.click('[data-testid=kind-sheet-monuments]');
@@ -179,8 +180,8 @@ async function run(h) {
   await pg.click('[data-testid=kind-sheet-plaques]', { force: true }).catch(() => {});
   await pg.waitForTimeout(600);
   const tapped = await rowOf('plaques');
-  check.todo(!offK.plaque && !offK.memorial, `HK3: the kind off takes the war memorial too (${JSON.stringify(offK)})`);
-  check.todo(!!offK.row && offK.row.on === 'false' && offK.row.disabled === 'true' && tapped?.on === 'false',
+  check(!offK.plaque && !offK.memorial, `HK3: the kind off takes the war memorial too (${JSON.stringify(offK)})`);
+  check(!!offK.row && offK.row.on === 'false' && offK.row.disabled === 'true' && tapped?.on === 'false',
     `poi-hide-from-card audit 6: with the kind off, Plaques stays in place, off and dimmed, and a tap does nothing (${JSON.stringify({ offK, tapped })})`);
   await pg.click('[data-testid=kind-sheet-monuments]');
   await pg.waitForTimeout(1200);
@@ -194,7 +195,7 @@ async function run(h) {
   await openSheet();
   await pg.keyboard.press('Escape');
   const byEscape = (await sheetGone()) && (await pg.locator('[data-testid=mark-card]').count()) === 1;
-  check.todo(byDone && byMap && byEscape, `HK7: Done, the dimmed map and Escape each close the sheet, the card staying (${JSON.stringify({ byDone, byMap, byEscape })})`);
+  check(byDone && byMap && byEscape, `HK7: Done, the dimmed map and Escape each close the sheet, the card staying (${JSON.stringify({ byDone, byMap, byEscape })})`);
 
   // HK10: closed with Plaques off, the sheet leaves no card (its place is off the map).
   await openSheet();
@@ -203,7 +204,7 @@ async function run(h) {
   await pg.click('[data-testid=kinds-sheet-done]').catch(() => {});
   await sheetGone();
   await pg.waitForTimeout(600);
-  check.todo((await pg.locator('[data-testid=mark-card]').count()) === 0 && !(await shown(PLAQUE)),
+  check((await pg.locator('[data-testid=mark-card]').count()) === 0 && !(await shown(PLAQUE)),
     'HK10: closed with the plaque\'s kind off, the sheet leaves no card');
 
   // HK6: What I'm into from the memorial's sheet opens the page at Monuments and memorials, Back reading "Walk"; Plaques
@@ -220,12 +221,12 @@ async function run(h) {
   });
   const back = await pg.locator('[aria-label="Walk, back"]:visible').count();
   await shot(pg, 'hidekind-into');
-  check.todo(page && !where.sheet && back === 1 && where.row != null && where.head != null && Math.abs(where.row - where.head) <= 16 && /at=monuments/.test(where.url),
+  check(page && !where.sheet && back === 1 && where.row != null && where.head != null && Math.abs(where.row - where.head) <= 16 && /at=monuments/.test(where.url),
     `HK6: What I’m into from the sheet opens the page at Monuments and memorials, Back reads Walk (${JSON.stringify({ where, back })})`);
   await pg.locator('[data-testid=kind-plaques]').click().catch(() => {});
   await closeInto(pg);
   await pg.waitForTimeout(1500);
-  check.todo(await shown(PLAQUE), 'poi-hide-from-card audit 3: Plaques turned back on in What I’m into brings the plaque back on the map');
+  check(await shown(PLAQUE), 'poi-hide-from-card audit 3: Plaques turned back on in What I’m into brings the plaque back on the map');
 
   // HK9: a clock tower's sheet turns clock towers off; the water tower's pin stays.
   await walkTo(0.15, 0.55);
@@ -239,7 +240,7 @@ async function run(h) {
   await pg.waitForTimeout(1200);
   const towers = { clock: await shown(CLOCK), water: await shown(WATER) };
   await shot(pg, 'hidekind-clock-off');
-  check.todo(towerKinds === 'Buildings and structures · Clock towers' && JSON.stringify(towerRows) === '["Buildings and structures","Clock towers"]' && !towers.clock && towers.water,
+  check(towerKinds === 'Buildings and structures · Clock towers' && JSON.stringify(towerRows) === '["Buildings and structures","Clock towers"]' && !towers.clock && towers.water,
     `HK9: a clock tower's sheet turns clock towers off; the water tower's pin stays (${JSON.stringify({ towerKinds, towerRows, towers })})`);
   await pg.click('[data-testid=kinds-sheet-done]').catch(() => {});
   await sheetGone();

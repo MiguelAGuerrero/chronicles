@@ -29,7 +29,7 @@ import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
 import { PASS_SCALE, passNote, RangeSlider, walkNote } from '../components/ExploreSettings';
 import { IntoRow } from '../components/IntoRow';
-import { tookDetour } from '../lib/intoNav';
+import { openInto, tookDetour } from '../lib/intoNav';
 import { NotificationSettings } from '../components/NotificationSettings';
 import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
 import { RoutePreview } from '../components/RoutePreview';
@@ -44,7 +44,7 @@ import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
 import { offerLabels, offerLine } from '../lib/explore/placeOffer';
-import { type ChecklistItem, walkPassKey, clampPass, clampRange, intoRowShown, kindOf, POCKET_ALERT_NOTE } from '../lib/explore/explore';
+import { type ChecklistItem, walkPassKey, clampPass, clampRange, intoRowShown, type Kind, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -78,7 +78,8 @@ import { routeLeanings } from '../lib/routeLeanings';
 import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { PlaceCaptureRow } from '../components/walk/PlaceCaptureRow';
-import { cardCapture, PLACE_REACH_M } from '../lib/explore/placeCard';
+import { cardCapture, cardGoes, cardHead, PLACE_REACH_M } from '../lib/explore/placeCard';
+import { PlaceKinds } from '../components/walk/PlaceKinds';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { shareLogText, walkLogText } from '../lib/shareLog';
@@ -890,6 +891,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // A found place's card lists the moments taken here (CA11), read as it opens; each opening reads again (CA12).
   const [markMoments, setMarkMoments] = useState<{ key: string; lines: { id: string; line: string; moment: Faced }[] } | null>(null);
   const openMarkFound = !!openMark && explore.found.has(openMark.key);
+  // The card's head (specs/poi-hide-from-card HK1, HK4, HK5): the name and its kind line, More on an unfound place.
+  const openMarkHead = openMark ? cardHead({ name: openMark.name, kind: openMark.kind, named: openMarkNamed, found: openMarkFound }) : null;
+  // The card's kinds sheet (HK2-HK10): open on the card's kind; closed with that kind now off, the card goes too.
+  const [kindsFor, setKindsFor] = useState<ChecklistItem | null>(null);
+  const closeKinds = (hidden: ReadonlySet<Kind> | null) => {
+    const m = kindsFor;
+    setKindsFor(null);
+    if (m && hidden && cardGoes({ kind: m.kind, found: explore.found.has(m.key) }, hidden)) setMarkOpen((k) => (k === m.key ? null : k));
+  };
   const openMarkCapture = openMark ? cardCapture({ name: openMarkNamed ? openMark.name : null, found: openMarkFound, riding: live.riding, reach: formatDistance(PLACE_REACH_M) }) : null;
   /** A capture from the card (CA2-CA4, CA12): the card closes and the capture begins, carrying the place. */
   const captureAt = (kind: 'photo' | 'voice' | 'text') => {
@@ -2049,9 +2059,31 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // A place's card, in the spot card's place (E7, E8, E12).
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>
-            <Text style={styles.spotTitle} accessibilityRole="header">
-              {openMarkNamed ? `${openMark.name} · ${kindOf(openMark.kind).label}` : 'A place to find'}
-            </Text>
+            <View style={styles.markHead}>
+              <View style={styles.markHeadText}>
+                <Text style={styles.spotTitle} accessibilityRole="header">
+                  {openMarkHead?.title}
+                </Text>
+                {openMarkHead?.line ? (
+                  // HK1: the kind and its subtype, muted, under the name; a "?" keeps its kind for the sheet (audit 1).
+                  <Text testID="mark-kinds" style={styles.markSub}>
+                    {openMarkHead.line}
+                  </Text>
+                ) : null}
+              </View>
+              {openMarkHead?.more ? (
+                // HK1: More, in ink, 44 pt, at the card's top right; a found card has none (HK5).
+                <Pressable
+                  testID="mark-more"
+                  accessibilityRole="button"
+                  accessibilityLabel="More"
+                  onPress={() => setKindsFor(openMark)}
+                  style={({ pressed }) => [styles.markMore, pressed && styles.pressed]}
+                >
+                  <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
+                </Pressable>
+              ) : null}
+            </View>
             <Text style={styles.markSub}>
               {live.here ? `${formatDistance(distanceM(live.here, openMark.at))} away.` : ''}
               {live.here && openMarkCapture?.line ? ' ' : ''}
@@ -2109,6 +2141,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </View>
           </View>
         </View>
+      )}
+      {kindsFor && (
+        // HK2-HK10: the card's kinds; "What I’m into ›" closes it, then opens the page at the title's row (HK6).
+        <PlaceKinds
+          kind={kindsFor.kind}
+          onClose={closeKinds}
+          onInto={(at) => {
+            setKindsFor(null);
+            openInto('walk', at);
+          }}
+        />
       )}
       {openGapOf && !isDrawing && !spot && !openMark && !memory && !recordingVoice && !options && !viewing && (
         <GapCard
@@ -2363,6 +2406,10 @@ const styles = StyleSheet.create({
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
   markSub: { fontSize: 14, color: theme.muted },
+  markHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  markHeadText: { flex: 1, minWidth: 0, gap: 2 },
+  // HK1: 44 pt, ink on the page's own ground, its corner at the card's padding (as drawn).
+  markMore: { width: 44, height: 44, borderRadius: 22, marginTop: -10, marginRight: -10, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   markMoments: { gap: 0 },
   markMomentsHead: { fontSize: 14, fontWeight: '700', color: theme.ink },
   markMoment: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },

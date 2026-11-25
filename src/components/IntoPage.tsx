@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import type { Kind } from '../lib/discovery/types';
 import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COMPLEX_NOTE, switchLabel } from '../lib/complexes/kinds';
 import { COMPLEX_KINDS } from '../lib/complexes/types';
 import { useHiddenKinds } from '../lib/complexes/useComplexes';
 import { KINDS } from '../lib/explore/explore';
-import { COMPLEX_ICON, INTO_KIND_GAP, INTO_TITLE, INTO_UNREAD, intoBody, intoChildren, intoHeadingH, intoMeasures, intoPin, intoSections, type IntoChild, type IntoMeasures, type IntoPin } from '../lib/explore/intoPage';
+import { COMPLEX_ICON, INTO_KIND_GAP, INTO_TITLE, INTO_UNREAD, intoBody, intoChildren, intoHeadingH, intoMeasures, intoPin, intoScrollY, intoSections, type IntoChild, type IntoMeasures, type IntoPin } from '../lib/explore/intoPage';
 import { useExploreSettings } from '../lib/explore/useExploreSettings';
 import { focusOn } from '../lib/focus';
 import { createStore, type Store } from '../lib/store';
@@ -44,7 +45,8 @@ export function IntoTitle() {
  * does by itself. The scroll position reaches only the headings (a small store), never the rows.
  */
 /** `onWidth`: the page's own width, so the route can fit its header to it (WI21). */
-export function IntoPage(props: { onWidth?: (width: number) => void }) {
+/** `at`: the kind's row the page opens at, from a place's card (specs/poi-hide-from-card HK6): once, after layout. */
+export function IntoPage(props: { onWidth?: (width: number) => void; at?: Kind | null }) {
   const { settings, failed, setKind } = useExploreSettings();
   const complexes = useHiddenKinds();
   const insets = useSafeAreaInsets();
@@ -54,6 +56,18 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
   const heights = useRef(new Map<string, number>());
   const scrollY = useRef(0);
   const laid = useRef<{ children: IntoChild[]; m: IntoMeasures; w: number; scale: number } | null>(null);
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
+  const scrolledTo = useRef(false);
+  // HK6: once every row above `at` has its height, one scroll stands it under its pinned heading; never again this visit.
+  const toAt = () => {
+    const now = laid.current;
+    if (!props.at || scrolledTo.current || !now) return;
+    const hs = now.children.map((c) => (c.type === 'heading' ? intoHeadingH(c.label, now.w, now.scale) : heights.current.get(keyOf(c))));
+    const y = intoScrollY(now.children, hs, props.at, (label) => intoHeadingH(label, now.w, now.scale));
+    if (y == null) return;
+    scrolledTo.current = true;
+    scroller.current?.scrollTo({ y, animated: false });
+  };
   const m = intoMeasures(width ?? win.width, win.fontScale);
   // Complexes' switches only once their setting is read (audit 2): before, a tap would save over it.
   const built = settings ? intoChildren(intoSections(KINDS, settings.hidden), complexes.loaded ? COMPLEX_KINDS : []) : null;
@@ -71,10 +85,12 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
   useEffect(() => {
     laid.current = built ? { children: built.children, m, w: pageW, scale: win.fontScale } : null;
     repin();
+    toAt();
   });
   const measured = (key: string) => (e: LayoutChangeEvent) => {
     heights.current.set(key, e.nativeEvent.layout.height);
     repin();
+    toAt();
   };
   // The page's own width, from its first draw (WI21): React reuses this View for the full page, and a reused View never
   // reports onLayout on the web, so the placeholder measures too.
@@ -147,6 +163,7 @@ export function IntoPage(props: { onWidth?: (width: number) => void }) {
   return (
     <View testID="into-page" style={styles.page} onLayout={sized}>
       <ScrollView
+        ref={scroller}
         stickyHeaderIndices={sticky}
         scrollEventThrottle={16}
         onScroll={(e) => {
