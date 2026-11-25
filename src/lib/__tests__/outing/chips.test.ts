@@ -88,3 +88,18 @@ test('tend explore T63: the outing\'s sentences keep the noun, "views", never th
   const page = readFileSync(join(__dirname, '../../../components/outing/OutingPage.tsx'), 'utf8');
   assert.doesNotMatch(page, /labels\.push\(want\.label\)|\.map\(\(w\) => w\.label\)/, 'the town line and the card summary take chipWord');
 });
+
+test('tend explore audit 50: every attraction chip reads its label from the one table, none a literal of any quote', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const src = readFileSync(join(__dirname, '../../outing/chips.ts'), 'utf8');
+  const block = /const ATTRACTIONS[^=]*=\s*\[([\s\S]*?)\n\];/.exec(src)?.[1] ?? '';
+  const rows = block.split('\n').filter((l) => /\bid:/.test(l));
+  assert.equal(rows.length, 5, 'the five attraction rows');
+  for (const r of rows) {
+    assert.doesNotMatch(r, /\blabel:\s*['"`]/, r.trim());
+    assert.match(r, /\blabel:\s*categoryOf\('(\w+)'\)\.label/, r.trim());
+    const id = /\bid:\s*'(\w+)'/.exec(r)?.[1];
+    assert.equal(/categoryOf\('(\w+)'\)/.exec(r)?.[1], id, `${id} reads its own kind's name`);
+  }
+});

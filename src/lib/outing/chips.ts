@@ -7,13 +7,13 @@ import { WANTS } from './wants';
  * The outing's chips (OJ11-OJ15): what a place is, kinds of attraction beside the kinds of shop of `wants.ts`, in one list. Data, not
  * code; a gate of kinds, never a measure: no field orders, weights or prefers a chip, none is marked as a shop or an attraction, and
  * the page lists them alphabetically by label. An attraction's match is over `kind`, the atlas's own kinds. A chip over a kind says
- * that kind's name from the one table (decision 0239, tend explore T63).
+ * that kind's name from the one table, read with `categoryOf`, never a literal (decision 0239, tend explore T63 and audit 50).
  */
 const ATTRACTIONS: readonly Want[] = [
-  { id: 'art', label: 'Art', aliases: ['public art', 'murals', 'galleries'], match: { kind: ['art'] }, slotWord: 'a place of art' },
-  { id: 'culture', label: 'Culture', aliases: ['museums', 'theatres', 'theaters', 'libraries'], match: { kind: ['culture'] }, slotWord: 'a place of culture' },
-  { id: 'parks', label: 'Green', aliases: ['parks', 'gardens', 'woods', 'nature'], match: { kind: ['parks'] }, slotWord: 'a green place' },
-  { id: 'history', label: 'History', aliases: ['old places', 'old buildings', 'monuments', 'heritage'], match: { kind: ['history'] }, slotWord: 'a place with history' },
+  { id: 'art', label: categoryOf('art').label, aliases: ['public art', 'murals', 'galleries'], match: { kind: ['art'] }, slotWord: 'a place of art' },
+  { id: 'culture', label: categoryOf('culture').label, aliases: ['museums', 'theatres', 'theaters', 'libraries'], match: { kind: ['culture'] }, slotWord: 'a place of culture' },
+  { id: 'parks', label: categoryOf('parks').label, aliases: ['parks', 'gardens', 'woods', 'nature'], match: { kind: ['parks'] }, slotWord: 'a green place' },
+  { id: 'history', label: categoryOf('history').label, aliases: ['old places', 'old buildings', 'monuments', 'heritage'], match: { kind: ['history'] }, slotWord: 'a place with history' },
   { id: 'viewpoints', label: categoryOf('viewpoints').label, aliases: ['viewpoints', 'lookouts', 'oddities', 'curiosities'], match: { kind: ['viewpoints'] }, slotWord: 'a view or an oddity' },
 ];
 
