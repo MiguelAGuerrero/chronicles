@@ -163,7 +163,10 @@ Built 2026-11-25 under `/tend inbox G12 yes` on `tend/inbox-20261125-2132`, from
   `explore/hideFromCard.test.ts`, the `hidekind` journey's checks, HK5's in the `walk` journey), then made real with its
   code, each unit test's wiring reverted once and seen failing (the retired kind's hiding, its words and its subtype; the
   stored `towers`; presence's split; the "?" head; the found head; the locked row; the card that goes; the failed read;
-  the gate's `at`; the scroll that waits for heights).
+  the gate's `at`; the scroll that waits for heights). `check:test-first poi-hide-from-card`: 9 of 10; HK2 reads "its todo and its
+  real test arrived in the same commit (681d299)": that commit held HK2 only as todos (the unit test with `{ todo }`, the
+  journey's `check.todo(` whose message, on the call's second line, the check reads as a real line), made real in
+  66a87c59 and eaa08b75.
 - **The tables moved with it:** the class tree (XS3), the kinds' order (E16 and its kin), presence's fingerprint (p12
   added beside p11), the p11 asserts and the atlas's and the archive's codes (`a16.p12`, a16.p11 rows read again).
 - **Journeys:** `hidekind` (new, 17 checks, pictures at 390 and 320) and `launch` green after the last code change; `walk`

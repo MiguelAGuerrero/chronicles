@@ -2407,9 +2407,9 @@ const styles = StyleSheet.create({
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
   markSub: { fontSize: 14, color: theme.muted },
   markHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  markHeadText: { flex: 1, minWidth: 0, gap: 2 },
+  markHeadText: { flex: 1, minWidth: 0, gap: 4 },
   // HK1: 44 pt, ink on the page's own ground, its corner at the card's padding (as drawn).
-  markMore: { width: 44, height: 44, borderRadius: 22, marginTop: -10, marginRight: -10, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
+  markMore: { width: 44, height: 44, borderRadius: 22, marginTop: -8, marginRight: -8, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   markMoments: { gap: 0 },
   markMomentsHead: { fontSize: 14, fontWeight: '700', color: theme.ink },
   markMoment: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
