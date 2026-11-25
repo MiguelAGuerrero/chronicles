@@ -1,5 +1,5 @@
 // @layer shell
-import { strToU8, Zip, ZipPassThrough } from 'fflate';
+import { strToU8 } from 'fflate';
 import type { PendingJob } from '../deletion/pending';
 import type { Ports } from '../ports/types';
 import { createStore } from '../store';
@@ -10,6 +10,7 @@ import {
   BACKUP_VERSION,
   backupName,
   BackupRefusal,
+  byteLimit,
   FAILED,
   FILE,
   hasRoom,
@@ -18,7 +19,6 @@ import {
   missingLine,
   NO_ROOM,
   TOO_LARGE,
-  ZIP_LIMITS,
   pendingOmits,
   pieceOut,
   traceEntry,
@@ -28,6 +28,7 @@ import {
   type DateParts,
   type Manifest,
 } from './core';
+import { createZipWriter, dosTime } from './zip';
 
 /** Where the zip goes, and the platform it is made on: the share sheet on a phone, a download on the web. */
 export interface BackupIO {
@@ -57,6 +58,12 @@ export interface BackupState {
   failed: string | null;
 }
 
+/** A zip header's DOS date and time for `ms`, in the device's own time, as fflate read it from its clock (BZ3). */
+export function dosStamp(ms: number): number {
+  const d = new Date(ms);
+  return dosTime({ year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(), hours: d.getHours(), minutes: d.getMinutes(), seconds: d.getSeconds() });
+}
+
 /** A moment of the device's own calendar, as date parts (the shell reads the time zone; the core never does). */
 export function datePartsOf(ms: number): DateParts {
   const d = new Date(ms);
@@ -68,9 +75,10 @@ const isJobs = (v: unknown): v is PendingJob[] => Array.isArray(v) && v.every((j
 /**
  * The whole-app backup's writer (specs/back-up-everything, decisions 0241, 0249): every truth store read through the
  * `Db`, one walk's trace at a time, zipped as it is read and handed to `io`; the date kept only once the file is
- * handed over. Media pass through in chunks, stored as they are (photos and videos are compressed already).
+ * handed over. Media pass through in chunks, stored as they are (photos and videos are compressed already). The zip's
+ * records are ours (`./zip`, specs/backup-zip64): fflate's bytes within a plain zip's limits, ZIP64 past them.
  */
-export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>, limits: { entries: number; bytes: number } = ZIP_LIMITS) {
+export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>) {
   const store = createStore<BackupState>({ making: false, last: null, after: null, failed: null });
 
   async function load(): Promise<void> {
@@ -139,31 +147,23 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>, limits: { ent
       const { free, need } = await io.room(pieces.map((c) => c.file_path!));
       if (!hasRoom(free, need)) throw new BackupRefusal(NO_ROOM);
     }
-    // One entry per walk's trace and per file, and the JSON stores and the manifest: past a plain zip's count, refused
-    // before anything is begun (back-up-everything audit 12).
-    const files = new Set(pieces.map((c) => mediaEntry(c.file_path!, c.id)).filter((e) => e !== null));
-    if (rows.walks.length + files.size + Object.keys(FILE).length + 1 > limits.entries) throw new BackupRefusal(TOO_LARGE);
     const name = backupName(datePartsOf(now));
     opened();
     await io.open(name);
-    let failed: Error | null = null;
+    // Past 4 GiB the web, which holds the file in memory, writes nothing more and never hands it over (decision 0266);
+    // elsewhere ZIP64 carries it (BZ2).
+    const limit = byteLimit(io.app.platform);
     let written = 0;
-    const zip = new Zip((err, chunk) => {
-      if (failed) return;
-      if (err) failed = err;
-      // Past a plain zip's 4 GiB nothing more is written, and the file is never handed over (audit 13).
-      else if (written + chunk.length > limits.bytes) failed = new BackupRefusal(TOO_LARGE);
-      else {
+    // Each header's time read from the clock as it is written, where fflate read its own (BZ3).
+    const zip = createZipWriter(
+      (chunk) => {
+        if (limit !== null && written + chunk.length > limit) throw new BackupRefusal(TOO_LARGE);
         written += chunk.length;
         io.write(chunk);
-      }
-    });
-    const add = (entry: string, value: unknown) => {
-      const f = new ZipPassThrough(entry);
-      zip.add(f);
-      f.push(strToU8(JSON.stringify(value)), true);
-      if (failed) throw failed;
-    };
+      },
+      () => dosStamp(p.clock.now()),
+    );
+    const add = (entry: string, value: unknown) => zip.entry(entry).push(strToU8(JSON.stringify(value)), true);
     const stores: string[] = [];
     // Each walk's trace on its own, so no walk's trace sits in memory beside another's (BK2).
     for (const w of rows.walks) {
@@ -189,17 +189,14 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>, limits: { ent
         missing.push({ id: c.id, kind: c.kind });
         continue;
       }
-      const f = new ZipPassThrough(entry);
-      zip.add(f);
+      const f = zip.entry(entry);
       // One chunk behind, so the last one can be marked final.
       let prev: Uint8Array | null = null;
       for await (const chunk of chunks) {
         if (prev) f.push(prev);
         prev = chunk;
-        if (failed) throw failed;
       }
       f.push(prev ?? new Uint8Array(0), true);
-      if (failed) throw failed;
       done.add(entry);
       entries.set(c.id, entry);
     }
@@ -231,7 +228,6 @@ export function createBackupWriter(p: Pick<Ports, 'db' | 'clock'>, limits: { ent
     };
     add(MANIFEST, manifest);
     zip.end();
-    if (failed) throw failed;
     await io.deliver();
     // Only once the file is handed over: the line claims that a file was made, no more (BK8, decision 0249).
     await p.db.setMeta('backup_last', String(now));

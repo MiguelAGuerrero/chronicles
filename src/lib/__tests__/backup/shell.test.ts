@@ -375,10 +375,15 @@ function runIO(platform: string, media: (ref: string) => AsyncIterable<Uint8Arra
   return io;
 }
 
-/** A photo of its own bytes for each of `n` loose moments, after everything seeded. */
+/**
+ * The store with `n` more loose moments after everything seeded, each with a photo of its own bytes, as the store reads
+ * them back. Served beside the fake rather than added to it: the fake's `addMoment` checks each piece against every
+ * moment, so 70,000 adds would take most of an hour.
+ */
 const MANY = (i: number) => `walks/many/${i}.jpg`;
-async function withPhotos(db: Db, n: number) {
-  for (let i = 0; i < n; i++) await db.addMoment(moment(`many-${i}`, null, W1 + 1_000_000 + i, [piece(`many-${i}`, `many-${i}`, W1 + 1_000_000 + i, { kind: 'photo', file_path: MANY(i), body: null })]));
+function withPhotos(db: Db, n: number): Db {
+  const many = Array.from({ length: n }, (_, i) => moment(`many-${i}`, null, W1 + 1_000_000 + i, [piece(`many-${i}`, `many-${i}`, W1 + 1_000_000 + i, { kind: 'photo', file_path: MANY(i), body: null })]));
+  return { ...db, momentsBetween: async (from, to) => [...(await db.momentsBetween(from, to)), ...many.filter((m) => m.t >= from && m.t < to)] };
 }
 const photoOf = (ref: string) => {
   const m = /^walks\/many\/(\d+)\.jpg$/.exec(ref);
@@ -427,9 +432,8 @@ function python(path: string): { names: string[]; bad: string | null; sizes: Rec
   return JSON.parse(execFileSync('python3', ['-I', '-c', script, path], { encoding: 'utf8', maxBuffer: 256 * MiB }));
 }
 
-test('BZ1, back-up-everything audit 12, backup-zip64 audit 2: a library of more than 65,535 files is one zip, read back whole by our reader, unzip -t and fflate\'s reader', { todo: 'test first' }, async () => {
-  const db = await seeded();
-  await withPhotos(db, 70_000);
+test('BZ1, back-up-everything audit 12, backup-zip64 audit 2: a library of more than 65,535 files is one zip, read back whole by our reader, unzip -t and fflate\'s reader', async () => {
+  const db = withPhotos(await seeded(), 70_000);
   // The web's own io (decision 0266): many small files are no larger in memory than few.
   const io = runIO('web', (ref) => {
     const b = photoOf(ref);
@@ -455,12 +459,12 @@ test('BZ1, back-up-everything audit 12, backup-zip64 audit 2: a library of more 
   });
 });
 
-test('BZ2, back-up-everything audit 13, backup-zip64 audit 6: a backup holding one file past 4 GiB, past both limits, and one past 4 GiB in total, is one zip read back whole', { todo: 'test first' }, async () => {
+test('BZ2, back-up-everything audit 13, backup-zip64 audit 6: a backup holding one file past 4 GiB, past both limits, and one past 4 GiB in total, is one zip read back whole', async () => {
   const big = 4 * GiB + MiB;
   // One file past 4 GiB, then 70,000 photos past it: past both limits at once, on a phone's io.
-  const db = await seeded();
-  await db.addMoment(moment('long', 'w1', W1 + 50_000, [piece('long', 'long', W1 + 50_000, { kind: 'video', file_path: 'walks/w1/long.mov', body: null })]));
-  await withPhotos(db, 70_000);
+  const base = await seeded();
+  await base.addMoment(moment('long', 'w1', W1 + 50_000, [piece('long', 'long', W1 + 50_000, { kind: 'video', file_path: 'walks/w1/long.mov', body: null })]));
+  const db = withPhotos(base, 70_000);
   const io = runIO('ios', (ref) => (ref === 'walks/w1/long.mov' ? zeros(big) : (b => (b ? once(b) : null))(photoOf(ref))));
   const w = createBackupWriter({ db, clock: fakeClock(NOW) });
   await w.backUp(io);
@@ -470,6 +474,13 @@ test('BZ2, back-up-everything audit 13, backup-zip64 audit 6: a backup holding o
   const back = await readBack(io.read, io.size());
   assert.equal(back.entries.length, 1 + 70_000 + 4 + 2 + 16);
   assert.equal(back.sizes['media/walks/w1/long.mov'], big, 'the long video whole, its CRC checked');
+  // Its data descriptor takes eight-byte sizes (APPNOTE 4.3.9.2), and the next entry begins right after it.
+  const i = back.entries.findIndex((e) => e.name === 'media/walks/w1/long.mov');
+  const end = back.entries[i].offset + 30 + 'media/walks/w1/long.mov'.length + big;
+  const d = Buffer.from(await io.read(end, 24));
+  assert.equal(d.readUInt32LE(0), 0x08074b50, 'a data descriptor follows the video');
+  assert.deepEqual([d.readBigUInt64LE(8), d.readBigUInt64LE(16)], [BigInt(big), BigInt(big)], 'with its sizes in eight bytes each');
+  assert.equal(back.entries[i + 1].offset, end + 24, 'and nothing else between it and the next entry');
   const after = back.entries.find((e) => e.name === `media/${MANY(69_999)}`)!;
   assert.ok(after.offset > 2 ** 32, 'what follows it sits past 4 GiB');
   assert.equal(strFromU8(back.media[`media/${MANY(69_999)}`]), 'photo 69999');
@@ -501,7 +512,7 @@ test('BZ2, back-up-everything audit 13, backup-zip64 audit 6: a backup holding o
   });
 });
 
-test('BZ5, backup-zip64 audit 1: past 4 GiB the web refuses in words and keeps no file; a phone whose write fails says so and keeps none', { todo: 'test first' }, async () => {
+test('BZ5, backup-zip64 audit 1: past 4 GiB the web refuses in words and keeps no file; a phone whose write fails says so and keeps none', async () => {
   const db = await seeded();
   await db.setMeta('backup_last', '1000');
   await db.addMoment(moment('long', 'w1', W1 + 50_000, [piece('long', 'long', W1 + 50_000, { kind: 'video', file_path: 'walks/w1/long.mov', body: null })]));
@@ -530,7 +541,7 @@ test('BZ5, backup-zip64 audit 1: past 4 GiB the web refuses in words and keeps n
   assert.equal(await db.getMeta('backup_last'), '1000');
 });
 
-test('BZ3 the seeded library\'s backup is fflate\'s Zip\'s bytes, entry by entry, for the same clock', { todo: 'test first' }, async () => {
+test('BZ3 the seeded library\'s backup is fflate\'s Zip\'s bytes, entry by entry, for the same clock', async () => {
   const db = await seeded();
   const io = memoryIO();
   await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);

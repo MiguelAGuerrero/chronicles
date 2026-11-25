@@ -87,7 +87,7 @@ const SETS: Record<string, Entries> = {
   'a 70 KB file': [['media/walks/w1/photo.jpg', [new Uint8Array(70_000).map((_, i) => i * 7), new Uint8Array([9])]], ['meta.json', [strToU8('{}')]]],
 };
 
-test('BZ3 within both limits the bytes are fflate\'s Zip\'s, for the same clock', { todo: 'test first' }, () => {
+test('BZ3 within both limits the bytes are fflate\'s Zip\'s, for the same clock', () => {
   for (const [what, files] of Object.entries(SETS)) {
     const a = fflateZip(files);
     const b = ourZip(files);
@@ -103,7 +103,7 @@ test('BZ3 within both limits the bytes are fflate\'s Zip\'s, for the same clock'
   assert.equal(hasZip64(b), false, '65,535 entries: no ZIP64 record');
 });
 
-test('BZ4 our reader lists a plain zip and a ZIP64 one alike', { todo: 'test first' }, async () => {
+test('BZ4 our reader lists a plain zip and a ZIP64 one alike', async () => {
   const frozen = new Uint8Array(readFileSync(join(__dirname, 'fixtures', 'backup-v1.zip')));
   const plain = await readAll(readOf(frozen), frozen.length);
   const theirs = unzipSync(frozen);
@@ -131,7 +131,7 @@ const sparse = (tail: Uint8Array, size: number): ReadAt => (o, l) => {
   return out;
 };
 
-test('BZ4 at the boundaries: a size or an offset of 0xFFFFFFFE stays plain, 0xFFFFFFFF goes to ZIP64, and both read back', { todo: 'test first' }, async () => {
+test('BZ4 at the boundaries: a size or an offset of 0xFFFFFFFE stays plain, 0xFFFFFFFF goes to ZIP64, and both read back', async () => {
   const name = strToU8('media/walks/w1/long.mov');
   for (const size of [ZIP32.bytes - 1, ZIP32.bytes, ZIP32.bytes + 1, 2 ** 40]) {
     for (const offset of [0, ZIP32.bytes - 1, ZIP32.bytes, 2 ** 40 + 3]) {
@@ -155,7 +155,7 @@ function wrapped(): Uint8Array {
   return fflateZip(Array.from({ length: 70_000 }, (_, i): [string, Uint8Array[]] => [`media/m/${i}.jpg`, [strToU8('x')]]));
 }
 
-test('BZ4 a zip whose directory disagrees with its end is refused, never half listed', { todo: 'test first' }, async () => {
+test('BZ4 a zip whose directory disagrees with its end is refused, never half listed', async () => {
   const w = wrapped();
   assert.equal(Object.keys(unzipSync(w)).length, 4_464, 'fflate\'s reader stops at 4,464 (the auditor\'s probe)');
   await assert.rejects(zipEntries(readOf(w), w.length), ZipError, 'the wrapped count is refused');
@@ -174,7 +174,7 @@ test('BZ4 a zip whose directory disagrees with its end is refused, never half li
   }, ZipError, 'a local header naming another entry is refused');
 });
 
-test('BZ6 the records are ours, over fflate\'s streams: no new dependency, no file past a limit committed', { todo: 'test first' }, () => {
+test('BZ6 the records are ours, over fflate\'s streams: no new dependency, no file past a limit committed', () => {
   const dir = join(root, 'src', 'lib', 'backup');
   for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts'))) {
     const src = readFileSync(join(dir, f), 'utf8');
@@ -189,7 +189,7 @@ test('BZ6 the records are ours, over fflate\'s streams: no new dependency, no fi
   assert.deepEqual(readdirSync(join(__dirname, 'fixtures')).sort(), ['backup-v1.sha256', 'backup-v1.zip'], 'no file past a limit is committed');
 });
 
-test('backup-zip64 audit 7: ZIP64 is the container\'s, outside BACKUP_VERSION, and every reader of a backup goes through backup/zip.ts', { todo: 'test first' }, () => {
+test('backup-zip64 audit 7: ZIP64 is the container\'s, outside BACKUP_VERSION, and every reader of a backup goes through backup/zip.ts', () => {
   assert.equal(BACKUP_VERSION, 1, 'the format stays version 1');
   const rule = readFileSync(join(root, '.claude', 'rules', 'backup.md'), 'utf8');
   assert.match(rule, /ZIP64 is the container's, outside `BACKUP_VERSION`; every reader of a backup goes through `backup\/zip\.ts`/);
@@ -207,7 +207,7 @@ test('backup-zip64 audit 7: ZIP64 is the container\'s, outside BACKUP_VERSION, a
   assert.deepEqual(readers, [], 'no module reads a zip with fflate\'s unzip');
 });
 
-test('backup-zip64 audit 3, audit 5: the spec\'s verb is the backup\'s, and its precedent claims no more than is recorded', { todo: 'test first' }, () => {
+test('backup-zip64 audit 3, audit 5: the spec\'s verb is the backup\'s, and its precedent claims no more than is recorded', () => {
   const spec = readFileSync(join(root, 'specs', 'backup-zip64', 'spec.md'), 'utf8');
   assert.match(spec, /^Verb: Return, Honour\b/m, 'the backup serves Return and Honour, not Earn');
   assert.doesNotMatch(spec, /whatever the library's size/, 'Apple Journal\'s one ZIP, its size limits unverified');

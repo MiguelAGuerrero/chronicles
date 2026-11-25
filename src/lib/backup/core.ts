@@ -10,6 +10,7 @@ import type { Capture, CaptureKind, GapDecision, Moment, Pause, Still, TracePoin
 import { numberWord } from '../resurface/lines';
 import { SPACE } from '../space/core';
 import { thinThreads } from '../threads/rules';
+import { ZIP32 } from './zip';
 
 /**
  * The whole-app backup (specs/back-up-everything, decisions 0241, 0249): one plain zip of every walk, trace, moment,
@@ -369,10 +370,14 @@ export function withoutPending(rows: Omit<BackupRows, 'traces'>, o: PendingOmits
 }
 
 /**
- * What one plain zip can hold (back-up-everything audit 12, 13): fflate 0.8.2 writes no ZIP64, so past 65,535 entries
- * or 4 GiB a zip is silently corrupt. A backup that would pass either is refused in words before it is handed over.
+ * Where a backup stops at a plain zip's 4 GiB and is refused in words (`TOO_LARGE`): only on the web, which holds the
+ * whole file in the tab's memory until it downloads (the owner, decision 0266). A phone writes it to a file, and past
+ * 4 GiB, as past 65,535 entries on every platform, ZIP64 carries it (`backup/zip.ts`, decision 0256). `platform` is
+ * what the platform's `BackupIO` names itself.
  */
-export const ZIP_LIMITS = { entries: 65_535, bytes: 2 ** 32 - 1 } as const;
+export function byteLimit(platform: string): number | null {
+  return platform === 'web' ? ZIP32.bytes : null;
+}
 
 /** Room for the file on a phone (BK7): as much again as the media, and the very-low level kept clear. Unknown: go on. */
 export function hasRoom(free: number | null, need: number): boolean {
