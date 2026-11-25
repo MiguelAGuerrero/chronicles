@@ -1,0 +1,214 @@
+import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { test } from 'node:test';
+import { strFromU8, strToU8, unzipSync, Zip, ZipPassThrough } from 'fflate';
+import { BACKUP_VERSION, readBackup } from '../../backup/core';
+import { centralHeader, createZipWriter, dosTime, endRecords, ZIP32, ZipError, zipEntries, zipEntryChunks, type ReadAt, type ZipEntry } from '../../backup/zip';
+
+// The backup's zip records, ours around fflate's streams (specs/backup-zip64, BZ3, BZ4, BZ6; decisions 0256, 0266).
+
+const root = join(__dirname, '..', '..', '..', '..');
+const T = Date.UTC(2026, 10, 20, 15, 0, 7);
+/** The DOS time fflate writes for `ms`, in the device's own time, as the shell gives it. */
+const dosOf = (ms: number) => {
+  const d = new Date(ms);
+  return dosTime({ year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(), hours: d.getHours(), minutes: d.getMinutes(), seconds: d.getSeconds() });
+};
+const cat = (cs: Uint8Array[]) => {
+  const o = new Uint8Array(cs.reduce((n, c) => n + c.length, 0));
+  let p = 0;
+  for (const c of cs) {
+    o.set(c, p);
+    p += c.length;
+  }
+  return o;
+};
+const readOf = (b: Uint8Array): ReadAt => (o, l) => b.subarray(o, o + l);
+
+type Entries = [string, Uint8Array[]][];
+
+/** fflate's `Zip` with `ZipPassThrough` entries, as the backup wrote until this slice, with its clock held at `T`. */
+function fflateZip(files: Entries): Uint8Array {
+  const now = Date.now;
+  Date.now = () => T;
+  try {
+    const out: Uint8Array[] = [];
+    const z = new Zip((e, c) => {
+      if (e) throw e;
+      out.push(c.slice());
+    });
+    for (const [n, cs] of files) {
+      const f = new ZipPassThrough(n);
+      z.add(f);
+      cs.forEach((c, i) => f.push(c, i === cs.length - 1));
+    }
+    z.end();
+    return cat(out);
+  } finally {
+    Date.now = now;
+  }
+}
+
+function ourZip(files: Entries): Uint8Array {
+  const out: Uint8Array[] = [];
+  const w = createZipWriter((c) => out.push(c.slice()), () => dosOf(T));
+  for (const [n, cs] of files) {
+    const f = w.entry(n);
+    cs.forEach((c, i) => f.push(c, i === cs.length - 1));
+  }
+  w.end();
+  return cat(out);
+}
+
+/** Every entry's bytes by our reader, whole (its CRC checked). */
+async function readAll(read: ReadAt, size: number): Promise<{ entries: ZipEntry[]; bytes: Record<string, Uint8Array> }> {
+  const entries = await zipEntries(read, size);
+  const bytes: Record<string, Uint8Array> = {};
+  for (const e of entries) {
+    const parts: Uint8Array[] = [];
+    for await (const c of zipEntryChunks(read, e)) parts.push(c.slice());
+    bytes[e.name] = cat(parts);
+  }
+  return { entries, bytes };
+}
+
+const hasZip64 = (b: Uint8Array) => {
+  for (let i = 0; i + 4 <= b.length; i++) if (b[i] === 0x50 && b[i + 1] === 0x4b && b[i + 2] === 6 && (b[i + 3] === 6 || b[i + 3] === 7)) return true;
+  return false;
+};
+
+const SETS: Record<string, Entries> = {
+  'no entry': [],
+  'one empty entry': [['empty', [new Uint8Array(0)]]],
+  'the JSON stores': [['trace/w1.json', [strToU8('[{"t":1}]')]], ['walks.json', [strToU8('[]')]], ['manifest.json', [strToU8('{"format":"chronicles-backup","version":1}')]]],
+  'a name that is not ASCII': [['media/walks/w1/café ü.jpg', [new Uint8Array([1, 2, 3])]], ['media/legacy/🙂.m4a', [new Uint8Array([4])]]],
+  'a file in many chunks, the last push empty': [['media/walks/w1/memo.m4a', [new Uint8Array([1, 2]), new Uint8Array([3, 4]), new Uint8Array([5]), new Uint8Array(0)]]],
+  'a 70 KB file': [['media/walks/w1/photo.jpg', [new Uint8Array(70_000).map((_, i) => i * 7), new Uint8Array([9])]], ['meta.json', [strToU8('{}')]]],
+};
+
+test('BZ3 within both limits the bytes are fflate\'s Zip\'s, for the same clock', { todo: 'test first' }, () => {
+  for (const [what, files] of Object.entries(SETS)) {
+    const a = fflateZip(files);
+    const b = ourZip(files);
+    assert.equal(b.length, a.length, `${what}: the same length`);
+    assert.equal(Buffer.compare(Buffer.from(a), Buffer.from(b)), 0, `${what}: the same bytes`);
+    assert.equal(hasZip64(b), false, `${what}: no ZIP64 record`);
+  }
+  // Exactly 65,535 entries is within the limit: plain, as today.
+  const many: Entries = Array.from({ length: ZIP32.entries }, (_, i) => [`media/m/${i}.jpg`, [strToU8(`photo ${i}`)]]);
+  const a = fflateZip(many);
+  const b = ourZip(many);
+  assert.equal(Buffer.compare(Buffer.from(a), Buffer.from(b)), 0, '65,535 entries: the same bytes');
+  assert.equal(hasZip64(b), false, '65,535 entries: no ZIP64 record');
+});
+
+test('BZ4 our reader lists a plain zip and a ZIP64 one alike', { todo: 'test first' }, async () => {
+  const frozen = new Uint8Array(readFileSync(join(__dirname, 'fixtures', 'backup-v1.zip')));
+  const plain = await readAll(readOf(frozen), frozen.length);
+  const theirs = unzipSync(frozen);
+  assert.deepEqual(plain.entries.map((e) => e.name).sort(), Object.keys(theirs).sort(), 'the frozen sample (fflate\'s, plain): every entry');
+  for (const [n, b] of Object.entries(theirs)) assert.equal(Buffer.compare(Buffer.from(plain.bytes[n]), Buffer.from(b)), 0, `${n}: its bytes`);
+  // The same entries with enough more after them to need ZIP64: read alike, into the same rows.
+  const files: Entries = [...plain.entries.map((e): [string, Uint8Array[]] => [e.name, [plain.bytes[e.name]]]), ...Array.from({ length: ZIP32.entries }, (_, i): [string, Uint8Array[]] => [`media/fill/${i}`, [strToU8(String(i))]])];
+  const big = ourZip(files);
+  assert.equal(hasZip64(big), true, 'past 65,535 entries the file carries ZIP64');
+  const wide = await readAll(readOf(big), big.length);
+  assert.equal(wide.entries.length, files.length);
+  for (const e of plain.entries) assert.equal(Buffer.compare(Buffer.from(wide.bytes[e.name]), Buffer.from(plain.bytes[e.name])), 0, `${e.name}: the same bytes`);
+  const texts = (r: { bytes: Record<string, Uint8Array> }) => Object.fromEntries(Object.entries(r.bytes).filter(([n]) => !n.startsWith('media/')).map(([n, b]) => [n, strFromU8(b)]));
+  const one = readBackup(texts(plain));
+  const two = readBackup(texts(wide));
+  assert.equal(one.ok && two.ok, true);
+  assert.deepEqual(two, one, 'the same rows from either');
+});
+
+/** A file of `size` bytes holding only `tail` at its end: a directory read without any data written. */
+const sparse = (tail: Uint8Array, size: number): ReadAt => (o, l) => {
+  const out = new Uint8Array(l);
+  const from = size - tail.length;
+  for (let i = 0; i < l; i++) if (o + i >= from) out[i] = tail[o + i - from];
+  return out;
+};
+
+test('BZ4 at the boundaries: a size or an offset of 0xFFFFFFFE stays plain, 0xFFFFFFFF goes to ZIP64, and both read back', { todo: 'test first' }, async () => {
+  const name = strToU8('media/walks/w1/long.mov');
+  for (const size of [ZIP32.bytes - 1, ZIP32.bytes, ZIP32.bytes + 1, 2 ** 40]) {
+    for (const offset of [0, ZIP32.bytes - 1, ZIP32.bytes, 2 ** 40 + 3]) {
+      const h = centralHeader({ name, utf8: false, crc: 0x1234abcd, size, offset }, dosOf(T));
+      const plain = size < ZIP32.bytes && offset < ZIP32.bytes;
+      assert.equal(h.length, 46 + name.length + (plain ? 0 : 4 + (size >= ZIP32.bytes ? 16 : 0) + (offset >= ZIP32.bytes ? 8 : 0)), `size ${size}, offset ${offset}: its extra field holds only what overflows`);
+      const start = offset + 30 + name.length + size + (size >= ZIP32.bytes ? 24 : 16);
+      const tail = cat([h, endRecords(1, h.length, start)]);
+      const [e] = await zipEntries(sparse(tail, start + tail.length), start + tail.length);
+      assert.deepEqual(e, { name: 'media/walks/w1/long.mov', crc: 0x1234abcd, size, offset });
+    }
+  }
+  for (const count of [ZIP32.entries, ZIP32.entries + 1]) {
+    const end = endRecords(count, 0, 100);
+    assert.equal(end.length, count > ZIP32.entries ? 56 + 20 + 22 : 22, `${count} entries: the ZIP64 end only past 65,535`);
+  }
+});
+
+/** fflate's own file of 70,000 entries: its count wraps to 4,464. */
+function wrapped(): Uint8Array {
+  return fflateZip(Array.from({ length: 70_000 }, (_, i): [string, Uint8Array[]] => [`media/m/${i}.jpg`, [strToU8('x')]]));
+}
+
+test('BZ4 a zip whose directory disagrees with its end is refused, never half listed', { todo: 'test first' }, async () => {
+  const w = wrapped();
+  assert.equal(Object.keys(unzipSync(w)).length, 4_464, 'fflate\'s reader stops at 4,464 (the auditor\'s probe)');
+  await assert.rejects(zipEntries(readOf(w), w.length), ZipError, 'the wrapped count is refused');
+  const good = ourZip(SETS['the JSON stores']);
+  await assert.rejects(zipEntries(readOf(good.subarray(0, good.length - 5)), good.length - 5), ZipError, 'a cut tail is refused');
+  const bad = good.slice();
+  bad[30 + 'trace/w1.json'.length] ^= 1; // the first entry's first byte
+  const entries = await zipEntries(readOf(bad), bad.length);
+  await assert.rejects(async () => {
+    for await (const _ of zipEntryChunks(readOf(bad), entries[0])) void _;
+  }, ZipError, 'a byte changed fails its CRC');
+  const other = good.slice();
+  other.set(strToU8('x'), 30); // the local header names another entry
+  await assert.rejects(async () => {
+    for await (const _ of zipEntryChunks(readOf(other), entries[0])) void _;
+  }, ZipError, 'a local header naming another entry is refused');
+});
+
+test('BZ6 the records are ours, over fflate\'s streams: no new dependency, no file past a limit committed', { todo: 'test first' }, () => {
+  const dir = join(root, 'src', 'lib', 'backup');
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts'))) {
+    const src = readFileSync(join(dir, f), 'utf8');
+    const packages = [...src.matchAll(/^import[^'"]*from '([^'.][^']*)'/gm)].map((m) => m[1]);
+    assert.deepEqual(packages.filter((p) => p !== 'fflate'), [], `${f} imports no package but fflate`);
+  }
+  const zipSrc = readFileSync(join(dir, 'zip.ts'), 'utf8');
+  const fromFflate = /^import \{([^}]*)\} from 'fflate'/m.exec(zipSrc);
+  assert.ok(fromFflate, 'backup/zip.ts is built around fflate');
+  assert.deepEqual(fromFflate[1].split(',').map((s) => s.trim()).filter(Boolean).sort(), ['ZipPassThrough', 'strFromU8', 'strToU8'], 'its streams and its text, not its Zip or its unzip');
+  assert.equal(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).dependencies.fflate, '^0.8.2');
+  assert.deepEqual(readdirSync(join(__dirname, 'fixtures')).sort(), ['backup-v1.sha256', 'backup-v1.zip'], 'no file past a limit is committed');
+});
+
+test('backup-zip64 audit 7: ZIP64 is the container\'s, outside BACKUP_VERSION, and every reader of a backup goes through backup/zip.ts', { todo: 'test first' }, () => {
+  assert.equal(BACKUP_VERSION, 1, 'the format stays version 1');
+  const rule = readFileSync(join(root, '.claude', 'rules', 'backup.md'), 'utf8');
+  assert.match(rule, /ZIP64 is the container's, outside `BACKUP_VERSION`; every reader of a backup goes through `backup\/zip\.ts`/);
+  const files: string[] = [];
+  const walk = (d: string) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name);
+      if (e.isDirectory()) {
+        if (e.name !== '__tests__' && e.name !== 'node_modules') walk(p);
+      } else if (/\.tsx?$/.test(e.name)) files.push(p);
+    }
+  };
+  walk(join(root, 'src'));
+  const readers = files.filter((f) => /from 'fflate'/.test(readFileSync(f, 'utf8')) && /\b(unzipSync|unzip|Unzip|UnzipInflate|UnzipPassThrough)\b/.test(readFileSync(f, 'utf8').match(/^import \{[^}]*\} from 'fflate'/m)?.[0] ?? ''));
+  assert.deepEqual(readers, [], 'no module reads a zip with fflate\'s unzip');
+});
+
+test('backup-zip64 audit 3, audit 5: the spec\'s verb is the backup\'s, and its precedent claims no more than is recorded', { todo: 'test first' }, () => {
+  const spec = readFileSync(join(root, 'specs', 'backup-zip64', 'spec.md'), 'utf8');
+  assert.match(spec, /^Verb: Return, Honour\b/m, 'the backup serves Return and Honour, not Earn');
+  assert.doesNotMatch(spec, /whatever the library's size/, 'Apple Journal\'s one ZIP, its size limits unverified');
+});

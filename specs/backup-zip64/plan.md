@@ -9,8 +9,8 @@ screen, no stored field, no migration, no dependency. The base it lands on: `nod
 | File | Change |
 |---|---|
 | `src/lib/backup/zip.ts` (new, `@layer core`) | The zip's records, ours: `dosTime`, the writer `createZipWriter(out, stamp)` (one entry at a time, each a fflate `ZipPassThrough` for its bytes and CRC), the record encoders it is built from (`localHeader`, `descriptor`, `centralHeader`, `endRecords`), and the reader `zipEntries(read, size)`, `zipEntryChunks(read, entry)` over a `ReadAt` callback (a file handle, a Blob's slice, an array). Imports only `fflate`, which core may (`.claude/rules/functional-core.md`). |
-| `src/lib/backup/shell.ts` | The writer drives `createZipWriter` in place of fflate's `Zip`, entries in the same order and pushed the same way; each header's DOS time from `p.clock.now()` in the device's own time (`dosStamp`, the shell's, since core reads no time zone); the `limits` argument, the entry count's refusal and the 4 GiB cut are gone. |
-| `src/lib/backup/core.ts` | `ZIP_LIMITS` and `TOO_LARGE` removed. |
+| `src/lib/backup/shell.ts` | The writer drives `createZipWriter` in place of fflate's `Zip`, entries in the same order and pushed the same way; each header's DOS time from `p.clock.now()` in the device's own time (`dosStamp`, the shell's, since core reads no time zone); the `limits` argument and the entry count's refusal are gone; the 4 GiB cut stays only where `byteLimit(io.app.platform)` names one (the web, decision 0266). |
+| `src/lib/backup/core.ts` | `ZIP_LIMITS` removed; `byteLimit(platform)`: 4 GiB on the web, which holds the file whole in memory, none elsewhere (decision 0266); `TOO_LARGE` kept for the web. |
 | `src/lib/__tests__/backup/zip.test.ts` (new) | BZ3, BZ4, BZ6, the boundaries. |
 | `src/lib/__tests__/backup/shell.test.ts` | Audit 12 and 13's tests become BZ1 and BZ2 ("written and read back whole", decision 0256); BZ3 on the seeded library; BZ5. |
 | `src/lib/__tests__/backup/core.test.ts` | BK11's failure lines (audit 20) without the too-large one; BZ5, BZ7. |
@@ -107,3 +107,14 @@ open the zip in the Files app and on a computer.
 ## Screens
 
 None. No control, words or picture changes (BZ7).
+
+## The plan review (the steward, 2026-11-25)
+
+No surface holds; seven findings, all accepted (the coordinator's rulings), each with its test `backup-zip64 audit N`:
+1 the web keeps the refusal past 4 GiB in bytes, phones get ZIP64, the entries' limit lifted everywhere, decided in core
+from the io's platform (the owner's answer to Silent 1, decision 0266; BZ5); 2 BZ1 read by `unzip -t`, the tool 0256
+names, Python's `zipfile` for the 4 GiB file, Archive Utility and Explorer to `docs/NATIVE_UNVERIFIED.md`; 3 the verb
+Return, Honour; 4 BZ7 says the refusal moved; 5 Apple Journal's line claims no size; 6 BZ2 adds a backup past both limits
+at once; 7 no format version 2, a rule line that ZIP64 is the container's and every reader goes through `backup/zip.ts`.
+Silent 2 and 3: no new words (decision 0266). The web's memory below 4 GiB: `docs/DEFERRED.md`, "Back up everything",
+widened.

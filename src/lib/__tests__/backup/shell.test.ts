@@ -1,14 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { strFromU8, unzipSync } from 'fflate';
-import { BACKUP_FORMAT, BACKUP_VERSION, FAILED, NO_ROOM, readBackup, type BackupRows } from '../../backup/core';
+import { execFileSync } from 'node:child_process';
+import { closeSync, ftruncateSync, mkdtempSync, openSync, readFileSync, rmSync, writeSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { strFromU8, strToU8, unzipSync, Zip, ZipPassThrough } from 'fflate';
+import { BACKUP_FORMAT, BACKUP_VERSION, FAILED, NO_ROOM, readBackup, TOO_LARGE, type BackupRows } from '../../backup/core';
 import { createBackupWriter, type BackupIO } from '../../backup/shell';
+import { zipEntries, zipEntryChunks, type ReadAt } from '../../backup/zip';
 import type { Db } from '../../db/types';
 import type { Mark, Offered } from '../../discovery/types';
 import type { Capture, Moment, Walk } from '../../types';
 import { fakeClock, memoryDb } from '../fakes';
 
-// The whole-app backup's writer over a fake store (specs/back-up-everything, BK2, BK5-BK8, BK11, BK12, BK14).
+// The whole-app backup's writer over a fake store (specs/back-up-everything, BK2, BK5-BK8, BK11, BK12, BK14; specs/backup-zip64,
+// BZ1-BZ3, BZ5).
 
 const NOW = Date.UTC(2026, 10, 20, 15, 0, 0);
 const LON = -71.4, LAT = 41.812;
@@ -285,35 +291,272 @@ test('BK14, back-up-everything audit 2: a delete waiting for Undo is not in the 
 
 // The diff review (Nov 21): the auditor's A1-A3 (back-up-everything audit 12-16).
 
-test('back-up-everything audit 12: a library of more than 65,535 files is refused in words with no date kept', async () => {
-  const { TOO_LARGE, ZIP_LIMITS } = await import('../../backup/core');
-  assert.equal(ZIP_LIMITS.entries, 65_535, 'a plain zip holds 65,535 entries at most (fflate 0.8.2 writes no ZIP64)');
+// G14's build (specs/backup-zip64, decisions 0256, 0266): audit 12 and 13's tests, which held the refusal, now hold the
+// backup written and read back whole past each limit. The media of a big backup are one shared zero buffer pushed
+// again and again, and the test's io keeps such a chunk as a run, never a copy: nothing holds 4 GiB, and the file is
+// written to disk sparse (only its real bytes), read by a system archive tool, then removed.
+
+const MiB = 2 ** 20;
+const GiB = 2 ** 30;
+const ZERO = new Uint8Array(64 * MiB);
+
+/** `n` bytes as the shared zero buffer, chunk after chunk. */
+function zeros(n: number): AsyncIterable<Uint8Array> {
+  return (async function* () {
+    for (let at = 0; at < n; at += ZERO.length) yield ZERO.subarray(0, Math.min(ZERO.length, n - at));
+  })();
+}
+
+type Run = { at: number; bytes?: Uint8Array; zeros?: number };
+type RunIO = BackupIO & { name: string | null; delivered: number; discarded: number; size(): number; read: ReadAt; save(path: string): void };
+
+/** A backup's target that keeps runs of the zero buffer as runs: `read` serves any span, `save` writes it sparse. */
+function runIO(platform: string, media: (ref: string) => AsyncIterable<Uint8Array> | null, more: Partial<BackupIO> = {}): RunIO {
+  let runs: Run[] = [];
+  let size = 0;
+  const io: RunIO = {
+    app: { version: '0.1.0', platform },
+    schema: { store: platform === 'web' ? 'indexeddb' : 'sqlite', version: 31 },
+    name: null,
+    delivered: 0,
+    discarded: 0,
+    async readMedia(ref) {
+      return media(ref);
+    },
+    open(name) {
+      io.name = name;
+      runs = [];
+      size = 0;
+    },
+    write(c) {
+      runs.push(c.buffer === ZERO.buffer ? { at: size, zeros: c.length } : { at: size, bytes: c.slice() });
+      size += c.length;
+    },
+    async deliver() {
+      io.delivered++;
+    },
+    discard() {
+      io.discarded++;
+      runs = [];
+      size = 0;
+    },
+    size: () => size,
+    read(o, l) {
+      const out = new Uint8Array(l);
+      let lo = 0;
+      let hi = runs.length - 1;
+      while (lo < hi) {
+        const m = (lo + hi + 1) >> 1;
+        if (runs[m].at <= o) lo = m;
+        else hi = m - 1;
+      }
+      for (let i = lo, w = 0; w < l && i < runs.length; i++) {
+        const r = runs[i];
+        const len = r.bytes ? r.bytes.length : r.zeros!;
+        const from = o + w - r.at;
+        const n = Math.min(len - from, l - w);
+        if (n <= 0) continue;
+        if (r.bytes) out.set(r.bytes.subarray(from, from + n), w);
+        w += n;
+      }
+      return out;
+    },
+    save(path) {
+      const fd = openSync(path, 'w');
+      try {
+        for (const r of runs) if (r.bytes) writeSync(fd, r.bytes, 0, r.bytes.length, r.at);
+        ftruncateSync(fd, size);
+      } finally {
+        closeSync(fd);
+      }
+    },
+    ...more,
+  };
+  return io;
+}
+
+/** A photo of its own bytes for each of `n` loose moments, after everything seeded. */
+const MANY = (i: number) => `walks/many/${i}.jpg`;
+async function withPhotos(db: Db, n: number) {
+  for (let i = 0; i < n; i++) await db.addMoment(moment(`many-${i}`, null, W1 + 1_000_000 + i, [piece(`many-${i}`, `many-${i}`, W1 + 1_000_000 + i, { kind: 'photo', file_path: MANY(i), body: null })]));
+}
+const photoOf = (ref: string) => {
+  const m = /^walks\/many\/(\d+)\.jpg$/.exec(ref);
+  return m ? strToU8(`photo ${m[1]}`) : FILES[ref] ?? null;
+};
+async function* once(b: Uint8Array) {
+  yield b;
+}
+
+/** Every entry by our reader, whole (its CRC checked); the JSON as text, the media's bytes kept unless they are big. */
+async function readBack(read: ReadAt, size: number) {
+  const entries = await zipEntries(read, size);
+  const text: Record<string, string> = {};
+  const media: Record<string, Uint8Array> = {};
+  const sizes: Record<string, number> = {};
+  for (const e of entries) {
+    const parts: Uint8Array[] = [];
+    let n = 0;
+    for await (const c of zipEntryChunks(read, e, 64 * MiB)) {
+      n += c.length;
+      if (e.size < 64 * MiB) parts.push(c.slice());
+    }
+    sizes[e.name] = n;
+    const b = Buffer.concat(parts);
+    if (e.name.startsWith('media/')) media[e.name] = b;
+    else text[e.name] = strFromU8(b);
+  }
+  return { entries, text, media, sizes };
+}
+
+/** The file on disk, sparse, in a temporary folder removed after `f`. */
+function onDisk<T>(io: RunIO, f: (path: string) => T): T {
+  const dir = mkdtempSync(join(tmpdir(), 'chronicles-zip64-'));
+  try {
+    const path = join(dir, 'chronicles-backup.zip');
+    io.save(path);
+    return f(path);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** Python's zipfile: every entry's CRC read through (`testzip`), the names and sizes. */
+function python(path: string): { names: string[]; bad: string | null; sizes: Record<string, number> } {
+  const script = 'import json,sys,zipfile\nz=zipfile.ZipFile(sys.argv[1])\nprint(json.dumps({"bad":z.testzip(),"names":z.namelist(),"sizes":{i.filename:i.file_size for i in z.infolist() if i.file_size>2**30}}))';
+  return JSON.parse(execFileSync('python3', ['-I', '-c', script, path], { encoding: 'utf8', maxBuffer: 256 * MiB }));
+}
+
+test('BZ1, back-up-everything audit 12, backup-zip64 audit 2: a library of more than 65,535 files is one zip, read back whole by our reader, unzip -t and fflate\'s reader', { todo: 'test first' }, async () => {
   const db = await seeded();
-  const io = memoryIO();
-  // The seeded library is 2 traces, 4 files and 16 JSON entries: 22; a limit of 21 stands for 65,535.
-  const w = createBackupWriter({ db, clock: fakeClock(NOW) }, { entries: 21, bytes: ZIP_LIMITS.bytes });
+  await withPhotos(db, 70_000);
+  // The web's own io (decision 0266): many small files are no larger in memory than few.
+  const io = runIO('web', (ref) => {
+    const b = photoOf(ref);
+    return b ? once(b) : null;
+  });
+  const w = createBackupWriter({ db, clock: fakeClock(NOW) });
   await w.backUp(io);
-  assert.equal(w.store.get().failed, TOO_LARGE);
-  assert.equal(io.name, null, 'nothing is begun');
-  assert.equal(io.delivered, 0);
-  assert.equal(await db.getMeta('backup_last'), null);
-  const ok = createBackupWriter({ db, clock: fakeClock(NOW) }, { entries: 22, bytes: ZIP_LIMITS.bytes });
-  await ok.backUp(memoryIO());
-  assert.equal(ok.store.get().failed, null, 'at the limit it is made');
+  assert.equal(w.store.get().failed, null, 'made, not refused');
+  assert.equal(io.delivered, 1);
+  assert.equal(await db.getMeta('backup_last'), String(NOW), 'and its date kept');
+  const back = await readBack(io.read, io.size());
+  // 70,000 photos, the seeded library's 4 files and 2 traces, 15 JSON stores and the manifest.
+  assert.equal(back.entries.length, 70_000 + 4 + 2 + 16, 'every entry by our reader');
+  for (let i = 0; i < 70_000; i++) assert.equal(strFromU8(back.media[`media/${MANY(i)}`]), `photo ${i}`);
+  for (const [ref, b] of Object.entries(FILES)) assert.deepEqual([...back.media[`media/${ref}`]], [...b]);
+  const r = readBackup(back.text);
+  assert.equal(r.ok && r.rows.moments.length, 70_005, 'the rows read back whole');
+  onDisk(io, (path) => {
+    assert.match(execFileSync('unzip', ['-tq', path], { encoding: 'utf8' }), /No errors detected/, 'UnZip 6.00 tests every entry');
+    const names = execFileSync('unzip', ['-Z1', path], { encoding: 'utf8', maxBuffer: 64 * MiB }).trim().split('\n');
+    assert.deepEqual(names, back.entries.map((e) => e.name), 'UnZip lists every entry');
+    assert.equal(Object.keys(unzipSync(new Uint8Array(readFileSync(path)))).length, back.entries.length, 'fflate\'s reader, which stopped at 4,464, reads every entry');
+  });
 });
 
-test('back-up-everything audit 13: past 4 GiB written (an injectable limit) the file is never handed over', async () => {
-  const { TOO_LARGE, ZIP_LIMITS } = await import('../../backup/core');
-  assert.equal(ZIP_LIMITS.bytes, 2 ** 32 - 1, 'a plain zip\'s offsets stop at 4 GiB');
+test('BZ2, back-up-everything audit 13, backup-zip64 audit 6: a backup holding one file past 4 GiB, past both limits, and one past 4 GiB in total, is one zip read back whole', { todo: 'test first' }, async () => {
+  const big = 4 * GiB + MiB;
+  // One file past 4 GiB, then 70,000 photos past it: past both limits at once, on a phone's io.
+  const db = await seeded();
+  await db.addMoment(moment('long', 'w1', W1 + 50_000, [piece('long', 'long', W1 + 50_000, { kind: 'video', file_path: 'walks/w1/long.mov', body: null })]));
+  await withPhotos(db, 70_000);
+  const io = runIO('ios', (ref) => (ref === 'walks/w1/long.mov' ? zeros(big) : (b => (b ? once(b) : null))(photoOf(ref))));
+  const w = createBackupWriter({ db, clock: fakeClock(NOW) });
+  await w.backUp(io);
+  assert.equal(w.store.get().failed, null);
+  assert.equal(io.delivered, 1);
+  assert.ok(io.size() > 4 * GiB);
+  const back = await readBack(io.read, io.size());
+  assert.equal(back.entries.length, 1 + 70_000 + 4 + 2 + 16);
+  assert.equal(back.sizes['media/walks/w1/long.mov'], big, 'the long video whole, its CRC checked');
+  const after = back.entries.find((e) => e.name === `media/${MANY(69_999)}`)!;
+  assert.ok(after.offset > 2 ** 32, 'what follows it sits past 4 GiB');
+  assert.equal(strFromU8(back.media[`media/${MANY(69_999)}`]), 'photo 69999');
+  const r = readBackup(back.text);
+  assert.equal(r.ok && r.rows.moments.length, 70_006);
+  onDisk(io, (path) => {
+    const py = python(path);
+    assert.equal(py.bad, null, 'Python\'s zipfile reads every entry whole');
+    assert.deepEqual(py.names, back.entries.map((e) => e.name));
+    assert.deepEqual(py.sizes, { 'media/walks/w1/long.mov': big });
+  });
+  // Past 4 GiB in total, no file past it: two videos of 2 GiB and a MiB.
+  const db2 = await seeded();
+  const half = 2 * GiB + MiB;
+  for (const id of ['one', 'two']) await db2.addMoment(moment(id, 'w1', W1 + (id === 'one' ? 50_000 : 60_000), [piece(id, id, W1 + (id === 'one' ? 50_000 : 60_000), { kind: 'video', file_path: `walks/w1/${id}.mov`, body: null })]));
+  const io2 = runIO('android', (ref) => (/\/(one|two)\.mov$/.test(ref) ? zeros(half) : (b => (b ? once(b) : null))(photoOf(ref))));
+  const w2 = createBackupWriter({ db: db2, clock: fakeClock(NOW) });
+  await w2.backUp(io2);
+  assert.equal(w2.store.get().failed, null);
+  assert.ok(io2.size() > 4 * GiB);
+  const back2 = await readBack(io2.read, io2.size());
+  assert.equal(back2.sizes['media/walks/w1/one.mov'], half);
+  assert.equal(back2.sizes['media/walks/w1/two.mov'], half);
+  assert.equal(readBackup(back2.text).ok, true);
+  onDisk(io2, (path) => {
+    const py = python(path);
+    assert.equal(py.bad, null);
+    assert.deepEqual(py.names, back2.entries.map((e) => e.name));
+  });
+});
+
+test('BZ5, backup-zip64 audit 1: past 4 GiB the web refuses in words and keeps no file; a phone whose write fails says so and keeps none', { todo: 'test first' }, async () => {
+  const db = await seeded();
+  await db.setMeta('backup_last', '1000');
+  await db.addMoment(moment('long', 'w1', W1 + 50_000, [piece('long', 'long', W1 + 50_000, { kind: 'video', file_path: 'walks/w1/long.mov', body: null })]));
+  const media = (ref: string) => (ref === 'walks/w1/long.mov' ? zeros(4 * GiB + MiB) : (b => (b ? once(b) : null))(photoOf(ref)));
+  const web = runIO('web', media);
+  const w = createBackupWriter({ db, clock: fakeClock(NOW) });
+  await w.load();
+  await w.backUp(web);
+  assert.equal(w.store.get().failed, TOO_LARGE, 'the web, which holds the file in memory, says it in words (decision 0266)');
+  assert.equal(TOO_LARGE, 'This backup would be too large for one file, so it was not made.');
+  assert.equal(web.delivered, 0, 'never handed over');
+  assert.equal(web.discarded, 1, 'the file begun is dropped');
+  assert.equal(await db.getMeta('backup_last'), '1000', '"Last backup made" as it was');
+  assert.equal(w.store.get().last, 1000);
+  // A phone: no refusal; a write that fails part way is the failure line, no file kept.
+  let n = 0;
+  const phone = runIO('ios', media, {
+    write() {
+      if ((n += 1) > 3) throw new Error('disk full');
+    },
+  });
+  await w.backUp(phone);
+  assert.equal(w.store.get().failed, FAILED);
+  assert.equal(phone.delivered, 0);
+  assert.equal(phone.discarded, 1);
+  assert.equal(await db.getMeta('backup_last'), '1000');
+});
+
+test('BZ3 the seeded library\'s backup is fflate\'s Zip\'s bytes, entry by entry, for the same clock', { todo: 'test first' }, async () => {
   const db = await seeded();
   const io = memoryIO();
-  const w = createBackupWriter({ db, clock: fakeClock(NOW) }, { entries: ZIP_LIMITS.entries, bytes: 200 });
-  await w.backUp(io);
-  assert.equal(w.store.get().failed, TOO_LARGE);
-  assert.equal(io.delivered, 0, 'never handed over');
-  assert.equal(io.discarded, 1, 'the file begun is dropped');
-  assert.equal(await db.getMeta('backup_last'), null);
-  assert.ok(io.bytes().length <= 200, `no byte past the limit is written (${io.bytes().length})`);
+  await createBackupWriter({ db, clock: fakeClock(NOW) }).writeBackup(io);
+  const ours = io.bytes();
+  const entries = await zipEntries((o, l) => ours.subarray(o, o + l), ours.length);
+  const now = Date.now;
+  Date.now = () => NOW;
+  const theirs: Uint8Array[] = [];
+  try {
+    const z = new Zip((e, c) => {
+      if (e) throw e;
+      theirs.push(c.slice());
+    });
+    for (const e of entries) {
+      const f = new ZipPassThrough(e.name);
+      z.add(f);
+      const parts: Uint8Array[] = [];
+      for await (const c of zipEntryChunks((o, l) => ours.subarray(o, o + l), e)) parts.push(c.slice());
+      f.push(Buffer.concat(parts), true);
+    }
+    z.end();
+  } finally {
+    Date.now = now;
+  }
+  assert.equal(entries.length, 22);
+  assert.equal(Buffer.compare(Buffer.from(ours), Buffer.concat(theirs)), 0, 'the same bytes as today\'s writer');
 });
 
 /** Puts a reminder and a find on a moment, as the app keeps them: by the moment's id. */

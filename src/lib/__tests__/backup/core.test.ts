@@ -247,3 +247,47 @@ test('back-up-everything audit 18: Back names the screen beneath, spoken on Andr
   assert.deepEqual(intoHeader(yourDataBack('ready'), false, 'web'), { headerBackTitle: 'Navigate', headerBackButtonDisplayMode: 'minimal' });
   for (const h of [intoHeader(yourDataBack('ready'), true, 'ios'), intoHeader(yourDataBack('chronicle'), true, 'web')]) assert.notEqual(h.headerBackTitle, 'Back', 'never the word Back alone (HIG)');
 });
+
+// G14's build (specs/backup-zip64, decisions 0256, 0266): nothing a person sees changes but the retired refusal.
+
+test('BZ7, backup-zip64 audit 4: the page\'s words, the file\'s name and the line beside the button are today\'s; the too-large line is the web\'s alone', { todo: 'test first' }, async () => {
+  const core = await import('../../backup/core');
+  assert.deepEqual(
+    {
+      YOUR_DATA: core.YOUR_DATA,
+      YOUR_DATA_NOTE: core.YOUR_DATA_NOTE,
+      BACK_UP: core.BACK_UP,
+      BACKING_UP: core.BACKING_UP,
+      FILE_LINE: core.FILE_LINE,
+      NEWER: core.NEWER,
+      NOT_A_BACKUP: core.NOT_A_BACKUP,
+      NO_ROOM: core.NO_ROOM,
+      FAILED: core.FAILED,
+      NO_SHARING: core.NO_SHARING,
+      TOO_LARGE: core.TOO_LARGE,
+    },
+    {
+      YOUR_DATA: 'Your data',
+      YOUR_DATA_NOTE: 'Back up every walk and moment',
+      BACK_UP: 'Back up everything',
+      BACKING_UP: 'Backing up…',
+      FILE_LINE: 'One zip of every walk and moment you kept. Anyone with the file can see your walks, where they went, and your photos, videos and memos.',
+      NEWER: 'This backup was made by a newer Chronicles. Update the app to restore it.',
+      NOT_A_BACKUP: 'This file isn\'t a Chronicles backup.',
+      NO_ROOM: 'There isn\'t room on this phone to make the backup: it needs as much room again as your photos, videos and memos. Try again when the phone has more room.',
+      FAILED: 'The backup could not be made, and no file was kept. Try again.',
+      NO_SHARING: 'This phone has no way to share the file, so the backup was not made.',
+      TOO_LARGE: 'This backup would be too large for one file, so it was not made.',
+    },
+  );
+  assert.equal(core.backupName({ year: 2026, month: 11, day: 20 }), 'chronicles-backup-2026-11-20.zip');
+  assert.equal(core.lastLine({ year: 2026, month: 10, day: 3 }, 2026), 'Last backup made October 3');
+  assert.equal(core.lastLine(null, 2026), 'Not backed up yet');
+  assert.equal('ZIP_LIMITS' in core, false, 'no limit on entries is left in the format');
+  // The too-large line is said only where the platform holds the file whole in memory (the web, decision 0266).
+  assert.equal(core.byteLimit('web'), 2 ** 32 - 1);
+  for (const p of ['ios', 'android']) assert.equal(core.byteLimit(p), null, `${p}: no limit, ZIP64 past 4 GiB`);
+  const page = readFileSync(join(root, 'src', 'app', 'your-data.tsx'), 'utf8');
+  assert.match(page, /^import \{ BACK_UP, BACKING_UP, FILE_LINE, lastLine, YOUR_DATA, yourDataBack \} from '\.\.\/lib\/backup\/core';$/m, 'the page reads the words it read');
+  assert.match(page, /^import \{ backup, datePartsOf \} from '\.\.\/lib\/backup';$/m);
+});
