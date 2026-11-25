@@ -269,6 +269,26 @@ async function run(h) {
   // OJ12: shop chips start off.
   const pressed = async (id) => (await pg.locator(`[data-testid=outing-want-${id}]`).getAttribute('aria-pressed')) === 'true';
   check(!(await pressed('antiques')) && !(await pressed('books')) && !(await pressed('thrifting')) && (await pressed('history')), 'OJ12: shop chips start off; attractions follow "What I\'m into"');
+  // tend explore T63 (decision 0264: sentences keep the noun): with "Views & oddities" on, a card's summary and the town line say
+  // "Views", never the chip's name with its "&", at 390 and 320 px.
+  {
+    const vp = pg.viewportSize();
+    await only(['viewpoints']);
+    for (const width of [390, 320]) {
+      await pg.setViewportSize({ width, height: vp.height });
+      await pg.waitForSelector('[data-testid=outing-journey-0]', { timeout: 90000 }).catch(() => {});
+      await pg.waitForTimeout(600);
+      const card = (await pg.locator('[data-testid=outing-journey-0]').innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+      await openJourney();
+      const town = (await pg.locator('[data-testid=outing-chapter-line-0]').innerText().catch(() => '')).trim();
+      check(/\bViews\./.test(card) && /^Views here\./.test(town) && !/&|oddities/.test(card + town),
+        `tend explore T63: at ${width} px a card's summary and the town line keep the noun, "Views" (${JSON.stringify({ card, town })})`);
+      await shot(pg, `tend-explore-T63-town-${width}`);
+      await backToChips();
+    }
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(600);
+  }
   await only([]);
   check((await pg.locator('[data-testid=outing-pick]').count()) === 1 && (await pg.locator('[data-testid^=outing-journey-]').count()) === 0, 'OJ14: with no chip on the page proposes nothing and says one plain line');
   check((await pg.locator('[data-testid=outing-chains]').getAttribute('aria-checked')) === 'false', 'QC41: Include chains is off by default');
