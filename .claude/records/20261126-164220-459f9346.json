@@ -1,0 +1,30 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G7",
+        "--reason",
+        "the owner's yes, Nov 22: \"Yes, queue it (Recommended)\"; run next by the owner's order of Nov 25 and \"Run G7 next\", Nov 26; built as specs/loop-budget (LB1-LB8 pass, LB7 met by decision 0174), decision 0269"
+      ],
+      "target": "sha256:d91d1d985a729804751923e4a7ea7092a8c86c4f7adcb20ec7d7d454f5126d97"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T66"
+      ],
+      "body": "  Nov 26: the owner's yes in person (\"Yes, as recommended (Recommended)\"); one build per run, so it waits for the next `/tend inbox` (this run built G7).\n",
+      "target": "sha256:7ae2668d92c64534dd54c95e676e2237a30eae6e05f73d8cb8f8bf7f4bff80fe"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 26, `/tend inbox G7 yes, T66 yes`: a budget for review, rotation onto unseen areas, an answer log, and no racing** (opened from `428ff3ce`; G7, \"Tend: a budget for review, rotation onto unseen areas, an answer log, and no racing\", the owner's yes, Nov 22, \"Yes, queue it (Recommended)\", run next by the owner's order of Nov 25 and \"Run G7 next\", Nov 26; built as `specs/loop-budget`, `--from` G7; no surface; an inbox run, so lenses 1-7 were not run).\n- Built in `scripts/tend.js`, `scripts/records.js` and `scripts/features.js`, with the four skill files saying the same (LB1-LB8, decisions 0235 and 0269): `check:tend` holds review to one fix per fix, per area, a `T` entry counting once, a high (`Severity: high`, one review fix, held to the log's `review.high`) and the run's own regression (`Regression: <sha>`) outside it; `next` alternates between the most-reset area and the never-swept or longest-unswept, by each area's verbs (sweep order only); every answer in the run log carries `by`, `pick` and the owner's words, which must stand in the record; `balance` prints the owner's take-up and the proxy's unconfirmed yeses over thirty days; `npm run records -- inbox age` lists what waited fourteen days and writes the moves of what waited thirty (\"Open before the loop\" listed, never moved); a lease on process files, `Lease: <id>`, 24 h. LB7 (decision numbers at publish) was already met by decision 0174.\n- On `main` now: `next` names `gallery` (the rotation turn: 28 areas never swept); nothing in the inbox has waited thirty days.\n- The owner's answers in person (Nov 26, decision 0269, amending 0235): \"Open before the loop\" listed, never moved; highs always fixed; per item, sweeps and `T` builds only; the verb table orders sweeps only; today's `--check` is enough.\n- Reviews: the steward on the plan (13 accepted, 1 settled by the owner); the auditor on the diff, one round (15 accepted and fixed as loop-budget audit 15-29). An old/new differential over today's history (main's scripts against the branch's): `next` and `balance` move only as LB2 and LB4 say; `check:records` identical; `commits --loop-only`, over the last 200 commits and per push, adds only the budget's and the marker's lines.\n- Answered: G7 built; T66 yes (\"Yes, as recommended (Recommended)\"), noted on the entry for the next `/tend inbox`. Filed: \"Open before the loop\", the brief's `Status:` line after G7.\n- Checks: `npm test`, typecheck, lint, `check:docs`, `check:records`, `commits --loop-only`, `check:test-first` (7 of 7). Journeys: `launch`. The weekly full pass, due since Nov 23, was not run.\n- Waiting with the owner's yes, for the next `/tend inbox`: T66, G8, G5 (the owner's order, Nov 25); G9 also waits on the walk drawer sections slice reaching main.\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}
