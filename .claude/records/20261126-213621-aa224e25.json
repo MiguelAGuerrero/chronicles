@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Lease: walk notes"
+      ],
+      "body": "| Lease: walk notes, the owner's walks steer the loop (G8) | `tend/inbox-20261126-1716` | holds `scripts/tend.js`, `.claude/skills/tend/SKILL.md`, `.claude/skills/tend/walks.md`, `.claude/skills/tend/expectations.md`, `.claude/skills/walked/SKILL.md`, `.claude/skills/README.md`, `.claude/skills/tend-orchestrator/SKILL.md`, `.claude/skills/ship.md` from 2026-11-26T17:24Z, lease tend-inbox-20261126-1716 |\n",
+      "target": "sha256:38b61468817f9d66714ad0129b37d6f196f97a5667e27e3caeabb888f092e55e"
+    }
+  ]
+}
