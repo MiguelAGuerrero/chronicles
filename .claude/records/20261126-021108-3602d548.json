@@ -1,0 +1,57 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G12",
+        "--reason",
+        "the owner's yes (in person, Nov 21), built in specs/poi-hide-from-card"
+      ],
+      "target": "sha256:32395152777908353ead1e8327674dd0e906697d137dcae0e97ff072bf234e51"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Explore: a checklist that holds a retired kind is read again on entry** (2026-11-26)\n  Area: explore. Seen: poi-hide-from-card audit 2 and the diff review's F9 (`src/lib/discovery/refinements.ts` `isKindHidden`'s `RETIRED[kind].now.every`, `src/lib/explore/placeCard.ts` `cardKinds`); the steward's S2 at the plan. Rests on: E4 (\"a build change clears it, so areas are read again\", `.claude/rules/explore-and-discovery.md`) and HK9 (\"a reader who had the shared switch off keeps both off\"), decision 0254.\n  Since p12 (G12) clock towers and water towers are two kinds. A checklist item read before the split keeps the kind `towers` until its area is read again (a new tile build, or its archive block's places changing, `archiveStale`, PP13), and no store holds a place's class to tell which tower it is (the web leaves `classes` out of the stored place, SQLite's `place` has no column). Meanwhile such a tower reads as Buildings and structures alone on its card and sheet, and stays on the map with Water towers off until both tower switches are; 1,288 of the archive's 1,309 towers are water towers (the live places-us archive, 20261123.40). Hiding it when either switch is off (`.some`) would hide the clock towers too.\n  Recommended: an area whose checklist items hold a retired kind (`RETIRED`, `discovery/subtypes.ts`) counts as stale on entry, beside `archiveStale`, so it is read again on the next walk there and its towers take their own kinds; no migration, nothing stored anew; amends E4's \"rebuilt when its build is old\". /vision: no surface (what the switches already promise, on time).\n  Precedent: none found (a cache made stale by a change of its own vocabulary is the app's own case; the atlas and the landing do it by `PRESENCE_CODE`).\n  Otherwise: leave it; it heals at the next tile build or block change.\n",
+      "number": "T65"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "What I'm into page (WI1-WI25, decision 0192)"
+      ],
+      "body": "- [loop] Low, engineering: What I'm into's settings copy can take back a switch it just saved (poi-hide-from-card diff review F13, Nov 26). `useExploreSettings` (`src/lib/explore/useExploreSettings.ts` l.17, l.24-29) sets its state, saves, and also takes every `onSettings` it hears, its own echo included, so two quick switches can see the first save's echo land after the second change and draw the older choices (main's, on the page; reachable from a place card's kinds sheet since G12). Fix: ignore its own echo (a sequence number on each save, or compare with the last saved), with a test \"What I'm into's copy keeps the latest of two quick switches\" over `withKind` and a fake `onSettings`.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "A place offered after the moment (PO1-PO12, decision 0251)"
+      ],
+      "body": "- [loop] Medium, engineering: the `placeoffer` journey fails \"PO5: with Places off a moment by two places is not asked about\" on `main` (98e6b9de, 3 runs of 3 by `e2e:baseline`, Nov 25), so nothing past it in the journey runs (found by `/tend inbox G12 yes`, whose card does not reach it). Next: reproduce it alone on `main`, see whether the line asks or the check reads a line that is not the offer's, and fix the cause test first.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Hide a kind from its card"
+      ],
+      "body": "| Hide a kind from its card (an unfound place's card on the walk names its kind under the name and has More, opening \"Show on the map\": its kind and subtype as What I'm into's switches, acting at once, then the page at that kind; a \"?\" card's kind only in its sheet; a found card as today; clock towers apart from water towers, `PRESENCE_CODE` p12, the landing's p11 rows kept; HK1-HK10, decision 0254, from G12) | built; web and unit tests only; the sheet over the walk map has never run on a phone | tests first, then the code, 2026-11-25 and 26; the `hidekind` journey (new) green at 390 and 320; old/new differentials against main: the words of every other screen, and the live places-us archive (1,309 towers change kind, nothing else) | `specs/poi-hide-from-card/spec.md` | the steward's plan review, 2026-11-25: 8 accepted (poi-hide-from-card audit 1-7), 3 owner's answers; the diff review (auditor, ux-reviewer), one round: 10 accepted and fixed (audit 8-17, 2 owner's answers), 1 deferred (F13), 1 to the owner (T65), 2 rejected |\n",
+      "target": "sha256:26a057b4300d257b192f406f072e6f274b8e9f6178ca976d13eec3b45c7bd855"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 26, `/tend inbox G12 yes`: hide a kind from its card** (opened from `98e6b9de`; G12, \"Hide a kind of place from its card, and clock towers apart from water towers\", the owner's yes in person, Nov 21, \"Yes, queue it\", decision 0254; built as `/slice poi-hide-from-card --from=G12`; an inbox run, so lenses 1-7 were not run).\n- Built: HK1-HK10 (`specs/poi-hide-from-card`), test first. An unfound place's card on the walk names its kind under the name and has More (48), opening \"Show on the map\": its kind and subtype as What I'm into's own switches, acting at once on the map behind, a subtype dimmed while its kind is off, then \"What I’m into ›\" at that kind with Back reading \"Walk\". A \"?\" card says \"A place to find\" alone, its kind only in its sheet; a found card is as today. Clock towers and Water towers are two switches (`PRESENCE_CODE` p12; a stored shared switch off keeps both off; the landing keeps its p11 rows, the atlas re-derives). Old/new differentials against main: every other screen's words unchanged; over the live places-us archive 1,288 water towers and 21 clock towers change kind and nothing else moves.\n- The owner, in person, Nov 25: a \"?\" card's kind only in its sheet, the plain dot for Water towers, today's found head (the steward's questions); 48 for More and Done, the house rows' sizes in the sheet (the ux-reviewer's).\n- The reviews: the steward on the plan, 8 accepted (poi-hide-from-card audit 1-7); the auditor and the ux-reviewer on the diff, one round: 10 accepted and fixed (audit 8-17), F13 deferred `[loop]` low, F9 to the owner (T65), U35 and F14's full-width line rejected.\n- Main was red by the date on Nov 26: drive-in-the-outing, shop-facets and town-fixtures, in progress since Nov 18, passed seven days, so `check:docs` and TG20 failed at `98e6b9de`. The owner renewed their dates in person, Nov 26 (\"Renew their dates\"), in a commit of its own ahead of this run's; they expire again on 2026-12-03.\n- Checks: `npm test`, typecheck, lint, `check:docs`, `check:records`. Journeys: `hidekind` (new) and `walk`, `into` green after the fixes; `launch`, `marks`, `subtypes`, `small-places` green on the branch; `atlas` stops at its recorded flake (the look-cancel click, `scripts/e2e/flaky.json`, 2 of 3 on `main`); `placeoffer` fails PO5 on `main` 3 of 3 (filed `[loop]`). The weekly full pass, due since Nov 23, was not run.\n- Filed: T65 (a checklist that holds a retired kind read again on entry). `docs/DEFERRED.md`: What I'm into's save echo `[loop]` low; `placeoffer` PO5 red on `main` `[loop]`. `docs/NATIVE_UNVERIFIED.md`, Navigation and tabs: two items.\n- Waiting with the owner's yes, for the next `/tend inbox`: G13, G7, G8, G5 (the owner's order, Nov 25); G9 also waits on the walk drawer sections slice reaching main.\n- The balance: outgrowing its base (six of the eight areas swept twice or more are rough); no new G filed.\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}

@@ -1051,6 +1051,7 @@ What the What I'm into page's audit left (`specs/what-im-into-page`, decision 01
 - [loop] At 390 x 844 the Complexes heading on What I'm into's page never pins: the page ends before its rows can scroll under it, so it never shows the pinned state (what-im-into-page audit 17, low)
 - [loop] The walk drawer's "What I'm into" row sits far down, below Motion and Share GPS log, in its own "Explore" section; moving it up is a question of the drawer's own order, not of the page (what-im-into-page audit 18, low)
 - [loop] WI1 and WI19's unit tests read the source with regexes (`<IntoRow` in `StartSettings.tsx` and `walk.tsx`, the header before it); replace them with a render-level check when the repo has one (what-im-into-page audit 19, low)
+- [loop] Low, engineering: What I'm into's settings copy can take back a switch it just saved (poi-hide-from-card diff review F13, Nov 26). `useExploreSettings` (`src/lib/explore/useExploreSettings.ts` l.17, l.24-29) sets its state, saves, and also takes every `onSettings` it hears, its own echo included, so two quick switches can see the first save's echo land after the second change and draw the older choices (main's, on the page; reachable from a place card's kinds sheet since G12). Fix: ignore its own echo (a sequence number on each save, or compare with the last saved), with a test "What I'm into's copy keeps the latest of two quick switches" over `withKind` and a fake `onSettings`.
 
 ## Replay pace (RY1-RY22, decision 0203)
 
@@ -1164,6 +1165,7 @@ What the place offer leaves out (decision 0251).
 - A reload while the line is up drops it unanswered: the moment stays independent and is never asked about after (the line is a state on the walk screen, as 0224's armed line was).
 - A moment kept from the recording bar or Chronicle's toolbar during a walk is never offered a place, even on return to the walk screen: those screens show no places (PO5).
 - [loop] From the UI review (Nov 20, low, U5, opinion): a place that is not a choice sits beside the choices with only the ring to tell them apart; dimming it was rejected (it changes the map for a walker who isn't answering). Reopen if a real walk shows slips.
+- [loop] Medium, engineering: the `placeoffer` journey fails "PO5: with Places off a moment by two places is not asked about" on `main` (98e6b9de, 3 runs of 3 by `e2e:baseline`, Nov 25), so nothing past it in the journey runs (found by `/tend inbox G12 yes`, whose card does not reach it). Next: reproduce it alone on `main`, see whether the line asks or the check reads a line that is not the offer's, and fix the cause test first.
 
 ## Recording bar captures
 
