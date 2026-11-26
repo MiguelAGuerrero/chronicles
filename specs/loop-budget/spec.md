@@ -158,16 +158,36 @@ Built 2026-11-26 under `/tend inbox G7 yes` on `tend/inbox-20261126-0545`, from 
   --loop-only` on every push with the push's base's scripts (decisions 0133, 0156); "the orchestrator" is
   `/tend-orchestrator` (`.claude/skills/tend-orchestrator/SKILL.md`, its run brief `briefs.md` beside it, decision 0157);
   the whole inbox is read by `readInbox` since G6 (AS7).
-- **Passed:** LB1-LB6, LB8 and loop-budget audit 1-3, 5-14 (`arch/tend.test.ts`, `arch/records.test.ts`,
-  `arch/features.test.ts`), each a todo first (`check:test-first loop-budget`: 7 of 8, LB7 recorded in `UNTESTED`) and
+- **Passed:** LB1-LB6, LB8 and loop-budget audit 1-3, 5-29 (`arch/tend.test.ts`, `arch/records.test.ts`,
+  `arch/features.test.ts`), each a todo first (`check:test-first loop-budget`: 7 of 7, LB7 recorded in `UNTESTED`) and
   each wiring undone once to see its test fail (the budget and the lease in `commits`, the marker, the review's and the
   keep's checks and the class in `tend:log`, the take-up in `balance`, `next`'s pick, `inbox age`'s dispatch). Three
   existing tests' inputs follow the new rules (their `tend:log` runs ship no review; area-states audit 14's answer
   carries `by`, `pick` and `words`; tend 0229 reads `next(argv)`). No journey covers the files; no screen changed.
 - **On main today** (428ff3ce, read by this branch's scripts): `next` turns from `walk-screen` to `gallery` (the
   rotation turn: map's sweep of Nov 20 was no rotation, and 28 areas are unswept); `balance` adds `answers` (every one of
-  the 70 answers in the window logged before the marker); `inbox age` lists 7 items waiting 14 days, none to move, 14 of
-  "Open before the loop" on the owner's hand, 4 undated.
+  the 70 answers in the window logged before the marker); `inbox age` lists 7 items waiting 14 days, none to move, 13 of
+  "Open before the loop" on the owner's hand, 4 undated, 4 for a device.
+- **The diff review** (the auditor, Nov 26, one round; 3 high, 9 medium, 3 low; the orchestrator's rulings): accepted 15,
+  deferred 0, rejected 0, each fixed behind its test as loop-budget audit 15-29: a T entry counts once, by commits that
+  change more than tests, journeys, rules and docs (15); a high exempts one review fix, held to the log's `review.high`,
+  and a regression shares a file with the fix it names (16) and resolves within the run's range beyond its push (25);
+  a revert of a revert restores (26); a lease is its own id, carried as `Lease: <id>` (18), none taken on a file another
+  holds (17), a dropped file a removal (20), another's live lease ended only by an `inflight remove --reason` quoting
+  the owner (19, with `--reason` named in `records.js`'s usage); a proxy answer is read from a resolved base (21); the
+  owner's words stand in the range's record and no run-log line is added without the marker (22); only the owner's yes
+  naming the proxy line's date confirms (23); rotation passes resting and retired areas (24); `inbox age` keeps an
+  entry's tag, lists for a look what names the owner's direction, a decision or their phone, and groups the moves by the
+  gate's cap, run and verified end to end (27); thirty days, one end open (28); the skills say what the scripts do (29).
+  The tests that could not fail were made to read the end effect (LB2 by the script's own turn and resting areas, LB4 by
+  `balance`'s printed `answers`, audit 6 at any age, LB1 per entry, LB5 by running the printed operations).
+- **The differential** (scratchpad, `g7-differential.test.ts`, kept for the next process build; main's scripts and the
+  branch's, each in its own worktree, `TEND_ROOT` unset, lines compared as multisets): `next` walk-screen → gallery
+  (the rotation turn); `balance` identical but `answers`; `check:records` over the last 200 commits identical;
+  `commits --loop-only` over them and per push (nine pairs of origin/main's reflog in this clone) adds only budget lines
+  and the marker line of LB3, every recent inbox run over the budget as the owner's S3 said (T63's five, T64's three,
+  T65's four); `tend.js log` of a line as runs wrote it until now: taken before, refused now; `inbox age`: new, writes
+  nothing.
 - **The base it landed on:** `base --here --spec loop-budget` names `arch`, which no sweep reads: no area of the app was
   made rougher; nothing in the app changed.
 - **Left to the owner:** the brief's `Status:` line ("Open before the loop", audit 10). Not reached by a criterion: the
