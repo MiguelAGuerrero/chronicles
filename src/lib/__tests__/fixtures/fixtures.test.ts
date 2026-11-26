@@ -152,6 +152,9 @@ test('TF14: read by tile, only for what is on screen; bounded; a read can be sto
   assert.ok(got.length > 0);
   assert.ok(got.every((f: any) => f.at[0] >= HUDSON[0] && f.at[0] <= HUDSON[2] && f.at[1] >= HUDSON[1] && f.at[1] <= HUDSON[3]), 'only what is in view');
   assert.ok(!got.some((f: any) => f.name === 'Ridge Public Library'), 'a fixture off screen is not returned');
+  // A narrow view inside one tile: the tile's other fixtures are not returned.
+  const corner: [number, number, number, number] = [-74.0012, 40.6995, -73.9995, 40.7012];
+  assert.deepEqual(key(await readFixtures(pack, corner)), ['library:Hudson Free Library:osm', 'tourist_office:Hudson Visitor Center:osm'], 'not the square or the town hall a few metres west, in the same tile');
   assert.ok(opened.every((u) => u === `${PLACES_BASE}${FILE}`));
   const ranges = asked.length;
   await readFixtures(pack, HUDSON);
