@@ -158,3 +158,19 @@ Built 2026-11-26 under `/tend inbox G7 yes` on `tend/inbox-20261126-0545`, from 
   --loop-only` on every push with the push's base's scripts (decisions 0133, 0156); "the orchestrator" is
   `/tend-orchestrator` (`.claude/skills/tend-orchestrator/SKILL.md`, its run brief `briefs.md` beside it, decision 0157);
   the whole inbox is read by `readInbox` since G6 (AS7).
+- **Passed:** LB1-LB6, LB8 and loop-budget audit 1-3, 5-14 (`arch/tend.test.ts`, `arch/records.test.ts`,
+  `arch/features.test.ts`), each a todo first (`check:test-first loop-budget`: 7 of 8, LB7 recorded in `UNTESTED`) and
+  each wiring undone once to see its test fail (the budget and the lease in `commits`, the marker, the review's and the
+  keep's checks and the class in `tend:log`, the take-up in `balance`, `next`'s pick, `inbox age`'s dispatch). Three
+  existing tests' inputs follow the new rules (their `tend:log` runs ship no review; area-states audit 14's answer
+  carries `by`, `pick` and `words`; tend 0229 reads `next(argv)`). No journey covers the files; no screen changed.
+- **On main today** (428ff3ce, read by this branch's scripts): `next` turns from `walk-screen` to `gallery` (the
+  rotation turn: map's sweep of Nov 20 was no rotation, and 28 areas are unswept); `balance` adds `answers` (every one of
+  the 70 answers in the window logged before the marker); `inbox age` lists 7 items waiting 14 days, none to move, 14 of
+  "Open before the loop" on the owner's hand, 4 undated.
+- **The base it landed on:** `base --here --spec loop-budget` names `arch`, which no sweep reads: no area of the app was
+  made rougher; nothing in the app changed.
+- **Left to the owner:** the brief's `Status:` line ("Open before the loop", audit 10). Not reached by a criterion: the
+  run log's `auditFixes` still lists a number twice when a fix and its trap line both name it (the budget counts it
+  once).
+

@@ -526,6 +526,10 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Loop budget (G7, decision 0269): LB7 was met before the slice began.
+  'loop-budget': {
+    LB7: 'deferred: met on main by decision 0174, nothing built: `book:next-decision -- --check` in ship.md "Publish to main" step 2 renumbers at publish (the owner, Nov 26, "Today\'s --check is enough", decision 0269)',
+  },
   // Outing journey (decisions 0210-0210): criteria with no test of their own, each with where it is held instead. Recorded as the slice
   // leaves IN_PROGRESS to ship (the owner's /deploy, Nov 18).
   'outing-journey': {
@@ -622,7 +626,6 @@ const RENAMED = {
 
 const IN_PROGRESS = {
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
-  'loop-budget': { branch: 'tend/inbox-20261126-0545', since: '2026-11-26' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
 };
