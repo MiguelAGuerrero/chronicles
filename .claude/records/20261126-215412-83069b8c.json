@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add",
+        "--top"
+      ],
+      "body": "| Walk notes (the owner's own walks steer the loop: `/walked`, the owner's alone, keeps a line after a walk, reached for, got in the way or keep, with places and times stripped and the day as its only time, published only by `/walked publish` or a `/tend` push; a reach is a drafted expectation line ahead of the model's, a got-in-the-way puts its area first in `next`, a keep protects, the balance says the silence once a gap; WN1-WN9, decisions 0238, 0270; from G8) | built; no surface | tests first, then the code, 2026-11-26 (`check:test-first` 9 of 9; WN5's \"never ratified by the proxy\" met on main by decision 0236) | `specs/walk-notes/spec.md` | the steward's plan review, 2026-11-26: 12 accepted before any code (walk-notes audit 1-13), 6 Silent questions answered by the owner (decision 0270) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Walk notes (the owner's own walks steer the loop"
+      ],
+      "target": "sha256:5d1f1f8c6a790deea2e5c0c22595d28cab6f9410003dfaa6ddbf86966f72c62a"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walk notes (`/slice walk-notes`, Nov 26)",
+        "--new"
+      ],
+      "body": "[owner] Walk notes: the place check reads names as written (specs/walk-notes, J1, WN4d). A town, region or country of the gazetteer written in lowercase, and a park, a station or a landmark with no gazetteer name in it, pass `scripts/walks.js`; they are left to `/walked`'s rewrite and the owner's look at the stored words. A word list or a stricter check would be a dependency or refuse plain words (GeoNames' towns include \"of\", \"to\" and \"time\").\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walk notes (`/slice walk-notes`, Nov 26)"
+      ],
+      "body": "[owner] Walk notes: \"settled after three walks\" (G8's \"After it\"): an area three walk notes in a row find nothing in the way of, read as settled; G6 computes the states it would join.\n"
+    }
+  ]
+}

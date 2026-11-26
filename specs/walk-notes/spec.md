@@ -171,3 +171,24 @@ for WN6 and WN8, through `nextPick` and `balance`), on invented notes that name 
 pack for the town check's wiring with a town it does not name in the repository: it picks one from the pack at run
 time). The wiring on a scratch git repository (`add`, `commits` refusing a rewrite, `next` on a made-up run log), never
 on the checkout CI clones 50 commits deep (AS6). No journey: no screen changes.
+
+## Record
+
+Built 2026-11-26 under `/tend inbox G8 yes` on `tend/inbox-20261126-1716`, from `origin/main` f8519ac9 (the lease, 506b1d74
+and ea78ac13, on main before any edit).
+
+- **Already met, not rebuilt:** WN5's "never ratified by the proxy": `npm run expectations -- ratify` and `decline` refuse
+  any `--by` but `owner` (`scripts/expectations.js`, decisions 0157, 0236), and no `/tend inbox` answers a line.
+- **Named since the entry was filed:** `next` is `nextPick`, LB2's two turns (decision 0269), over the states G6
+  computes (decision 0250); "the orchestrator's insights" are `orchestration-insights.md`
+  (`.claude/skills/tend-orchestrator/SKILL.md`, section 9); `records audit 14` is a test in
+  `src/lib/__tests__/arch/records.test.ts`, whose lists need no row: `/walked` names no record document (WN9's test).
+- **Passed:** WN1-WN9, the implied states and walk-notes audit 1-13 (`arch/walks.test.ts`, `arch/tend.test.ts`), each a
+  todo first (`check:test-first walk-notes`: 9 of 9), and each wiring undone once to see its test fail (the walk turn and
+  its exclusion from the rotation, the notes read by `documentsFrom`, the silence read and kept in the ledger, the gate
+  in `commits`, a carried note left to it). Two existing tests copy `scripts/walks.js` beside `tend.js` into their
+  scratch repositories (`records.test.ts`, `bookkeeping.test.ts`). No journey covers the files; no screen changed.
+- **The base it landed on:** `base --here --spec walk-notes` names `arch`, which no sweep reads: no area of the app was
+  made rougher; nothing in the app changed.
+- **Left out:** "settled after three walks" (the entry's "After it"); a park, a station or a landmark with no gazetteer
+  name in it, and a name written in lowercase, left to the skill's rewrite and the owner's look (WN4d, J1).

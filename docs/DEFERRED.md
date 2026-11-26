@@ -1181,3 +1181,8 @@ What the place offer leaves out (decision 0251).
 
 - [arch] Overture folded into the fixtures pack (town halls and libraries, where `docs/research/municipal-fixtures.md` found it mostly right): it is no source of chronicles-data's build, so it needs a new host there (Overture's bucket) and a GeoParquet reader, a new dependency; the owner's call (decision 0268, "Add Wikidata too": Wikidata's libraries are in, Overture waits)
 - [owner] A kind that is a fixture and a find at once (TF3, not built): `leisure=bandstand` is also a small place in the places pack (`carousel`), and town halls, libraries, courthouses and post offices can enter the places pack by a listing (`civic_building`); a heritage railway's station stays a find and is never a fixture (decision 0268). Which list keeps each is TF3's slice, with what it does to "What I'm into"
+
+## Walk notes (`/slice walk-notes`, Nov 26)
+
+- [owner] Walk notes: the place check reads names as written (specs/walk-notes, J1, WN4d). A town, region or country of the gazetteer written in lowercase, and a park, a station or a landmark with no gazetteer name in it, pass `scripts/walks.js`; they are left to `/walked`'s rewrite and the owner's look at the stored words. A word list or a stricter check would be a dependency or refuse plain words (GeoNames' towns include "of", "to" and "time").
+- [owner] Walk notes: "settled after three walks" (G8's "After it"): an area three walk notes in a row find nothing in the way of, read as settled; G6 computes the states it would join.
