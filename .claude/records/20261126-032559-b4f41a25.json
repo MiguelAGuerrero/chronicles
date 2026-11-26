@@ -1,0 +1,46 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T65",
+        "--reason",
+        "the owner's yes (in person, 2026-11-26), built in tend explore T65"
+      ],
+      "target": "sha256:b187733dbefa0ac5e1ad7a5d939bb080bfc75e8c6fbb1b41584a268992eedb9f"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G13"
+      ],
+      "body": "  Nov 25-26, the owner in person: the kind list approved (Nov 25), 13 tags: information=office, amenity=townhall, amenity=library, amenity=post_office, place=square, amenity=marketplace, railway=station, amenity=bus_station, amenity=courthouse, amenity=community_centre, amenity=ferry_terminal, leisure=common, leisure=bandstand; the practical amenities and the recommended-out arguables out; information=visitor_centre out (decision 0255). Nov 26: \"build it from the town-fixtures spec on `claude/determined-wright-yg1fq9`\". One build per run: `tend explore T65` was built on Nov 26, so G13 waits for the next `/tend inbox`.\n",
+      "target": "sha256:655b849d28ac4291f55d4154b3ba75fcc74cbbbb18c7d53f86a49b63012def8c"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **E4's words after `tend explore T65`** (Nov 26; the owner's yes in person to T65, \"Yes, as recommended (Recommended)\", decision 0267). What ships: an area whose checklist items hold a kind a split retired (`RETIRED`: `towers`) counts as stale on entry beside `archiveStale`, so the next walk there reads it again and its towers take their own kinds; nothing is stored anew. Still saying the old: `specs/v1-discovery/spec.md` E4 (l.240), \"When the build changes, the checklist is rebuilt quietly the next time you enter the area\"; suggested: \"When the build changes, or the checklist holds a kind a later split retired, the checklist is rebuilt quietly the next time you enter the area\"; `specs/poi-hide-from-card/spec.md` l.158-159 (\"… is filed for the owner\": now built); `.claude/rules/explore-marks.md` l.106-107 (\"a build change clears it, so areas are read again and rebuilt, E4\") and `.claude/rules/subtypes.md` l.64-65 (\"kept until the area's next read: a tile build, or its archive block's places changing\"): the run added a line after each saying what ships (0135). The loop never edits a spec or rewords a rule line; the specs mirror the owner's doc: reword there and re-export.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Places worth the stop (decision 0103)"
+      ],
+      "body": "- [loop] Medium, engineering: an area stale for its archive version (`archiveStale`, PW12, PP13) is read around the point the earliest read listed it at, not its own stored point (`readCentre`, `src/lib/explore/explore.ts`, `ref.at`), so a town whose z11 and z14 points differ is never built again and is read on every check until the next tile build (T65's diff review, the auditor's F1, Nov 26). A town's reach is capped at 1.5 km (`coverM`), so a read sees it whole only from within 1 m of its own point (`covers`); with the stored town at its z14 point P14 and the earliest read listing it only at its z11 point P11 a few hundred metres off (one area by `sameArea`), the read around P11 builds nothing (\"rebuilt areas [] items []\", the auditor's probe), the area stays stale, and the next 25 m check reads P11 again, with no once-per-screen bound as T65's retired path has. Since `tend explore audit 55` an area stale for a retired kind is read around its stored point (`retiredOf`); the archive's path is main's and was left as it was. Fix: read around the stale area's own stored point for the archive's staleness too (the same `sameArea` lookup), with a test `tend explore` next: a town with z11 and z14 points 300 m apart, built with an older archive version, is read around its stored point and built again.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 26, `/tend inbox T65 yes, G13 yes`: a checklist that holds a retired kind is read again on entry** (opened from `70ff3b08`; T65, \"Explore: a checklist that holds a retired kind is read again on entry\", the owner's yes in person, Nov 26, \"Yes, as recommended (Recommended)\", decision 0267, amending E4; an inbox run, so lenses 1-7 were not run).\n- Built: `tend explore T65`. An area whose checklist items hold a kind a split retired (`RETIRED`: `towers`) counts as stale on entry beside `archiveStale`: the next walk there reads it again around its own stored point and builds it again (`retiredAreas`, `readCentre`'s `retired`, `checklistsOfRead` over the kept items in `heldBounds`), so its towers take their own kinds; asked once per area per screen when a read leaves it as it was. No migration, nothing stored anew. What a person sees changes only as the towers' kinds do. An old/new differential against main (8,000 seeded cases, stored points drifted up to 950 m): with no `towers` held every read and every kept area is main's.\n- The review: the auditor on the diff, one round: 4 accepted and fixed (audit 55, a town read around its stored point; 56, only the area a read aimed at is marked tried; 57, the items around you reload after a route's reads; 58, the read's checklists tested over the fake db), 0 rejected. The same stored-point gap on `archiveStale`'s own path (main's) is filed `[loop]` medium in `docs/DEFERRED.md`.\n- E4's own words (`specs/v1-discovery`, the explore and subtypes rule lines) wait for the owner under \"Open before the loop\": the loop rewords no rule line and edits no spec; the run added lines beside them.\n- G13 (each town's fixtures as a data set): the owner's yes in person and the kind list (13 tags), noted on the entry; it waits for the next `/tend inbox` (one build per run), from the town-fixtures spec on `claude/determined-wright-yg1fq9`.\n- Checks: `npm test`, typecheck, lint, `check:docs`, `check:tend`, `check:records`. Journeys: `launch` green; no journey holds this change's checks. The weekly full pass, due since Nov 23, was not run.\n- Waiting with the owner's yes, for the next `/tend inbox`: G13, G7, G8, G5 (the owner's order, Nov 25); G9 also waits on the walk drawer sections slice reaching main.\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}
