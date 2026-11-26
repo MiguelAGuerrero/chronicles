@@ -1578,3 +1578,42 @@ test('LB5: records inbox age lists, writes each bullet to move with its words ke
   assert.equal(r.read('docs/STATUS.md'), AGED, 'nothing written to the documents');
   assert.ok(!existsSync(join(r.dir, '.claude', 'records')) || readdirSync(join(r.dir, '.claude', 'records')).length === 0, 'no sidecar: a read is no operation');
 });
+
+test('loop-budget audit 19: inflight remove takes --reason, kept in its trailer for the lease check to read', { todo: 'test first' }, () => {
+  const r = repo('lease-reason');
+  const rm = r.node('scripts/records.js', 'inflight', 'remove', 'Note pages (NP1', '--reason', 'the owner cleared the lease, 2026-11-26: "Clear it"');
+  assert.equal(rm.status, 0, rm.stderr);
+  const t = r.node('scripts/records.js', 'trailers');
+  assert.match(t.stdout, /^Records-Op: inflight remove "Note pages \(NP1" --reason "the owner cleared the lease, 2026-11-26: \\"Clear it\\""$/m);
+  assert.match(r.node('scripts/records.js', 'help').stdout, /inflight set\|remove <match>[^\n]*--reason/, 'the usage names it');
+});
+
+test('LB5, loop-budget audit 27: the operations inbox age prints run, in commits of at most two removals a section, and pass the gate', { todo: 'test first' }, () => {
+  const r = repo('age-run');
+  const aged = AGED.replace('- **T9 [owner] Three weeks** (2026-11-05)', '- **T9 [owner] Three weeks** (2026-11-05)\n- **T10 [arch] A dependency** (2026-10-21)\n- **T11 [owner] Another** (2026-10-22)');
+  r.write('docs/STATUS.md', `${aged}\n## In flight\n\n| Session | Branch | Doing |\n|---|---|---|\n`);
+  r.write('docs/DEFERRED.md', DEFERRED);
+  r.commit('aged');
+  const out = join(tmp, 'age-run-out');
+  const w = r.node('scripts/records.js', 'inbox', 'age', '--today', '2026-11-26', '--write', out);
+  assert.equal(w.status, 0, w.stderr);
+  const groups = w.stdout.split(/^# commit \d+$/m).slice(1).map((g) => g.split('\n').filter((l) => l.startsWith('npm run records -- ')));
+  assert.ok(groups.length >= 2, 'three removals from "From /tend" take two commits');
+  for (const g of groups) {
+    assert.ok(g.filter((l) => / inbox remove /.test(l)).length <= 2, 'two removals of "From /tend" a commit at most');
+    assert.ok(g.filter((l) => / section item remove /.test(l)).length <= 2);
+    for (const l of g) {
+      const words = l.replace(/^npm run records -- /, '').match(/"(?:[^"\\]|\\.)*"|'[^']*'|\S+/g) ?? [];
+      const argv = words.map((x) => (x.startsWith('"') ? JSON.parse(x) : x.startsWith("'") ? x.slice(1, -1) : x));
+      const ran = r.node('scripts/records.js', ...argv);
+      assert.equal(ran.status, 0, `${l}\n${ran.stderr}`);
+    }
+    const trailers = r.node('scripts/records.js', 'trailers').stdout.trim();
+    assert.equal(r.commit(`moved\n\n${trailers}\nCo-Authored-By: Claude <noreply@anthropic.com>`).status, 0);
+    const v = r.node('scripts/records.js', 'verify', 'HEAD~1..HEAD');
+    assert.equal(v.status, 0, v.stdout + v.stderr);
+  }
+  const deferred = r.read('docs/DEFERRED.md');
+  assert.match(deferred, /^- \[arch\] \*\*T10 \[arch\] A dependency\*\*/m, 'an [arch] entry keeps its tag');
+  assert.doesNotMatch(r.read('docs/STATUS.md'), /T5 \[owner\]|T10 \[arch\]|T11 \[owner\]/);
+});

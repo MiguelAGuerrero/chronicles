@@ -1502,3 +1502,190 @@ test('loop-budget audit 12: tend:log reads an answer\'s class from the base and 
   assert.equal(ok.status, 0, ok.stderr);
   assert.match(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8'), /"class":"T \[owner\]"/);
 });
+
+// ---- Loop budget: the diff review (the auditor, Nov 26; loop-budget audit 15-29, each the auditor's failing input) ----
+type Lease2 = { files: string[]; from: string; id: string; branch: string };
+const lb2 = lb as unknown as {
+  reviewBudget(commits: Change[], o?: { resolve?: (ref: string) => Change | null }): string[];
+  regressionClaims(commits: Change[], resolve?: (ref: string) => Change | null): { audit: number; sha: string }[];
+  highClaims(commits: Change[]): number[];
+  highProblems(commits: Change[], logged: number): string[];
+  lastWasRotation(runs: unknown[], areas: string[], resting?: string[]): boolean;
+  leaseRows(status: string): Lease2[];
+  leaseProblems(o: { files: string[]; date: string; lease: string | null; rows: Lease2[] }): string[];
+  leaseAddProblems(o: { added: Lease2[]; rows: Lease2[]; date: string }): string[];
+  leaseRemovalProblems(o: { removed: Lease2[]; date: string; lease: string | null; message: string }): string[];
+  leaseRemoved(before: Lease2[], after: Lease2[]): Lease2[];
+  proxyBaseProblems(answers: unknown[], o: { resolved: boolean; ids: Set<string> }): string[];
+  wordsProblems(answers: unknown[], record: string[]): string[];
+  logLineProblems(added: string[]): string[];
+};
+const LEASE = (from: string, id = 'tend-inbox-x', files = '`scripts/tend.js`, `.claude/skills/tend/SKILL.md`, `src/app/walk.tsx`', branch = 'tend/inbox-x') =>
+  `| Lease: the loop's scripts (G8) | \`${branch}\` | holds ${files} from ${from}, lease ${id} |`;
+const LEASES = (...rows: string[]) => ['## In flight', '', '| Session | Branch | Doing |', '|---|---|---|', ...rows, '| A slice | `claude/x` | built |', ''].join('\n');
+
+test('loop-budget audit 15: a T build counts each entry once, by commits that change more than tests, journeys, rules and docs', { todo: 'test first' }, () => {
+  const t = [
+    ch(4, 'tend explore T63: the failing tests', '', [M('src/lib/__tests__/explore/chips.test.ts')]),
+    ch(5, 'tend explore T63: the chip reads the table\'s name'),
+    ch(6, 'tend explore T63: the card reads it too'),
+    ch(7, 'tend explore T63: the rule notes it', '', [M('.claude/rules/outing.md')]),
+    ch(11, 'tend explore T63: PRODUCT.md says so', '', [M('docs/PRODUCT.md')]),
+  ];
+  assert.deepEqual(lb2.reviewBudget([...t, ch(8, 'tend explore audit 50: x')]), [], 'T63 is one');
+  assert.equal(lb2.reviewBudget([...t, ch(8, 'tend explore audit 50: x'), ch(9, 'tend explore audit 51: y')]).length, 1, 'two review fixes against one entry');
+  assert.equal(lb2.reviewBudget([ch(7, 'tend explore T64: a rule only', '', [M('.claude/rules/outing.md')]), ch(8, 'tend explore audit 50: x')]).length, 1, 'a rule-only build ships nothing');
+});
+
+test('loop-budget audit 16: a high exempts one review fix, counted against the log\'s highs; a regression shares a file', { todo: 'test first' }, () => {
+  const fix = ch(1, 'tend explore 12: the card reads its name', '', [M('src/lib/card.ts')]);
+  const a1 = ch(2, 'tend explore audit 1: x', '', [M('src/lib/card.ts')]);
+  const many = ch(3, 'tend explore audit 2, audit 3, audit 4: y', 'Severity: high\n');
+  assert.equal(lb2.reviewBudget([fix, a1, many]).length, 1, 'a commit naming several review fixes exempts none');
+  const high = ch(3, 'tend explore audit 2: y', 'Severity: high\n');
+  assert.deepEqual(lb2.reviewBudget([fix, a1, high]), []);
+  assert.deepEqual(lb2.highClaims([fix, a1, high]), [2]);
+  assert.match(lb2.highProblems([fix, a1, high], 0).join(), /high/, 'more highs claimed than the run logged');
+  assert.deepEqual(lb2.highProblems([fix, a1, high], 1), []);
+  const claim = ch(4, 'tend explore audit 5: z', `Regression: ${fix.sha} the name read whole at the base\n`, [M('src/lib/other.ts')]);
+  assert.equal(lb2.reviewBudget([fix, a1, claim]).length, 1, 'a regression of a commit that changed none of its files is none');
+  assert.deepEqual(lb2.reviewBudget([fix, a1, { ...claim, files: [M('src/lib/card.ts')] }]), []);
+});
+
+test('loop-budget audit 16: check:tend refuses more self-declared highs than the range\'s run-log line counts', { todo: 'test first' }, () => {
+  const r = repo();
+  const base = r.git('rev-parse', 'HEAD');
+  const t = (name: string) => ({ [`src/lib/__tests__/memories/${name.replace(/\W+/g, '-')}.test.ts`]: `test('${name}: x', () => {});\n` });
+  r.commit(t('tend memories 1'), `tend memories 1: a capture comes back\n\nSource: WCAG 2.2, 4.1.2${AGENT}`);
+  r.commit(t('tend memories audit 1'), `tend memories audit 1: its name is spoken${AGENT}`);
+  r.commit(t('tend memories audit 2'), `tend memories audit 2: the walk loses its end\n\nSeverity: high${AGENT}`);
+  const line = (high: number) => `${JSON.stringify({ mode: 'sweep', area: 'memories', date: '2026-11-26', answerLog: '0235', answers: [], review: { accepted: 2, rejected: 0, deferred: 0, high } })}\n`;
+  const at = r.commit({ '.claude/skills/tend/runs.jsonl': line(0) }, `tend memories: the run's record${AGENT}`);
+  const refused = r.tendJs('commits', '--loop-only', `${base}..HEAD`);
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /Severity: high/);
+  r.git('reset', '-q', '--hard', `${at}^`);
+  r.commit({ '.claude/skills/tend/runs.jsonl': line(1) }, `tend memories: the run's record${AGENT}`);
+  const ok = r.tendJs('commits', '--loop-only', `${base}..HEAD`);
+  assert.equal(ok.status, 0, ok.stderr);
+});
+
+test('loop-budget audit 17: a lease on a file another live lease holds is refused', { todo: 'test first' }, () => {
+  const rows = lb2.leaseRows(LEASES(LEASE('2026-11-26T06:00Z')));
+  const added = lb2.leaseRows(LEASES(LEASE('2026-11-26T08:00Z', 'tend-inbox-y', '`scripts/tend.js`', 'tend/inbox-y')));
+  assert.equal(lb2.leaseAddProblems({ added, rows, date: '2026-11-26T08:00:00Z' }).length, 1);
+  assert.deepEqual(lb2.leaseAddProblems({ added, rows, date: '2026-11-27T07:00:00Z' }), [], 'the first lapsed');
+  assert.deepEqual(lb2.leaseAddProblems({ added: lb2.leaseRows(LEASES(LEASE('2026-11-26T08:00Z', 'tend-inbox-y', '`scripts/records.js`'))), rows, date: '2026-11-26T08:00:00Z' }), []);
+});
+
+test('loop-budget audit 18: a lease is its own id, carried by the holder\'s commits as a Lease: trailer', { todo: 'test first' }, () => {
+  const rows = lb2.leaseRows(LEASES(LEASE('2026-11-26T06:00Z')));
+  assert.deepEqual(rows, [{ files: ['scripts/tend.js', '.claude/skills/tend/SKILL.md'], from: '2026-11-26T06:00Z', id: 'tend-inbox-x', branch: 'tend/inbox-x' }]);
+  const at = '2026-11-26T10:00:00Z';
+  assert.equal(lb2.leaseProblems({ files: ['scripts/tend.js'], date: at, lease: null, rows }).length, 1, 'the same session without the trailer is another run');
+  assert.deepEqual(lb2.leaseProblems({ files: ['scripts/tend.js'], date: at, lease: 'tend-inbox-x', rows }), []);
+  assert.equal(lb2.leaseProblems({ files: ['scripts/tend.js'], date: at, lease: 'tend-inbox-y', rows }).length, 1);
+});
+
+test('loop-budget audit 18: check:tend lets the holder\'s commits through by their Lease: trailer, in a scratch repository', { todo: 'test first' }, () => {
+  const r = repo();
+  const from = new Date(Date.now() - 60 * 60 * 1000).toISOString().slice(0, 16) + 'Z';
+  mkdirSync(join(r.root, 'docs'), { recursive: true });
+  r.commit({ 'docs/STATUS.md': LEASES(LEASE(from)) }, 'The owner takes a lease, by hand');
+  const base = r.git('rev-parse', 'HEAD');
+  r.commit({ 'scripts/tend.js': '// another run of the same session\n' }, `Something: an edit (XX1)${AGENT}`);
+  assert.equal(r.tendJs('commits', '--loop-only', `${base}..HEAD`).status, 1);
+  const mine = r.git('rev-parse', 'HEAD');
+  r.commit({ 'scripts/tend.js': '// the holder\n' }, `Something: an edit (XX1)${AGENT}\nLease: tend-inbox-x`);
+  assert.equal(r.tendJs('commits', '--loop-only', `${mine}..HEAD`).status, 0);
+});
+
+test('loop-budget audit 19: only an inflight remove whose --reason quotes the owner clears another\'s live lease', { todo: 'test first' }, () => {
+  const removed = lb2.leaseRows(LEASES(LEASE('2026-11-26T06:00Z')));
+  const at = '2026-11-26T10:00:00Z';
+  const near = 'From the owner\'s G7 ("Run G7 next")\n\nRecords-Op: inflight remove "Lease: the loop" --reason "cleared"';
+  assert.equal(lb2.leaseRemovalProblems({ removed, date: at, lease: null, message: near }).length, 1, 'the owner quoted elsewhere in the message clears nothing');
+  const owner = 'Records-Op: inflight remove "Lease: the loop" --reason "the owner cleared the lease, 2026-11-26: \\"Clear it\\""';
+  assert.deepEqual(lb2.leaseRemovalProblems({ removed, date: at, lease: null, message: owner }), []);
+  assert.deepEqual(lb2.leaseRemovalProblems({ removed, date: at, lease: 'tend-inbox-x', message: '' }), [], 'its holder');
+});
+
+test('loop-budget audit 20: a kept lease row that drops a held file is a removal', { todo: 'test first' }, () => {
+  const before = lb2.leaseRows(LEASES(LEASE('2026-11-26T06:00Z')));
+  const after = lb2.leaseRows(LEASES(LEASE('2026-11-26T06:00Z', 'tend-inbox-x', '`scripts/tend.js`')));
+  assert.deepEqual(lb2.leaseRemoved(before, after).map((x) => x.id), ['tend-inbox-x']);
+  assert.deepEqual(lb2.leaseRemoved(before, before), []);
+});
+
+test('loop-budget audit 21: a proxy answer needs its entry in a resolved base', { todo: 'test first' }, () => {
+  const proxy = { entry: 'T3', answer: 'yes', by: 'proxy', pick: 'recommended', class: 'T' };
+  assert.match(lb2.proxyBaseProblems([proxy], { resolved: false, ids: new Set() }).join(), /base/);
+  assert.match(lb2.proxyBaseProblems([proxy], { resolved: true, ids: new Set(['T4']) }).join(), /T3/);
+  assert.deepEqual(lb2.proxyBaseProblems([proxy], { resolved: true, ids: new Set(['T3']) }), []);
+  assert.deepEqual(lb2.proxyBaseProblems([{ ...proxy, by: 'owner' }], { resolved: false, ids: new Set() }), []);
+});
+
+test('loop-budget audit 22: the owner\'s words are in the range\'s record for that entry; a run-log line without the marker is refused', { todo: 'test first' }, () => {
+  const a = { entry: 'G7', answer: 'yes', by: 'owner', pick: 'recommended', words: 'Yes, queue it (Recommended)' };
+  assert.match(lb2.wordsProblems([a], ['Records-Op: inbox remove T4 --reason "x"']).join(), /G7/);
+  assert.match(lb2.wordsProblems([a], ['Records-Op: inbox remove G7 --reason "y"']).join(), /G7/, 'the entry without the words');
+  assert.deepEqual(lb2.wordsProblems([a], ['Records-Op: inbox remove G7 --reason "the owner\'s yes, Nov 22: \\"Yes, queue it (Recommended)\\""']), []);
+  assert.deepEqual(lb2.wordsProblems([{ ...a, words: 'He said "go"' }], ['{"args":{"match":"G7"},"body":"He said \\"go\\""}']), [], 'a sidecar holds them JSON-escaped');
+  assert.deepEqual(lb2.wordsProblems([{ ...a, by: 'proxy' }], []), []);
+  assert.match(lb2.logLineProblems(['{"mode":"sweep","date":"2026-11-26"}']).join(), /answerLog/);
+  assert.deepEqual(lb2.logLineProblems(['{"mode":"sweep","date":"2026-11-26","answerLog":"0235"}']), []);
+});
+
+test('loop-budget audit 23: only the owner\'s yes, naming the proxy line\'s date, confirms a proxy yes', { todo: 'test first' }, () => {
+  const proxy = { date: '2026-11-20', answerLog: '0235', answers: [{ entry: 'G9', answer: 'yes', by: 'proxy', pick: 'recommended', class: 'G' }] };
+  const no = { date: '2026-11-22', answerLog: '0235', answers: [{ entry: 'G9', answer: 'no', by: 'owner', pick: 'no', words: 'No', class: 'G' }] };
+  assert.deepEqual(lb.answerTakeUp([proxy, no], '2026-11-26').proxy, { yeses: 1, unconfirmed: ['G9'], confirmed: 0 });
+  const wrong = { date: '2026-11-22', answerLog: '0235', answers: [{ entry: 'G9', answer: 'yes', ...owner, confirms: '2026-11-19', class: 'G' }] };
+  assert.deepEqual(lb.answerTakeUp([proxy, wrong], '2026-11-26').proxy, { yeses: 1, unconfirmed: ['G9'], confirmed: 0 });
+});
+
+test('loop-budget audit 24: rotation reads neither a resting nor a retired area\'s sweeps', { todo: 'test first' }, () => {
+  const runs = [sweepLine('a', '2026-11-10'), sweepLine('b', '2026-11-11'), sweepLine('c', '2026-11-12'), sweepLine('b', '2026-11-13'), sweepLine('c', '2026-11-14')];
+  assert.equal(lb2.lastWasRotation(runs, ['a', 'b', 'c'], ['a']), true, 'c was the oldest of the areas that rotate: the reset turn comes');
+  assert.equal(lb2.lastWasRotation([sweepLine('gone', '2026-11-09'), ...runs.slice(1)], ['b', 'c']), true, 'a retired area holds no turn');
+});
+
+test('loop-budget audit 25: a regression names a commit of the run, resolved beyond the push', { todo: 'test first' }, () => {
+  const outside = ch(1, 'tend explore 12: the card reads its name', '', [M('src/lib/card.ts')]);
+  const a1 = ch(2, 'tend explore audit 1: x', `Regression: ${outside.sha} the name read whole at the base\n`, [M('src/lib/card.ts')]);
+  assert.equal(lb2.reviewBudget([a1]).length, 1, 'unresolved: counted');
+  assert.deepEqual(lb2.reviewBudget([a1], { resolve: (ref) => (outside.sha.startsWith(ref) ? outside : null) }), []);
+});
+
+test('loop-budget audit 26: a revert of a revert restores the commit', { todo: 'test first' }, () => {
+  const fix = ch(1, 'tend explore 12: x');
+  const a1 = ch(2, 'tend explore audit 1: y');
+  const rev = ch(3, 'Revert "tend explore 12: x"', `This reverts commit ${fix.sha}.\n`);
+  const back = ch(4, 'Revert "Revert "tend explore 12: x""', `This reverts commit ${rev.sha}.\n`);
+  assert.deepEqual(lb2.reviewBudget([fix, a1, rev, back]), []);
+});
+
+test('loop-budget audit 27: an item to move keeps its own tag; one naming a decision, your direction or your phone is for a look', { todo: 'test first' }, () => {
+  const status = AGE_STATUS.replace('### From the journal', '- **T10 [arch] A dependency** (2026-10-20)\n- **T11 [owner] A link, your direction** (2026-10-20)\n- **T12 [owner] Per decision 0155** (2026-10-20)\n- **T13 [owner] JN19 on your phone** (2026-10-20)\n\n### From the journal');
+  const a = lb.inboxAge(status, '2026-11-26') as unknown as { move: Age[]; look: Age[] };
+  assert.ok(a.move.some((x) => x.id === 'T10'));
+  assert.deepEqual(a.look.map((x) => x.id).sort(), ['T11', 'T12', 'T13']);
+});
+
+test('loop-budget audit 28: the take-up window is thirty days, one end open', { todo: 'test first' }, () => {
+  const line = (date: string, entry: string) => ({ date, answerLog: '0235', answers: [{ entry, answer: 'yes', ...owner, class: 'G' }] });
+  assert.equal(lb.answerTakeUp([line('2026-10-27', 'G1'), line('2026-10-28', 'G2')], '2026-11-26').byClass.G.owner, 1);
+});
+
+test('loop-budget audit 29: the skills say what the scripts do', { todo: 'test first' }, () => {
+  const ship = flat(read('.claude/skills/ship.md'));
+  const skill = flat(read('.claude/skills/tend/SKILL.md'));
+  const orch = flat(read('.claude/skills/tend-orchestrator/SKILL.md'));
+  const briefs = flat(read('.claude/skills/tend-orchestrator/briefs.md'));
+  assert.doesNotMatch(ship, /takes none/, 'a build of an approved G that changes process files takes a lease');
+  for (const t of [ship, briefs]) assert.match(t, /Lease: <id>/);
+  for (const t of [ship, skill]) assert.doesNotMatch(t, /one per item it ships/);
+  for (const t of [ship, skill]) assert.match(t, /one per entry it ships/);
+  assert.match(ship, /inflight remove[^.]*--reason[^.]*owner/);
+  assert.match(orch, /by its title/);
+});
