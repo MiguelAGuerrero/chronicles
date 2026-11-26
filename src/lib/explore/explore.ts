@@ -236,6 +236,17 @@ export function archiveStale(builtWith: string | null | undefined, now: string |
   return now != null && (builtWith ?? null) !== now;
 }
 
+/**
+ * tend explore T65 (decision 0267, amending E4): the areas whose checklist items hold a kind a split retired (`RETIRED`,
+ * `discovery/subtypes.ts`), less those in `tried`. Such an area counts as stale on entry, beside `archiveStale`: read
+ * again, its places take their own kinds. An orphan (no area) is left as it is.
+ */
+export function retiredAreas(items: Pick<ChecklistItem, 'area_key' | 'kind'>[], tried?: ReadonlySet<string>): Set<string> {
+  const out = new Set<string>();
+  for (const i of items) if (i.area_key && RETIRED[i.kind] && !tried?.has(i.area_key)) out.add(i.area_key);
+  return out;
+}
+
 /** The places archive's tag for a point: one for the whole read, or, with the pipeline's blocks, per point (PP13). */
 export type ArchiveAt = string | null | ((at: LngLat) => string | null);
 export const archiveTagAt = (archive: ArchiveAt | undefined, at: LngLat): string | null =>
@@ -303,7 +314,7 @@ export function buildChecklists(o: {
 export function readCentre(o: {
   fix: LngLat;
   candidates: PlaceCandidate[];
-  areas: (Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'> & { archive?: string | null })[];
+  areas: (Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'> & { key?: string; archive?: string | null })[];
   reads: Pick<ExploreRead, 'centre' | 'build'>[];
   build: string;
   outlines?: OutlineSet | null;
@@ -312,12 +323,15 @@ export function readCentre(o: {
    * blocks it is asked at the area's own point, never the fix's, so an area by a block's edge isn't read on every fix (PP13).
    */
   archive?: ArchiveAt;
+  /** tend explore T65: the keys of areas whose items hold a retired kind (`retiredAreas`): read again too. */
+  retired?: ReadonlySet<string>;
 }): LngLat | null {
   const near = o.reads.some((r) => r.build === o.build && distanceM(r.centre, o.fix) <= EXPLORE_RULES.rereadM);
   if (!near) return o.fix;
   const ref = areaFor(o.fix, uniqueAreas(o.candidates), o.outlines ?? null);
   if (!ref) return null;
-  return o.areas.some((a) => a.build === o.build && !archiveStale(a.archive, archiveTagAt(o.archive, a.at)) && sameArea(a, ref)) ? null : ref.at;
+  const kept = (a: (typeof o.areas)[number]) => a.build === o.build && !archiveStale(a.archive, archiveTagAt(o.archive, a.at)) && !(a.key != null && o.retired?.has(a.key));
+  return o.areas.some((a) => kept(a) && sameArea(a, ref)) ? null : ref.at;
 }
 
 /** After a failed read, the next waits 2 min and 100 m walked (E5). */

@@ -17,6 +17,7 @@ import {
   alertKeys,
   EXPLORE_RULES,
   readCentre,
+  retiredAreas,
   retryAllowed,
   revealedKeys,
   routeMarks,
@@ -135,9 +136,12 @@ export function useExplore(opts: {
   }, []);
 
   const itemsAt = useRef<LngLat | null>(null);
+  // tend explore T65: the items around you, which the check reads for a retired kind.
+  const held = useRef<ChecklistItem[]>([]);
   const loadItems = useCallback(async (at: LngLat) => {
     itemsAt.current = at;
     const got = await db.checklistItemsIn(itemBounds(at)).catch(() => null);
+    if (got) held.current = got;
     if (got && mounted.current) setItems(got);
   }, []);
 
@@ -160,8 +164,11 @@ export function useExplore(opts: {
   }, [loadKnown]);
   // Areas read without storefront streets: read again once while Places or Storefronts is on, never in a loop.
   const sweptAt = useRef<LngLat[]>([]);
+  // tend explore T65: areas read again for a retired kind that the read left as they were: never again on this screen.
+  const retiredTried = useRef(new Set<string>());
   const maybeRead = useCallback(async (fix: LngLat) => {
     if (exploreBusy() || !retryAllowed(failed.current, fix, Date.now())) return;
+    const retired = retiredAreas(held.current, retiredTried.current);
     // tend explore audit 11: held from here, so a capture made while the read is still being decided waits for it; let go
     // before the read's items load, so the capture is looked at again with them.
     const read = await exploreHold(async () => {
@@ -171,7 +178,7 @@ export function useExplore(opts: {
       const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
       // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
       await placesArchive.refresh();
-      let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
+      let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at), retired });
       if (!centre && rememberStorefronts(latest.current) && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
         const rows = await db.listLandings().catch(() => []);
         // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
@@ -181,7 +188,9 @@ export function useExplore(opts: {
       if (rememberStorefronts(latest.current)) sweptAt.current.push(centre);
       return readAt(centre);
     });
-    if (read) await loadItems(fix);
+    if (!read) return;
+    await loadItems(fix);
+    for (const key of retiredAreas(held.current)) if (retired.has(key)) retiredTried.current.add(key);
   }, [loadKnown, loadItems, readAt]);
 
   const { here, places } = opts;

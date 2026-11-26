@@ -67,3 +67,5 @@ come from chronicles-data's contract (v4 brought the subtypes, its ST1-ST10; v6 
   it when its parent is off or every kind that replaced it is, `isSubtype` holds, and `kindOf` keeps its old words ("Found:
   … · Water and clock towers"); never let `kindOf` fall to `KINDS[0]` ("Public art"). A place's card and sheet read it as
   its parent alone (`cardKinds`). A split of another subtype adds its row here the same way.
+  Since tend explore T65 (decision 0267) an area holding a retired kind is also read again on entry (`retiredAreas`,
+  `.claude/rules/explore-marks.md`), so its items take the new kinds; finds keep the old one.

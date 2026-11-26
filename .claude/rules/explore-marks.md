@@ -106,6 +106,10 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     (derived: a build change clears it, so areas are read again and rebuilt,
     E4). SQLite migration 9, IndexedDB v8. Items snapshot the place; `kind` is
     set only on fresh reads (presence's class kind), never read back from `place` (SQLite has no column; IndexedDB keeps it, unread).
+  - **A retired kind is stale too** (tend explore T65, decision 0267, amending E4): an area whose items hold a kind a split
+    retired (`retiredAreas`, `RETIRED`) is read again on entry beside `archiveStale` (`readCentre`'s `retired`), and the read
+    leaves it out of `built`, looking at items within twice its reach so it sees every area it builds. One the read leaves
+    as it was is not asked again on that screen (`retiredTried`), so it never reads per check. Nothing is stored anew.
   - **What shows** (`visibleMarks`): found places at any distance; unfound ones of
     shown kinds within the range (60-300 m, 100 by default), nearest 8, named
     within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
