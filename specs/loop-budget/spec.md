@@ -1,8 +1,9 @@
 <!-- Repo first: from the owner's proposal G7 (docs/STATUS.md, "Next evolutions"; filed by /investigate 2026-11-19),
-     answered yes on Nov 22 ("Yes, queue it (Recommended)"); on 2026-11-25 the owner set the order G14, G12, G13, G7,
-     G8, G5 and said G7's and G8's slice commits may edit /tend's own scripts and skills, having approved them as
-     slices; on 2026-11-26 "Run G7 next". Decision 0235; brief docs/research/tend-process-review.md. An engineering
-     slice of the tending loop, not a tab of the concept doc. -->
+     answered yes on Nov 22 ("Yes, queue it (Recommended)"). The authority to edit /tend's own scripts and skills is the
+     entry the owner said yes to: its Cost line names them ("Cost: M; scripts/tend.js, scripts/records.js,
+     scripts/bookkeeping.js, four skill files"); beside it, on 2026-11-25 the owner set the order G14, G12, G13, G7, G8,
+     G5, and on 2026-11-26 "Run G7 next". Decisions 0235 and 0269; brief docs/research/tend-process-review.md. An
+     engineering slice of the tending loop, not a tab of the concept doc. -->
 
 # Loop budget: a budget for review, rotation onto unseen areas, an answer log, and no racing (LB)
 
@@ -52,32 +53,70 @@ the run log after a week, not by this slice's tests.
 8. **LB8 · Tested, and said the same.** Tests for each; `ship.md`, `tend/SKILL.md`, the orchestrator skill and
    `briefs.md` say the same.
 
-States the criteria imply (slice step 2):
+States the criteria imply (slice step 2), with the plan review's and the owner's answers folded in:
 
-- **LB1b · Revert-aware, and counted once.** A commit the range reverts counts on neither side, nor does its revert;
-  a finding two commits name (a fix, then its trap line) counts once.
+- **LB1b · Revert-aware, counted once, per item.** A commit the range reverts counts on neither side, nor does its
+  revert; a finding two commits name (a fix, then its trap line) counts once; a `T` build counts one fix per item it
+  ships, each commit naming the entry that changes more than tests and journeys (0269).
+- **LB1c · Highs are always fixed** (0269). A review fix whose message says `Severity: high` is outside the count; a run
+  that files a high, or whose review accepted more than it fixed and filed with a severity, is refused by `tend:log`
+  (loop-budget audit 1). A G slice's own review (`<slice> audit N`) is outside the budget (0269).
+- **LB1d · A regression is the run's own** (loop-budget audit 11). `Regression: <sha> <what worked at the base>` names a
+  commit of the range, of the same area, that is not itself a review fix; `tend:log` lists every regression claimed.
 - **LB2b · Rotation skips what rests.** A `resting` area is not rotated onto; a due evolve (0235) is answered on either
-  turn before the turn's own sweep pick.
+  turn before the turn's own sweep pick. While any area is unswept, only an area's first sweep reads as a rotation
+  (loop-budget audit 8). An area's verbs order sweeps only (0269).
 - **LB3b · An older line reads as it was.** Only a line this script wrote carries the answer log's marker, and only
   such a line is held to `by` and `pick`; the 98 lines on main read as they are.
-- **LB5b · What cannot age is said apart.** An item with no date is listed as undated and never expires; a `[phone]`
-  item waits for a device, not an answer, and is not aged.
+- **LB3c · Only the owner's words are the owner's** (loop-budget audits 2, 12). `by: owner` carries the owner's words,
+  verbatim; the owner's keep of a proxy yes is logged `confirms: "<the proxy line's date>"` and counted apart from
+  take-up; the proxy answers only `yes`, and never an `[arch]` or `[phone]` entry (0157).
+- **LB4b · Counted once** (loop-budget audit 3). Each entry's latest answer per `by` is counted, so a yes logged by the
+  run that noted it and again by the run that built it is one.
+- **LB5b · What cannot age is said apart.** An item is dated by its own first date, else its section heading's
+  (loop-budget audit 7); one with neither is listed as undated and never moves; a `[phone]` item waits for a device, not
+  an answer, and is not aged; a word of an answer inside a struck-through sub-item does not answer the whole item
+  (loop-budget audit 14).
+- **LB5c · "Open before the loop" is listed, never moved** (0269, loop-budget audit 6): its items are listed with their
+  age as waiting on the owner's hand, and an area's state reads the same before and after they age.
 - **LB6b · A lease ends.** A lease holds nothing 24 h after its start, holds nothing against the session that took it,
-  and never refuses the owner's own commit (no agent trailer).
+  and never refuses the owner's own commit (no agent trailer). A lease row is removed by its holder, after it lapsed, or
+  with the owner's words quoted in the reason (loop-budget audit 13).
 
 ## Decisions
 
-- **The G7 entry** (the owner's yes, Nov 22; the order and the widened grant, 2026-11-25; "Run G7 next", 2026-11-26):
-  its eight criteria, above as LB1-LB8, and decision 0235's starting numbers (one review fix per fix, 14 and 30 days,
-  24 h), tuned from the run log by the owner, never by a run.
-- **Built beside decision 0236** (the entry's "Build beside"): `by` takes 0236's words, `owner` or `proxy`, and the
-  proxy's yes is recorded as 0157 says ("the proxy's yes under the owner's delegation"); LB1 reads commits as `commits
-  --loop-only` does (a loop commit by its subject; the record gate's agent commits by their trailers) and reverts by
+- **The G7 entry** (the owner's yes, Nov 22; the order, 2026-11-25; "Run G7 next", 2026-11-26): its eight criteria,
+  above as LB1-LB8, and decision 0235's starting numbers (one review fix per fix, 14 and 30 days, 24 h), tuned from the
+  run log by the owner, never by a run.
+- **Built beside decision 0236** (the entry's "Build beside"): `by` takes 0236's words, `owner` or `proxy`, and, as
+  `expectations ratify --by owner --answer` does, an owner's answer carries the owner's words verbatim; the proxy's yes
+  is recorded as 0157 says. LB1 reads commits as `commits --loop-only` does (a loop commit by its subject) and reverts by
   their `This reverts commit <sha>.` lines, as the record gate does.
-- **Defaults this plan takes, each the owner's to overrule** (the plan's judgement calls J1-J7, ruled on by the steward):
-  each area's verb (the plan's table); the alternation read from the run log alone; the budget counted by findings
-  named, per area; the regression named by a `Regression: <sha>` line; the lease keyed on the session's
-  `Claude-Session:` id; the expired item's bullet and its section.
+- **The owner's answers in person, 2026-11-26** (to the steward's six Silent questions on the plan; decision 0269,
+  amending 0235):
+  - S1 "Listed, never moved (Recommended)": "Open before the loop" items are listed as waiting on the owner's hand with
+    their age, never moved to DEFERRED, and never count toward an area reading finished (LB5c).
+  - S2 "Highs always fixed (Recommended)": over the budget, highs are fixed whatever the budget (a high is never filed);
+    then the rest in severity order; the remainder filed `[loop]` with their severity (LB1c).
+  - S3 and S4 "Per item; sweeps and T only (Recommended)": a quick batch counts one fix per item it ships; the budget
+    binds sweeps and T builds (`tend <area> audit N`); a G slice's own review (`<slice> audit N`) is outside it (LB1b,
+    LB1c).
+  - S5 "Sweep order only (Recommended)": the area-verb table orders sweeps only and is never a ruling a `Serves:` line
+    may cite (said beside it in `scripts/features.js`); walk-screen and map keep the verbs already ruled.
+  - S6 "Today's --check is enough (Recommended)": LB7 is met by decision 0174 (the Record); the five renumberings since
+    Nov 19 are `--check` doing its job.
+- **The plan review** (the steward, Nov 26; 2 high, 9 medium, 3 low; the orchestrator's rulings): accepted 13, settled
+  by the owner 1 (finding 4, by S6), rejected 0; each test named `loop-budget audit N` by the steward's number: audit 1
+  over-budget findings are filed (LB1c); 2 the owner's words behind `by: owner`, a keep logged as `confirms` (LB3c); 3
+  latest answer per entry per `by` (LB4b); 5 `verbs`, an array, the first in VISION's order taken (LB2); 6 "Open before
+  the loop" never moved (LB5c); 7 a heading's date (LB5b); 8 only a first sweep is a rotation while any area is unswept
+  (LB2b); 9 the orchestrator's and the briefs' "medium and above are fixed" amended to the budget (LB8); 10 the edit
+  grant cited from the entry's Cost line, and the brief's `Status:` line left to the owner ("Open before the loop":
+  `docs/research/` is not this slice's to edit); 11 the regression is the run's own (LB1d); 12 no proxy answer on
+  `[arch]` or `[phone]` (LB3c); 13 a lease cleared only with the owner's words, by its holder or after it lapsed (LB6b);
+  14 a struck-through sub-item answers nothing (LB5b). The judgement calls: J1 reshaped (finding 5), J2 with finding 8,
+  J3, J4 with finding 11, J5 reshaped (finding 2), J6 with the lease's Branch cell filled, J7 except "Open before the
+  loop" (finding 6).
 
 ## How adjacent apps do it
 
@@ -113,7 +152,8 @@ Built 2026-11-26 under `/tend inbox G7 yes` on `tend/inbox-20261126-0545`, from 
   `.claude/skills/ship.md`, "Publish to main", step 2, runs `npm run book:next-decision -- --check <NNNN> <file>`
   after the last fetch, renumbering the file, its title, the README row and what cites it when `main` took the number;
   `slice` step 7 and `/tend` section 10.3 say the same. The provisional name is the number `next-decision` gave,
-  checked at publish.
+  checked at publish; the five renumberings since Nov 19 (`02f41ed3`, `c44b73dd`, `54118337`, `cf23a321`,
+  `41a3438d`) are `--check` doing its job (the owner, S6, decision 0269).
 - **Named since the entry was filed:** `check:tend` is `node scripts/tend.js commits`, which CI runs as `commits
   --loop-only` on every push with the push's base's scripts (decisions 0133, 0156); "the orchestrator" is
   `/tend-orchestrator` (`.claude/skills/tend-orchestrator/SKILL.md`, its run brief `briefs.md` beside it, decision 0157);

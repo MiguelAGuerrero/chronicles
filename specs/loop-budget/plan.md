@@ -17,89 +17,110 @@ reads: no area of the app is touched.
 | `src/lib/__tests__/arch/records.test.ts` | LB5's command |
 | `src/lib/__tests__/arch/features.test.ts` | LB2: every feature but `arch` has one of the three verbs |
 | `.claude/skills/tend/SKILL.md`, `.claude/skills/ship.md`, `.claude/skills/tend-orchestrator/SKILL.md`, `.claude/skills/tend-orchestrator/briefs.md` | LB8 (below) |
-| `docs/research/tend-process-review.md` | its `Status:` line: G7 built in loop-budget |
+| `docs/decisions/0269-…` | the owner's answers to the plan review |
 
 Three source files under `scripts/`, no `src/` file. `tend/SKILL.md` is at 498 of its 500 lines: the new words go into
 the lines that hold the rules they amend, not new paragraphs.
 
-## What each criterion builds
+## What each criterion builds (after the plan review and decision 0269)
 
 **LB1, the budget** (`reviewBudget(commits)`, pure; `commits` holds every range problem it returns, in both modes, so CI
 reads it on every push with the base's scripts once this is on `main`). Over the range's loop commits (subject `tend `,
 as `--loop-only` reads them) and their reverts, per area (the subject's second word):
 
-- *fixes* = the distinct numbers `findingsOf` reads as shipped, with the distinct `T<n>` it reads as built;
-- *review fixes* = the distinct numbers it reads as `audit`;
-- a commit the range reverts (`Revert "tend …"`, by its `This reverts commit <sha>.` lines, a commit of the range) is
-  left out of both, and so is the revert (LB1b);
-- an audit number named by a commit whose message has a line `Regression: <sha>`, `<sha>` a commit of the range, is the
-  run's own regression and is not counted (the criterion's "unless");
-- review fixes greater than fixes: one problem for the area, naming both lists and the fix ("file the rest `[loop]` with
-  their severity, or name the regression: `Regression: <sha>`").
+- *fixes* = the distinct numbers `findingsOf` reads as shipped, plus, for each `T<n>` it reads as built, one per commit
+  naming it that changes more than tests and journeys (an item it ships, 0269);
+- *review fixes* = the distinct numbers it reads as `audit`, less those a commit says are high (`Severity: high`, 0269)
+  and those a commit names as the run's own regression (`Regression: <sha> <what worked at the base>`, `<sha>` a commit
+  of the range of the same area that is no review fix; audit 11);
+- a commit the range reverts (by its `This reverts commit <sha>.` lines) is left out of both, and so is the revert;
+- review fixes greater than fixes: one problem for the area, naming both lists and the fix ("fix highs and the run's own
+  regressions whatever the budget; file the rest `[loop]` with their severity").
 
-Counted by findings, not commits (J3), so `audit 26-28` in one subject is three and a fix's later trap-line commit
-naming the same `audit 3` is one (the known double count in `tend:log`'s `auditFixes` is not this count's).
+**`tend:log` holds the other half** (audit 1, 0269): on a sweep or a `T` build with a `review`, `review.accepted` may not
+exceed the distinct audit numbers the range ships plus the `[loop]` items the run adds to `docs/DEFERRED.md` (each item
+whose first line the base lacks); each added `[loop]` item names its severity, and none is a high. The line gets
+`regressions` (each `{ audit, sha }` claimed), the script's to write.
 
-**LB2, rotation** (`next`). The verb order is VISION's "Return, Honour, Earn" (Chronicle first). From the run log alone:
+**LB2, rotation** (`next`). Each feature in `scripts/features.js` has `verbs` (audit 5), ordering sweeps only and never
+a ruling a `Serves:` line may cite (0269, said in a comment there). An area's rank is its first verb in VISION's order,
+Return, then Honour, then Earn.
 
-- `lastWasRotation(runs)`: the latest sweep line was a rotation when its area had no earlier sweep, or its previous
-  sweep was the oldest latest-sweep of the areas swept before it (ties count). No sweep at all: a rotation.
+- `lastWasRotation(runs, areas)`: the latest sweep was a rotation when it was its area's first; otherwise, only when
+  every area had been swept before it, when its previous sweep was the oldest latest-sweep then (ties count; audit 8).
+  No sweep at all: a rotation.
 - **After a rotation, the reset turn:** `next` as it is today (decision 0229's resets, then 0235's evolve, then the
   computed rough, then settling).
-- **After any other sweep, the rotation turn:** a due evolve first (LB2b), else `rotationArea`: the never-swept areas
-  by verb then name; when none, the area whose latest sweep is oldest, ties by verb then name; `resting` areas skipped.
-- stdout stays the one area (the skills read it); the reason goes to stderr ("rotation: never swept, Return").
+- **After any other sweep, the rotation turn:** a due evolve first (LB2b), else `rotationArea`: the never-swept areas by
+  rank then name; when none, the area whose latest sweep is oldest, ties by rank then name; `resting` areas skipped.
+- stdout stays the one area (the skills read it); the reason goes to stderr.
 
-On today's `main` the latest sweep (map, Nov 20) was not a rotation, so `next` turns from `walk-screen` (its resets) to
-the first never-swept Return area by name, `gallery` (J1's table).
+On today's `main` the latest sweep (map, Nov 20) was not its first and 28 areas are unswept, so `next` turns from
+`walk-screen` (its resets) to the first never-swept Return area by name, `gallery`.
 
-**LB3, the answer log.** `runLine` stamps `answerLog: "0235"` (the script's, like `date` and `lens`: a run's JSON may not
-give it). A line with the marker holds each answer to `{ entry, answer, by, pick }`: `by` `owner` or `proxy` (0236's
-words); `pick` `recommended`, `other`, `reshape` or `no`, agreeing with `answer` (`yes` with `recommended` or `other`,
-`no` with `no`, `reshape` with `reshape`); a proxy answers only `yes` (0157: never no, never a reshape). `tend.js log`
-refuses a line that breaks them (LB3b: no marker, read as it was). `appendLog` adds each answer's `class` from the
-range base's `docs/STATUS.md`: `T [owner]`, `T [arch]`, `T [phone]` by the entry's tag, `G` for a proposal, the bare
-letter when the base no longer holds it.
+**LB3, the answer log.** `runLine` stamps `answerLog: "0235"` (the script's, like `date` and `lens`). A line with the
+marker holds each answer to `{ entry, answer, by, pick }` (audits 2, 12):
 
-**LB4, take-up** (`answerTakeUp(runs, today, 30)`, pure; `balance` prints it as `answers`): over the window's lines,
-per class, the owner's answers and how many took the recommended option (and the other picks); the proxy's yeses, and
-those with no later answer `by: owner` for the same entry (unconfirmed: the owner's keep, 0157's closing list, is logged
-by the next run as an answer by the owner, J5); the answers logged before the marker, counted apart as `unlogged`.
-Nothing acts on it (delegating stays the owner's call, 0157).
+- `by` `owner` or `proxy`; `pick` `recommended`, `other`, `reshape` or `no`, agreeing with `answer` (`yes` with
+  `recommended` or `other`, `no` with `no`, `reshape` with `reshape`);
+- `by: owner` carries `words`, the owner's words verbatim, one line, not empty;
+- the proxy answers only `yes`, and never an entry of class `T [arch]` or `T [phone]` (0157);
+- `confirms: "<YYYY-MM-DD>"` marks the owner's keep of a proxy yes: `by: owner`, `answer: yes`, and `tend:log` refuses it
+  unless a line of that date holds an answer for the entry.
 
-**LB5, the inbox ages** (`inboxAge(status, today)`, pure, read by `records.js`). Every item `readInbox` reads (every
-bullet under "Needs the owner", "Last tend" apart), unanswered by its `ANSWERED` words, dated by its first date: 14 days
-or more is listed oldest first, 30 or more marked to move; undated and `[phone]` items listed apart (LB5b). `npm run
-records -- inbox age [--main] [--json]` prints it (`--main`: `origin/main`'s STATUS); `--write <dir>` writes, for each
-item to move, its DEFERRED bullet (`- [owner] ` and the item's text, every line kept, then one line: `Moved from the
-inbox ("<section>") on <today>, unanswered since <date> (decision 0235).`) and prints the two operations that move it:
-its removal (`inbox remove <id>`, `open remove "<match>"` or `section item remove "<section>" "<match>"`, each with
-`--reason "unanswered for 30 days (decision 0235)"`) and `deferred item add "From the inbox, unanswered for 30 days"
---file <dir>/<n>.md` (`--new` the first time). Nothing moves today: the oldest item is from Nov 11.
+`appendLog` adds each answer's `class` from the base's `docs/STATUS.md` (`T [owner]`, `T [arch]`, `T [phone]` by the
+entry's tag, `G`, else the bare letter) before the line is checked.
 
-**LB6, the lease.** A lease is an "In flight" row whose Session cell starts `Lease:`, whose Doing cell names the held
-files in backticks, `from <YYYY-MM-DDTHH:MMZ>` and `session <id>` (the `session_…` of the holder's `Claude-Session:`
-trailer). `leaseRows(status)` reads them; `leaseProblems({ files, date, session, rows })` refuses a commit that changes a
-held process file while the lease is live (`from` ≤ the commit's date < `from` + 24 h) unless the commit carries the
-holder's session. `commits` (both modes) reads the leases at each agent commit's parent, for the commits that touch a
-process file: `.claude/skills/**` (the ledger and the run log apart), `.claude/hooks/**`, `.claude/agents/**`,
-`AGENTS.md`, `CLAUDE.md`, `.github/**`, and `scripts/{tend,records,bookkeeping,expectations}.js`. The owner's own
-commits carry no trailer and are never read (LB6b). The owner clears a row by hand, or a session does with
-`inflight remove "<match>" --reason "the owner cleared the lease, <date>"`. The holder publishes its row alone (`npm run
-records -- inflight add`, a records-only commit pushed to `main` as it opens), and removes it in its last record commit.
+**LB4, take-up** (`answerTakeUp(runs, today, 30)`, pure; `balance` prints it as `answers`): each entry's latest answer
+per `by` in the window (audit 3); per class, the owner's answers and their picks (a `confirms` apart, never take-up);
+the proxy's yeses, and those with no later `confirms` (or other owner's answer) for the entry; the answers in the window
+logged before the marker, as `unlogged`. Nothing acts on it (0157).
 
-**LB7**: met (the spec's Record); nothing built.
+**LB5, the inbox ages** (`inboxAge(status, today)`, pure, read by `records.js`). Every item `readInbox` reads, dated by
+its first date, else its section heading's (audit 7), unanswered by `ANSWERED` read outside struck-through text (audit
+14; `readInbox` itself is unchanged, so the balance reads as before):
+
+- `wait` (14 days or more) oldest first, `move` (30 or more), but "Open before the loop" items go to `hand`, waiting on
+  the owner's hand, with their age, never moved (0269, audit 6);
+- `undated` and `phone` apart.
+
+`npm run records -- inbox age [--main] [--json]` prints it (`--main`: `origin/main`'s STATUS); it is a read, never an
+operation. `--write <dir>` writes, for each item to move, its DEFERRED bullet (`- [owner] ` and the item's text, every
+line kept, then `Moved from the inbox ("<section>") on <today>, unanswered since <date> (decision 0235).`) and prints the
+two operations that move it (its `inbox remove <id>` or `section item remove "<section>" "<match>"`, `--reason
+"unanswered for 30 days (decision 0235)"`, and `deferred item add "From the inbox, unanswered for 30 days" --file
+<dir>/<n>.md`, `--new` the first time). Nothing moves today: the oldest dated question is from Nov 11.
+
+**LB6, the lease.** A lease is an "In flight" row whose Session cell starts `Lease:`, its Branch cell the holder's branch,
+its Doing cell the held files in backticks, `from <YYYY-MM-DDTHH:MMZ>` and `session <id>` (the `session_…` of the
+holder's `Claude-Session:` trailer). `leaseRows(status)` reads them; `leaseProblems({ files, date, session, rows })`
+refuses an agent commit that changes a held process file while the lease is live (`from` ≤ the commit's date < `from` +
+24 h) unless the commit carries the holder's session. `commits` (both modes) reads the leases at each agent commit's
+parent for the commits that touch a process file (`.claude/skills/**` but the ledger and the run log, `.claude/hooks/**`,
+`.claude/agents/**`, `AGENTS.md`, `CLAUDE.md`, `.github/**`, `scripts/{tend,records,bookkeeping,expectations}.js`), and
+refuses an agent commit that removes a lease row unless it carries the holder's session, the lease has lapsed at its
+date, or its message quotes the owner's words (`the owner … "…"`; audit 13). The owner's own commits are never read. The
+holder publishes its row alone (`npm run records -- inflight add`, a records-only commit pushed to `main` as it opens) and
+removes it in its last record commit.
+
+**LB7**: met (the spec's Record, 0269); nothing built.
 
 **LB8, the skills say the same.**
 
-- `tend/SKILL.md`: the table's first row (`next` alternates); section 10.1 (`answers` carry `by` and `pick`), 10.2 (the
-  budget, a regression line, the rest filed `[loop]` with their severity; amends 0181's "medium and above"), and the
-  close (`inbox age`: what has waited 30 days moves).
+- `tend/SKILL.md`: the table's first row (`next` alternates); section 10.1 (`answers` carry `by`, `pick`, the owner's
+  `words`), 10.2 (the budget, highs and the run's own regressions outside it, the rest filed `[loop]` with their
+  severity; amends 0181's "medium and above"), and section 7 (`inbox age` at an inbox run's close: what waited 30 days
+  moves; "Open before the loop" is listed).
 - `ship.md`: "The faster lane"'s fixes line (the budget); "Open the worktree" (the lease for process files); "Publish to
   main" unchanged (LB7).
-- `tend-orchestrator/SKILL.md`: section 2.2 (`inbox age`, the four oldest asked first); section 9 (each proxy yes the
-  owner keeps is logged by the next run as `by: owner`); the briefs' answers marked `by` and `pick`.
-- `briefs.md`: the run brief's answer line names `by` and `pick`; the non-loop run takes a lease for process files.
+- `tend-orchestrator/SKILL.md`: section 2.2 (`inbox age`, the four oldest asked first); section 5's "Medium and above are
+  fixed in the run" amended to the budget (audit 9); section 9 (each proxy yes the owner keeps is logged by the next run
+  as `confirms`, with the owner's words).
+- `briefs.md`: the run brief's answer line names `by`, `pick` and the owner's words; its "medium and above are fixed"
+  amended to the budget (audit 9); the non-loop run takes a lease for process files.
+
+The brief's `Status:` line (`docs/research/tend-process-review.md`) is not this slice's to edit (audit 10): it goes to
+"Open before the loop".
 
 ## Tests (one per criterion, each a todo first)
 
@@ -111,6 +132,7 @@ records -- inflight add`, a records-only commit pushed to `main` as it opens), a
 | LB4 | `tend.test.ts` `LB4: …`: `answerTakeUp` on made-up lines (take-up by class, an unconfirmed proxy yes, unlogged) | no function |
 | LB5 | `records.test.ts` `LB5: …`: `inbox age` lists 14 days, marks 30, writes the bullet with every line kept and prints the two operations; undated and phone apart; no sidecar written | no command |
 | LB6 | `tend.test.ts` `LB6: …`: `leaseRows`, `leaseProblems` (live, lapsed, the holder, a file not held); `commits` on a scratch repository refuses another session's commit | no lease read |
+| audits 1-3, 5-14 | `tend.test.ts` and `records.test.ts`, `loop-budget audit N: …`, each the steward's failing input | the rule is not there |
 | LB8 | `tend.test.ts` `LB8: …`: the four skill files name `Regression:`, `inbox age`, `by` and `pick`, the rotation and the lease | the words are not there |
 
 Each test's wiring is reverted once after it passes, to see it fail.
@@ -124,7 +146,7 @@ reads one document. No harness: none of it is per frame or per fix.
 
 **Native**: none. **Deferred**: none planned.
 
-## Judgement calls (the steward rules on these; none changes a criterion's words)
+## Judgement calls (ruled by the steward, Nov 26: J1 reshaped by audit 5 and 0269, J2 with audit 8, J3 accepted, J4 with audit 11, J5 reshaped by audit 2, J6 with the Branch cell, J7 but "Open before the loop"; kept as written for the record)
 
 - **J1. Each area's verb.** VISION's table puts Earn on Explore and Navigate, Honour on capture and the walk, Return on
   Chronicle, the replay, revisit and recall. The infrastructure areas take the verb of what they keep:
