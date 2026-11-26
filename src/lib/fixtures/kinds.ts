@@ -1,17 +1,16 @@
 // @layer core
+import { FIXTURE_KINDS } from '../presence/fixtureKinds';
 import type { LngLat } from '../types';
+
+export { FIXTURE_KINDS };
 
 /*
  * A town's fixtures (specs/town-fixtures, TF1, TF5; decisions 0225, 0255, 0268): the staples a developed settlement is
  * expected to have, as chronicles-data's fixtures pack holds them. The kinds are the pack's contract's closed list, in its
- * order (the owner's thirteen, Nov 25); a kind the app does not know is never shown. A fixture is a stop, never a find:
+ * order (the owner's thirteen, Nov 25), spelled in presence with the other sources' words (PS7); a kind the app does not
+ * know is never shown. A fixture is a stop, never a find:
  * it carries its kind, its position and its name where it has one, and nothing a crowd says.
  */
-export const FIXTURE_KINDS = [
-  'tourist_office', 'town_hall', 'library', 'post_office', 'square', 'market', 'station', 'bus_station', 'courthouse',
-  'community_centre', 'ferry_terminal', 'common', 'bandstand',
-] as const;
-
 export type FixtureKind = (typeof FIXTURE_KINDS)[number];
 
 export interface Fixture {

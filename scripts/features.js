@@ -205,7 +205,7 @@ const FEATURES = [
     name: 'fixtures',
     about: 'a town\'s fixtures: chronicles-data\'s third pack (a tourist office, a town hall, a library, a square, a station...), read by tile through its adapter; a stop, never a find (decisions 0225, 0255, 0268)',
     rule: 'town-fixtures',
-    source: ['src/lib/fixtures/**'],
+    source: ['src/lib/fixtures/**', 'src/lib/presence/fixtureKinds.ts'],
     journeys: [],
     specs: ['town-fixtures'],
   },
