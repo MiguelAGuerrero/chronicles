@@ -94,6 +94,26 @@ What it never does:
 - **TF23.** The words for kinds are the app's own, one table shared by the card, the sheet and the layer's legend.
 - **TF24.** With the layer off, the card's line stays: the switch is the map's.
 
+The data set (G13, the first slice; decision 0255):
+
+- **TF25.** The fixtures are a pack of their own, built in chronicles-data beside the places and stores packs, from
+  OpenStreetMap first, and one fixture is kept once: a library mapped as its building and as a point inside it is one
+  library. (Overture and Wikidata folded in where they are strong: deferred, see the record.)
+- **TF26.** A tourist office is a town's own (OpenStreetMap's `information=office`); an attraction's visitor centre
+  (`information=visitor_centre`) is never a fixture, and stays a place to discover.
+- **TF27.** On the web build's read path, in a test, the app reads Stowe's and Marfa's fixtures from the published pack
+  through its adapter, and finds each town's tourist office where OpenStreetMap has one, its town hall and its library,
+  and nothing of a kind outside the list.
+
+## Decisions
+
+- 2026-11-21: the data set first, OpenStreetMap-first, a visitor centre is the town's tourist office (decision 0255).
+- 2026-11-25: the closed list (TF1), thirteen tags, the owner in person: `information=office`, `amenity=townhall`,
+  `amenity=library`, `amenity=post_office`, `place=square`, `amenity=marketplace`, `railway=station`,
+  `amenity=bus_station`, `amenity=courthouse`, `amenity=community_centre`, `amenity=ferry_terminal`, `leisure=common`,
+  `leisure=bandstand`. Out: the practical amenities and the arguables recommended out; `information=visitor_centre` out.
+- 2026-11-26: build G13 from this spec (the owner in person); the screens (TF6-TF13) come after, with a mock-up.
+
 ## Surfaces (from the code, to be confirmed in the plan)
 
 - The map's layers (`src/lib/layers/registry.ts`: walkability, storefronts, borders): a fourth.
@@ -106,6 +126,7 @@ What it never does:
 ## Open
 
 1. **The list** (TF1): after the kind counts report. A church, a cemetery, a school and a park are each arguable as a staple.
+   Answered 2026-11-25 (see Decisions): thirteen kinds; churches, cemeteries, schools and parks out.
 2. **Which kinds move out of the things to discover** (TF3): civic buildings and stations are finds today; the owner's, kind by
    kind, with what it does to "What I'm into".
 3. **Whether a fixture's glyphs belong on the base map's own style** or a layer over it: on the web the base style is the map

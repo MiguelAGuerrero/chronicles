@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Town fixtures (the staples",
+        "--reason",
+        "G13 built from this spec (the owner's yes, Nov 26)"
+      ],
+      "body": "| Town fixtures (the staples of a settlement, a visitor centre, a plaza, a town hall, a library, a market, a station, told apart from the things to discover: said in words on a town's card and marked on the map as a layer of their own, from a third pack; a stop, never a find; TF1-TF27, decisions 0225, 0255) | `tend/inbox-20261126-0340` | G13, the data set, building 2026-11-26 (TF1, TF2, TF4, TF5, TF14, TF19, TF21, TF25-TF27; chronicles-data's fixtures pack, FX1-FX12): the plan with the steward; no screen. The screens (TF6-TF13) after, with a mock-up |\n",
+      "target": "sha256:f6071691bd06b43529232e064054323365b8eb5655000455dcf9dfafd02d89f5"
+    }
+  ]
+}
