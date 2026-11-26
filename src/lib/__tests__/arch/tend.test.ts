@@ -1472,3 +1472,33 @@ test('loop-budget audit 9: no skill says "medium and above" are fixed beside the
     assert.doesNotMatch(flat(read(f)), /[Mm]edium and above (are )?fixed|Fixes in the run: medium and above/, f);
   }
 });
+
+test('loop-budget audit 1, 2: tend:log holds the review\'s accepted findings and a keep\'s line, end to end', () => {
+  const r = repo();
+  const json = { ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-1', is: 'lacking' }] }, compass, review: { accepted: 1, rejected: 0, deferred: 0 } };
+  const unfiled = r.tendJs('log', 'HEAD..HEAD', JSON.stringify(json));
+  assert.equal(unfiled.status, 1);
+  assert.match(unfiled.stderr, /review\.accepted is 1/);
+  mkdirSync(join(r.root, 'docs'), { recursive: true });
+  writeFileSync(join(r.root, 'docs/DEFERRED.md'), '# Deferred\n\n## Memories (/tend memories)\n\n- [loop] The preview\'s caption is cut at 320 px (low)\n');
+  const filed = r.tendJs('log', 'HEAD..HEAD', JSON.stringify(json));
+  assert.equal(filed.status, 0, filed.stderr);
+  const keep = { mode: 'inbox', deploy: 'main', base: 'abc1234', filed: { T: [], G: [] }, answers: [{ entry: 'G9', answer: 'yes', ...owner, confirms: '2020-01-01' }] };
+  const stray = r.tendJs('log', 'HEAD..HEAD', JSON.stringify(keep));
+  assert.equal(stray.status, 1);
+  assert.match(stray.stderr, /confirms 2020-01-01/);
+});
+
+test('loop-budget audit 12: tend:log reads an answer\'s class from the base and refuses the proxy on an [arch] entry', () => {
+  const r = repo();
+  mkdirSync(join(r.root, 'docs'), { recursive: true });
+  r.commit({ 'docs/STATUS.md': '# Status\n\n## Needs the owner\n\n### From /tend\n\n- **T3 [arch] A new dependency** (2026-11-20)\n  Area: map.\n- **T4 [owner] A word** (2026-11-20)\n  Area: map.\n' }, 'the inbox, by hand');
+  const base = r.git('rev-parse', 'HEAD');
+  const json = (entry: string) => ({ mode: 'inbox', deploy: 'main', base: base.slice(0, 8), filed: { T: [], G: [] }, answers: [{ entry, answer: 'yes', by: 'proxy', pick: 'recommended' }] });
+  const arch = r.tendJs('log', `${base}..HEAD`, JSON.stringify(json('T3')));
+  assert.equal(arch.status, 1);
+  assert.match(arch.stderr, /never answers an \[arch\]/);
+  const ok = r.tendJs('log', `${base}..HEAD`, JSON.stringify(json('T4')));
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8'), /"class":"T \[owner\]"/);
+});
