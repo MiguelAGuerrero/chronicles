@@ -1,0 +1,52 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Town fixtures"
+      ],
+      "body": "- [loop] chronicles-data's fill after T66: Geofabrik can renew an extract between a fill's 304 and its unconditional download (they are at least 30 s apart, the OSM pace), so the fixtures are filled from the renewed extract while the places' and stores' answers and the held ETag stay those of the copy before it; the next week asks against that older copy, gets a 200 and runs every filter, so it heals in a week and no harm was found, but the T66 304 test pins the mixed state (chronicles-data's src/adapters/osm/extract.ts, `filterExtracts`; `tend fixtures` diff review F3, Nov 26, low). Fix: when the second download's ETag is present and differs from the held one, take the 200 way on that body (every filter, its ETag, date and counts). Test: `tend fixtures audit <next>`, a fill whose download after the 304 carries another ETag runs every filter and keeps that ETag\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Town fixtures",
+        "--after",
+        "Geofabrik can renew an extract"
+      ],
+      "body": "- [loop] chronicles-data's fill after T66: a fill whose held copy has no `etag:` and no `modified:` note sends no condition, yet `download(headers, asked)` still takes a 304 as \"unchanged\" (chronicles-data's src/adapters/osm/extract.ts, the `notModified` argument), so a 304 from a proxy or cache to an unconditional request would carry the held answers; new for a fill, implausible from Geofabrik, and the `ask` mode has the same shape (`tend fixtures` diff review F4, Nov 26, low). Fix: `download(headers, asked && Object.keys(headers).length > 0)`, so a 304 to a request that asked nothing is refused and asked once more. Test: `tend fixtures audit <next>`, a fill with no held ETag or date that is answered 304 carries nothing and fails the source\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Town fixtures",
+        "--after",
+        "a fill whose held copy has no"
+      ],
+      "body": "- [loop] chronicles-data's fill after T66 doubles a fill week's requests: a 304 fill makes eight Geofabrik requests a run where main made four (about two minutes more at the 2-a-minute pace), a refused week's worst case is about 20 requests and 80 minutes against 10 and 40, and the conditional request, which carries no body, is bounded only by `DOWNLOAD_MAX_MS` (two tries of 150 minutes) inside the job's 300 (chronicles-data's src/adapters/osm/extract.ts, `download()`; `tend fixtures` diff review F5, Nov 26, low; a fill happens only the week a filter changes). Fix (optional): a short timeout for the headers of the conditional request (75 s, as a query gets), its own try count kept at two. Test: `tend fixtures audit <next>`, a conditional ask that never answers is cut off within the short limit and asked once more\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T66",
+        "--reason",
+        "the owner's yes in person, 2026-11-26, \"Yes, as recommended (Recommended)\", built in tend fixtures T66 (chronicles-data 0870d33: a fill asks with the held copy's ETag first; tend fixtures audit 1 at 5c5a051). Plainly: the owner's first manual places build now most likely takes the 200 way on every extract (Geofabrik renews its extracts daily) and republishes the places and stores with the edits since Nov 23, the trade the owner approved; only an extract unchanged since run 40 (a 304) has its places' and stores' answers carried as before."
+      ],
+      "target": "sha256:513a4cc436fe1a9f0fef65aeabd7f1c31cf29d10f933a15d8d0b5491c7f2f937"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 26, `/tend inbox T66 yes`: town fixtures, a fill asks with the held copy's ETag first** (opened from `1eb64425`; T66, \"Town fixtures: a fixtures filter change makes the next weekly run a fill that carries places' and stores' OSM answers a week\", the owner's yes in person, Nov 26, \"Yes, as recommended (Recommended)\"; built in chronicles-data, no app source changed; no surface; an inbox run, so lenses 1-7 were not run).\n- Built on chronicles-data's `main` (FX10, `src/adapters/osm/extract.ts`, `filterExtracts`): a run that fills a new filter asks for each extract against the held copy's ETag and date first. Unchanged (304): one unconditional download, only the new filter runs, the held answers carried with their ETag, date and counts, nothing carried before the download succeeds. Changed (200): every filter runs on that one download, so the places and stores take the week's edits, as any week. FX10's words, the spec's note and the plan's fill and authorised build say the same; the plan's FX10 tests name the new ones.\n- The owner's manual places build (not started here): each extract logs either \"fixtures filled\" (a 304, its places and stores run 40's) or \"downloaded, changed since the held copy: every filter runs\" (a 200, the likely answer on all four, Geofabrik renewing daily); with a 200 the places and stores are rebuilt with the edits since Nov 23 and published if a block changed, the trade the owner approved.\n- Review: the auditor on the data diff, one round, 0 high, 0 medium, 6 low: 1 fixed (`tend fixtures audit 1`, the two log lines pinned word for word), 1 in the scratchpad differential only (the 304 week now serves other bytes under the held ETag), 1 docs (the plan's test list, the inbox reason), 3 filed `[loop]` low under \"Town fixtures\" (a renewal between the 304 and the download, a 304 to a request that asked nothing, a fill week's doubled requests and the conditional ask's long limit). An old/new differential of the whole manual OSM build (main's 89767cd against T66's, real osmium, a fake Geofabrik): a 304 week moves nothing; a 200 week moves the places and stores and their raw parts and notes only, the fixtures identical.\n- Answered: T66 built. Filed: `docs/DEFERRED.md`, \"Town fixtures\", three `[loop]` lows.\n- Checks: chronicles-data's typecheck, `npm test` (152) and `contract --check`; here `check:records`, `check:tend`, `commits` in both modes. Journeys: none (no app source changed). The weekly full pass was not run.\n- Waiting with the owner's yes, for the next `/tend inbox`: G5 (the owner's order, Nov 25); G9 also waits on the walk drawer sections slice reaching main.\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}
