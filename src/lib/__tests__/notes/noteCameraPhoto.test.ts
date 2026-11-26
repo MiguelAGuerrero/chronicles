@@ -4,9 +4,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { facedOf, type Faced } from '../../moment';
+import { photoMidMemo } from '../../pieceStamp';
 import { mentioned } from '../../refs';
 import { poolWithOpenWalks, toMomentViews } from '../../resurface/views';
 import type { Walk } from '../../types';
+import { retryInto } from '../../unsaved/core';
 
 // fix note-camera-photo (the owner, Nov 26): on a walk, a note page's camera kept its photo as a moment of the walk still
 // open, and the page and the viewer said "A moment no longer kept": they looked the mention up among the feed's moments,
@@ -50,4 +52,36 @@ test('fix note-camera-photo: every reader of a mention resolves it through `ment
   const viewer = src('CaptureView.tsx');
   assert.match(viewer, /onOpenMention: \(id\) => \{\s*const v = mentioned\(pool\.every, hidden, id\);/, "the viewer opens a mention's moment from the whole pool");
   assert.match(viewer, /gone: pool\.ready \? \(id\) => !mentioned\(pool\.every, hidden, id\)/, 'the viewer calls a mention gone only when it is');
+});
+
+const lib = (f: string) => readFileSync(join(__dirname, '../..', f), 'utf8');
+
+test('fix note-camera-photo audit 1: a shot whose into is gone names the moment it was kept as', () => {
+  // The open moment it was to join was deleted before the shot was kept: it is kept as a moment of its own (UN11), so
+  // the moment it names is that one, its own id, never the deleted moment it was asked into.
+  assert.equal(retryInto('M', false), null);
+  const caps = lib('useCaptures.ts');
+  assert.match(caps, /return 'error' in r \? r : \{ \.\.\.r, into: stamp\.into \?\? null \};/, 'keepCapture says the into it used');
+  assert.match(caps, /momentId: r\.into \?\? r\.id \}/, 'keepOrHold names the moment from the into used');
+  assert.doesNotMatch(caps, /momentId: k\.stamp\.into \?\? r\.id/, 'never from the stamp it was asked with');
+});
+
+test('fix note-camera-photo audit 1: the page\'s camera keeps its own moment while a memo records (NP14)', () => {
+  // With no memo to go with, a shot goes where the camera alone puts it: here a moment of its own.
+  assert.deepEqual(photoMidMemo(null, null, null), { into: null, place: null });
+  const caps = lib('useCaptures.ts');
+  assert.match(caps, /const memo = shot\?\.alone \? null : recording;/, 'a shot said to be alone goes with no memo');
+  assert.match(caps, /mediaTypes: recording \? \['images'\]/, 'a memo still holds the microphone: photos only meanwhile');
+  assert.match(readFileSync(join(__dirname, '../../../components/notePage/NewNotePage.tsx'), 'utf8'), /cap\.takePhoto\(null, null, undefined, \{ alone: true \}\)/, 'the page\'s camera says it is alone');
+});
+
+test('fix note-camera-photo audit 3: a mention of a moment whose walk waits in Undo reads gone', () => {
+  assert.equal(mentioned(every, new Set(['open']), 'photo'), null, 'its walk deleted, waiting in Undo');
+  assert.equal(mentioned(every, new Set(['open']), 'loose')?.id, 'loose', 'a moment on no walk is untouched');
+  assert.equal(mentioned(every, new Set(['w']), 'photo')?.id, 'photo', 'another walk in Undo is not its');
+});
+
+test('fix note-camera-photo audit 4: the page\'s Edit finds its picture\'s moment in the whole pool, said as what it is', () => {
+  const page = readFileSync(join(__dirname, '../../../components/notePage/NotePage.tsx'), 'utf8');
+  assert.match(page, /const v = menuFor \? cardPool\.every\.get\(menuFor\) : null;/);
 });

@@ -254,6 +254,8 @@ export default function JournalEditor(props: Props) {
     .page .mention { border: 1px solid ${p.edge}; border-radius: 8px; padding: 1px 6px; background: ${p.surface}; white-space: nowrap; cursor: pointer; }
     .page .mention.picture { display: block; width: fit-content; max-width: 100%; margin: 8px 0; padding: 0; border: 0; background: none; white-space: normal; cursor: pointer; }
     .page .pic-frame { position: relative; display: block; line-height: 0; }
+    /* A picture or card first in its line: the editor's separator before it (ProseMirror's own style says inline, !important) would hold an empty line above it (fix note-camera-photo audit 5). */
+    .page p > img.ProseMirror-separator:first-child:has(+ .node-mention .mention.picture, + .node-mention .card) { display: none !important; }
     .page .pic-frame img { display: block; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid ${p.edge}; background: ${p.surface}; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
     .page .mention.picture.selected img { outline: 3px solid ${p.ink}; outline-offset: 2px; }
     .page .pic-play { position: absolute; inset: 0; margin: auto; width: 44px; height: 44px; border-radius: 22px; background: rgba(0,0,0,.55); }

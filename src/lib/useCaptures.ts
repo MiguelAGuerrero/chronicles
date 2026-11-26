@@ -355,11 +355,12 @@ export function useCaptures(
 
   /**
    * Keeps a capture's file, then its row (with `into`, as a piece of that open moment, or as a moment of its own when
-   * that moment is gone: UN11); on a failure, the kept path as far as it got and why. Never throws.
+   * that moment is gone: UN11); on a failure, the kept path as far as it got and why. Never throws. Kept, it says the
+   * `into` it used, so what names the moment names the one it is in (fix note-camera-photo audit 1).
    */
-  async function keepCapture(k: Keepable): Promise<{ id: string | null } | { path: string | null; error: unknown }> {
+  async function keepCapture(k: Keepable): Promise<{ id: string | null; into: string | null } | { path: string | null; error: unknown }> {
     let stamp = k.stamp;
-    return keepInOrder(k, {
+    const r = await keepInOrder(k, {
       keepFile: async (uri) => {
         if (stamp.into) {
           const [m] = await db.getMomentsByIds([stamp.into]);
@@ -382,6 +383,7 @@ export function useCaptures(
         if (id && k.kind === 'voice') void transcripts.enqueue({ id, moment_id: stamp.into ?? id, t: stamp.t, file_path: path, body, edit: null }).catch(() => {});
       },
     });
+    return 'error' in r ? r : { ...r, into: stamp.into ?? null };
   }
 
   /**
@@ -408,7 +410,7 @@ export function useCaptures(
       holdFailed(k.keepSource && r.path ? { ...k, uri: null } : k, r.path, r.error);
       return null;
     }
-    return r.id ? { kind: k.kind, id: r.id, momentId: k.stamp.into ?? r.id } : null;
+    return r.id ? { kind: k.kind, id: r.id, momentId: r.into ?? r.id } : null;
   }
 
   /** Retry: each held capture of the pill, from every screen, kept in the order taken into its own walk (UN3, UN4). */
@@ -472,9 +474,11 @@ export function useCaptures(
    * `into`, what it keeps joins that open moment as a piece (MS2, MS3); `id` is then the piece's. With `place`, begun
    * from a place's card, the moment it keeps finds that place (capture-at-a-place CA2). With `camera`, the screen's
    * editor is told the shot the moment the camera returns and how its keep went, so it holds the shot full screen
-   * meanwhile (tend captures T62); the keep itself is the same.
+   * meanwhile (tend captures T62); the keep itself is the same. With `shot.alone` (a note page's own camera) the shot is
+   * a moment of its own even while a memo records: never a piece of the memo's moment, which the memo never joins
+   * either (NP14; fix note-camera-photo audit 1).
    */
-  const takePhoto = async (into: string | null = null, place: string | null = null, camera?: CameraWatch): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
+  const takePhoto = async (into: string | null = null, place: string | null = null, camera?: CameraWatch, shot?: { alone?: boolean }): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
     let kept: { kind: 'photo' | 'video'; id: string; momentId: string } | null = null;
     // Told before the keep, and after it in the same turn as the screen's own answer (T62). A shot the screen holds reads
     // the picked file until it leaves the view: the keep leaves the file in place, and the editor lets it go once it is
@@ -497,7 +501,8 @@ export function useCaptures(
     await guarded('photo', async () => {
       // While a memo records, the photo goes with it (T44, decision 0233): into the memo's moment, or kept as the
       // moment the memo joins when saved. A photo only: a video would want the microphone the memo holds.
-      const memo = voiceOn.current ? voiceStamp.current : null;
+      const recording = voiceOn.current ? voiceStamp.current : null;
+      const memo = shot?.alone ? null : recording;
       const to = photoMidMemo(memo, into, place);
       const stamp = stampNow(false, to.into, to.place);
       const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -509,7 +514,7 @@ export function useCaptures(
       }
       startLocating(stamp);
       const res = await ImagePicker.launchCameraAsync({
-        mediaTypes: memo ? ['images'] : ['images', 'videos'],
+        mediaTypes: recording ? ['images'] : ['images', 'videos'],
         quality: 0.8,
         // The phones' camera's own cap (decision 0003); the web's camera has none, and keeps a clip whole (T43, 0233).
         videoMaxDuration: CAMERA_MAX_VIDEO_S,

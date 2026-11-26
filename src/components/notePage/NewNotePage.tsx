@@ -102,7 +102,8 @@ export const NewNotePage = forwardRef<NotePageHandle, {
       onCamera={
         props.camera
           ? async () => {
-              const k = await cap.takePhoto(null);
+              // Its own moment even while a memo records (NP14; fix note-camera-photo audit 1).
+              const k = await cap.takePhoto(null, null, undefined, { alone: true });
               return k ? { id: k.momentId, label: KIND_WORDS[k.kind] ?? 'A moment' } : null;
             }
           : undefined

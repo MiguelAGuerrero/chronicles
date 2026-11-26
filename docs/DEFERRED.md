@@ -848,6 +848,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - **A new page does not know its walk** (note pictures NI16): a page begun on a capture surface compares a mentioned photo's day alone, so a photo from another walk the same day shows no line; the viewer's page and the reader know the walk and compare both.
 - **A picture sits after the camera's space** (note pictures NI4): the page's camera writes a space after the mention (NP14), which reads as a small indent on the line under a picture.
 - **A page of many pictures** (note pictures NI11): each is about 60-120 KB of data through the web view, once. If a device shows it slow, every picture beyond a count would be drawn smaller, never hidden or collapsed (NI17); not built.
+- [loop] **A full page's camera keeps its photo and says nothing** (fix note-camera-photo audit 2, in part; low, engineering and words): when the page has no room left for a mention (`fits`), the camera's photo is kept as its own moment and the note does not mention it, with no line saying so; saying it needs words (`/vision` first). Not built.
+- [loop] **A note's head says "On your walk" on its page and "On a walk" in the viewer** (fix note-camera-photo's UX review U2; low, words): the same note reads two ways; a change of words goes through `/vision` first. Not built.
 
 ## Chronicle journal, cut 1 (`specs/chronicle-journal/spec.md`, decision 0155)
 

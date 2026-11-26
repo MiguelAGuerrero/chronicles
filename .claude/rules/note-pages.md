@@ -36,6 +36,10 @@ paths:
     Every reader resolves a mention with `mentioned(pool.every, hidden, id)` (`lib/refs.ts`): the whole pool, a walk still
     open included, never `pool.byId`/`views`, which leave an open walk out (RM17); on a walk the page's camera keeps its
     photo in that walk, and a lookup among the feed's moments said "A moment no longer kept" (fix note-camera-photo).
+    The page's camera calls `takePhoto(null, null, undefined, { alone: true })`: its own moment even while a memo records
+    (never `photoMidMemo`'s stack), named by the `into` the keep used; Done waits for the camera's keep and its mention
+    (`shooting`, `landed`, at most `NOTE_SAVE_PAUSE`); a picture or card first in a paragraph hides ProseMirror's
+    separator (inline `!important` in its own style), or an empty line shows above it (fix note-camera-photo audits 1-5).
   - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
     `innerText()`), though `fill('')` can miss right after a relayout and leave the words in: read it empty before Done (fix picker-keyboard); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
     (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.

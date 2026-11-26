@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [ ] **Do:** on a walk, open a place's card on the map, tap Voice so a memo records, then tap the card's Note (or any way the note's page opens while a memo records), take a photo with the page's camera, keep it, stop and save the memo, and tap Done. **Expect:** the photo is a moment of its own on the walk (never a piece of the memo's moment), the note shows it as its picture, the memo keeps the moment it was begun for (`takePhoto`'s `alone`, `keepCapture`'s used `into`; fix note-camera-photo audit 1, no journey drives a place card with a memo). Never run on a phone.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [ ] **Do:** in the Home Screen web app on an iPhone and in the native app, on a walk open a note's page, type a line, and within a second tap the page's camera, take a photo and keep it; then tap Done and open the note from its pin; also tap the camera on an empty page. **Expect:** the line stays above the picture on the page and in the viewer; on the empty page the picture sits first, with no empty line above it; the viewer never says \"A moment no longer kept\" for it (fix note-camera-photo, audits 5 and 6; the e2e runs Chromium only, so WebKit and the phones' web views are unchecked, `:has()` in the editor's style among them). Never run on a phone.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [loop] **A full page's camera keeps its photo and says nothing** (fix note-camera-photo audit 2, in part; low, engineering and words): when the page has no room left for a mention (`fits`), the camera's photo is kept as its own moment and the note does not mention it, with no line saying so; saying it needs words (`/vision` first). Not built.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Note pages (NP1-NP14, decision 0151)"
+      ],
+      "body": "- [loop] **A note's head says \"On your walk\" on its page and \"On a walk\" in the viewer** (fix note-camera-photo's UX review U2; low, words): the same note reads two ways; a change of words goes through `/vision` first. Not built.\n"
+    }
+  ]
+}

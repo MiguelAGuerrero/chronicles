@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ComponentRef } from 'react';
 import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NOTE_SAVE_PAUSE } from '../../lib/motionTokens';
 import { NOTE_MAX } from '../../lib/noteEdit';
 import { closable, startSave, stepSave, type SaveEffect, type SaveEvent } from '../../lib/notePage/autosave';
 import type { NoteHead } from '../../lib/notePage/head';
@@ -205,7 +206,15 @@ export const NotePage = forwardRef<NotePageHandle, {
   // The room line counts what the editor counts, so it says full when the editor takes no more (note-pages audit 8).
   const room = roomOfCount(count);
   const onClose = props.onClose;
-  const leave = () => save.leave(onClose);
+  // The camera's photo on its way (fix note-camera-photo audit 2): leaving waits for its keep and for its mention to
+  // reach the words, so a photo is never kept with the note left not mentioning it.
+  const shooting = useRef<Promise<void> | null>(null);
+  const landed = useRef<(() => void) | null>(null);
+  const leave = () => {
+    const run = shooting.current;
+    if (run) void run.finally(() => save.leave(onClose));
+    else save.leave(onClose);
+  };
   useImperativeHandle(ref, () => ({
     requestClose: () => {
       if (editing) mediaEditor.current?.requestClose();
@@ -216,9 +225,10 @@ export const NotePage = forwardRef<NotePageHandle, {
       else leave();
     },
   }));
-  const mention = (id: string, label: string) => {
-    if (!fits(shown, label)) return;
-    editor.current?.insertMention(id, label);
+  const mention = (id: string, label: string): boolean => {
+    if (!fits(shown, label) || !editor.current) return false;
+    editor.current.insertMention(id, label);
+    return true;
   };
   const menuCard = menuFor ? cards?.[menuFor] : undefined;
   const menuVideo = !!menuCard && !menuCard.gone && !!menuCard.picture?.video;
@@ -281,6 +291,8 @@ export const NotePage = forwardRef<NotePageHandle, {
             setShown(text);
             setCount(n);
             save.edit(body);
+            landed.current?.();
+            landed.current = null;
           }}
           onFormats={setFormats}
           onMention={() => setPicking(true)}
@@ -346,9 +358,24 @@ export const NotePage = forwardRef<NotePageHandle, {
             disabled={busy}
             onPress={() => {
               setBusy(true);
-              void camera()
-                .then((k) => k && mention(k.id, k.label))
-                .finally(() => setBusy(false));
+              const run = camera()
+                .then((k) =>
+                  k
+                    ? new Promise<void>((done) => {
+                        // Its words reach the page by the editor's next change: waited for, at most a save's pause.
+                        landed.current = done;
+                        if (mention(k.id, k.label)) setTimeout(done, NOTE_SAVE_PAUSE);
+                        else done();
+                      })
+                    : undefined,
+                )
+                .catch(() => {})
+                .finally(() => {
+                  landed.current = null;
+                  shooting.current = null;
+                  setBusy(false);
+                });
+              shooting.current = run;
             }}
           >
             <Icon name="camera" size={22} color={theme.ink} />

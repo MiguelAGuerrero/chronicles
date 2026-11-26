@@ -23,11 +23,12 @@ export const GONE = 'a moment no longer kept';
 
 /**
  * The moment a mention names (RF4, RF5), from every kept moment the reader holds, a walk's still open among them (the
- * page's camera on a walk keeps its photo there, NP14; fix note-camera-photo); null when it is gone or waits in Undo.
+ * page's camera on a walk keeps its photo there, NP14; fix note-camera-photo); null when it is gone or waits in Undo,
+ * itself or its walk (fix note-camera-photo audit 3, as the thread pool reads it).
  */
-export function mentioned<V extends { id: string }>(every: ReadonlyMap<string, V>, hidden: ReadonlySet<string>, id: string): V | null {
+export function mentioned<V extends { id: string; walkId?: string | null }>(every: ReadonlyMap<string, V>, hidden: ReadonlySet<string>, id: string): V | null {
   const v = every.get(id);
-  return v && !hidden.has(v.id) ? v : null;
+  return v && !hidden.has(v.id) && !(v.walkId && hidden.has(v.walkId)) ? v : null;
 }
 
 /** A note's body in order: its words and its references (RF4). An empty run is never returned. */

@@ -606,6 +606,7 @@ async function run(h) {
     const there = (sel, timeout = 6000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
     const gone = (sel, timeout = 6000) => pg.waitForSelector(sel, { state: 'detached', timeout }).then(() => true, () => false);
     const input = () => pg.locator('[data-testid=note-page] [data-testid=note-input]');
+    const pagePic = '[data-testid=note-page] [data-testid=note-input] [data-testid=note-picture]';
     await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
     await pg.waitForTimeout(1500);
@@ -621,27 +622,44 @@ async function run(h) {
       };
       req.onerror = () => resolve(false);
     }));
-    for (let i = 0; i < 40 && !(await fixed()); i++) await pg.waitForTimeout(500);
-    await pg.click('[data-testid=cap-note]');
-    await there('[data-testid=note-page] [data-testid=note-input]', 8000);
-    await pg.waitForTimeout(600);
+    let hadFix = false;
+    for (let i = 0; i < 40 && !(hadFix = await fixed()); i++) await pg.waitForTimeout(500);
+    // The page's camera: the file chooser answered with the fixture photo.
+    const camera = async () => {
+      const [chooser] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=note-camera]')]);
+      await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+    };
+    const newPage = async () => {
+      await pg.click('[data-testid=cap-note]');
+      await there('[data-testid=note-page] [data-testid=note-input]', 8000);
+      await pg.waitForTimeout(600);
+    };
+    const done = async () => {
+      await pg.click('[data-testid=note-done]');
+      await gone('[data-testid=note-page]', 10000);
+      await pg.waitForTimeout(1200);
+    };
+    // The note whose words match, its mention's moment, from the store.
+    const kept = async (re) => {
+      const all = await stored(pg);
+      const note = all.find((m) => m.pieces?.[0]?.kind === 'text' && re.test(m.pieces[0].body ?? ''));
+      const id = /@\[([^|\]]+)/.exec(note?.pieces[0].body ?? '')?.[1] ?? null;
+      return { note, body: note?.pieces[0].body ?? null, photo: all.find((m) => m.id === id && m.pieces?.[0]?.kind === 'photo') ?? null };
+    };
+
+    // Words typed, then the camera at once, well inside the save's pause (fix note-camera-photo audit 6).
+    await newPage();
     await pg.keyboard.type('On the walk ');
-    const [chooser3] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=note-camera]')]);
-    await chooser3.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+    await camera();
     await there('[data-testid=note-page] [data-testid=note-input] .mention', 15000);
-    const onPage = await there('[data-testid=note-page] [data-testid=note-input] [data-testid=note-picture]', 8000);
+    const onPage = await there(pagePic, 8000);
     const pageText = await input().innerText().catch(() => '');
     await shot(pg, 'np-walk-01-camera');
     await pg.waitForTimeout(1500);
-    await pg.click('[data-testid=note-done]');
-    await gone('[data-testid=note-page]');
-    await pg.waitForTimeout(1200);
-    const all3 = await stored(pg);
-    const note3 = all3.find((m) => /On the walk/.test(m.pieces?.[0]?.body ?? ''));
-    const photoId = /@\[([^|\]]+)/.exec(note3?.pieces[0].body ?? '')?.[1] ?? null;
-    const photo3 = all3.find((m) => m.id === photoId);
+    await done();
+    const one = await kept(/On the walk/);
     // The note in the viewer from its pin, as the owner opened it; a pill over the pin takes a real click, so the pin's own.
-    const pinSel = `[data-ids*="${note3?.id ?? 'none'}"]`;
+    const pinSel = `[data-ids*="${one.note?.id ?? 'none'}"]`;
     await there(pinSel, 10000);
     await pg.locator(pinSel).first().click({ timeout: 5000 }).catch(() => {});
     if (!(await there('[data-testid=viewer-close]', 4000))) await pg.locator(pinSel).first().dispatchEvent('click').catch(() => {});
@@ -653,10 +671,62 @@ async function run(h) {
     }
     const readerPic3 = await there('[data-testid=note-reader] [data-testid=note-picture]', 10000);
     const readerText = await pg.locator('[data-testid=note-reader]').innerText().catch(() => '');
+    // The words sit above the picture in the reader.
+    const wordsAbove = readerPic3 ? await pg.evaluate(() => {
+      const r = document.querySelector('[data-testid=note-reader]');
+      const pic = r?.querySelector('[data-testid=note-picture]');
+      const words = [...(r?.querySelectorAll('p') ?? [])].find((e) => /On the walk/.test(e.textContent ?? ''));
+      if (!pic || !words) return false;
+      const range = document.createRange();
+      range.selectNodeContents(words.firstChild ?? words);
+      return range.getBoundingClientRect().bottom <= pic.getBoundingClientRect().top + 1;
+    }).catch(() => false) : false;
     await pg.waitForTimeout(800);
     await shot(pg, 'np-walk-02-viewer');
-    check(!!photo3 && photo3.walk_id === note3?.walk_id && !!photo3.walk_id && onPage && !/no longer kept/i.test(pageText) && readerPic3 && !/no longer kept/i.test(readerText),
-      `fix note-camera-photo: on a walk, the page's camera photo is a moment of the open walk, drawn as its picture on the page and in the viewer, never "A moment no longer kept" (${JSON.stringify({ photo: !!photo3, walk: photo3?.walk_id ?? null, onPage, page: pageText.slice(-50), readerPic3, reader: readerText.slice(-60) })})`);
+    check(!!one.photo && one.photo.walk_id === one.note?.walk_id && !!one.photo.walk_id && onPage && !/no longer kept/i.test(pageText) && readerPic3 && !/no longer kept/i.test(readerText),
+      `fix note-camera-photo: on a walk, the page's camera photo is a moment of the open walk, drawn as its picture on the page and in the viewer, never "A moment no longer kept" (${JSON.stringify({ hadFix, photo: !!one.photo, walk: one.photo?.walk_id ?? null, onPage, page: pageText.slice(-50), readerPic3, reader: readerText.slice(-60) })})`);
+    check(/^On the walk @\[[^|\]]+\|A photo\]/.test(one.body ?? '') && /On the walk/.test(pageText) && /On the walk/.test(readerText) && wordsAbove,
+      `fix note-camera-photo audit 6: words typed, then the page's camera within the save's pause, are kept above the picture, on the page and in the viewer (${JSON.stringify({ body: one.body, wordsAbove })})`);
+    await pg.locator('[data-testid=viewer-close]').filter({ visible: true }).first().click().catch(() => {});
+    await gone('[data-testid=capture-viewer]', 5000);
+    await pg.waitForTimeout(800);
+
+    // fix note-camera-photo audit 5: the camera on an empty page puts the picture first, no empty line above it.
+    await newPage();
+    await camera();
+    const firstPic = await there(pagePic, 15000);
+    const gap = firstPic ? await pg.locator(pagePic).first().evaluate((e) => {
+      const p = e.closest('p');
+      return p ? Math.round(e.getBoundingClientRect().top - p.getBoundingClientRect().top) : null;
+    }).catch(() => null) : null;
+    const lineHeight = await input().evaluate((e) => parseFloat(getComputedStyle(e.querySelector('p') ?? e).lineHeight) || 24).catch(() => 24);
+    await shot(pg, 'np-walk-03-camera-first');
+    await pg.waitForTimeout(1500);
+    await done();
+    const first = await kept(/^@\[/);
+    check(firstPic && gap != null && gap < lineHeight / 2 && !!first.photo,
+      `fix note-camera-photo audit 5: on an empty page the camera puts the picture first, with no empty line above it (${JSON.stringify({ gap, lineHeight, body: first.body })})`);
+
+    // fix note-camera-photo audit 2: Done tapped while the camera's photo is still being kept leaves it mentioned.
+    await newPage();
+    await pg.keyboard.type('Done at once ');
+    // The photo's keep held back a second and a half (its file read), so Done lands while it is still being kept.
+    await pg.evaluate(() => {
+      const f = window.fetch;
+      window.__fetch = f;
+      window.fetch = (u, ...a) => (String(u).startsWith('blob:') ? new Promise((r) => setTimeout(r, 1500)).then(() => f(u, ...a)) : f(u, ...a));
+    });
+    await camera();
+    await pg.waitForTimeout(300);
+    const keeping = (await stored(pg)).filter((m) => m.pieces?.[0]?.kind === 'photo').length;
+    await pg.click('[data-testid=note-done]');
+    await gone('[data-testid=note-page]', 15000);
+    await pg.waitForTimeout(2000);
+    await pg.evaluate(() => { window.fetch = window.__fetch; });
+    const quick = await kept(/Done at once/);
+    const photosAfter = (await stored(pg)).filter((m) => m.pieces?.[0]?.kind === 'photo').length;
+    check(photosAfter === keeping + 1 && !!quick.photo && /^Done at once @\[[^|\]]+\|A photo\]/.test(quick.body ?? ''),
+      `fix note-camera-photo audit 2: Done during the camera's keep still leaves the photo mentioned in the note (${JSON.stringify({ body: quick.body, photo: !!quick.photo, keeping, photosAfter })})`);
     await c3.close();
   }
 
