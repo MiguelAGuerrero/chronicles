@@ -117,7 +117,8 @@ Also before the first run:
    One AskUserQuestion, the entry's recommended shape first with its precedent, four entries at most, asked after the
    next independent run has been launched so the owner's time to answer is not idle time. Read the
    entries with `node <main-tools>/scripts/bookkeeping.js items inbox` (and `open`, `deferred --tag
-   owner`): number, tag and title as `main` holds them.
+   owner`): number, tag and title as `main` holds them. Ask the four oldest first: `node <main-tools>/scripts/records.js
+   inbox age --main` lists what has waited 14 days unanswered, oldest first (decision 0235).
    **Proposed expectation lines** (`/tend` lens 0, decision 0236; `node <main-tools>/scripts/expectations.js
    list`, the `proposed` ones) go in the same batch: one AskUserQuestion per feature, its lines grouped,
    "Ratify as drafted" first. They are identity, never the proxy's (0157), and a drafted line is answered by
@@ -148,7 +149,8 @@ sweep, and never start a `G` build or a second run.
 
 One `general-purpose` subagent per run, in the background, with the run brief from `briefs.md`:
 its fixed text as it stands, never retyped or reworded, with only this run's specifics filled in
-(decision 0181): the grant, the entry and its answer **marked as the proxy's or the owner's**, the
+(decision 0181): the grant, the entry and its answer **marked as the proxy's or the owner's** (the run log's `"by"` and
+`"pick"`, with the owner's words verbatim; decision 0235), the
 tripwires, the kind of run, a constraint the notes learned since the template last changed, the
 attribution lines. A constraint every run needs belongs in the template: propose it in the
 insights file (section 9); a run that rediscovers one spends a review round on it.
@@ -207,7 +209,9 @@ classification; these are what the session learned:
   loop; stands until the owner says otherwise".
 - **Keep the inbox for real questions:** an oddity of existing behaviour mentioned in passing goes to
   `docs/DEFERRED.md`, tagged.
-- **Medium and above are fixed in the run; a low is deferred**, filed `[loop]` in its area's section
+- **The budget: one review fix per fix** (decisions 0235, 0269): a high (`Severity: high`) and the run's own regression
+  (`Regression: <sha> <what worked at the base>`) are fixed in the run whatever the budget, the rest in severity order
+  up to it; **a low, and what is over, is deferred** with its severity, filed `[loop]` in its area's section
   of `docs/DEFERRED.md` for the area's next sweep (0181). **Except what the run's own change broke:**
   a regression the change caused is fixed in the run, low or not, and a high in the run's own change
   lifts the size tripwire rather than shipping and filing it.
@@ -316,7 +320,8 @@ Stop by section 0's rule. Then:
   the problems met, the `/tend` friction (grouped, each a proposal), and changes this skill should
   take. Send it to the owner.
 - Report, and ask the owner about the proxy answers: each one (entry, what landed, the `/vision`
-  verdict) for them to keep or revert; every record narrowed by wording; what waits on them (open
+  verdict) for them to keep or revert (a keep goes in the next run's brief, logged as an answer by the owner with
+  their words and `"confirms": "<the proxy line's date>"`, decision 0235); every record narrowed by wording; what waits on them (open
   entries, phone checks, "Open before the loop", remote branches to delete); what the next session
   would run.
 

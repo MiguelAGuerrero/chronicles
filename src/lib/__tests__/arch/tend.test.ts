@@ -1449,7 +1449,7 @@ test('LB6: check:tend refuses another session\'s commit to a held file, in a scr
   assert.equal(r.tendJs('commits', '--loop-only', `${mine}..HEAD`).status, 0, 'the holder\'s own commit');
 });
 
-test('LB8: tend, ship, the orchestrator and its briefs say the same of the budget, rotation, answers, age and lease', { todo: 'test first' }, () => {
+test('LB8: tend, ship, the orchestrator and its briefs say the same of the budget, rotation, answers, age and lease', () => {
   const skill = flat(read('.claude/skills/tend/SKILL.md'));
   const ship = flat(read('.claude/skills/ship.md'));
   const orch = flat(read('.claude/skills/tend-orchestrator/SKILL.md'));
@@ -1467,7 +1467,7 @@ test('LB8: tend, ship, the orchestrator and its briefs say the same of the budge
   for (const text of [ship, briefs]) assert.match(text, /Lease:/);
 });
 
-test('loop-budget audit 9: no skill says "medium and above" are fixed beside the budget', { todo: 'test first' }, () => {
+test('loop-budget audit 9: no skill says "medium and above" are fixed beside the budget', () => {
   for (const f of ['.claude/skills/tend/SKILL.md', '.claude/skills/ship.md', '.claude/skills/tend-orchestrator/SKILL.md', '.claude/skills/tend-orchestrator/briefs.md']) {
     assert.doesNotMatch(flat(read(f)), /[Mm]edium and above (are )?fixed|Fixes in the run: medium and above/, f);
   }

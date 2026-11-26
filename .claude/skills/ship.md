@@ -31,6 +31,13 @@ loosened test, or a second piece of work found on the way.
 5. A new worktree also lacks the map's worker file (copied into `public/` by `npm ci`'s postinstall
    and gitignored): without it the web map never loads and the e2e dies at
    `window.__project is not a function`. Run `node scripts/copy-maplibre-worker.js` in the worktree.
+6. **A lease on process files** (decision 0235): a session that will change the skills, hooks, agents, `AGENTS.md`,
+   `CLAUDE.md`, CI or `scripts/{tend,records,bookkeeping,expectations}.js` takes one before its first edit: a row of
+   "In flight", ``| Lease: <what> | `<branch>` | holds `<file>`, … from <YYYY-MM-DDTHH:MMZ>, session <the session_… of
+   its Claude-Session trailer> |`` (`npm run records -- inflight add`), committed alone and pushed to `main`. It holds 24 h:
+   `check:tend` refuses another session's commit to a held file. The holder removes the row in its last record commit
+   (`inflight remove`); the owner clears one by hand, or a session with the owner's words quoted in `--reason`. The loop
+   edits no process file and takes none.
 
 ## Hard stops
 
@@ -152,7 +159,10 @@ the limit, nothing goes to `main`: push `<branch>` so the owner can look, and li
   are the replay's or a `docs/VISION.md` line's. Behaviour that touches recording, storage, navigation,
   timing or data: the `auditor`, always, with the `ux-reviewer` beside it when a screen changed. Records
   only (the record documents, the ledger, the run log): none.
-- **Fixes in the run: medium and above.** A low is deferred: filed `[loop]` in its area's section of
+- **Fixes in the run: one review fix per fix** (decisions 0235, 0269; `check:tend` counts it per area, a `T` build one
+  per item it ships; a G slice's own review is outside it): a high (`Severity: high` in its message) and the run's own
+  regression (`Regression: <sha> <what worked at the base>`) are fixed whatever the budget, the rest in severity order up
+  to it. What is over, and a low, is deferred with its severity: filed `[loop]` in its area's section of
   `docs/DEFERRED.md` (`npm run records -- deferred item add`) for the area's next sweep. A cost finding is
   graded by its n and how often it runs (`.claude/agents/auditor.md`), not filed low because nothing
   breaks; one that needs a measurement first is filed with the harness that would take it.

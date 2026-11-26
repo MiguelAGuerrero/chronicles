@@ -21,7 +21,7 @@ Echo the resolved mode, area and flags in your first line.
 
 | Argument | The run | Sections |
 |---|---|---|
-| none | a sweep of the area `node scripts/tend.js next` names (the one a change reset most often since it was swept (decision 0229), else one computed rough or settling); if it answers `evolve <area>` (fourteen days with no loop-filed `G`, section 8), the run is `evolve <area>`; if it names none, the run is `evolve` | 0-5, 8-10 |
+| none | a sweep of the area `node scripts/tend.js next` names; it alternates (decisions 0235, 0269): after a rotation, the one a change reset most often since it was swept (decision 0229), else one computed rough or settling; after any other sweep, the never-swept or longest-unswept area, by its verbs in `scripts/features.js` (Return, Honour, Earn; sweep order only); if it answers `evolve <area>` (fourteen days with no loop-filed `G`, section 8), the run is `evolve <area>`; if it names none, the run is `evolve` | 0-5, 8-10 |
 | an area (a name in `scripts/features.js`; say so and stop on any other word) | a sweep of that area | 0-5, 8-10 |
 | `triage [<section>]` | tag `docs/DEFERRED.md` | 0, 6 (with 5's entry form), 10 |
 | `evolve [<area>]` | the balance, then proposals for that area, or for the app if none is named | 0, 2 (lens 0), 8, 9, 10 |
@@ -232,7 +232,7 @@ triage run.
 
 Say back each entry's number and title as `main` holds it before acting; an entry that is gone, or whose title the
 owner's words plainly do not fit, is not acted on. One build per run: with several yeses, build the first and say
-which wait for the next `/tend inbox`. Every no is recorded in the same run.
+which wait for the next `/tend inbox`. Every no is recorded in the same run. At the close, `npm run records -- inbox age` (decisions 0235, 0269): each item unanswered for 30 days moves to `docs/DEFERRED.md` as `[owner]` with its words (`--write <dir>` writes each bullet and prints its operations; two removals per section per commit), and "Open before the loop" is listed with its age, never moved.
 
 - **Yes to a slice-sized `[owner]` `T` entry** (filed so while the balance read
   outgrowing, section 5): one slice, the `slice` skill with the entry's criteria
@@ -429,7 +429,7 @@ The owner picks; the loop never starts a `G` entry unasked.
 
    The script adds the date and what the commits say (findings shipped, the review's fixes, entries built, reverts)
    and refuses a line that leaves a count out. `found` counts everything the sweep found, shipped or not, zeros
-   included; `answers` is each entry the owner answered this run, as `yes`, `no` or `reshape`; `expectations` and
+   included; `answers` is each entry answered this run, as `yes`, `no` or `reshape`, with `"by"` (`owner` or `proxy`) and `"pick"` (`recommended`, `other`, `reshape`, `no`; decision 0235), the owner's `words` verbatim with theirs, the proxy's only a yes and never on an `[arch]` or `[phone]` entry (0157), and the owner's keep of a proxy yes as `"confirms": "<that line's date>"`; `expectations` and
    `compass` are lens 0's (`expectations.md`), required of a sweep and a build (a build whose grown slices' specs all
    read `Verdict: no surface`, with nothing a person sees, logs `"expectations":"none: <why>"` in place of lines, the
    reason kept in the line; decision 0250); a sweep's `state.to` is the script's, computed with the run's own line and
@@ -450,9 +450,9 @@ The owner picks; the loop never starts a `G` entry unasked.
    npm test`, then `.claude/skills/ship.md`, "Review", in its faster lane: the
    reviewers by risk over the run's whole diff (the `auditor` on any behaviour
    change; one reviewer for words or style; none for records only), one round,
-   medium and above fixed, named `tend <area> audit N`, N on from
+   one review fix per fix (decisions 0235, 0269; `check:tend` counts it per area, a `T` build one per item it ships): a high (`Severity: high` in its message) and the run's own regression (`Regression: <sha> <what worked at the base>`) are fixed whatever the budget, the rest in severity order up to it, named `tend <area> audit N`, N on from
    `npm run book:next-audit -- "tend <area>"` in the worktree (main's, the branch's and the
-   working tree's highest, in files and commit messages), lows filed `[loop]`, a look's change `[owner]` (0252). A `G`
+   working tree's highest, in files and commit messages), lows and what is over filed `[loop]` with their severity (`tend:log` refuses a review neither fixed nor filed, or a filed high), a look's change `[owner]` (0252). A `G`
    build runs the slice's step 9 and the same review in place of `check:tend`.
    **Journeys** before publishing: those holding a new or changed check, and
    `launch`. **The weekly full pass:** when no run-log line of the last seven

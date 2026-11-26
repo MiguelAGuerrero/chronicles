@@ -17,7 +17,9 @@ be stale), and follow them exactly. The skills disable model invocation: carry t
 The run: `/tend <mode and answers>` --deploy=<main|branch>.
 [The answers are the proxy's under the owner's delegation (decision 0157), <date>: write them so in
 every record, entry removal and run-log line ("the proxy's yes under 0157, <date>"), never "the
-owner's". | The owner answered <entry> personally.]
+owner's". | The owner answered <entry> personally.] In the run log each answer is logged with `"by"` (`owner` or
+`proxy`) and `"pick"` (`recommended`, `other`, `reshape`, `no`), the owner's with their `words` verbatim[, and the owner's
+keep of the proxy's yes to <entry> as `"confirms": "<the proxy line's date>"`] (decision 0235).
 The owner has authorised <a fast-forward push of this run's work to main, ship.md "Publish to
 main" | pushing the run's branch only>. Push nowhere else, except the branches ship.md and /tend
 section 7 name (`slice/<slug>-parked`, `<branch>-retry`, a review branch).
@@ -49,8 +51,9 @@ Reviewers by risk (ship.md, "The faster lane"): words or style only, one (the `u
 `steward` for the replay's or a VISION line's words); behaviour that touches recording, storage,
 navigation, timing or data, the `auditor` always, with the `ux-reviewer` when a screen changed;
 records only, none[, and a `steward`: this yes was the proxy's (0157)]. One review round for the
-diff; medium and above are fixed, lows filed `[loop]` in their area's DEFERRED section, except a
-regression your own change caused, fixed in the run at any severity. For "nothing
+diff; one review fix per fix (decisions 0235, 0269): a high (`Severity: high` in its message) and a regression your
+own change caused (`Regression: <sha> <what worked at the base>`) are fixed whatever the budget, the rest in severity
+order up to it; lows and what is over filed `[loop]` with their severity in their area's DEFERRED section. For "nothing
 a person sees changes", write the old/new differential as a `*.test.ts` in SCRATCH for the auditor to
 run (it cannot run scripts).
 
@@ -164,7 +167,8 @@ reworded, a VISION edit, a decision superseded.
 ```
 You make one change to this repository at the owner's request, in <repo path>; you are not a /tend
 run, and check:tend does not apply to your commits. Read `AGENTS.md` and, from your worktree (cut
-from origin/main), the files you change, whole.
+from origin/main), the files you change, whole. Changing a skill, hook, agent, `AGENTS.md`, CI or the loop's scripts,
+take a lease first (ship.md, "Open the worktree": a `Lease:` row of "In flight", pushed alone) and remove it last.
 The owner's answer, verbatim, <date>: "<answer>" to <entry>, as STATUS holds it: "<title>".
 The job: <the shape, exactly>. Nothing else: no rewording beyond it, no fix on the way (file it).
 [A decision record for the call: number it in your worktree with `npm run book:next-decision -- --check <NNNN>
