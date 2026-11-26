@@ -175,12 +175,19 @@ test('TF14: read by tile, only for what is on screen; bounded; a read can be sto
   assert.ok(Date.now() - t0 < 1400, 'it ended when told to, before the slow tile came');
 });
 
-test('TF19: nothing counts fixtures: the modules store nothing and export no count; the contract holds no count', async () => {
+test('TF19, town-fixtures audit 15: nothing counts fixtures: the modules store nothing and export no count; the contract holds no count', async () => {
   const dir = join(ROOT, 'src/lib/fixtures');
+  // What the modules may import, and nothing else: no db, ports, meta, store or storage of any path (audit 15).
+  const ALLOWED = ['../presence/fixtureKinds', '../types', '@mapbox/vector-tile', 'pbf', '../geo', '../tileMath', './kinds', './read', '../activity/release', '../discovery/archiveManifest', '../net/tileReader'];
   for (const f of readdirSync(dir)) {
     const src = readFileSync(join(dir, f), 'utf8');
-    assert.doesNotMatch(src, /from '\.\.\/(db|ports|meta|store|recorder|notifier)\b|setMeta|getMeta|localStorage|AsyncStorage/, `${f} stores nothing`);
-    assert.doesNotMatch(src, /export (const|function) \w*(count|total|tally)\w*/i, `${f} exports no count`);
+    const imports = [...src.matchAll(/(?:from|import\(|require\()\s*['"`]([^'"`]+)['"`]/g)].map((m) => m[1]);
+    for (const i of imports) assert.ok(ALLOWED.includes(i), `${f} imports ${i}`);
+    assert.doesNotMatch(src, /setMeta|getMeta|localStorage|AsyncStorage|indexedDB/, `${f} stores nothing`);
+  }
+  for (const m of ['kinds', 'read', 'pack']) {
+    const mod = await load(`../../fixtures/${m}`);
+    for (const k of Object.keys(mod)) assert.doesNotMatch(k, /count|total|tally|number|sum/i, `${m}.${k} is no count`);
   }
   assert.doesNotMatch(JSON.stringify({ r: schema.record, f: schema.feature }), /count|total|tally/i);
 });
@@ -220,4 +227,14 @@ test('TF26: a tourist office is the town\'s own, information=office; an attracti
   assert.ok(!FIXTURE_KINDS.includes('visitor_centre'));
   assert.ok(!schema.kinds.some((k: { osm: string }) => k.osm === 'information=visitor_centre'));
   assert.match(JSON.stringify(schema.notFixtures), /information=visitor_centre/);
+});
+
+test('town-fixtures audit 14: presence never reads the fixtures\' kinds: no presence module but fixtureKinds.ts names or imports them', async () => {
+  const dir = join(ROOT, 'src/lib/presence');
+  for (const f of readdirSync(dir).filter((x) => /\.tsx?$/.test(x) && x !== 'fixtureKinds.ts')) {
+    const src = readFileSync(join(dir, f), 'utf8');
+    assert.doesNotMatch(src, /FIXTURE_KINDS|fixtureKinds/, `${f} reads no fixture kind`);
+  }
+  const presence = await import(String('../../presence/presence'));
+  assert.ok(!(presence.SOURCE_TAGS as string[]).includes('tourist_office'), 'a kind only the fixtures name is no tag presence reads');
 });

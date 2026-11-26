@@ -20,8 +20,9 @@ The owner's answers, in person, Nov 26:
 - **"Map only"**: an unnamed square, market or common is kept in the pack and drawn on the map later; a town's card names
   only fixtures that have a name (for the screens' slice; nothing is drawn now).
 - **"All but heritage"**: every `railway=station` is a fixture, subway and light rail included (a walk may start there);
-  a preserved or scenic railway's station (`railway:preserved=yes`, `usage=tourism`, or the station also tagged a museum,
-  an attraction or `historic=railway_station`) is not, and stays a find.
+  a preserved or scenic railway's station (`railway:preserved=yes`, `usage=tourism` or `tourism=museum`) is not, and stays
+  a find; a station in service that is also an attraction or a historic building (a Union Station) is a station (the
+  tags narrowed at G13's diff review, Nov 26, by the run's coordinator, within the owner's "All but heritage").
 - **"Trust the tag"**: `information=office` is a tourist office wherever it is, a park's or a battlefield's visitor centre
   tagged so included. This narrows 0255's "a visitor centre tied to one attraction stays with its attraction" to the
   other tag: `information=visitor_centre` stays out.

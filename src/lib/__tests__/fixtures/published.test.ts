@@ -19,8 +19,32 @@ const TOWNS: Record<string, [number, number, number, number]> = {
   Stowe: [-72.7, 44.455, -72.675, 44.475],
   Marfa: [-104.035, 30.3, -104.008, 30.32],
 };
+/**
+ * town-fixtures audit 10: what OpenStreetMap holds in each view, looked up by a person before the recording (an Overpass
+ * query of the thirteen tags over these boxes, the maps.mail.ru mirror, OSM base 2026-11-26T05:13Z), never written by the
+ * recorder. Stowe: way 160843429 "Stowe Town Hall" (amenity=townhall), node 366667280 "Stowe Free Library"
+ * (amenity=library, wikidata=Q69517895), node 366666797 "Helen Day Art Center" (amenity=library), node 356556082
+ * "Stowe Post Office"; no information=office in the view, so no tourist office is asked of Stowe. Marfa: way 1072170098
+ * "Marfa Visitor Center / USO" (tourism=information, information=office), way 294564810 "City Hall" (amenity=townhall),
+ * way 788794107 "Marfa Public Library", way 294569771 "Presidio County Courthouse" (wikidata=Q7241528), way 294564808
+ * "Marfa Post Office". An element renamed or retagged since is a reason to look again, not to loosen this.
+ */
+const EXPECT: Record<string, { kind: string; name: string }[]> = {
+  Stowe: [
+    { kind: 'town_hall', name: 'Stowe Town Hall' },
+    { kind: 'library', name: 'Stowe Free Library' },
+    { kind: 'post_office', name: 'Stowe Post Office' },
+  ],
+  Marfa: [
+    { kind: 'tourist_office', name: 'Marfa Visitor Center / USO' },
+    { kind: 'town_hall', name: 'City Hall' },
+    { kind: 'library', name: 'Marfa Public Library' },
+    { kind: 'courthouse', name: 'Presidio County Courthouse' },
+    { kind: 'post_office', name: 'Marfa Post Office' },
+  ],
+};
 
-test('TF27: the app reads Stowe\'s and Marfa\'s fixtures from the published pack through its adapter: the tourist office where OpenStreetMap has one, the town hall, the library, nothing outside the list', { todo: 'waits on the published pack (chronicles-data\'s first fixtures build)' }, async () => {
+test('TF27, town-fixtures audit 10: the app reads Stowe\'s and Marfa\'s fixtures from the published pack through its adapter: the tourist office where OpenStreetMap has one, the town hall, the library, nothing outside the list', { todo: 'waits on the published pack (chronicles-data\'s first fixtures build)' }, async () => {
   assert.ok(existsSync(REC), 'the recording of the published pack');
   const rec = JSON.parse(readFileSync(REC, 'utf8'));
   const { createFixturesPack } = await load('../../fixtures/pack');
@@ -42,11 +66,9 @@ test('TF27: the app reads Stowe\'s and Marfa\'s fixtures from the published pack
   assert.match(rec.manifest.regions[0].fixtures.current.file, /^fixtures-us-\d{8}\.\d+\.pmtiles$/);
   for (const [town, view] of Object.entries(TOWNS)) {
     const got = await readFixtures(pack, view);
-    const kinds = new Set(got.map((f: any) => f.kind));
-    for (const k of kinds) assert.ok(FIXTURE_KINDS.includes(k), `${town}: ${k} is on the list`);
-    assert.ok(kinds.has('town_hall'), `${town}'s town hall`);
-    assert.ok(kinds.has('library'), `${town}'s library`);
-    for (const k of rec.expect?.[town]?.kinds ?? []) assert.ok(kinds.has(k), `${town}'s ${k}, as OpenStreetMap has it`);
-    assert.deepEqual(got.map((f: any) => `${f.kind}:${f.name ?? ''}`).sort(), [...rec.read[town].map((f: any) => `${f.kind}:${f.name ?? ''}`)].sort(), `${town}: what the web read path read on the day`);
+    for (const f of got) assert.ok(FIXTURE_KINDS.includes(f.kind), `${town}: ${f.kind} is on the list`);
+    for (const e of EXPECT[town]) assert.ok(got.some((f: any) => f.kind === e.kind && f.name === e.name), `${town}'s ${e.kind}, ${e.name}, as OpenStreetMap has it`);
+    assert.ok(got.some((f: any) => f.kind === 'town_hall') && got.some((f: any) => f.kind === 'library'), `${town}'s town hall and library`);
+    assert.equal(got.some((f: any) => f.kind === 'tourist_office'), town === 'Marfa', `${town}'s tourist office, where OpenStreetMap has one`);
   }
 });
