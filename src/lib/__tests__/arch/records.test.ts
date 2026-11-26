@@ -1579,7 +1579,7 @@ test('LB5: records inbox age lists, writes each bullet to move with its words ke
   assert.ok(!existsSync(join(r.dir, '.claude', 'records')) || readdirSync(join(r.dir, '.claude', 'records')).length === 0, 'no sidecar: a read is no operation');
 });
 
-test('loop-budget audit 19: inflight remove takes --reason, kept in its trailer for the lease check to read', { todo: 'test first' }, () => {
+test('loop-budget audit 19: inflight remove takes --reason, kept in its trailer for the lease check to read', () => {
   const r = repo('lease-reason');
   const rm = r.node('scripts/records.js', 'inflight', 'remove', 'Note pages (NP1', '--reason', 'the owner cleared the lease, 2026-11-26: "Clear it"');
   assert.equal(rm.status, 0, rm.stderr);
@@ -1588,7 +1588,7 @@ test('loop-budget audit 19: inflight remove takes --reason, kept in its trailer 
   assert.match(r.node('scripts/records.js', 'help').stdout, /inflight set\|remove <match>[^\n]*--reason/, 'the usage names it');
 });
 
-test('LB5, loop-budget audit 27: the operations inbox age prints run, in commits of at most two removals a section, and pass the gate', { todo: 'test first' }, () => {
+test('LB5, loop-budget audit 27: the operations inbox age prints run, in commits of at most two removals a section, and pass the gate', () => {
   const r = repo('age-run');
   const aged = AGED.replace('- **T9 [owner] Three weeks** (2026-11-05)', '- **T9 [owner] Three weeks** (2026-11-05)\n- **T10 [arch] A dependency** (2026-10-21)\n- **T11 [owner] Another** (2026-10-22)');
   r.write('docs/STATUS.md', `${aged}\n## In flight\n\n| Session | Branch | Doing |\n|---|---|---|\n`);

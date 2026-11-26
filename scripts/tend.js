@@ -410,6 +410,7 @@ function logProblems(given, opts = {}) {
   // The answer log (LB3, decision 0235): a line this script marked holds each answer to who gave it and which option.
   if (g.answerLog === ANSWER_LOG) for (const a of g.answers ?? []) p.push(...answerProblems(a));
   if (g.review && ![g.review.accepted, g.review.rejected, g.review.deferred].every(count)) p.push('review counts the auditor\'s findings: accepted, rejected, deferred');
+  if (g.review && g.review.high !== undefined && !count(g.review.high)) p.push('review.high counts the highs the review graded (decision 0269)');
   if (g.state && ![g.state.from, g.state.to].every((x) => x === null || STATES.includes(x))) p.push(`state moves between ${STATES.join(', ')}`);
   const names = (v) => Array.isArray(v) && v.every((x) => typeof x === 'string' && /^[a-z][a-z0-9-]*$/.test(x));
   if (g.e2e !== undefined && g.e2e !== 'full' && !names(g.e2e)) p.push('e2e is the journeys run, or "full" for every journey');
@@ -1155,11 +1156,21 @@ function appendLog(argv) {
     }
   };
   const baseStatus = typeof line.base === 'string' ? atBase('docs/STATUS.md') : '';
+  // A proxy answer is read against a base this history holds, before HEAD (loop-budget audit 21).
+  const baseSha = typeof line.base === 'string' ? tryRev(line.base) : null;
+  let baseResolved = false;
+  try {
+    if (baseSha) execFileSync('git', ['merge-base', '--is-ancestor', baseSha, 'HEAD'], { cwd: ROOT, stdio: 'ignore' });
+    baseResolved = Boolean(baseSha);
+  } catch {
+    baseResolved = false;
+  }
   if (Array.isArray(line.answers)) line.answers = line.answers.map((a) => (a && typeof a === 'object' && a.entry ? { ...a, class: classOf(a.entry, baseStatus) } : a));
   // LB1d: every regression the range's review fixes claim, the script's to list.
-  const bodies = range ? git('log', '--no-merges', '--reverse', '--format=%x00%H%x01%s%x01%b', range).split('\0').filter(Boolean).map((chunk) => {
-    const [sha, subject, body = ''] = chunk.split('\x01');
-    return { sha: sha.trim(), subject, body };
+  const bodies = range ? git('log', '--no-merges', '--reverse', '--name-only', '--format=%x00%H%x01%s%x01%B%x02', range).split('\0').filter(Boolean).map((chunk) => {
+    const [head, names = ''] = chunk.split('\x02');
+    const [sha, subject, body = ''] = head.split('\x01');
+    return { sha: sha.trim(), subject, body, files: names.split('\n').filter(Boolean).map((p) => ({ path: p })) };
   }) : [];
   const claims = regressionClaims(bodies);
   if (claims.length) line.regressions = claims.map((c) => ({ audit: c.audit, sha: c.sha.slice(0, 8) }));
@@ -1172,6 +1183,14 @@ function appendLog(argv) {
   problems.push(...filedProblems(line, { auditsShipped: new Set(line.auditFixes).size, added: addedLoopItems(typeof line.base === 'string' ? atBase('docs/DEFERRED.md') : '', deferredHere) }));
   // A keep of a proxy yes names the line it keeps (loop-budget audit 2).
   problems.push(...confirmProblems(line.answers, documentsFrom('here').runs));
+  problems.push(...proxyBaseProblems(line.answers, { resolved: baseResolved, ids: new Set(readInbox(baseStatus).items.map((i) => i.id).filter(Boolean)) }));
+  // The owner's words stand in the range's record (loop-budget audit 22): its messages, and the sidecars and decision
+  // records the range or the working tree adds.
+  const recorded = bodies.map((b) => `${b.subject}\n${b.body}`);
+  const since = baseResolved ? git('diff', '--name-only', baseSha, '--', '.claude/records', 'docs/decisions').split('\n') : [];
+  const fresh = git('ls-files', '--others', '--exclude-standard', '--', '.claude/records', 'docs/decisions').split('\n');
+  for (const rel of new Set([...since, ...fresh].filter(Boolean))) if (fs.existsSync(path.join(ROOT, rel))) recorded.push(readHere(rel));
+  problems.push(...wordsProblems(line.answers, recorded));
   // A sweep's state is the script's (AS1, decision 0235): computed from this checkout's record with the run's own line,
   // and git from the run's base to HEAD (the loop's own commits left out); a given state.to that differs is refused.
   let computed = null;
@@ -1404,14 +1423,44 @@ function commits(argv) {
     const cols = l.split('\t');
     return { status: cols[0][0], path: cols[cols.length - 1], from: cols.length > 2 ? cols[1] : undefined };
   });
-  const loopish = all.map((sha) => ({ sha, message: git('show', '-s', '--format=%B', sha) })).filter((c) => /^(tend |Revert "tend )/.test(c.message));
-  const budget = reviewBudget(loopish.map((c) => ({ sha: c.sha, subject: c.message.split('\n')[0].trim(), body: c.message.split('\n').slice(1).join('\n'), files: nameStatus(c.sha) })));
-  for (const p of budget) {
+  const change = (sha) => {
+    const message = git('show', '-s', '--format=%B', sha);
+    return { sha, subject: message.split('\n')[0].trim(), body: message.split('\n').slice(1).join('\n'), files: nameStatus(sha) };
+  };
+  const tip = ends.length === 2 ? ends[1] || 'HEAD' : range;
+  // The run-log lines the range adds: their highs (audit 16), and each must carry the marker (audit 22).
+  const addedLines = git('diff', '--format=', `${baseRev}`, tip, '--', RUNS_REL).split('\n').filter((l) => /^\+(?!\+\+)/.test(l)).map((l) => l.slice(1)).filter((l) => l.trim());
+  for (const p of logLineProblems(addedLines)) {
     bad += 1;
     console.error(`${range}\n  ${p}`);
   }
-  // LB6 (decision 0235): an agent commit may not change a process file another session's live lease holds, nor remove a
-  // lease while it holds but as its holder or with the owner's words. The leases are those of the commit's parent.
+  const logged = addedLines.reduce((n, l) => {
+    try {
+      return n + (JSON.parse(l)?.review?.high ?? 0);
+    } catch {
+      return n;
+    }
+  }, 0);
+  // A regression beyond the push is a commit of the run's own range, from its latest log line's base (audit 25).
+  const tipRuns = at(tip, RUNS_REL).split('\n').filter(Boolean);
+  let runBase = null;
+  try {
+    runBase = tryRev(JSON.parse(tipRuns[tipRuns.length - 1] ?? 'null')?.base ?? '');
+  } catch {
+    runBase = null;
+  }
+  const resolve = (ref) => {
+    const full = tryRev(ref);
+    if (!full || !runBase || !ancestor(full, tryRev(tip) ?? tip) || ancestor(full, runBase)) return null;
+    return change(full);
+  };
+  const loopish = all.map((sha) => ({ sha, subject: git('show', '-s', '--format=%s', sha).trim() })).filter((c) => /^(tend |Revert ")/.test(c.subject)).map((c) => change(c.sha));
+  for (const p of [...reviewBudget(loopish, { resolve }), ...highProblems(loopish, logged)]) {
+    bad += 1;
+    console.error(`${range}\n  ${p}`);
+  }
+  // LB6 (decision 0235): an agent commit may not change a process file another lease holds while live, take a lease on
+  // one another holds, nor end another's lease but by its lapse or the owner's words. The leases are the parent's.
   for (const sha of all) {
     const message = git('show', '-s', '--format=%B', sha);
     if (!require('./records').isAgent(message)) continue;
@@ -1420,14 +1469,15 @@ function commits(argv) {
     const status = files.some((f) => f.path === 'docs/STATUS.md');
     if (!held.length && !status) continue;
     const rows = leaseRows(at(`${sha}^`, 'docs/STATUS.md'));
-    if (!rows.length) continue;
+    const after = status ? leaseRows(at(sha, 'docs/STATUS.md')) : rows;
+    if (!rows.length && !after.length) continue;
     const date = git('show', '-s', '--format=%cI', sha).trim();
-    const session = /^claude-session:[ \t]*\S*?(session_[A-Za-z0-9]+)/im.exec(message)?.[1] ?? null;
-    const problems = leaseProblems({ files: held, date, session, rows });
-    if (status) {
-      const after = new Set(leaseRows(at(sha, 'docs/STATUS.md')).map((r) => `${r.session}\u0000${r.from}`));
-      problems.push(...leaseRemovalProblems({ removed: rows.filter((r) => !after.has(`${r.session}\u0000${r.from}`)), date, session, message }));
-    }
+    const lease = leaseOf(message);
+    const problems = [
+      ...leaseProblems({ files: held, date, lease, rows }),
+      ...leaseAddProblems({ added: after.filter((a) => !rows.some((r) => r.id === a.id)), rows, date }),
+      ...leaseRemovalProblems({ removed: leaseRemoved(rows, after), date, lease, message }),
+    ];
     for (const p of problems) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${message.split('\n')[0].trim()}\n  ${p}`);
@@ -1444,30 +1494,68 @@ function commits(argv) {
 const loopArea = (subject) => /^tend (\S+)/.exec(subject)?.[1] ?? null;
 /** The commit of `commits` a sha or its prefix names, or null. */
 const commitNamed = (commits, ref) => commits.find((c) => c.sha.startsWith(ref) || ref.startsWith(c.sha)) ?? null;
-/** The shas the range's reverts undo, by their `This reverts commit <sha>.` lines (as the record gate reads them). */
+/**
+ * The shas the range's reverts leave undone, by their `This reverts commit <sha>.` lines (as the record gate reads
+ * them), in commit order: a revert of a revert restores what that revert undid (loop-budget audit 26).
+ */
 function revertedIn(commits) {
-  const out = new Set();
-  for (const c of commits.filter((x) => /^Revert "tend /.test(x.subject))) {
+  const gone = new Set();
+  const undid = new Map();
+  for (const c of commits.filter((x) => /^Revert "/.test(x.subject))) {
+    const mine = [];
     for (const m of String(c.body).matchAll(/^This reverts commit ([0-9a-f]{7,40})\b/gm)) {
       const hit = commitNamed(commits, m[1]);
-      if (hit) out.add(hit.sha);
+      if (!hit) continue;
+      if (undid.has(hit.sha)) for (const y of undid.get(hit.sha)) gone.delete(y);
+      else {
+        gone.add(hit.sha);
+        mine.push(hit.sha);
+      }
     }
+    undid.set(c.sha, mine);
   }
-  return out;
+  return gone;
+}
+
+// What a T build's commit must change to ship an item (loop-budget audit 15): more than tests, journeys, rules and docs.
+const notAnItem = (p) => TEST_FILE.test(p) || /^\.claude\/rules\//.test(p) || /^docs\//.test(p);
+
+/**
+ * The review fixes a high exempts (decision 0269, loop-budget audit 16): a review fix whose message says `Severity:
+ * high` and that names exactly one audit number. `check:tend` holds their count to the highs the run logged.
+ */
+function highClaims(commits) {
+  const gone = revertedIn(commits);
+  return [...new Set(commits
+    .filter((c) => /^tend /.test(c.subject) && !gone.has(c.sha) && /^\s*Severity:\s*high\b/im.test(String(c.body)))
+    .map((c) => findingsOf(c.subject).audit)
+    .filter((a) => a.length === 1)
+    .map((a) => a[0]))].sort((x, y) => x - y);
+}
+
+/** More self-declared highs than the range's run-log lines count in `review.high` (loop-budget audit 16). */
+function highProblems(commits, logged) {
+  const highs = highClaims(commits);
+  if (highs.length <= logged) return [];
+  return [`${highs.length} review fixes say \`Severity: high\` (audit ${highs.join(', ')}), but the range's run-log line counts ${logged} (review.high): a high is the review's grade, logged by the run (decision 0269)`];
 }
 
 /**
  * The run's own regressions a review fix names (LB1d, loop-budget audit 11): a line `Regression: <sha> <what worked at
  * the base>` in a `tend <area> audit N` commit, `<sha>` a commit of the range of the same area that is no review fix.
  */
-function regressionClaims(commits) {
+function regressionClaims(commits, resolve = () => null) {
   const out = [];
   for (const c of commits.filter((x) => /^tend /.test(x.subject))) {
     const audits = findingsOf(c.subject).audit;
     if (!audits.length) continue;
+    const mine = new Set((c.files ?? []).map((f) => f.path));
     for (const m of String(c.body).matchAll(/^\s*Regression:\s*([0-9a-f]{7,40})[ \t]+(\S[^\n]*)$/gm)) {
-      const target = commitNamed(commits, m[1]);
+      // Beyond the push, a commit of the run's own range (loop-budget audit 25), resolved by the caller.
+      const target = commitNamed(commits, m[1]) ?? resolve(m[1]);
       if (!target || target.sha === c.sha || loopArea(target.subject) !== loopArea(c.subject) || findingsOf(target.subject).audit.length) continue;
+      // The regression is of what the fix changed: the two share a file (loop-budget audit 16).
+      if (!(target.files ?? []).some((f) => mine.has(f.path))) continue;
       for (const n of audits) out.push({ audit: n, sha: target.sha });
     }
   }
@@ -1480,34 +1568,37 @@ function regressionClaims(commits) {
  * tests and journeys). A commit the range reverts counts on neither side; a review fix that says `Severity: high`, or
  * names the run's own regression, is fixed whatever the budget. A G slice's `<slug> audit N` is outside it.
  */
-function reviewBudget(commits) {
+function reviewBudget(commits, { resolve } = {}) {
   const gone = revertedIn(commits);
   const per = new Map();
   const of = (a) => {
-    if (!per.has(a)) per.set(a, { fixes: new Set(), items: 0, audits: new Set(), exempt: new Set() });
+    if (!per.has(a)) per.set(a, { fixes: new Set(), items: new Set(), audits: new Set(), exempt: new Set() });
     return per.get(a);
   };
+  const highs = new Set(highClaims(commits));
   for (const c of commits.filter((x) => /^tend /.test(x.subject) && !gone.has(x.sha))) {
     const f = findingsOf(c.subject);
     if (!f.shipped.length && !f.built.length && !f.audit.length) continue;
     const x = of(loopArea(c.subject));
     for (const n of f.shipped) x.fixes.add(n);
-    if (f.built.length && (c.files ?? []).some((file) => !TEST_FILE.test(file.path))) x.items += 1;
-    for (const n of f.audit) x.audits.add(n);
-    if (/^\s*Severity:\s*high\b/im.test(String(c.body))) for (const n of f.audit) x.exempt.add(n);
+    if ((c.files ?? []).some((file) => !notAnItem(file.path))) for (const t of f.built) x.items.add(t);
+    for (const n of f.audit) {
+      x.audits.add(n);
+      if (highs.has(n)) x.exempt.add(n);
+    }
   }
-  for (const r of regressionClaims(commits.filter((c) => !gone.has(c.sha)))) {
+  for (const r of regressionClaims(commits.filter((c) => !gone.has(c.sha)), resolve)) {
     const c = commits.find((x) => findingsOf(x.subject).audit.includes(r.audit) && /^tend /.test(x.subject));
     if (c) of(loopArea(c.subject)).exempt.add(r.audit);
   }
   const problems = [];
   for (const [area, x] of [...per].sort((a, b) => a[0].localeCompare(b[0]))) {
     const counted = [...x.audits].filter((n) => !x.exempt.has(n)).sort((a, b) => a - b);
-    const fixes = x.fixes.size + x.items;
+    const fixes = x.fixes.size + x.items.size;
     if (counted.length <= fixes) continue;
-    const shipped = [...[...x.fixes].sort((a, b) => a - b).map(String), ...(x.items ? [`${x.items} T ${x.items === 1 ? 'item' : 'items'}`] : [])];
+    const shipped = [...[...x.fixes].sort((a, b) => a - b).map(String), ...[...x.items].sort()];
     problems.push(
-      `tend ${area}: ${counted.length} review fixes (audit ${counted.join(', ')}) against ${fixes} fixes and items shipped (${shipped.join(', ') || 'none'}): one review fix per fix (decisions 0235, 0269). A high (\`Severity: high\`) and the run's own regression (\`Regression: <sha> <what worked at the base>\`) are fixed whatever the budget; the rest in severity order up to it, and what is over is filed [loop] with its severity`,
+      `tend ${area}: ${counted.length} review fixes (audit ${counted.join(', ')}) against ${fixes} fixes and entries shipped (${shipped.join(', ') || 'none'}): one review fix per fix (decisions 0235, 0269). A high (\`Severity: high\`) and the run's own regression (\`Regression: <sha> <what worked at the base>\`) are fixed whatever the budget; the rest in severity order up to it, and what is over is filed [loop] with its severity`,
     );
   }
   return problems;
@@ -1554,7 +1645,9 @@ const latestSweeps = (sweeps) => {
  * LB2: whether the latest sweep was a rotation: its area's first, or, once every area had been swept (loop-budget audit
  * 8), the area whose latest sweep was then the oldest (ties count). No sweep at all reads as a rotation.
  */
-function lastWasRotation(runs, areas) {
+function lastWasRotation(runs, areas, resting = []) {
+  // Neither a resting nor a retired area holds a turn (loop-budget audit 24).
+  areas = areas.filter((a) => !resting.includes(a));
   const names = new Set(areas);
   const sweeps = runs.filter((r) => r?.mode === 'sweep' && typeof r.area === 'string' && names.has(r.area));
   if (!sweeps.length) return true;
@@ -1580,11 +1673,11 @@ function rotationArea(runs, verbs, resting = []) {
  * (`nextArea`, as before). After any other sweep, the rotation turn: a due evolve, else `rotationArea`.
  */
 function nextPick({ counts, states, evolve, runs, verbs }) {
-  if (lastWasRotation(runs, Object.keys(verbs))) {
+  const resting = Object.keys(states).filter((a) => states[a]?.state === 'resting');
+  if (lastWasRotation(runs, Object.keys(verbs), resting)) {
     return { area: nextArea(counts, states, evolve), turn: 'reset', why: 'the reset turn: the latest sweep was a rotation' };
   }
   if (evolve) return { area: `evolve ${evolve}`, turn: 'rotation', why: 'the rotation turn: an evolve is due first' };
-  const resting = Object.keys(states).filter((a) => states[a]?.state === 'resting');
   const area = rotationArea(runs, verbs, resting);
   const swept = runs.some((r) => r?.mode === 'sweep' && r.area === area);
   return { area, turn: 'rotation', why: `the rotation turn: ${area} is ${swept ? 'the area swept longest ago' : 'never swept'}, ${VERB_ORDER()[rankOf(verbs[area])] ?? 'no verb'}` };
@@ -1621,6 +1714,38 @@ function confirmProblems(answers, runs) {
     .map((a) => `${a.entry}: confirms ${a.confirms}, but no line of the run log of that date answers ${a.entry}`);
 }
 
+/** A proxy answer is read against the run's base, a commit of this history before HEAD (loop-budget audit 21). */
+function proxyBaseProblems(answers, { resolved, ids }) {
+  return (answers ?? [])
+    .filter((a) => a?.by === 'proxy')
+    .flatMap((a) => (!resolved ? [`${a.entry}: a proxy answer is read against the run's base, a commit of this history and an ancestor of HEAD, so its class is known (decision 0157)`] : !ids.has(a.entry) ? [`${a.entry} is not in the inbox at the run's base: the proxy answers only an entry it can read there`] : []));
+}
+
+/**
+ * The owner's words stand in the range's record for that entry (loop-budget audit 22): a piece (a commit message, its
+ * Records-Op reasons, a sidecar, a decision record the range adds) that names the entry and holds the words, as typed or
+ * as JSON escapes them.
+ */
+function wordsProblems(answers, record) {
+  return (answers ?? [])
+    .filter((a) => a?.by === 'owner' && typeof a.words === 'string' && a.words.trim())
+    .filter((a) => !record.some((piece) => piece.includes(a.entry) && (piece.includes(a.words) || piece.includes(JSON.stringify(a.words).slice(1, -1)))))
+    .map((a) => `${a.entry}: the owner's words "${a.words}" are in no record of the range that names ${a.entry} (an inbox operation's reason or body, a decision record it adds): the log says only what the record holds`);
+}
+
+/** Every run-log line a range adds is one tend:log wrote, with the answer log's marker (loop-budget audit 22). */
+function logLineProblems(added) {
+  return added.flatMap((l) => {
+    let run;
+    try {
+      run = JSON.parse(l);
+    } catch {
+      return [`a run-log line the range adds does not parse: ${l.slice(0, 60)}`];
+    }
+    return run?.answerLog === ANSWER_LOG ? [] : [`a run-log line the range adds (${run?.date ?? 'undated'} ${run?.mode ?? ''}) lacks the answer log's marker (answerLog): tend:log writes every line (decision 0235)`];
+  });
+}
+
 /** An entry's class as the run's base holds it: `T [owner]`, `T [arch]`, `T [phone]`, `G`, else its bare letter. */
 function classOf(entry, status) {
   const letter = String(entry)[0];
@@ -1635,10 +1760,11 @@ function classOf(entry, status) {
  * answer by the owner confirms; the answers logged before the marker, apart. A reading, never an actuator (0157).
  */
 function answerTakeUp(runs, today, days = 30) {
+  // Thirty days, one end open (loop-budget audit 28).
   const from = new Date(Date.parse(`${today}T00:00:00Z`) - days * DAY_MS).toISOString().slice(0, 10);
   const latest = new Map();
   runs.forEach((r, k) => {
-    if (typeof r?.date !== 'string' || r.date < from || r.date > today) return;
+    if (typeof r?.date !== 'string' || r.date <= from || r.date > today) return;
     for (const a of r.answers ?? []) if (a?.entry) latest.set(`${a.entry}\u0000${a.by ?? ''}`, { ...a, at: k, date: r.date });
   });
   const byClass = {};
@@ -1654,7 +1780,8 @@ function answerTakeUp(runs, today, days = 30) {
       if (PICKS.includes(a.pick)) byClass[c][a.pick] += 1;
     } else if (a.by === 'proxy' && a.answer === 'yes') {
       proxy.yeses += 1;
-      const kept = runs.some((r, k) => k > a.at && (r.answers ?? []).some((x) => x?.entry === a.entry && x.by === 'owner'));
+      // Only the owner's yes that names the proxy line's date keeps it (loop-budget audit 23).
+      const kept = runs.some((r, k) => k > a.at && (r.answers ?? []).some((x) => x?.entry === a.entry && x.by === 'owner' && x.answer === 'yes' && x.confirms === a.date));
       if (kept) proxy.confirmed += 1;
       else proxy.unconfirmed.push(a.entry);
     }
@@ -1687,6 +1814,8 @@ function balanceJson({ r, t, days, runs, today }) {
 }
 
 const HAND = 'Open before the loop';
+// An item that names the owner's own direction, a decision or their phone is for a look, not a move (audit 27).
+const LOOK = /your direction|\bdecision \d{4}\b|on your phone/i;
 /**
  * LB5 (decisions 0235, 0269): every item under "Needs the owner" ("Last tend" apart), dated by its own first date, else
  * its heading's (loop-budget audit 7), unanswered by its words outside struck-through text (audit 14): fourteen days or
@@ -1694,7 +1823,7 @@ const HAND = 'Open before the loop';
  * its age, never moved (audit 6); `undated` and `phone` apart.
  */
 function inboxAge(status, today) {
-  const out = { wait: [], move: [], hand: [], undated: [], phone: [] };
+  const out = { wait: [], move: [], look: [], hand: [], undated: [], phone: [] };
   for (const i of readInbox(status).items) {
     const date = dateOf(i.text) ?? dateOf(i.section);
     const rec = { id: i.id, section: i.section, age: date ? daysFrom(date, today) : null, date, text: i.text };
@@ -1705,10 +1834,11 @@ function inboxAge(status, today) {
     if (ANSWERED.test(i.text.replace(/~~[\s\S]*?~~/g, ' '))) continue;
     if (i.phone) out.phone.push(rec);
     else if (!date) out.undated.push(rec);
+    else if (rec.age >= 30 && LOOK.test(i.text)) out.look.push(rec);
     else if (rec.age >= 30) out.move.push(rec);
     else if (rec.age >= 14) out.wait.push(rec);
   }
-  for (const k of ['wait', 'move', 'hand']) out[k].sort((a, b) => b.age - a.age || a.section.localeCompare(b.section));
+  for (const k of ['wait', 'move', 'look', 'hand']) out[k].sort((a, b) => b.age - a.age || a.section.localeCompare(b.section));
   return out;
 }
 
@@ -1726,8 +1856,9 @@ const LEASE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * LB6: the leases of docs/STATUS.md's "In flight": a row whose Session cell starts `Lease:`, its Branch cell the
- * holder's branch, its Doing cell the held files in backticks, `from <YYYY-MM-DDTHH:MMZ>` and `session <id>`. A file
- * that is no process file is not held; a row without its start or its session holds nothing.
+ * holder's branch, its Doing cell the held files in backticks, `from <YYYY-MM-DDTHH:MMZ>` and `lease <id>`, the id the
+ * holder's commits carry as a `Lease: <id>` trailer (loop-budget audit 18). A file that is no process file is not held;
+ * a row without its start or its id holds nothing.
  */
 function leaseRows(status) {
   const lines = String(status).split('\n');
@@ -1740,32 +1871,63 @@ function leaseRows(status) {
     const cells = l.split('|').slice(1, -1).map((c) => c.trim());
     if (cells.length < 3 || !/^Lease:/.test(cells[0])) continue;
     const from = /\bfrom (\d{4}-\d\d-\d\dT\d\d:\d\dZ)/.exec(cells[2])?.[1];
-    const session = /\bsession (session_[A-Za-z0-9]+)/.exec(cells[2])?.[1];
-    if (!from || !session) continue;
+    const id = /\blease ([a-z0-9][a-z0-9._-]*)/.exec(cells[2])?.[1];
+    if (!from || !id) continue;
     const files = [...cells[2].matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter(isProcess);
-    rows.push({ files, from, session, branch: /`([^`]+)`/.exec(cells[1])?.[1] ?? cells[1] });
+    rows.push({ files, from, id, branch: /`([^`]+)`/.exec(cells[1])?.[1] ?? cells[1] });
   }
   return rows;
 }
 
 const live = (row, date) => Date.parse(row.from) <= Date.parse(date) && Date.parse(date) < Date.parse(row.from) + LEASE_MS;
+const until = (row) => new Date(Date.parse(row.from) + LEASE_MS).toISOString().slice(0, 16) + 'Z';
+/** The lease id a commit carries: its `Lease: <id>` trailer line. */
+const leaseOf = (message) => /^Lease:[ \t]*([a-z0-9][a-z0-9._-]*)[ \t]*$/im.exec(String(message))?.[1] ?? null;
 
-/** LB6: an agent commit's changes to files another session's live lease holds (the holder's own commits pass). */
-function leaseProblems({ files, date, session, rows }) {
+/** LB6: an agent commit's changes to files another lease holds while live (the holder's commits carry its id). */
+function leaseProblems({ files, date, lease, rows }) {
   const p = [];
-  for (const row of rows.filter((x) => live(x, date) && x.session !== session)) {
-    const until = new Date(Date.parse(row.from) + LEASE_MS).toISOString().slice(0, 16) + 'Z';
-    for (const f of files.filter((x) => row.files.includes(x))) p.push(`changes ${f}, which the lease of ${row.branch} (${row.session}) holds until ${until} ("In flight", decision 0235): wait for it, or ask the owner to clear the row`);
+  for (const row of rows.filter((x) => live(x, date) && x.id !== lease)) {
+    for (const f of files.filter((x) => row.files.includes(x))) p.push(`changes ${f}, which the lease ${row.id} of ${row.branch} holds until ${until(row)} ("In flight", decision 0235): wait for it, or ask the owner to clear the row`);
   }
   return p;
 }
 
-/** LB6b (loop-budget audit 13): a lease row leaves by its holder, once it has lapsed, or with the owner's words quoted. */
-function leaseRemovalProblems({ removed, date, session, message }) {
-  const quoted = /\bthe owner\b[^\n]*?\\?"[^"\\\n]+\\?"/.test(String(message));
+/** A lease taken on a file another live lease holds (loop-budget audit 17). */
+function leaseAddProblems({ added, rows, date }) {
+  const p = [];
+  for (const a of added) {
+    for (const row of rows.filter((x) => x.id !== a.id && live(x, date))) {
+      for (const f of a.files.filter((x) => row.files.includes(x))) p.push(`takes a lease on ${f}, which the lease ${row.id} of ${row.branch} holds until ${until(row)}: one holder at a time (decision 0235)`);
+    }
+  }
+  return p;
+}
+
+/** The leases `after` no longer holds whole: a row gone, or kept with a held file dropped (loop-budget audit 20). */
+function leaseRemoved(before, after) {
+  return before.filter((b) => {
+    const a = after.find((x) => x.id === b.id);
+    return !a || b.files.some((f) => !a.files.includes(f));
+  });
+}
+
+/**
+ * LB6b (loop-budget audits 13, 19): a lease ends by its holder, by its lapse, or by an `inflight remove` (or `set`)
+ * whose `--reason` in the commit's Records-Op trailer quotes the owner's words.
+ */
+function leaseRemovalProblems({ removed, date, lease, message }) {
+  const reasons = [...String(message).matchAll(/^Records-Op: inflight (?:remove|set) .*?--reason ("(?:[^"\\]|\\.)*")/gm)].map((m) => {
+    try {
+      return JSON.parse(m[1]);
+    } catch {
+      return '';
+    }
+  });
+  const owner = reasons.some((r) => /\bthe owner\b/.test(r) && /"[^"]+"/.test(r));
   return removed
-    .filter((row) => row.session !== session && live(row, date) && !quoted)
-    .map((row) => `removes the lease of ${row.branch} (${row.session}) while it holds: only its holder, the owner (their words quoted in the reason), or its lapse ends a lease (decision 0235)`);
+    .filter((row) => row.id !== lease && live(row, date) && !owner)
+    .map((row) => `ends the lease ${row.id} of ${row.branch} while it holds: only its holder (\`Lease: ${row.id}\`), its lapse, or an inflight remove whose --reason quotes the owner's words ends a lease (decision 0235)`);
 }
 
 if (require.main === module) {
@@ -1793,4 +1955,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { reviewBudget, regressionClaims, addedLoopItems, filedProblems, lastWasRotation, rotationArea, nextPick, answerProblems, confirmProblems, classOf, answerTakeUp, balanceJson, inboxAge, leaseRows, leaseProblems, leaseRemovalProblems, isProcess, ROUGH_SHARE, areaState, deferredItems, beforeItems, readInbox, evolveDue, historyProblems, baseWarning, givenStateProblems, noSurfaceBuild, report, severityOf, areasNamed, compassReading, compassText, FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };
+module.exports = { highClaims, highProblems, proxyBaseProblems, wordsProblems, logLineProblems, leaseAddProblems, leaseRemoved, reviewBudget, regressionClaims, addedLoopItems, filedProblems, lastWasRotation, rotationArea, nextPick, answerProblems, confirmProblems, classOf, answerTakeUp, balanceJson, inboxAge, leaseRows, leaseProblems, leaseRemovalProblems, isProcess, ROUGH_SHARE, areaState, deferredItems, beforeItems, readInbox, evolveDue, historyProblems, baseWarning, givenStateProblems, noSurfaceBuild, report, severityOf, areasNamed, compassReading, compassText, FORBIDDEN, LIMITS, STATES, classify, criteriaPrefixes, tally, readStatus, reading, nextArea, isLoops, dropBoundary, testName, tendCommitProblems, citedOwnEdits, rewritesBaseLines, mainOrHere, findingsOf, logProblems, runLine, fullPassDue, controlsIn, isRoute, resetsArea, readPatches };

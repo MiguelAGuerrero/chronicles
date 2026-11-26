@@ -429,7 +429,7 @@ The owner picks; the loop never starts a `G` entry unasked.
 
    The script adds the date and what the commits say (findings shipped, the review's fixes, entries built, reverts)
    and refuses a line that leaves a count out. `found` counts everything the sweep found, shipped or not, zeros
-   included; `answers` is each entry answered this run, as `yes`, `no` or `reshape`, with `"by"` (`owner` or `proxy`) and `"pick"` (`recommended`, `other`, `reshape`, `no`; decision 0235), the owner's `words` verbatim with theirs, the proxy's only a yes and never on an `[arch]` or `[phone]` entry (0157), and the owner's keep of a proxy yes as `"confirms": "<that line's date>"`; `expectations` and
+   included; `answers` is each entry answered this run, as `yes`, `no` or `reshape`, with `"by"` (`owner` or `proxy`) and `"pick"` (`recommended`, `other`, `reshape`, `no`; decision 0235), the owner's `words` verbatim with theirs (and in the record: an inbox operation's reason or note naming the entry), the proxy's only a yes and never on an `[arch]` or `[phone]` entry (0157), and the owner's keep of a proxy yes as `"confirms": "<that line's date>"`; `expectations` and
    `compass` are lens 0's (`expectations.md`), required of a sweep and a build (a build whose grown slices' specs all
    read `Verdict: no surface`, with nothing a person sees, logs `"expectations":"none: <why>"` in place of lines, the
    reason kept in the line; decision 0250); a sweep's `state.to` is the script's, computed with the run's own line and
@@ -450,7 +450,7 @@ The owner picks; the loop never starts a `G` entry unasked.
    npm test`, then `.claude/skills/ship.md`, "Review", in its faster lane: the
    reviewers by risk over the run's whole diff (the `auditor` on any behaviour
    change; one reviewer for words or style; none for records only), one round,
-   one review fix per fix (decisions 0235, 0269; `check:tend` counts it per area, a `T` build one per item it ships): a high (`Severity: high` in its message) and the run's own regression (`Regression: <sha> <what worked at the base>`) are fixed whatever the budget, the rest in severity order up to it, named `tend <area> audit N`, N on from
+   one review fix per fix (decisions 0235, 0269; `check:tend` counts it per area, a `T` build one per entry it ships): a high (`Severity: high` in its message, one review fix a commit, logged as `review.high`) and the run's own regression (`Regression: <sha> <what worked at the base>`, a commit of the run the fix shares a file with) are fixed whatever the budget, the rest in severity order up to it, named `tend <area> audit N`, N on from
    `npm run book:next-audit -- "tend <area>"` in the worktree (main's, the branch's and the
    working tree's highest, in files and commit messages), lows and what is over filed `[loop]` with their severity (`tend:log` refuses a review neither fixed nor filed, or a filed high), a look's change `[owner]` (0252). A `G`
    build runs the slice's step 9 and the same review in place of `check:tend`.

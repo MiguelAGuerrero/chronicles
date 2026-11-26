@@ -18,7 +18,7 @@ The run: `/tend <mode and answers>` --deploy=<main|branch>.
 [The answers are the proxy's under the owner's delegation (decision 0157), <date>: write them so in
 every record, entry removal and run-log line ("the proxy's yes under 0157, <date>"), never "the
 owner's". | The owner answered <entry> personally.] In the run log each answer is logged with `"by"` (`owner` or
-`proxy`) and `"pick"` (`recommended`, `other`, `reshape`, `no`), the owner's with their `words` verbatim[, and the owner's
+`proxy`) and `"pick"` (`recommended`, `other`, `reshape`, `no`), the owner's with their `words` verbatim, the words also in the entry's inbox operation[, and the owner's
 keep of the proxy's yes to <entry> as `"confirms": "<the proxy line's date>"`] (decision 0235).
 The owner has authorised <a fast-forward push of this run's work to main, ship.md "Publish to
 main" | pushing the run's branch only>. Push nowhere else, except the branches ship.md and /tend
@@ -168,7 +168,8 @@ reworded, a VISION edit, a decision superseded.
 You make one change to this repository at the owner's request, in <repo path>; you are not a /tend
 run, and check:tend does not apply to your commits. Read `AGENTS.md` and, from your worktree (cut
 from origin/main), the files you change, whole. Changing a skill, hook, agent, `AGENTS.md`, CI or the loop's scripts,
-take a lease first (ship.md, "Open the worktree": a `Lease:` row of "In flight", pushed alone) and remove it last.
+take a lease first (ship.md, "Open the worktree": a `Lease:` row of "In flight", pushed alone), carry `Lease: <id>` on
+every commit after it, and remove it last.
 The owner's answer, verbatim, <date>: "<answer>" to <entry>, as STATUS holds it: "<title>".
 The job: <the shape, exactly>. Nothing else: no rewording beyond it, no fix on the way (file it).
 [A decision record for the call: number it in your worktree with `npm run book:next-decision -- --check <NNNN>

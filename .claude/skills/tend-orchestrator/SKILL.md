@@ -118,7 +118,8 @@ Also before the first run:
    next independent run has been launched so the owner's time to answer is not idle time. Read the
    entries with `node <main-tools>/scripts/bookkeeping.js items inbox` (and `open`, `deferred --tag
    owner`): number, tag and title as `main` holds them. Ask the four oldest first: `node <main-tools>/scripts/records.js
-   inbox age --main` lists what has waited 14 days unanswered, oldest first (decision 0235).
+   inbox age --main` lists every item waiting 14 days unanswered, oldest first (decision 0235); an entry with a `T` or
+   `G` number is asked by it, an untagged item by its title.
    **Proposed expectation lines** (`/tend` lens 0, decision 0236; `node <main-tools>/scripts/expectations.js
    list`, the `proposed` ones) go in the same batch: one AskUserQuestion per feature, its lines grouped,
    "Ratify as drafted" first. They are identity, never the proxy's (0157), and a drafted line is answered by
@@ -265,7 +266,8 @@ What to ask reviewers for:
 The owner's other sessions push to `main`. Each run fetches and rebases at every pause (the brief
 says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
 
-- **Two runs may go at once** on disjoint areas (decision 0181): no file in common
+- **Two runs may go at once** on disjoint areas (decision 0181), each run's lease on process files its own
+  (`Lease: <id>`, ship.md "Open the worktree"): no file in common
   (`scripts/features.js` owners) and no record section in common (a `docs/DEFERRED.md` or
   `docs/NATIVE_UNVERIFIED.md` section, a "From <skill>" section). The inbox, "Last tend" and the
   ledger are shared; a conflict there resolves with `npm run records -- redo` (`/tend` section

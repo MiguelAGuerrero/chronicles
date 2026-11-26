@@ -18,7 +18,9 @@
 //   npm run records -- last-tend set                        the "Last tend" body, its heading kept
 //   npm run records -- open add [--end | --after <match>]   a bullet of "Open before the loop", newest first
 //   npm run records -- open note <match> | open set|remove <match> --reason r
-//   npm run records -- inflight add [--end | --after <m>] | inflight set|remove <match>   "In flight" rows
+//   npm run records -- inflight add [--end | --after <m>] | inflight set|remove <match> [--reason r]   "In flight"
+//                                                           rows; a lease another holds ends only by its holder, its
+//                                                           lapse, or a --reason quoting the owner's words (0235)
 //   npm run records -- slice row add [--top | --after <m>] | slice row set <match>      "Slices" rows
 //   npm run records -- slice row remove <match>             only a row this range added (a fix-forward)
 //   npm run records -- section add "From <skill>" [--intro <file>]   a "From …" section of "Needs the owner",
@@ -1846,6 +1848,7 @@ function inboxAge(argv) {
     `inbox age on ${today} (decisions 0235, 0269): unanswered for 14 days or more, oldest first`,
     ...list('to move to docs/DEFERRED.md as [owner] (30 days or more):', age.move),
     ...list('waiting (14 days or more):', age.wait),
+    ...list('30 days or more, for a look before it moves (it names your direction, a decision or your phone):', age.look),
     ...list('waiting on the owner\'s hand ("Open before the loop": listed, never moved):', age.hand),
     ...list('undated (cannot age):', age.undated),
     ...list('for a device (not aged):', age.phone),
@@ -1859,16 +1862,30 @@ function inboxAge(argv) {
   let fresh = !deferred.split('\n').some((l) => l.trim() === `## ${EXPIRED}`);
   fs.mkdirSync(dir, { recursive: true });
   const ops = [];
+  // The gate's cap (ship.md, "The record documents"): two removals per section per commit, so the moves are grouped.
+  let group = 0;
+  let counts = {};
+  const open = (section) => {
+    if (!group || (counts[section] ?? 0) >= CAP) {
+      group += 1;
+      counts = {};
+      ops.push(`# commit ${group}`);
+    }
+    counts[section] = (counts[section] ?? 0) + 1;
+  };
   age.move.forEach((x, k) => {
     const first = x.text.split('\n')[0];
     const b = blocks.find((y) => y.h3 === x.section && y.text.replace(/^[-*+]\s+/, '').split('\n')[0] === first);
     if (!b) return ops.push(`# ${name(x)}: not found as one bullet of "${x.section}"; move it by hand`);
     const lines = b.text.split('\n');
-    lines[0] = lines[0].replace(/^([-*+])\s+/, '$1 [owner] ');
+    // The entry keeps its own tag: an [arch] entry stays [arch] (loop-budget audit 27); any other becomes [owner].
+    const tag = /^[-*+]\s+\*\*[TG]\d+\s+\[(arch)\]/.exec(lines[0])?.[1] ?? 'owner';
+    lines[0] = lines[0].replace(/^([-*+])\s+/, `$1 [${tag}] `);
     lines.push(`  Moved from the inbox ("${x.section}") on ${today}, unanswered since ${x.date} (decision 0235).`);
     const file = path.join(dir, `${String(k + 1).padStart(2, '0')}-${x.id ?? 'item'}.md`);
     fs.writeFileSync(file, lines.join('\n') + '\n');
     const unique = blocks.filter((y) => y.h3 === x.section && y.text.includes(first)).length === 1;
+    open(x.section);
     if (x.id) ops.push(`npm run records -- inbox remove ${x.id} --reason ${shellWord(EXPIRY_REASON)}`);
     else if (/^From /.test(x.section) && unique) ops.push(`npm run records -- section item remove ${shellWord(x.section)} ${shellWord(first)} --reason ${shellWord(EXPIRY_REASON)}`);
     else ops.push(`# ${name(x)}: no operation removes it by its first line; move it by hand`);
