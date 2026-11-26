@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**', 'src/lib/net/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'react-compiler', 'area-states'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate', 'react-compiler', 'area-states', 'loop-budget'],
   },
   {
     name: 'storage',
@@ -578,6 +578,7 @@ const RENAMED = {
 
 const IN_PROGRESS = {
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
+  'loop-budget': { branch: 'tend/inbox-20261126-0545', since: '2026-11-26' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
 };
