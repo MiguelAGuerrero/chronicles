@@ -59,3 +59,21 @@ test('tend explore T65: the read leaves an area holding a retired kind out of wh
   assert.match(maybe, /for \(const key of retiredAreas\(held\.current\)\) if \(retired\.has\(key\)\) retiredTried\.current\.add\(key\);/, 'an area a read left as it was is not read again for it on this screen');
   assert.match(walk, /if \(got\) held\.current = got;/, 'the items loaded around you are what the check reads');
 });
+
+test('tend explore audit 55: a town stale for a retired kind is read around its own stored point, so a read heals it', () => {
+  // The town's z14 point (stored) and its z11 point (listed by the earliest read) 300 m apart: one area by `sameArea`.
+  const p14: [number, number] = [CENTRE[0] + 0.004, CENTRE[1] + 0.0004];
+  const town = (at: [number, number]): PlaceCandidate => ({ level: 'town', name: 'Ward Hill', at, reachM: 3000 });
+  const KEY = checklistKey({ level: 'town', name: 'Ward Hill', at: p14 });
+  const stored: ChecklistArea = { key: KEY, level: 'town', name: 'Ward Hill', at: p14, build: 'b1', built_at: 1, count: 1, archive: 'v1' };
+  const at = { fix: CENTRE, candidates: [town(CENTRE)], areas: [stored], reads, build: 'b1', archive: 'v1' };
+  assert.equal(readCentre(at), null, 'kept: nothing to read');
+  assert.deepEqual(readCentre({ ...at, retired: new Set([KEY]) }), p14, 'read around the stored point, not the listed one');
+  // A read around the listed point cannot build the town again (it sees it whole only from its own point); around p14 it can.
+  const tower: Place = { key: 'water_towers:Ward Hill Tower', name: 'Ward Hill Tower', category: 'history', at: [p14[0] + 0.001, p14[1]], generic: false, build: 'b1', markable: true, kind: 'water_towers' };
+  const from = (centre: [number, number]) => buildChecklists({ places: [tower], candidates: [town(p14)], centre, build: 'b1', now: 2, archive: 'v1', built: [] });
+  assert.deepEqual(from(CENTRE).areas, []);
+  assert.deepEqual(from(p14).areas.map((a) => a.key), [KEY], 'rebuilt under its own key, so its old items are replaced');
+  // An area stale only for its archive keeps main's way: read around the point listed.
+  assert.deepEqual(readCentre({ ...at, archive: 'v2' }), CENTRE);
+});

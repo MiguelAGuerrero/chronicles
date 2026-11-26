@@ -331,7 +331,19 @@ export function readCentre(o: {
   const ref = areaFor(o.fix, uniqueAreas(o.candidates), o.outlines ?? null);
   if (!ref) return null;
   const kept = (a: (typeof o.areas)[number]) => a.build === o.build && !archiveStale(a.archive, archiveTagAt(o.archive, a.at)) && !(a.key != null && o.retired?.has(a.key));
-  return o.areas.some((a) => kept(a) && sameArea(a, ref)) ? null : ref.at;
+  if (o.areas.some((a) => kept(a) && sameArea(a, ref))) return null;
+  // tend explore audit 55: one stale for a retired kind is read around its own stored point, the only one a read can see it
+  // whole from (a town's z11 and z14 points differ), so the read builds it again and it heals.
+  return retiredOf(ref, o)?.at ?? ref.at;
+}
+
+/** The area holding a retired kind that `ref` names (`sameArea`), of this build, or null (tend explore audit 55). */
+function retiredOf<A extends { key?: string; level: string; name: string; at: LngLat; build: string }>(
+  ref: AreaRef,
+  o: { areas: A[]; build: string; retired?: ReadonlySet<string> },
+): A | null {
+  if (!o.retired?.size) return null;
+  return o.areas.find((a) => a.key != null && o.retired!.has(a.key) && a.build === o.build && sameArea(a, ref)) ?? null;
 }
 
 /** After a failed read, the next waits 2 min and 100 m walked (E5). */
