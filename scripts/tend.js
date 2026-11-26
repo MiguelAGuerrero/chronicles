@@ -221,6 +221,9 @@ const FORBIDDEN = [
   // so that loosening that line does not free the gate).
   /^scripts\/records\.js$/,
   /^src\/lib\/__tests__\/arch\/(records|tend|expectations)\.test\.ts$/,
+  // The owner's walk notes (decisions 0238, 0270): the loop never writes one, nor loosens the test that holds them.
+  /^\.claude\/skills\/tend\/walks\.jsonl$/,
+  /^src\/lib\/__tests__\/arch\/walks\.test\.ts$/,
   /^\.claude\/(hooks|agents)\//,
   /^\.claude\/settings/,
   /^\.claude\/skills\/(?!tend\/(ledger\.json|runs\.jsonl)$)/,
@@ -991,7 +994,9 @@ function documentsFrom(from) {
         return [];
       }
     });
-  return { runs, deferred: read('docs/DEFERRED.md'), status: read('docs/STATUS.md'), ledger: JSON.parse(read(LEDGER_REL) || '{}') };
+  // The owner's walk notes (decision 0238), read as the run log is: absent reads as none.
+  const walks = require('./walks').parseNotes(read(require('./walks').WALKS_REL));
+  return { runs, walks, deferred: read('docs/DEFERRED.md'), status: read('docs/STATUS.md'), ledger: JSON.parse(read(LEDGER_REL) || '{}') };
 }
 
 const commitDate = (rev) => git('show', '-s', '--format=%cs', rev).trim();
@@ -1086,13 +1091,15 @@ function balance(argv) {
   const { r, t, facts } = readingAt({ from: 'main', tip: 'origin/main', days, docs });
   if (refuseShallow(facts)) return;
   // LB4: the owner's take-up and the proxy's unconfirmed yeses, from main's run log, printed last.
-  const out = balanceJson({ r, t, days, runs: docs.runs, today: new Date().toISOString().slice(0, 10) });
+  const out = balanceJson({ r, t, days, runs: docs.runs, today: new Date().toISOString().slice(0, 10), walks: docs.walks, walkSilence: docs.ledger.walkSilence ?? null });
   console.log(JSON.stringify(out, null, 2));
   if (argv.includes('--write')) {
     // Into this checkout's ledger, beside the run's own record.
     const mine = readLedger();
     mine.balance = out;
     mine.compass = compassReading(readRuns()).ledger;
+    // The gap the silence was said for, so the next run does not say it again (walk-notes audit 6).
+    if (out.walks.silence) mine.walkSilence = out.walks.gap;
     fs.writeFileSync(LEDGER, JSON.stringify(mine, null, 2) + '\n');
   }
 }
@@ -1271,7 +1278,7 @@ function next(argv = []) {
   const counts = Object.fromEntries(Object.entries(facts.perArea).map(([a, g]) => [a, g.resetsSince.length]));
   const states = Object.fromEntries(Object.entries(r.states).filter(([, s]) => s.state !== 'unseen').map(([a, s]) => [a, { state: s.state }]));
   const verbs = Object.fromEntries(require('./features').FEATURES.filter((f) => f.name !== 'arch').map((f) => [f.name, f.verbs ?? []]));
-  const pick = nextPick({ counts, states, evolve: r.evolve, runs: docs.runs, verbs });
+  const pick = nextPick({ counts, states, evolve: r.evolve, runs: docs.runs, verbs, walks: docs.walks });
   console.error(`tend next: ${pick.why}`);
   console.log(pick.area ?? 'none: every area is at rest; run /tend evolve');
 }
@@ -1287,7 +1294,12 @@ function commits(argv) {
   }
   // Oldest first: citedOwnEdits reads the push in commit order.
   const all = git('rev-list', '--reverse', '--no-merges', range).split('\n').filter(Boolean);
-  const shas = loopOnly ? all.filter((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha))) : all;
+  // A walk note a run carries (`walked: …`, .claude/skills/tend/walks.md) is no loop commit: the walk gate below holds it.
+  const shas = all.filter((sha) => {
+    const s = git('show', '-s', '--format=%s', sha);
+    if (loopOnly) return /^tend /.test(s);
+    return !(/^walked: /.test(s) && git('show', '--name-only', '--format=', sha).split('\n').includes('.claude/skills/tend/walks.jsonl'));
+  });
   // The push's base: a rule line it holds is add-only; one an earlier commit of the push added is not.
   const ends = range.split('..');
   const baseRev = ends.length === 2 && ends[0] ? git('merge-base', ends[0], ends[1] || 'HEAD').trim() : all.length ? `${all[0]}^` : 'HEAD';
@@ -1403,6 +1415,36 @@ function commits(argv) {
     const message = git('show', '-s', '--format=%B', sha);
     if (!require('./records').isAgent(message)) continue;
     for (const p of storeEdits(sha)) {
+      bad += 1;
+      console.error(`${sha.slice(0, 7)} ${message.split('\n')[0].trim()}\n  ${p}`);
+    }
+  }
+  // The owner's walk notes (WN4c; decisions 0238, 0270): every agent commit that touches them, a note day-dated and alone,
+  // or one leaked line removed at the owner's word; the problems name a line and a class, never the words (CI's log).
+  const W = require('./walks');
+  let walkNames;
+  for (const sha of all) {
+    const files = git('show', '--name-status', '--format=', sha).split('\n').filter(Boolean).map((l) => {
+      const cols = l.split('\t');
+      return { status: cols[0][0], path: cols[cols.length - 1], from: cols.length > 2 ? cols[1] : undefined };
+    });
+    if (!files.some((f) => f.path === W.WALKS_REL || f.from === W.WALKS_REL)) continue;
+    const message = git('show', '-s', '--format=%B', sha);
+    if (!require('./records').isAgent(message)) continue;
+    const [authorDate, committerDate] = git('show', '-s', '--format=%ai%n%ci', sha).split('\n');
+    walkNames ??= W.namesAt(ROOT);
+    const problems = W.commitProblems({
+      subject: message.split('\n')[0].trim(),
+      message,
+      files,
+      before: at(`${sha}^`, W.WALKS_REL),
+      after: at(sha, W.WALKS_REL),
+      authorDate,
+      committerDate,
+      names: walkNames,
+      areas: W.featuresAt(ROOT).map((f) => f.name),
+    });
+    for (const p of problems) {
       bad += 1;
       console.error(`${sha.slice(0, 7)} ${message.split('\n')[0].trim()}\n  ${p}`);
     }
@@ -1672,9 +1714,16 @@ function rotationArea(runs, verbs, resting = []) {
  * LB2: `next`'s pick. After a rotation, the reset turn: decision 0229's resets, then 0235's evolve, then the states
  * (`nextArea`, as before). After any other sweep, the rotation turn: a due evolve, else `rotationArea`.
  */
-function nextPick({ counts, states, evolve, runs, verbs }) {
+function nextPick({ counts, states, evolve, runs, verbs, walks = [] }) {
+  // WN6 (decisions 0238, 0270): an area a walk note found in the way first, before either turn and a due evolve, until a
+  // sweep of it has run after the note's day; a resting area too. The sweep it sends takes neither turn (audit 12).
+  const w = require('./walks');
+  const open = w.openInTheWay(walks, runs, Object.keys(verbs));
+  if (open.length) return { area: open[0].area, turn: 'walk', why: `a walk note of ${open[0].day} found ${open[0].area} in the way, and no sweep of it has run since (decision 0238)` };
+  const sent = w.walkSentSweeps(walks, runs);
+  const turns = runs.filter((_, k) => !sent.has(k));
   const resting = Object.keys(states).filter((a) => states[a]?.state === 'resting');
-  if (lastWasRotation(runs, Object.keys(verbs), resting)) {
+  if (lastWasRotation(turns, Object.keys(verbs), resting)) {
     return { area: nextArea(counts, states, evolve), turn: 'reset', why: 'the reset turn: the latest sweep was a rotation' };
   }
   if (evolve) return { area: `evolve ${evolve}`, turn: 'rotation', why: 'the rotation turn: an evolve is due first' };
@@ -1790,7 +1839,7 @@ function answerTakeUp(runs, today, days = 30) {
 }
 
 /** The balance's printed reading (as `balance` prints it), with LB4's take-up last. */
-function balanceJson({ r, t, days, runs, today }) {
+function balanceJson({ r, t, days, runs, today, walks = [], walkSilence = null }) {
   return {
     date: today,
     days,
@@ -1810,6 +1859,9 @@ function balanceJson({ r, t, days, runs, today }) {
     why: r.why,
     evolve: r.evolve,
     answers: answerTakeUp(runs, today),
+    // WN8 (decision 0238; walk-notes audits 6, 7): the window's notes by day, area and kind, never their words or a
+    // count, and the silence, said once a gap.
+    walks: require('./walks').walkReading(walks, today, { said: walkSilence }),
   };
 }
 
@@ -1845,7 +1897,8 @@ function inboxAge(status, today) {
 // LB6: what a lease may hold: the skills (the run log and the ledger apart: every run writes them), the hooks, the
 // agents, AGENTS.md and CLAUDE.md, CI, and the loop's own scripts.
 const PROCESS = [
-  /^\.claude\/skills\/(?!tend\/(ledger\.json|runs\.jsonl)$)/,
+  // The owner's walk notes are no procedure: a note never waits on a lease (specs/walk-notes, J6).
+  /^\.claude\/skills\/(?!tend\/(ledger\.json|runs\.jsonl|walks\.jsonl)$)/,
   /^\.claude\/(hooks|agents)\//,
   /^(AGENTS|CLAUDE)\.md$/,
   /^\.github\//,

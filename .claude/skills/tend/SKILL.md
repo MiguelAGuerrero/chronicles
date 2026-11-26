@@ -21,7 +21,7 @@ Echo the resolved mode, area and flags in your first line.
 
 | Argument | The run | Sections |
 |---|---|---|
-| none | a sweep of the area `node scripts/tend.js next` names; it alternates (decisions 0235, 0269): after a rotation, the one a change reset most often since it was swept (decision 0229), else one computed rough or settling; after any other sweep, the never-swept or longest-unswept area, by its verbs in `scripts/features.js` (Return, Honour, Earn; sweep order only); if it answers `evolve <area>` (fourteen days with no loop-filed `G`, section 8), the run is `evolve <area>`; if it names none, the run is `evolve` | 0-5, 8-10 |
+| none | a sweep of the area `node scripts/tend.js next` names (a walk note's got-in-the-way area first, `walks.md`); it alternates (decisions 0235, 0269): after a rotation, the one a change reset most often since it was swept (decision 0229), else one computed rough or settling; after any other sweep, the never-swept or longest-unswept area, by its verbs in `scripts/features.js` (Return, Honour, Earn; sweep order only); if it answers `evolve <area>` (fourteen days with no loop-filed `G`, section 8), the run is `evolve <area>`; if it names none, the run is `evolve` | 0-5, 8-10 |
 | an area (a name in `scripts/features.js`; say so and stop on any other word) | a sweep of that area | 0-5, 8-10 |
 | `triage [<section>]` | tag `docs/DEFERRED.md` | 0, 6 (with 5's entry form), 10 |
 | `evolve [<area>]` | the balance, then proposals for that area, or for the app if none is named | 0, 2 (lens 0), 8, 9, 10 |
@@ -78,7 +78,7 @@ its lens, its evidence (a picture, a file and line, a failing input) and its
 source.
 
 0. **The expectation** (decision 0236), first in each `/tend` run (one iteration) but a triage: the lines of the run's area (a sweep's area, or the
-   area of the entry a build builds), each met with evidence, failed (section 3) or lacking (section 9), a drafted or amended one naming its verb (0244); `expectations.md`.
+   area of the entry a build builds), each met with evidence, failed (section 3) or lacking (section 9), a drafted or amended one naming its verb (0244); `expectations.md`. The owner's walk notes (0238, 0270) steer lens 0, `next`, the triage and the report, and a run carries a waiting one: `walks.md`.
 1. **The screens as a person sees them.** In the worktree, run the area's
    journeys (`docs/TESTING.md`, "Choosing the journeys") with
    `E2E_SHOTS=<scratchpad>/tend-shots`. A screen of the area with no journey
@@ -492,7 +492,7 @@ The owner picks; the loop never starts a `G` entry unasked.
 Mode, area and flags; lens 0's lines by id, each met (its evidence), failed, lacking, provisional or dropped, and the compass's reading; each lens and what it found or "nothing found"; every
 finding's triage line; per shipped commit its hash, source, test and
 pictures; the Pages run and the live check; the entries filed, with their
-numbers; the balance (the slices that grew, the areas by state, the reading)
+numbers; the balance (the slices that grew, the areas by state, the reading, its walk notes and silence, once: `walks.md`)
 and any `G` entries with their ranking; what was dropped as **out**; what was
 not run or not looked at, and that nothing here has run on a phone. End with
 the result block (`.claude/skills/ship.md`).

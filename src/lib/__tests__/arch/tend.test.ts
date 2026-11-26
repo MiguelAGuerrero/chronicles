@@ -1761,7 +1761,7 @@ const wn = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
 };
 const inTheWay = (area: string, day: string): WalkNote => ({ day, area, kind: 'got in the way', words: 'the strip hid the map' });
 
-test('WN6: a got-in-the-way note puts its area first in next until a sweep after its day', { todo: 'test first' }, () => {
+test('WN6: a got-in-the-way note puts its area first in next until a sweep after its day', () => {
   const verbs = { chronicle: ['Return'], explore: ['Earn'], replay: ['Honour'] };
   const states = { explore: { state: 'rough' }, chronicle: { state: 'rough' } };
   const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('explore', '2026-11-12'), sweepLine('explore', '2026-11-13')];
@@ -1788,7 +1788,7 @@ test('WN6: a got-in-the-way note puts its area first in next until a sweep after
   assert.match(out.stderr, /walk note/);
 });
 
-test('walk-notes audit 12: the walk turn takes neither of the rotation\'s turns, and wakes a resting area', { todo: 'test first' }, () => {
+test('walk-notes audit 12: the walk turn takes neither of the rotation\'s turns, and wakes a resting area', () => {
   const verbs = { chronicle: ['Return'], explore: ['Earn'], replay: ['Honour'] };
   const note = inTheWay('replay', '2026-11-14');
   // replay's walk-sent sweep follows a rotation (explore's first): the next turn is still the reset turn's.
@@ -1800,7 +1800,7 @@ test('walk-notes audit 12: the walk turn takes neither of the rotation\'s turns,
   assert.equal(wn.nextPick({ counts: {}, states: { ...states, replay: { state: 'resting' } }, evolve: null, runs: runs.slice(0, 3), verbs, walks: [note] }).area, 'replay', 'decision 0270, S6: a resting area too');
 });
 
-test('WN8: the balance says once when no note came in for 14 days, and nothing else reminds', { todo: 'test first' }, () => {
+test('WN8: the balance says once when no note came in for 14 days, and nothing else reminds', () => {
   const r = repo();
   mkdirSync(join(r.root, 'docs'), { recursive: true });
   const old = '2026-01-02';

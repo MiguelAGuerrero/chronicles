@@ -67,7 +67,12 @@ the operations are in `scripts/expectations.js`'s header). A line, its text on o
    proposed: used provisionally in this run, and put to the owner (section 10, step 5: one question per feature, its
    lines grouped, "Ratify as drafted" first; under the orchestrator, its batch), whose answer is recorded as "The
    owner's answer: one flow" says.
-3. **Awaiting the owner:** test against the proposed lines, provisionally; draft nothing more.
+2a. **A walk's reach, whatever is due** (decisions 0238, 0270; `walks.md`). `node scripts/walks.js lens <the run's area>`
+   lists the owner's "reached for" notes no line cites yet. Each is drafted as a line of its own, its `Grounds:`
+   `VISION "Who it is for"; seen on a walk <day>` as printed, its words checked (`walks.js check --file`), and put to
+   the owner first in the feature's question, ahead of the model-drafted lines; with no line at all it is the first of
+   the three to five; with five in force it waits, said in the report, for the owner to choose which line to drop.
+3. **Awaiting the owner:** test against the proposed lines, provisionally; draft nothing more but a walk's reach (2a).
 4. **Ratified lines: test against them.** A line the run finds wrong or thin is answered with
    `npm run expectations -- amend <id> --file <line>`, naming its verb, checked by the steward the same way; never an
    edit.

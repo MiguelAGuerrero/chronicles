@@ -692,7 +692,7 @@ test('bookkeeping audit 5: every skill names where its bookkeeping command runs,
   for (const c of ['next-decision', 'next-audit', 'files', 'landed', 'review-paths', 'items']) assert.equal(pkg.scripts[`book:${c}`], `node scripts/bookkeeping.js ${c}`, c);
   const r = repo('via-tend');
   mkdirSync(join(r.dir, 'scripts'), { recursive: true });
-  for (const f of ['tend.js', 'bookkeeping.js', 'records.js']) writeFileSync(join(r.dir, 'scripts', f), read(`scripts/${f}`));
+  for (const f of ['tend.js', 'bookkeeping.js', 'records.js', 'walks.js']) writeFileSync(join(r.dir, 'scripts', f), read(`scripts/${f}`));
   r.commit('zrides audit 4: x');
   r.publish();
   const via = spawnSync(process.execPath, ['scripts/tend.js', 'next-audit', 'zrides'], { cwd: r.dir, env, encoding: 'utf8' });

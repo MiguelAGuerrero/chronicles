@@ -851,7 +851,7 @@ function repo(name: string, { gate = true }: { gate?: boolean } = {}) {
   mkdirSync(join(dir, 'scripts'), { recursive: true });
   mkdirSync(join(dir, 'docs'), { recursive: true });
   mkdirSync(join(dir, '.claude', 'skills', 'tend'), { recursive: true });
-  for (const f of ['records.js', 'tend.js']) copyFileSync(join(ROOT, 'scripts', f), join(dir, 'scripts', f));
+  for (const f of ['records.js', 'tend.js', 'walks.js']) copyFileSync(join(ROOT, 'scripts', f), join(dir, 'scripts', f));
   if (!gate) writeFileSync(join(dir, 'scripts', 'records.js'), '// the record documents, before the replay gate\n');
   writeFileSync(join(dir, 'docs', 'STATUS.md'), STATUS);
   writeFileSync(join(dir, 'docs', 'DEFERRED.md'), DEFERRED);

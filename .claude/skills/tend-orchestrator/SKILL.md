@@ -113,7 +113,9 @@ Also before the first run:
    held (decision 0236). One build per run (`/tend` section 7):
    give the run every yes so its record carries them; it builds the first.
 2. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
-   a recommendation), every class 0157 keeps for the owner, and whatever `/vision` did not clear.
+   a recommendation), every class 0157 keeps for the owner, an entry filed "against the keep of <day> (<area>)" (a
+   finding against the owner's walk note, the owner's alone: `.claude/skills/tend/walks.md`), and whatever `/vision` did
+   not clear.
    One AskUserQuestion, the entry's recommended shape first with its precedent, four entries at most, asked after the
    next independent run has been launched so the owner's time to answer is not idle time. Read the
    entries with `node <main-tools>/scripts/bookkeeping.js items inbox` (and `open`, `deferred --tag
@@ -318,7 +320,8 @@ before the restart may have left its last steps (Pages, the live check, cleanup)
 
 Stop by section 0's rule. Then:
 
-- Write `orchestration-insights.md` in the scratchpad from the notes: a row a run, the rules learned,
+- Write `orchestration-insights.md` in the scratchpad from the notes: a row a run, the rules learned, the balance's
+  walk silence once when a run's balance said it ("no walk note has come in since <day>"; decision 0238),
   the problems met, the `/tend` friction (grouped, each a proposal), and changes this skill should
   take. Send it to the owner.
 - Report, and ask the owner about the proxy answers: each one (entry, what landed, the `/vision`

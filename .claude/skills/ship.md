@@ -5,7 +5,9 @@ slice built from an approved proposal (decisions 0128, 0130). A skill names a se
 heading. `<branch>` is the caller's: `fix/<short-name>`, `tend/<scope>`, `slice/<slug>`.
 
 The grant is always the owner's and always narrow: `/fix` covers one issue, `/tend` its loop findings,
-`/tend inbox G<n> yes` that one slice. None covers a force push, rewritten history, a skipped or
+`/tend inbox G<n> yes` that one slice, `/walked` one walk note, day-dated, published (`HEAD:main` only) by `/walked
+publish` or carried by a `/tend` push in the same session (decisions 0238, 0270; `tend/walks.md`). None covers a force
+push, rewritten history, a skipped or
 loosened test, or a second piece of work found on the way.
 
 ## Open the worktree
