@@ -152,5 +152,11 @@ exactly, the dissolved and closed yield nothing), audit 3 (OpenStreetMap preferr
 on the Wikidata side), audit 6 (a heritage railway's station is not a fixture). The seventh (visitor centres tagged
 `information=office` inside a park) was settled by the owner: the tag is trusted.
 
-Nothing else is built. Decision 0225. chronicles-data's kind counts now also count `place` (a plaza is `place=square`) and `railway`
+**G13, the data set (built Nov 26, `tend/inbox-20261126-0340`)**: chronicles-data's fixtures pack (its
+`docs/fixtures/spec.md`, FX1-FX14, on its main at `0fc0e6e`, contract v9) and the app's adapter (`src/lib/fixtures/`):
+TF1, TF2, TF4, TF5, TF14, TF19, TF21, TF25 and TF26 pass (`src/lib/__tests__/fixtures/fixtures.test.ts`). TF27 waits on
+the first published fixtures pack (`published.test.ts`, a todo until its recording is taken). Deferred: Overture's fold
+(`docs/DEFERRED.md`, "Town fixtures"), TF3's overlap with the finds. No screen changed; nothing has run on a phone.
+
+The screens and the rest (TF3, TF6-TF13, TF15-TF18, TF20, TF22-TF24) are not built. Decision 0225. chronicles-data's kind counts now also count `place` (a plaza is `place=square`) and `railway`
 (SK13), on its main; no run has reported yet.

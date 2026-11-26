@@ -85,3 +85,4 @@ One page from Explore: pick what you want to see from a vocabulary, get one prop
 
 Two specs are written and not built, deferred by the owner: `specs/shop-facets/` (the outing's chips as facets of every stop) and `specs/town-fixtures/` (a settlement's staples as a layer, never finds). Before touching the chips, the vocabulary (`wants.ts`, `chips.ts`, `leanings.ts`) or the stores contract, read `specs/shop-facets/handoff.md`: it holds the owner's decisions, the draft lists, what was measured and the order to resume in. Ask the owner before building any of it.
 
+Town fixtures' data set was built on Nov 26 (G13, decision 0268): its code is `src/lib/fixtures/` and its rules `.claude/rules/town-fixtures.md`; the spec's screens (TF6-TF13) still wait on a mock-up, and the outing's parts (TF15, TF16) on their own slice.

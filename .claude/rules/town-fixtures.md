@@ -6,7 +6,7 @@ paths:
 # A town's fixtures
 
 The staples of a settlement (a tourist office, a town hall, a library, a post office, a square, a market, a station, and
-six more: the owner's thirteen, Nov 25), from chronicles-data's third pack (its `docs/fixtures/spec.md`, FX1-FX14). The
+six more: the owner's thirteen, Nov 25), from chronicles-data's third pack (its fixtures spec, FX1-FX14, in that repository's docs/fixtures folder). The
 spec is `specs/town-fixtures/spec.md` (TF1-TF27), decisions 0225, 0255 and 0268. G13 built the data set only: no screen
 reads it yet; the card's line and the map's layer (TF6-TF13) come with a mock-up first.
 
