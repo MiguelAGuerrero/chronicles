@@ -1753,3 +1753,75 @@ test('loop-budget audit 17, 21, 22, 25: check:tend and tend:log hold them end to
   r.commit({ '.claude/skills/tend/runs.jsonl': `${JSON.stringify({ mode: 'sweep', area: 'memories', base: leased.slice(0, 8), date: '2026-11-26', answerLog: '0235', answers: [] })}\n${JSON.stringify({ mode: 'sweep', area: 'memories', base: fix.slice(0, 8), date: '2026-11-26', answerLog: '0235', answers: [] })}\n` }, `tend memories: the run's record${AGENT}`);
   assert.equal(r.tendJs('commits', '--loop-only', `${pushed}..HEAD`).status, 1, 'a commit at or before the run\'s base is not its own');
 });
+
+// Walk notes (specs/walk-notes, decisions 0238, 0270): every note is invented and names no real place.
+type WalkNote = { day: string; area: string; kind: string; words: string };
+const wn = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
+  nextPick(o: { counts: Record<string, number>; states: Record<string, { state: string }>; evolve: string | null; runs: unknown[]; verbs: Record<string, string[]>; walks?: WalkNote[] }): { area: string | null; turn: string; why: string };
+};
+const inTheWay = (area: string, day: string): WalkNote => ({ day, area, kind: 'got in the way', words: 'the strip hid the map' });
+
+test('WN6: a got-in-the-way note puts its area first in next until a sweep after its day', { todo: 'test first' }, () => {
+  const verbs = { chronicle: ['Return'], explore: ['Earn'], replay: ['Honour'] };
+  const states = { explore: { state: 'rough' }, chronicle: { state: 'rough' } };
+  const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('explore', '2026-11-12'), sweepLine('explore', '2026-11-13')];
+  const base = { counts: { explore: 3 }, states, evolve: 'chronicle', runs, verbs };
+  assert.equal(wn.nextPick(base).area, 'evolve chronicle', 'without a note, as before');
+  const picked = wn.nextPick({ ...base, walks: [inTheWay('replay', '2026-11-14')] });
+  assert.equal(picked.area, 'replay', 'before either turn and a due evolve');
+  assert.equal(picked.turn, 'walk');
+  assert.match(picked.why, /a walk note of 2026-11-14 found replay in the way/);
+  assert.equal(wn.nextPick({ ...base, runs: [...runs, sweepLine('replay', '2026-11-14')], walks: [inTheWay('replay', '2026-11-14')] }).area, 'replay', 'WN6b: a sweep the same day does not count');
+  assert.equal(wn.nextPick({ ...base, runs: [...runs, sweepLine('replay', '2026-11-15')], walks: [inTheWay('replay', '2026-11-14')] }).turn, 'rotation', 'a sweep after it does');
+  assert.equal(wn.nextPick({ ...base, walks: [inTheWay('app', '2026-11-14'), inTheWay('arch', '2026-11-14'), { ...inTheWay('replay', '2026-11-14'), kind: 'keep' }] }).area, 'evolve chronicle', 'app, arch and a keep move nothing');
+  assert.equal(wn.nextPick({ ...base, walks: [inTheWay('replay', '2026-11-15'), inTheWay('explore', '2026-11-14')] }).area, 'explore', 'the oldest note first');
+  assert.equal(wn.nextPick({ ...base, walks: [inTheWay('replay', '2026-11-14'), inTheWay('explore', '2026-11-14')] }).area, 'explore', 'then by name');
+  // The wiring: next on a scratch repository's main, whole (AS6), with a note in its walks.jsonl.
+  const r = repo();
+  const day = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const features = createRequire(__filename)(join(ROOT, 'scripts', 'features.js')) as { FEATURES: { name: string }[] };
+  const area = features.FEATURES.map((f) => f.name).filter((a) => a !== 'arch').sort().reverse()[0];
+  r.commit({ '.claude/skills/tend/runs.jsonl': JSON.stringify(sweepLine('explore', day)) + '\n', '.claude/skills/tend/walks.jsonl': JSON.stringify(inTheWay(area, day)) + '\n' }, 'main, by hand');
+  const out = r.tendJs('next', '--here');
+  assert.equal(out.status, 0, out.stderr);
+  assert.equal(out.stdout.trim(), area);
+  assert.match(out.stderr, /walk note/);
+});
+
+test('walk-notes audit 12: the walk turn takes neither of the rotation\'s turns, and wakes a resting area', { todo: 'test first' }, () => {
+  const verbs = { chronicle: ['Return'], explore: ['Earn'], replay: ['Honour'] };
+  const note = inTheWay('replay', '2026-11-14');
+  // replay's walk-sent sweep follows a rotation (explore's first): the next turn is still the reset turn's.
+  const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('replay', '2026-11-12'), sweepLine('explore', '2026-11-13'), sweepLine('replay', '2026-11-15')];
+  const states = { chronicle: { state: 'rough' }, explore: { state: 'rough' }, replay: { state: 'settling' } };
+  const without = wn.nextPick({ counts: {}, states, evolve: null, runs: runs.slice(0, 3), verbs });
+  assert.equal(without.turn, 'reset');
+  assert.equal(wn.nextPick({ counts: {}, states, evolve: null, runs, verbs, walks: [note] }).turn, 'reset', 'the walk turn left out of the alternation');
+  assert.equal(wn.nextPick({ counts: {}, states: { ...states, replay: { state: 'resting' } }, evolve: null, runs: runs.slice(0, 3), verbs, walks: [note] }).area, 'replay', 'decision 0270, S6: a resting area too');
+});
+
+test('WN8: the balance says once when no note came in for 14 days, and nothing else reminds', { todo: 'test first' }, () => {
+  const r = repo();
+  mkdirSync(join(r.root, 'docs'), { recursive: true });
+  const old = '2026-01-02';
+  r.commit({
+    '.claude/skills/tend/walks.jsonl': JSON.stringify(inTheWay('replay', old)) + '\n',
+    '.claude/skills/tend/ledger.json': '{ "lastT": 0, "lastG": 0 }\n',
+    'docs/STATUS.md': '# Status\n\n## Needs the owner\n\n### From /tend\n\nNothing open.\n',
+    'docs/DEFERRED.md': '# Deferred\n',
+  }, 'main, by hand');
+  r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  const first = r.tendJs('balance', '--write');
+  assert.equal(first.status, 0, first.stderr);
+  const b = JSON.parse(first.stdout) as { walks: { silence: string | null; notes: string[]; last: string } };
+  assert.match(String(b.walks.silence), new RegExp(`since ${old}`));
+  assert.deepEqual(b.walks.notes, [], 'outside the window');
+  const ledger = JSON.parse(readFileSync(join(r.root, '.claude/skills/tend/ledger.json'), 'utf8')) as { walkSilence?: string; balance: { walks: unknown } };
+  assert.equal(ledger.walkSilence, old, 'kept, so it is said once');
+  r.commit({}, 'the run\'s record, landed');
+  r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  const again = JSON.parse(r.tendJs('balance').stdout) as { walks: { silence: string | null } };
+  assert.equal(again.walks.silence, null, 'not said again for the same gap');
+  assert.match(read('.claude/skills/tend/SKILL.md'), /walk/);
+  assert.match(read('.claude/skills/tend-orchestrator/SKILL.md'), /no walk note/);
+});
