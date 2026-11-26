@@ -4,7 +4,7 @@ From `docs/STATUS.md`, "Next evolutions", G13 (the owner's yes in person, Nov 26
 of this slice: **no surface** (the spec's screens, TF6-TF13, keep 0225's "aligned if reshaped" and come after with a
 mock-up). Nothing a person sees changes: no pin, no layer, no card line, no instance any screen calls.
 
-Two repositories. The data side is chronicles-data's `docs/fixtures/spec.md` (FX1-FX12) and `docs/fixtures/plan.md`,
+Two repositories. The data side is chronicles-data's `docs/fixtures/spec.md` (FX1-FX14) and `docs/fixtures/plan.md`,
 built and pushed first; then one manual build publishes the first pack. This repo's side is below.
 
 ## The base it lands on
@@ -53,7 +53,7 @@ README saying how to take a new one.
 | TF14 | a read asks only the z12 tiles of its bounds, each once; bounds over more than `FIXTURE_TILES_MAX` tiles read nothing; `shouldStop` true before or during a read ends it with nothing and no further tile |
 | TF19 | the fixtures modules take no db, meta or storage port and export no count; the contract's record, feature and manifest entry hold no count field |
 | TF21 | every request a read makes is a byte range of `fixtures-*.pmtiles` under `PLACES_BASE`'s host, with no query or header of its own; the host table is unchanged |
-| TF25 | the pinned example holds one record per fixture: no two of one kind with one name within 250 m (the data side's FX6 is its test there) |
+| TF25 | the pinned example holds one record per fixture (no two of one kind with one name within 250 m) and both sources, OpenStreetMap's and Wikidata's (`src` `osm` and `wd`); the data side's FX6 and FX13 are its tests there |
 | TF26 | the contract's `tourist_office` is `information=office`; neither `visitor_centre` nor its tag is a kind |
 | TF27 | `published.test.ts`: a recording of the byte ranges the app's web read path (`net/shell.ts`'s `source`) asked of the published pack, for Stowe and Marfa, replayed through `createFixturesPack`: each town's tourist office where OpenStreetMap has one, its town hall and its library are read, and every fixture's kind is one of the thirteen. A range the recording lacks fails the test |
 
@@ -69,11 +69,11 @@ Small: unit tests only (`npm run test:affected`, then `npm test`). No screen cha
 
 - The screens (TF6-TF13), with a mock-up first (decision 0252). TF3 (a kind is a fixture or a find, never both: bandstands,
   town halls and libraries can be finds today), TF15-TF18, TF20, TF22-TF24: later slices.
-- Overture and Wikidata folded in (TF25's second half): Overture needs a new host and a reader for its format in
-  chronicles-data's build; Wikidata's only fetch is the places' own, so asking it for libraries moves the places pack the
-  week it is added. Filed in `docs/DEFERRED.md`.
-- A town's "main" station (every `railway=station` is one here), and which town a fixture belongs to (read against the
-  outline by the screens' slice).
+- Overture folded in (decision 0268): it needs a new host and a reader for its format in chronicles-data's build. Filed in
+  `docs/DEFERRED.md`. Wikidata's public libraries are folded in now, by a read of their own (chronicles-data FX13).
+- For the screens' slice (decision 0268): a town's card names only fixtures with a name; unnamed ones are drawn on the map.
+- Which town a fixture belongs to (read against the outline by the screens' slice). Every `railway=station` but a heritage
+  railway's is a station (decision 0268); no "main" one is chosen.
 
 ## Native
 

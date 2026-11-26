@@ -97,8 +97,9 @@ What it never does:
 The data set (G13, the first slice; decision 0255):
 
 - **TF25.** The fixtures are a pack of their own, built in chronicles-data beside the places and stores packs, from
-  OpenStreetMap first, and one fixture is kept once: a library mapped as its building and as a point inside it is one
-  library. (Overture and Wikidata folded in where they are strong: deferred, see the record.)
+  OpenStreetMap first with Wikidata's public libraries folded in, and one fixture is kept once: a library mapped as its
+  building and as a point inside it, or named by OpenStreetMap and by Wikidata, is one library, OpenStreetMap's.
+  (Overture waits: decision 0268, `docs/DEFERRED.md`.)
 - **TF26.** A tourist office is a town's own (OpenStreetMap's `information=office`); an attraction's visitor centre
   (`information=visitor_centre`) is never a fixture, and stays a place to discover.
 - **TF27.** On the web build's read path, in a test, the app reads Stowe's and Marfa's fixtures from the published pack
@@ -113,6 +114,11 @@ The data set (G13, the first slice; decision 0255):
   `amenity=bus_station`, `amenity=courthouse`, `amenity=community_centre`, `amenity=ferry_terminal`, `leisure=common`,
   `leisure=bandstand`. Out: the practical amenities and the arguables recommended out; `information=visitor_centre` out.
 - 2026-11-26: build G13 from this spec (the owner in person); the screens (TF6-TF13) come after, with a mock-up.
+- 2026-11-26, the owner in person on G13's plan review (decision 0268, amending 0255): Wikidata's public libraries are
+  folded in now, Overture waits ("Add Wikidata too"); unnamed squares, markets and commons are kept and drawn on the map
+  later, and a town's card names only fixtures with a name ("Map only", for the screens' slice); every `railway=station`
+  is a fixture, subway and light rail included, but a heritage railway's station stays a find ("All but heritage");
+  `information=office` is a tourist office wherever it is ("Trust the tag").
 
 ## Surfaces (from the code, to be confirmed in the plan)
 
@@ -138,5 +144,13 @@ The data set (G13, the first slice; decision 0255):
 **Deferred by the owner, 2026-11-18**, with the stop facets. The hand-off for both is `specs/shop-facets/handoff.md`: the draft
 list of fixtures shown to the owner (proposed in, arguable, proposed out) is there. Ask the owner before building.
 
-Nothing is built. Decision 0225. chronicles-data's kind counts now also count `place` (a plaza is `place=square`) and `railway`
+**G13's plan review** (Nov 26, the steward; triaged by the run's coordinator, the owner's answers in decision 0268):
+accepted 6, settled by the owner 1, rejected 0. Their tests are named in chronicles-data's `test/fixtures.test.ts`:
+town-fixtures audit 1 (Wikidata folded in now, Overture deferred), audit 2 (Wikidata yields libraries only, `P31 = Q28564`
+exactly, the dissolved and closed yield nothing), audit 3 (OpenStreetMap preferred at every step of the merge), audit 4
+(the places and stores packs do not move: a fixtures-only Wikidata read with its own fingerprint), audit 5 (no crowd field
+on the Wikidata side), audit 6 (a heritage railway's station is not a fixture). The seventh (visitor centres tagged
+`information=office` inside a park) was settled by the owner: the tag is trusted.
+
+Nothing else is built. Decision 0225. chronicles-data's kind counts now also count `place` (a plaza is `place=square`) and `railway`
 (SK13), on its main; no run has reported yet.
