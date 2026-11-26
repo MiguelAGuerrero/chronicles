@@ -52,6 +52,14 @@ export const PRESENCE_CODE = 'p12';
  */
 export const PRESENCE_CARRIED: readonly string[] = [];
 
+/**
+ * poi-hide-from-card audit 9: the codes whose rows the landing alone keeps under this one, where a bump moved only what the
+ * landing never reads. p12 moved the towers' subsets, which only the atlas's tally keys by; the landing reads weights and
+ * storefronts, which p12 left as they were, so its p11 rows stand (a walk's storefront streets and the home's rows stay current).
+ * The same rule as `PRESENCE_CARRIED`: only ever the code just before; empty it at the next bump.
+ */
+export const PRESENCE_CARRIED_LANDING: readonly string[] = ['p11'];
+
 const FULL = 1;
 const HALF = 0.5;
 const QUARTER = 0.25;

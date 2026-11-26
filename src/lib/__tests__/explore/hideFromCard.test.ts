@@ -35,13 +35,13 @@ test('HK1: an unfound card\'s muted line names its kind and its subtype, from th
     assert.equal(line, subtitle ? `${kindOf(title).label} · ${kindOf(subtitle).label}` : kindOf(title).label, k.id);
   }
   const head = cardHead({ name: 'Founders Plaque', kind: 'plaques', named: true, found: false });
-  assert.deepEqual(head, { title: 'Founders Plaque', line: 'Monuments and memorials · Plaques', more: true });
+  assert.deepEqual(head, { title: 'Founders Plaque', line: 'Monuments and memorials · Plaques', drawn: 'Monuments and memorials\u00a0· Plaques', more: true });
 });
 
 test('poi-hide-from-card audit 1: a ? card\'s head reads A place to find alone; its kind and subtype only in its sheet', async () => {
   const { cardHead, kindsSheet } = await card();
   const head = cardHead({ name: 'Founders Plaque', kind: 'plaques', named: false, found: false });
-  assert.deepEqual(head, { title: 'A place to find', line: null, more: true });
+  assert.deepEqual(head, { title: 'A place to find', line: null, drawn: null, more: true });
   assert.deepEqual(kindsSheet('plaques', new Set()).rows.map((r) => r.label), ['Monuments and memorials', 'Plaques']);
 });
 
@@ -103,7 +103,7 @@ test('HK4: a ? card\'s sheet and line name its kind and subtype, never the place
 
 test('HK5: a found card has no More and no kind line; its head is today\'s name · kind', async () => {
   const { cardHead } = await card();
-  assert.deepEqual(cardHead({ name: 'Hessian Memorial', kind: 'war_memorials', named: true, found: true }), { title: 'Hessian Memorial · War memorials', line: null, more: false });
+  assert.deepEqual(cardHead({ name: 'Hessian Memorial', kind: 'war_memorials', named: true, found: true }), { title: 'Hessian Memorial · War memorials', line: null, drawn: null, more: false });
 });
 
 test('HK6: the page opens at a kind\'s row: the param is read as a kind, and the scroll stands it under its heading', async () => {
@@ -179,11 +179,12 @@ test('HK10, poi-hide-from-card audit 2: a tower kept before the split reads as B
 });
 
 test('HK10: closed with its place\'s kind off, the sheet leaves no card; a found place\'s card stays', async () => {
-  const { cardGoes } = await card();
-  assert.equal(cardGoes({ kind: 'plaques', found: false }, new Set<Kind>(['plaques'])), true);
-  assert.equal(cardGoes({ kind: 'plaques', found: false }, new Set<Kind>(['monuments'])), true);
-  assert.equal(cardGoes({ kind: 'plaques', found: false }, new Set<Kind>(['war_memorials'])), false);
-  assert.equal(cardGoes({ kind: 'plaques', found: true }, new Set<Kind>(['plaques'])), false);
+  // Since poi-hide-from-card audit 8 the card is decided in render (`cardShown`): the sheet down, its kind off, no card.
+  const { cardShown } = await card();
+  assert.equal(cardShown({ kind: 'plaques', found: false, sheetUp: false }, new Set<Kind>(['plaques'])), false);
+  assert.equal(cardShown({ kind: 'plaques', found: false, sheetUp: false }, new Set<Kind>(['monuments'])), false);
+  assert.equal(cardShown({ kind: 'plaques', found: false, sheetUp: false }, new Set<Kind>(['war_memorials'])), true);
+  assert.equal(cardShown({ kind: 'plaques', found: true, sheetUp: false }, new Set<Kind>(['plaques'])), true);
 });
 
 test('HK10, poi-hide-from-card audit 7: the sheet draws no switch before the settings are read, and a failed read says What I\'m into\'s sentence', async () => {
@@ -206,7 +207,7 @@ test('HK9: with Water towers off and Clock towers on, an area\'s bars count the 
   assert.notDeepEqual(stepsFrom(both, new Set()), stepsFrom(clocksAlone, new Set()), 'the water towers count while on');
 });
 
-test('poi-hide-from-card audit 8: a card stands only while its place is on the map: its sheet up, a find, or its kind shown', { todo: 'test first' }, async () => {
+test('poi-hide-from-card audit 8: a card stands only while its place is on the map: its sheet up, a find, or its kind shown', async () => {
   const { cardShown } = await card();
   const off = new Set<Kind>(['plaques']);
   assert.equal(cardShown({ kind: 'plaques', found: false, sheetUp: false }, off), false, 'its kind off, the sheet down: no card');
@@ -216,7 +217,7 @@ test('poi-hide-from-card audit 8: a card stands only while its place is on the m
   assert.equal(cardShown({ kind: 'plaques', found: false, sheetUp: false }, new Set<Kind>(['war_memorials'])), true);
 });
 
-test('poi-hide-from-card audit 9: a landing row of p11 stands under p12; an atlas row of p11 does not', { todo: 'test first' }, async () => {
+test('poi-hide-from-card audit 9: a landing row of p11 stands under p12; an atlas row of p11 does not', async () => {
   const { LANDING_CODE, rulesCurrent } = await import('../../landing/view');
   const { LANDING_RULES } = await import('../../landing/analyze');
   const { ATLAS_CODE, rowCurrent } = await import('../../atlas/atlas');
@@ -225,20 +226,20 @@ test('poi-hide-from-card audit 9: a landing row of p11 stands under p12; an atla
   assert.equal(rowCurrent({ build: 'b', code: `${ATLAS_CODE.split('.')[0]}.p11`, level: 'town' } as never, 'b'), false, 'the atlas keys its tally by subset');
 });
 
-test('poi-hide-from-card audit 10: a moment opened over the walk closes the kinds sheet', { todo: 'test first' }, async () => {
+test('poi-hide-from-card audit 10: a moment opened over the walk closes the kinds sheet', async () => {
   const { kindsSheetShown } = await card();
   assert.equal(kindsSheetShown({ open: true, viewing: false }), true);
   assert.equal(kindsSheetShown({ open: true, viewing: true }), false);
   assert.equal(kindsSheetShown({ open: false, viewing: false }), false);
 });
 
-test('poi-hide-from-card audit 11: while the kinds sheet is up, the walk\'s Escape and Back stand aside', { todo: 'test first' }, async () => {
+test('poi-hide-from-card audit 11: while the kinds sheet is up, the walk\'s Escape and Back stand aside', async () => {
   const { walkHearsEscape } = await card();
   assert.equal(walkHearsEscape({ sheetUp: true }), false);
   assert.equal(walkHearsEscape({ sheetUp: false }), true);
 });
 
-test('poi-hide-from-card audit 12: the kind line breaks at its dot, never inside a name that fits the line alone', { todo: 'test first' }, async () => {
+test('poi-hide-from-card audit 12: the kind line breaks at its dot, never inside a name that fits the line alone', async () => {
   const { cardKinds, KIND_NAME_KEEP } = await card();
   const NBSP = '\u00a0';
   for (const k of KINDS) {
@@ -252,7 +253,7 @@ test('poi-hide-from-card audit 12: the kind line breaks at its dot, never inside
   assert.equal(cardKinds('clock_towers' as Kind).drawn, `Buildings and structures${NBSP}· Clock${NBSP}towers`);
 });
 
-test('poi-hide-from-card audit 14: a kind that is its section\'s first row opens at the section\'s top, its heading and line whole', { todo: 'test first' }, async () => {
+test('poi-hide-from-card audit 14: a kind that is its section\'s first row opens at the section\'s top, its heading and line whole', async () => {
   const { intoScrollY, intoSections, intoChildren } = await into();
   const { children } = intoChildren(intoSections(KINDS, new Set()), []);
   const heights = children.map((c) => (c.type === 'heading' ? 52 : 48));

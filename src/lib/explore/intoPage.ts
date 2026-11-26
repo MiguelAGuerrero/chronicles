@@ -290,12 +290,21 @@ export function intoScrollY(children: readonly IntoChild[], heights: readonly (n
   if (i < 0) return null;
   let top = 0;
   let heading: string | null = null;
+  let headingTop = 0;
+  let rowsBefore = 0;
   for (let j = 0; j < i; j++) {
     const h = heights[j];
     if (h == null) return null;
-    top += h;
     const c = children[j];
-    if (c.type === 'heading') heading = c.label;
+    if (c.type === 'heading') {
+      heading = c.label;
+      headingTop = top;
+      rowsBefore = 0;
+    } else if (c.type === 'row') rowsBefore++;
+    top += h;
   }
+  // poi-hide-from-card audit 14 (the ux-reviewer's U30): the first row of its section opens at the section's top, its
+  // heading and muted line whole above it, never a fragment of the line under the pinned heading.
+  if (heading && rowsBefore === 0) return headingTop;
   return Math.max(0, top - (heading ? headH(heading) : 0));
 }

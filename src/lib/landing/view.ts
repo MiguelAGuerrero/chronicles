@@ -1,5 +1,5 @@
 // @layer core
-import { PRESENCE_CARRIED, PRESENCE_CODE } from '../presence/presence';
+import { PRESENCE_CARRIED, PRESENCE_CARRIED_LANDING, PRESENCE_CODE } from '../presence/presence';
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { LANDING_RULES, type AreaAnalysis } from './analyze';
@@ -18,7 +18,7 @@ export const LANDING_VERSION = `${LANDING_CODE}:${PRESENCE_CODE}:${JSON.stringif
  * presence (presence audit 1) is no longer carried: since p3 only storefronts weigh, so it reads otherwise (tend presence
  * audit 4). Empty it when a weight or a landing rule changes.
  */
-const LANDING_CARRIED: readonly string[] = PRESENCE_CARRIED.map((c) => `${LANDING_CODE}:${c}:${JSON.stringify(LANDING_RULES)}`);
+const LANDING_CARRIED: readonly string[] = [...PRESENCE_CARRIED, ...PRESENCE_CARRIED_LANDING].map((c) => `${LANDING_CODE}:${c}:${JSON.stringify(LANDING_RULES)}`);
 /** Whether a row's rules are the current ones, or carried by them. */
 export const rulesCurrent = (rules: string): boolean => rules === LANDING_VERSION || LANDING_CARRIED.includes(rules);
 

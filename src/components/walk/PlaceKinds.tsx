@@ -71,7 +71,8 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 12, paddingBottom: 24, gap: 2, width: '100%', maxWidth: 640, alignSelf: 'center' },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heading: { flex: 1, color: theme.ink, fontSize: 16, fontWeight: '600', paddingHorizontal: 12, paddingVertical: 10 },
-  done: { minHeight: 44, minWidth: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  // poi-hide-from-card audit 16 (the owner, Nov 25, "48 everywhere"): Done is 48 on both platforms.
+  done: { minHeight: 48, minWidth: 48, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   doneText: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   cell: { paddingHorizontal: 12 },
   unread: { fontSize: 15, lineHeight: 21, color: theme.muted, paddingHorizontal: 12, paddingVertical: 8 },

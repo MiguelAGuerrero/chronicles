@@ -152,7 +152,7 @@ async function run(h) {
     const m = document.querySelector('[data-testid=mark-more]')?.getBoundingClientRect();
     return t && m ? { title: Math.round(t.top + t.height / 2), more: Math.round(m.top + m.height / 2) } : null;
   });
-  check.todo(!!qAlign && Math.abs(qAlign.title - qAlign.more) <= 2, `poi-hide-from-card audit 15: a ? card's one-line head is centred against More (${JSON.stringify(qAlign)})`);
+  check(!!qAlign && Math.abs(qAlign.title - qAlign.more) <= 2, `poi-hide-from-card audit 15: a ? card's one-line head is centred against More (${JSON.stringify(qAlign)})`);
   check(qOpen && /^A place to find/.test(qHead) && !(await pg.locator('[data-testid=mark-kinds]').count()) && (await pg.locator('[data-testid=mark-more]').count()) === 1,
     `poi-hide-from-card audit 1: a ? card's head reads A place to find alone, with More (${JSON.stringify(qHead.slice(0, 80))})`);
   await openSheet();
@@ -186,7 +186,7 @@ async function run(h) {
     `HK1: a plaque's card has More at its top right, 44 pt, in ink, spoken More, the kind line under the name (${JSON.stringify(head)})`);
   const lines390 = await kindLines();
   const cardCut = await at320('hidekind-card-320');
-  check.todo(head.more?.w >= 48 && head.more?.h >= 48, `poi-hide-from-card audit 16: More is 48 (the owner, "48 everywhere") (${JSON.stringify(head.more)})`);
+  check(head.more?.w >= 48 && head.more?.h >= 48, `poi-hide-from-card audit 16: More is 48 (the owner, "48 everywhere") (${JSON.stringify(head.more)})`);
   check(cardCut.length === 0, `HK1: the card's words whole at 320 px, the long name wrapping, never cut (${JSON.stringify(cardCut)})`);
   {
     const was = pg.viewportSize();
@@ -195,7 +195,7 @@ async function run(h) {
     const lines320 = await kindLines();
     if (was) await pg.setViewportSize(was);
     await pg.waitForTimeout(600);
-    check.todo(breaksOk(lines390) && breaksOk(lines320),
+    check(breaksOk(lines390) && breaksOk(lines320),
       `poi-hide-from-card audit 12: the plaque's kind line breaks at its dot, never inside a name that fits alone, at 390 and 320 (${JSON.stringify({ lines390, lines320 })})`);
   }
   // HK10, poi-hide-from-card audit 7: the reader's choices refused, the sheet says What I'm into's sentence, no switch.
@@ -238,7 +238,7 @@ async function run(h) {
       rows: ['[data-testid=kind-sheet-monuments]', '[data-testid=kind-sheet-plaques]', '[data-testid=kinds-sheet-into]'].map((s) => ({ h: Math.round(box(s)?.height ?? 0), font: font(s) })),
     };
   });
-  check.todo(sizes.done?.w >= 48 && sizes.done?.h >= 48, `poi-hide-from-card audit 16: Done is 48 (${JSON.stringify(sizes.done)})`);
+  check(sizes.done?.w >= 48 && sizes.done?.h >= 48, `poi-hide-from-card audit 16: Done is 48 (${JSON.stringify(sizes.done)})`);
   // The owner, Nov 25, "Shared rows' sizes": SwitchRow's and PageRow's own (15 px, 48 tall), not the drawing's 16 and 52.
   check(sizes.rows.every((r) => r.h >= 48 && r.font === '15px'),
     `poi-hide-from-card audit 17: the sheet's rows are the house rows' sizes, SwitchRow's and PageRow's 15 px, each 48 or taller (${JSON.stringify(sizes.rows)})`);
@@ -295,7 +295,7 @@ async function run(h) {
     await closeInto(pg);
     if (was) await pg.setViewportSize(was);
     await pg.waitForTimeout(600);
-    check.todo(!!top && top.line[0] >= top.head - 1 && top.row >= top.line[1] - 1 && top.row - top.line[1] <= 16,
+    check(!!top && top.line[0] >= top.head - 1 && top.row >= top.line[1] - 1 && top.row - top.line[1] <= 16,
       `poi-hide-from-card audit 14: at 320 the first row of its section opens under its heading and muted line, whole (${JSON.stringify(top)})`);
   }
 
@@ -354,7 +354,7 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   check(await shown(PLAQUE), 'poi-hide-from-card audit 3: Plaques turned back on in What I’m into brings the plaque back on the map');
   const afterPage = { card: await pg.locator('[data-testid=mark-card]').count(), memorial: await shown(MEMORIAL) };
-  check.todo(afterPage.card === 0 && !afterPage.memorial,
+  check(afterPage.card === 0 && !afterPage.memorial,
     `poi-hide-from-card audit 8: War memorials turned off on What I’m into opened from the memorial's sheet leaves no card on return (${JSON.stringify(afterPage)})`);
 
   // HK9: a clock tower's sheet turns clock towers off; the water tower's pin stays.
@@ -363,7 +363,7 @@ async function run(h) {
   await openCard(CLOCK);
   const towerKinds = (await pg.locator('[data-testid=mark-kinds]').innerText().catch(() => '')).replace(/\u00a0/g, ' ').replace(/\s*\n\s*/g, ' ');
   const towerLines = await kindLines();
-  check.todo(breaksOk(towerLines) && !towerLines.some((l) => /^towers$|Clock$/.test(l)), `poi-hide-from-card audit 12: "Clock towers" is never split (${JSON.stringify(towerLines)})`);
+  check(breaksOk(towerLines) && !towerLines.some((l) => /^towers$|Clock$/.test(l)), `poi-hide-from-card audit 12: "Clock towers" is never split (${JSON.stringify(towerLines)})`);
   await openSheet();
   const towerRows = await pg.evaluate(() => [...document.querySelectorAll('[data-testid^=kind-sheet-]')].map((e) => e.getAttribute('aria-label')));
   await shot(pg, 'hidekind-clock-sheet');

@@ -41,8 +41,10 @@ paths:
   when nothing notable is in or near it: a mark inside the `landcover` outline (`discovery/green.ts`, `outlinesOf`; within 60 m
   of the point with none), a notable name (presence's `notableName`, read past a neighbourhood's "Old Town/City/Quarter/Village" or "old and new" only just before a community word) or a word of `parkNotable.json` ("heritage" in neither), an outline of 5 ha or more, or an archive place
   within 150 m (the refinement's context). **An outline under 2 ha, not cut at a tile edge, demotes only with nothing notable (0163).** The kind is of the parks category (same bar, colour, find,
-  mark); a switch hides only it. **Never name an unfound place for its kind**: bars and waiting kinds are categories, so
-  "Community parks" shows only in "What I'm into" and on a found place (`foundLine`). The planner and scenic routes do not
+  mark); a switch hides only it. **Never name an unfound place for its kind** on the map or the Explore tab: bars and
+  waiting kinds are categories, so "Community parks" shows in "What I'm into", on a found place (`foundLine`), and since
+  decision 0254 on a named unfound place's card, its kind line and its kinds sheet ("Parks and gardens · Community parks",
+  `cardKinds`; a "?" card names it only in its sheet; poi-hide-from-card audit 13). The planner and scenic routes do not
   read "What I'm into" and count both as parks. It is curation (0140), so a change to the words bumps `ATLAS_CODE`'s own
   part, never `PRESENCE_CODE`.
   Its two word files are the refinement's curation, never a second notable rule (PS3, 0146); outlines read presence (PS4).

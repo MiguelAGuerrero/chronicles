@@ -44,7 +44,7 @@ import { rulesCurrent, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
 import { offerLabels, offerLine } from '../lib/explore/placeOffer';
-import { type ChecklistItem, walkPassKey, clampPass, clampRange, intoRowShown, type Kind, POCKET_ALERT_NOTE } from '../lib/explore/explore';
+import { type ChecklistItem, walkPassKey, clampPass, clampRange, intoRowShown, POCKET_ALERT_NOTE } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { reach } from '../lib/explore/reach';
@@ -78,7 +78,7 @@ import { routeLeanings } from '../lib/routeLeanings';
 import { whileFocused } from '../lib/openers';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { PlaceCaptureRow } from '../components/walk/PlaceCaptureRow';
-import { cardCapture, cardGoes, cardHead, PLACE_REACH_M } from '../lib/explore/placeCard';
+import { cardCapture, cardHead, cardShown, kindsSheetShown, PLACE_REACH_M, walkHearsEscape } from '../lib/explore/placeCard';
 import { PlaceKinds } from '../components/walk/PlaceKinds';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
@@ -353,6 +353,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // A memory pin's preview (MR4), and the viewer it opens; declared before the capture path, which says nothing behind them.
   const [memory, setMemory] = useState<{ result: HereResult; from: LngLat | null } | null>(null);
   const [memoryView, setMemoryView] = useState<HereResult | null>(null);
+  // A place card's kinds sheet (specs/poi-hide-from-card HK2-HK10), open on the card's place.
+  const [kindsFor, setKindsFor] = useState<ChecklistItem | null>(null);
+  // poi-hide-from-card audit 10: a moment opened over the walk (a reminder tapped, a pin) closes the sheet: one modal at a time.
+  if (kindsFor && !kindsSheetShown({ open: true, viewing: !!viewing || !!memoryView })) setKindsFor(null);
   // The walk's options card (A2).
   const [options, setOptions] = useState(false);
   // The GPS log, read when the card opens, so a tap can share it at once (a browser
@@ -687,7 +691,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
     // Only while in front: under What I'm into's page, Back and Escape are the page's (what-im-into-page audit 1).
-    if ((!spot && !memory) || !screenFocused) return;
+    // poi-hide-from-card audit 11: while the kinds sheet is up, Escape and Back are its own.
+    if ((!spot && !memory) || !screenFocused || !walkHearsEscape({ sheetUp: !!kindsFor })) return;
     const close = () => {
       setSpot(null);
       setMemory(null);
@@ -704,7 +709,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, memory, screenFocused]);
+  }, [spot, memory, screenFocused, kindsFor]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -762,7 +767,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const routePreview = navigation.preview;
   const dismissPreview = navigation.dismiss;
   useEffect(() => {
-    if (!routePreview || !screenFocused) return;
+    if (!routePreview || !screenFocused || !walkHearsEscape({ sheetUp: !!kindsFor })) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       dismissPreview();
       return true;
@@ -773,7 +778,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [routePreview, dismissPreview, screenFocused]);
+  }, [routePreview, dismissPreview, screenFocused, kindsFor]);
   /**
    * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
    * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
@@ -876,7 +881,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     offerAfter.current = explore.offerAfter;
   });
-  const openMark = markOpen ? explore.itemOf(markOpen) : null;
+  // poi-hide-from-card audit 8: the card stands only while its place is on the map (its sheet up, a find, or its kind
+  // shown), decided here in render: a kind turned off in the sheet or on What I'm into opened from it leaves no card.
+  const markItem = markOpen ? explore.itemOf(markOpen) : null;
+  const markShown = !!markItem && cardShown({ kind: markItem.kind, found: explore.found.has(markItem.key), sheetUp: kindsFor?.key === markItem.key }, explore.settings.hidden);
+  if (markItem && !markShown) setMarkOpen(null);
+  const openMark = markShown ? markItem : null;
   const openMarkNamed = !!openMark && (explore.revealed.has(openMark.key) || explore.found.has(openMark.key));
   const openMarkReach = openMark && markReach?.key === openMark.key && !explore.found.has(openMark.key) ? reachLine(markReach.near) : null;
   // The place a card capture was begun for, by key, so its find is recorded when the moment is kept (CA2-CA4), even if
@@ -893,13 +903,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const openMarkFound = !!openMark && explore.found.has(openMark.key);
   // The card's head (specs/poi-hide-from-card HK1, HK4, HK5): the name and its kind line, More on an unfound place.
   const openMarkHead = openMark ? cardHead({ name: openMark.name, kind: openMark.kind, named: openMarkNamed, found: openMarkFound }) : null;
-  // The card's kinds sheet (HK2-HK10): open on the card's kind; closed with that kind now off, the card goes too.
-  const [kindsFor, setKindsFor] = useState<ChecklistItem | null>(null);
-  const closeKinds = (hidden: ReadonlySet<Kind> | null) => {
-    const m = kindsFor;
-    setKindsFor(null);
-    if (m && hidden && cardGoes({ kind: m.kind, found: explore.found.has(m.key) }, hidden)) setMarkOpen((k) => (k === m.key ? null : k));
-  };
+  // The card's kinds sheet closes; with the card's kind now off, the card goes with it (audit 8, above).
+  const closeKinds = () => setKindsFor(null);
   const openMarkCapture = openMark ? cardCapture({ name: openMarkNamed ? openMark.name : null, found: openMarkFound, riding: live.riding, reach: formatDistance(PLACE_REACH_M) }) : null;
   /** A capture from the card (CA2-CA4, CA12): the card closes and the capture begins, carrying the place. */
   const captureAt = (kind: 'photo' | 'voice' | 'text') => {
@@ -2059,26 +2064,27 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // A place's card, in the spot card's place (E7, E8, E12).
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>
-            <View style={styles.markHead}>
+            {/* poi-hide-from-card audit 15: a "?" head, one line, centred against More. */}
+            <View style={[styles.markHead, !openMarkHead?.line && styles.markHeadOne]}>
               <View style={styles.markHeadText}>
                 <Text style={styles.spotTitle} accessibilityRole="header">
                   {openMarkHead?.title}
                 </Text>
-                {openMarkHead?.line ? (
+                {openMarkHead?.drawn ? (
                   // HK1: the kind and its subtype, muted, under the name; a "?" keeps its kind for the sheet (audit 1).
                   <Text testID="mark-kinds" style={styles.markSub}>
-                    {openMarkHead.line}
+                    {openMarkHead.drawn}
                   </Text>
                 ) : null}
               </View>
               {openMarkHead?.more ? (
-                // HK1: More, in ink, 44 pt, at the card's top right; a found card has none (HK5).
+                // HK1: More, in ink, 48 (audit 16), at the card's top right; a found card has none (HK5).
                 <Pressable
                   testID="mark-more"
                   accessibilityRole="button"
                   accessibilityLabel="More"
                   onPress={() => setKindsFor(openMark)}
-                  style={({ pressed }) => [styles.markMore, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.markMore, !openMarkHead?.line && styles.markMoreOne, pressed && styles.pressed]}
                 >
                   <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
                 </Pressable>
@@ -2408,8 +2414,12 @@ const styles = StyleSheet.create({
   markSub: { fontSize: 14, color: theme.muted },
   markHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   markHeadText: { flex: 1, minWidth: 0, gap: 4 },
-  // HK1: 44 pt, ink on the page's own ground, its corner at the card's padding (as drawn).
-  markMore: { width: 44, height: 44, borderRadius: 22, marginTop: -8, marginRight: -8, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
+  // HK1: ink on the page's own ground, its corner at the card's padding (as drawn).
+  markHeadOne: { alignItems: 'center' },
+  // Its overhang split above and below, so its middle is the title's (audit 15).
+  markMoreOne: { marginTop: -4, marginBottom: -4 },
+  // poi-hide-from-card audit 16 (the owner, Nov 25, "48 everywhere"): 48 on both platforms.
+  markMore: { width: 48, height: 48, borderRadius: 24, marginTop: -8, marginRight: -8, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg },
   markMoments: { gap: 0 },
   markMomentsHead: { fontSize: 14, fontWeight: '700', color: theme.ink },
   markMoment: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },

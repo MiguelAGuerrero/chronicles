@@ -110,22 +110,34 @@ export const KINDS_SHEET_TITLE = 'Show on the map';
  * own kind as the subtitle when it has a parent (a subtype, a community park). A retired kind (HK10) is its parent's
  * alone: its own switch is gone.
  */
-export function cardKinds(kind: Kind): { title: Kind; subtitle: Kind | null; line: string } {
+export function cardKinds(kind: Kind): { title: Kind; subtitle: Kind | null; line: string; drawn: string } {
   const chain = kindChain(kind);
   const title = chain[chain.length - 1];
   const subtitle = title === kind || RETIRED[kind] ? null : kind;
-  return { title, subtitle, line: subtitle ? `${kindOf(title).label} · ${kindOf(subtitle).label}` : kindOf(title).label };
+  const names = subtitle ? [kindOf(title).label, kindOf(subtitle).label] : [kindOf(title).label];
+  return { title, subtitle, line: names.join(' · '), drawn: names.map(kept).join(`${NBSP}· `) };
 }
+
+const NBSP = '\u00a0';
+/**
+ * poi-hide-from-card audit 12 (the ux-reviewer's U31, the auditor's F14): the kind line breaks at " · ", never inside a
+ * name that fits the line on its own. The card's head column at 320 px is about 150 px, about 20 characters of the 14 px
+ * line in Chromium's font (measured by the `hidekind` journey); a longer name ("Monuments and memorials") cannot fit it
+ * whole, so it keeps its spaces and wraps between its words. SF and Roboto are a device item.
+ */
+export const KIND_NAME_KEEP = 20;
+const kept = (name: string): string => (name.length <= KIND_NAME_KEEP ? name.replace(/ /g, NBSP) : name);
 
 /**
  * HK1, HK4, HK5 (the owner's Q1 and Q3, Nov 25; poi-hide-from-card audit 1): the card's head. A named unfound place: its
  * name, the kind line under it, More. A "?": "A place to find" alone, with More (its kind only in the sheet). A found
  * place: today's "name · kind", no line and no More.
  */
-export function cardHead(o: { name: string; kind: Kind; named: boolean; found: boolean }): { title: string; line: string | null; more: boolean } {
-  if (o.found) return { title: `${o.name} · ${kindOf(o.kind).label}`, line: null, more: false };
-  if (!o.named) return { title: 'A place to find', line: null, more: true };
-  return { title: o.name, line: cardKinds(o.kind).line, more: true };
+export function cardHead(o: { name: string; kind: Kind; named: boolean; found: boolean }): { title: string; line: string | null; drawn: string | null; more: boolean } {
+  if (o.found) return { title: `${o.name} · ${kindOf(o.kind).label}`, line: null, drawn: null, more: false };
+  if (!o.named) return { title: 'A place to find', line: null, drawn: null, more: true };
+  const k = cardKinds(o.kind);
+  return { title: o.name, line: k.line, drawn: k.drawn, more: true };
 }
 
 /** A row of the sheet: a switch, the title's heavier, the subtitle's stepped in; no icon (audit 5). */
@@ -158,5 +170,16 @@ export function kindsSheetBody(settings: object | null, failed: boolean): { rows
   return { rows: false, line: failed ? INTO_UNREAD : null };
 }
 
-/** HK10: the sheet closed with its place's kind off leaves no card: its pin has left the map. A find stays (0115). */
-export const cardGoes = (o: { kind: Kind; found: boolean }, hidden: ReadonlySet<Kind>): boolean => !o.found && isKindHidden(hidden, o.kind);
+/**
+ * HK10, poi-hide-from-card audit 8: a place's card stands only while its place is on the map, decided in render: while its
+ * kinds sheet is up, for a find (a find shows whatever its kind, 0115), or while its kind is shown. A kind turned off in
+ * the sheet, or on What I'm into opened from it, leaves no card on return.
+ */
+export const cardShown = (o: { kind: Kind; found: boolean; sheetUp: boolean }, hidden: ReadonlySet<Kind>): boolean =>
+  o.sheetUp || o.found || !isKindHidden(hidden, o.kind);
+
+/** poi-hide-from-card audit 10: the kinds sheet stands only while no moment is open over the walk (one modal at a time, S2). */
+export const kindsSheetShown = (o: { open: boolean; viewing: boolean }): boolean => o.open && !o.viewing;
+
+/** poi-hide-from-card audit 11: while the kinds sheet is up, Escape is its own (react-native-web's Modal); the walk's stand aside. */
+export const walkHearsEscape = (o: { sheetUp: boolean }): boolean => !o.sheetUp;
