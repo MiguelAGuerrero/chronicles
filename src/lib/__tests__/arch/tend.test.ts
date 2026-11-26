@@ -1125,3 +1125,348 @@ test('area-states audit 27: the balance fails when main\'s STATUS or ledger cann
   assert.notEqual(out.status, 0, 'no STATUS and no ledger: no reading');
   assert.match(out.stderr, /STATUS\.md|ledger\.json|ENOENT/);
 });
+
+// ---- Loop budget (G7, specs/loop-budget, decisions 0235 and 0269) ------------------------------------------------
+type Change = { sha: string; subject: string; body: string; files: File[] };
+type Lease = { files: string[]; from: string; session: string; branch: string };
+type Age = { id: string | null; section: string; age: number; date: string; text: string };
+const lb = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
+  reviewBudget(commits: Change[]): string[];
+  regressionClaims(commits: Change[]): { audit: number; sha: string }[];
+  filedProblems(line: unknown, o: { auditsShipped: number; added: { text: string; severity: string | null }[] }): string[];
+  lastWasRotation(runs: unknown[], areas: string[]): boolean;
+  rotationArea(runs: unknown[], verbs: Record<string, string[]>, resting?: string[]): string | null;
+  nextPick(o: { counts: Record<string, number>; states: Record<string, { state: string }>; evolve: string | null; runs: unknown[]; verbs: Record<string, string[]> }): { area: string | null; turn: string; why: string };
+  logProblems(given: unknown): string[];
+  confirmProblems(answers: unknown[], runs: unknown[]): string[];
+  answerTakeUp(runs: unknown[], today: string, days?: number): {
+    days: number;
+    byClass: Record<string, { owner: number; recommended: number; other: number; reshape: number; no: number }>;
+    proxy: { yeses: number; unconfirmed: string[]; confirmed: number };
+    unlogged: number;
+  };
+  balanceJson(o: { r: unknown; t: unknown; days: number; runs: unknown[]; today: string }): { answers?: unknown };
+  inboxAge(status: string, today: string): { wait: Age[]; move: Age[]; hand: Age[]; undated: Age[]; phone: Age[] };
+  leaseRows(status: string): Lease[];
+  leaseProblems(o: { files: string[]; date: string; session: string | null; rows: Lease[] }): string[];
+  leaseRemovalProblems(o: { removed: Lease[]; date: string; session: string | null; message: string }): string[];
+  readInbox(status: string): { items: { answered: boolean; title: string }[] };
+  beforeItems(status: string): { title: string }[];
+};
+const H = (n: number) => `${String(n).repeat(8)}`.slice(0, 8);
+const ch = (n: number, subject: string, body = '', files: File[] = [M('src/lib/x.ts')]): Change => ({ sha: H(n), subject, body, files });
+const sweepLine = (area: string, date: string) => ({ mode: 'sweep', area, date, lenses: { whole: true, skipped: [] } });
+
+test('LB1: check:tend fails a range whose review fixes outnumber its fixes and T items, but for the run\'s own regression', { todo: 'test first' }, () => {
+  const fix = ch(1, 'tend explore 12: the card reads its name');
+  const a1 = ch(2, 'tend explore audit 1: the name wraps at 320 px');
+  const a2 = ch(3, 'tend explore audit 2: the name is spoken');
+  assert.deepEqual(lb.reviewBudget([fix, a1]), [], 'one review fix per fix');
+  const over = lb.reviewBudget([fix, a1, a2]);
+  assert.equal(over.length, 1);
+  assert.match(over[0], /explore/);
+  assert.match(over[0], /audit 1, 2/);
+  assert.match(over[0], /\[loop\]/, 'says to file the rest with their severity');
+  const regression = { ...a2, body: `Regression: ${fix.sha} the card read its name whole at the base\n` };
+  assert.deepEqual(lb.reviewBudget([fix, a1, regression]), [], 'the run\'s own regression is fixed whatever the budget');
+  assert.deepEqual(lb.regressionClaims([fix, a1, regression]), [{ audit: 2, sha: fix.sha }]);
+  // A T build counts one fix per item it ships (decision 0269): each commit naming it that changes more than tests.
+  const t = [
+    ch(4, 'tend explore T63: the failing tests', '', [M('src/lib/__tests__/explore/chips.test.ts')]),
+    ch(5, 'tend explore T63: the chip reads the table\'s name'),
+    ch(6, 'tend explore T63: the rule notes it', '', [M('.claude/rules/outing.md')]),
+    ch(7, 'tend explore T63: the journey reads it', '', [M('scripts/e2e/journeys/outing.js')]),
+  ];
+  assert.deepEqual(lb.reviewBudget([...t, ch(8, 'tend explore audit 50: x'), ch(9, 'tend explore audit 51: y')]), []);
+  assert.equal(lb.reviewBudget([...t, ch(8, 'tend explore audit 50: x'), ch(9, 'tend explore audit 51: y'), ch(10, 'tend explore audit 52: z')]).length, 1);
+  assert.deepEqual(lb.reviewBudget([ch(1, 'Town fixtures: the code (TF1)'), ch(2, 'Town fixtures: the review (town-fixtures audit 1)')]), [], 'a G slice\'s own review is outside it');
+});
+
+test('LB1: check:tend refuses a range over the budget, in a scratch repository', { todo: 'test first' }, () => {
+  const r = repo();
+  const base = r.git('rev-parse', 'HEAD');
+  const t = (name: string) => ({ [`src/lib/__tests__/memories/${name.replace(/\W+/g, '-')}.test.ts`]: `test('${name}: x', () => {});\n` });
+  r.commit(t('tend memories 1'), `tend memories 1: a capture comes back\n\nSource: WCAG 2.2, 4.1.2${AGENT}`);
+  r.commit(t('tend memories audit 1'), `tend memories audit 1: its name is spoken${AGENT}`);
+  assert.equal(r.tendJs('commits', '--loop-only', `${base}..HEAD`).status, 0, 'within the budget');
+  r.commit(t('tend memories audit 2'), `tend memories audit 2: it wraps${AGENT}`);
+  const over = r.tendJs('commits', '--loop-only', `${base}..HEAD`);
+  assert.equal(over.status, 1);
+  assert.match(over.stderr, /review fix/);
+});
+
+test('loop-budget audit 1: tend:log refuses a review that accepted more than it fixed and filed, or filed a high', { todo: 'test first' }, () => {
+  const line = { mode: 'sweep', area: 'explore', review: { accepted: 3, rejected: 0, deferred: 1 } };
+  assert.deepEqual(lb.filedProblems(line, { auditsShipped: 2, added: [{ text: 'a stale comment (low)', severity: 'low' }] }), []);
+  assert.match(lb.filedProblems(line, { auditsShipped: 2, added: [] }).join(), /accepted/, 'a third accepted finding neither shipped nor filed');
+  assert.match(lb.filedProblems(line, { auditsShipped: 2, added: [{ text: 'a stale comment', severity: null }] }).join(), /severity/);
+  assert.match(lb.filedProblems(line, { auditsShipped: 2, added: [{ text: 'the walk loses its end (high)', severity: 'high' }] }).join(), /high/, 'a high is never filed (0269)');
+  assert.deepEqual(lb.filedProblems({ mode: 'inbox', grew: ['TF'], review: { accepted: 9, rejected: 0, deferred: 0 } }, { auditsShipped: 0, added: [] }), [], 'a G slice\'s review is outside the budget');
+});
+
+test('loop-budget audit 11: a regression is a commit of the range, of the same area, no review fix, and says what worked', { todo: 'test first' }, () => {
+  const fix = ch(1, 'tend explore 12: the card reads its name');
+  const a1 = ch(2, 'tend explore audit 1: x');
+  const claim = (sha: string, words = ' the name read whole at the base') => ch(3, 'tend explore audit 2: y', `Regression: ${sha}${words}\n`);
+  assert.equal(lb.reviewBudget([fix, a1, claim(a1.sha)]).length, 1, 'a review fix names no review fix as the regression');
+  assert.equal(lb.reviewBudget([fix, a1, claim('abcdef12')]).length, 1, 'a commit outside the range is not the run\'s');
+  assert.equal(lb.reviewBudget([ch(1, 'tend tabs 3: z'), fix, a1, claim(H(1))]).length, 1, 'another area\'s commit is not this area\'s regression');
+  assert.equal(lb.reviewBudget([fix, a1, claim(fix.sha, '')]).length, 1, 'the line says what worked at the base');
+  assert.deepEqual(lb.reviewBudget([fix, a1, { ...ch(3, 'tend explore audit 2: y'), body: 'Severity: high\n' }]), [], 'a high is fixed whatever the budget (0269)');
+});
+
+test('LB1b: a reverted commit counts on neither side, and a finding two commits name counts once', { todo: 'test first' }, () => {
+  const fix = ch(1, 'tend explore 12: x');
+  const a1 = ch(2, 'tend explore audit 1: y');
+  const rule = ch(3, 'tend explore audit 1: the rule line says so', '', [M('.claude/rules/explore-marks.md')]);
+  assert.deepEqual(lb.reviewBudget([fix, a1, rule]), []);
+  const revert = ch(4, 'Revert "tend explore 12: x"', `This reverts commit ${fix.sha}.\n`);
+  assert.equal(lb.reviewBudget([fix, a1, revert]).length, 1, 'the fix reverted, its review fix is over');
+  const revertAudit = ch(5, 'Revert "tend explore audit 1: y"', `This reverts commit ${a1.sha}.\n`);
+  assert.deepEqual(lb.reviewBudget([fix, a1, ch(6, 'tend explore audit 2: z'), revertAudit]), []);
+});
+
+test('LB2: next alternates: after a rotation the most-reset area, else the never-swept or longest-unswept, by verb', { todo: 'test first' }, () => {
+  const areas = ['chronicle', 'explore'];
+  assert.equal(lb.lastWasRotation([], areas), true, 'no sweep: the reset turn');
+  assert.equal(lb.lastWasRotation([sweepLine('chronicle', '2026-11-11')], areas), true, 'a first sweep is a rotation');
+  assert.equal(lb.lastWasRotation([sweepLine('chronicle', '2026-11-11'), sweepLine('explore', '2026-11-12'), sweepLine('chronicle', '2026-11-13')], areas), true, 'the oldest swept again');
+  assert.equal(lb.lastWasRotation([sweepLine('chronicle', '2026-11-11'), sweepLine('explore', '2026-11-12'), sweepLine('explore', '2026-11-13')], areas), false);
+  const verbs = { gallery: ['Return'], journal: ['Return'], explore: ['Earn'], storage: ['Honour'], map: ['Earn', 'Return'] };
+  assert.equal(lb.rotationArea([], verbs), 'gallery', 'Return first, then by name');
+  assert.equal(lb.rotationArea([sweepLine('gallery', '2026-11-20')], verbs), 'journal');
+  assert.equal(lb.rotationArea(['gallery', 'journal', 'map'].map((a) => sweepLine(a, '2026-11-20')), verbs), 'storage', 'an area takes its first verb in VISION\'s order: map is Return');
+  const all = Object.keys(verbs).map((a, k) => sweepLine(a, `2026-11-2${k}`));
+  assert.equal(lb.rotationArea(all, verbs), 'gallery', 'all swept: the longest unswept');
+  assert.equal(lb.rotationArea(all, verbs, ['gallery']), 'journal', 'a resting area is not rotated onto');
+  const states = { explore: { state: 'rough' }, chronicle: { state: 'rough' } };
+  const after = [sweepLine('chronicle', '2026-11-11'), sweepLine('explore', '2026-11-12'), sweepLine('explore', '2026-11-13')];
+  const v = { chronicle: ['Return'], explore: ['Earn'] };
+  assert.equal(lb.nextPick({ counts: { explore: 3 }, states, evolve: null, runs: after, verbs: v }).area, 'chronicle', 'the rotation turn');
+  assert.equal(lb.nextPick({ counts: { explore: 3 }, states, evolve: 'chronicle', runs: after, verbs: v }).area, 'evolve chronicle', 'a due evolve first (LB2b)');
+  assert.equal(lb.nextPick({ counts: { explore: 3 }, states, evolve: null, runs: after.slice(0, 2), verbs: v }).area, 'explore', 'the reset turn: as before');
+});
+
+test('loop-budget audit 8: while any area is unswept, only an area\'s first sweep is a rotation', { todo: 'test first' }, () => {
+  const areas = ['chronicle', 'explore', 'gallery'];
+  const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('explore', '2026-11-12'), sweepLine('chronicle', '2026-11-13')];
+  assert.equal(lb.lastWasRotation(runs, areas), false, 'gallery waits: chronicle again is no rotation');
+});
+
+test('LB2: next prints the rotation\'s pick on the rotation turn, from this checkout\'s run log', { todo: 'test first' }, () => {
+  const features = createRequire(__filename)(join(ROOT, 'scripts', 'features.js')) as { FEATURES: { name: string; verbs?: string[] }[] };
+  const runs = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  const areas = features.FEATURES.filter((f) => f.name !== 'arch');
+  const out = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'next', '--here'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(out.status, 0, out.stderr);
+  if (!lb.lastWasRotation(runs, areas.map((f) => f.name))) {
+    const want = lb.rotationArea(runs, Object.fromEntries(areas.map((f) => [f.name, f.verbs ?? []])));
+    assert.ok(out.stdout.trim() === want || /^evolve /.test(out.stdout.trim()), `${out.stdout.trim()} is the rotation's ${want}`);
+  } else assert.match(out.stdout.trim(), /^[a-z-]+|^evolve |^none/);
+});
+
+const answerLine = (answers: unknown[], extra = {}) => ({ mode: 'inbox', deploy: 'main', base: 'abc1234', answerLog: '0235', answers, ...extra });
+const owner = { by: 'owner', pick: 'recommended', words: 'Yes, queue it (Recommended)' };
+
+test('LB3: a line the script marks holds every answer to by and pick; an older line reads as it was', { todo: 'test first' }, () => {
+  assert.match(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes' }])).join(), /by/);
+  assert.match(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes', by: 'owner', words: 'Yes' }])).join(), /pick/);
+  assert.deepEqual(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes', ...owner }])), []);
+  assert.deepEqual(lb.logProblems(answerLine([{ entry: 'T4', answer: 'no', by: 'owner', pick: 'no', words: 'No: too busy' }])), []);
+  assert.match(lb.logProblems(answerLine([{ entry: 'T4', answer: 'no', ...owner }])).join(), /pick/, 'a no is picked no');
+  assert.match(lb.logProblems(answerLine([{ entry: 'T4', answer: 'yes', by: 'someone', pick: 'other' }])).join(), /owner or proxy/);
+  assert.match(lb.logProblems(answerLine([{ entry: 'T4', answer: 'no', by: 'proxy', pick: 'no' }])).join(), /proxy/, 'the proxy never says no (0157)');
+  assert.deepEqual(lb.logProblems({ mode: 'inbox', deploy: 'main', base: 'abc1234', answers: [{ entry: 'T3', answer: 'yes' }] }), [], 'LB3b: no marker, read as it was');
+});
+
+test('LB3: tend:log refuses an answer without by and pick, and the marker is the script\'s', { todo: 'test first' }, () => {
+  const r = repo();
+  const base = r.git('rev-parse', 'HEAD');
+  const json = { mode: 'inbox', deploy: 'main', base: base.slice(0, 8), filed: { T: [], G: [] }, answers: [{ entry: 'T3', answer: 'yes' }] };
+  const bare = r.tendJs('log', `${base}..HEAD`, JSON.stringify(json));
+  assert.equal(bare.status, 1);
+  assert.match(bare.stderr, /by/);
+  assert.equal(r.tendJs('log', `${base}..HEAD`, JSON.stringify({ ...json, answerLog: '0235' })).status, 1, 'the marker is the script\'s to write');
+  const ok = r.tendJs('log', `${base}..HEAD`, JSON.stringify({ ...json, answers: [{ entry: 'T3', answer: 'yes', ...owner }] }));
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8'), /"answerLog":"0235"/);
+});
+
+test('loop-budget audit 2: the owner\'s answer carries the owner\'s words; a keep of a proxy yes is a confirms, never take-up', { todo: 'test first' }, () => {
+  assert.match(lb.logProblems(answerLine([{ entry: 'G9', answer: 'yes', by: 'owner', pick: 'recommended' }])).join(), /words/);
+  assert.match(lb.logProblems(answerLine([{ entry: 'G9', answer: 'yes', by: 'owner', pick: 'recommended', words: ' ' }])).join(), /words/);
+  assert.deepEqual(lb.logProblems(answerLine([{ entry: 'G9', answer: 'yes', ...owner, confirms: '2026-11-20' }])), []);
+  assert.match(lb.logProblems(answerLine([{ entry: 'G9', answer: 'yes', by: 'proxy', pick: 'recommended', confirms: '2026-11-20' }])).join(), /confirms/);
+  const runs = [{ date: '2026-11-20', answers: [{ entry: 'G9', answer: 'yes', by: 'proxy', pick: 'recommended' }] }];
+  assert.deepEqual(lb.confirmProblems([{ entry: 'G9', answer: 'yes', ...owner, confirms: '2026-11-20' }], runs), []);
+  assert.match(lb.confirmProblems([{ entry: 'G9', answer: 'yes', ...owner, confirms: '2026-11-21' }], runs).join(), /G9/);
+});
+
+test('loop-budget audit 12: the proxy never answers an [arch] or a [phone] entry', { todo: 'test first' }, () => {
+  assert.deepEqual(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes', by: 'proxy', pick: 'recommended', class: 'T [owner]' }])), []);
+  for (const c of ['T [arch]', 'T [phone]']) assert.match(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes', by: 'proxy', pick: 'recommended', class: c }])).join(), /proxy/, c);
+});
+
+test('LB4: the balance reads the owner\'s take-up by class and the proxy\'s yeses not confirmed, over 30 days', { todo: 'test first' }, () => {
+  const runs = [
+    { date: '2026-10-01', answerLog: '0235', answers: [{ entry: 'T1', answer: 'yes', ...owner, class: 'T [owner]' }] },
+    { date: '2026-11-19', answers: [{ entry: 'T40', answer: 'yes' }] },
+    { date: '2026-11-20', answerLog: '0235', answers: [{ entry: 'T50', answer: 'yes', ...owner, class: 'T [owner]' }, { entry: 'G9', answer: 'yes', by: 'proxy', pick: 'recommended', class: 'G' }] },
+    { date: '2026-11-21', answerLog: '0235', answers: [{ entry: 'T51', answer: 'yes', by: 'owner', pick: 'other', words: 'The other one', class: 'T [owner]' }, { entry: 'G10', answer: 'reshape', by: 'owner', pick: 'reshape', words: 'Yes, but smaller', class: 'G' }] },
+  ];
+  const t = lb.answerTakeUp(runs, '2026-11-26');
+  assert.equal(t.days, 30);
+  assert.deepEqual(t.byClass['T [owner]'], { owner: 2, recommended: 1, other: 1, reshape: 0, no: 0 }, 'the line of Oct 1 is outside the window');
+  assert.deepEqual(t.byClass.G, { owner: 1, recommended: 0, other: 0, reshape: 1, no: 0 });
+  assert.deepEqual(t.proxy, { yeses: 1, unconfirmed: ['G9'], confirmed: 0 });
+  assert.equal(t.unlogged, 1);
+  const kept = lb.answerTakeUp([...runs, { date: '2026-11-22', answerLog: '0235', answers: [{ entry: 'G9', answer: 'yes', ...owner, confirms: '2026-11-20', class: 'G' }] }], '2026-11-26');
+  assert.deepEqual(kept.proxy, { yeses: 1, unconfirmed: [], confirmed: 1 });
+  assert.deepEqual(kept.byClass.G, t.byClass.G, 'a keep is not the owner\'s take-up');
+  const json = lb.balanceJson({ r: { areas: {}, unseen: [], firstSweep: {}, states: {}, share: {}, open: {}, inbox: {}, unattributed: [], unrated: 0, reading: 'in step', propose: false, why: '', evolve: null }, t: { slices: [], growth: 0, refinement: 0, other: 0 }, days: 14, runs, today: '2026-11-26' });
+  assert.deepEqual(json.answers, t, 'balance prints it');
+});
+
+test('loop-budget audit 3: an entry\'s yes logged twice counts once', { todo: 'test first' }, () => {
+  const yes = { entry: 'G13', answer: 'yes', ...owner, class: 'G' };
+  const t = lb.answerTakeUp([{ date: '2026-11-25', answerLog: '0235', answers: [yes] }, { date: '2026-11-26', answerLog: '0235', answers: [yes] }], '2026-11-26');
+  assert.equal(t.byClass.G.owner, 1);
+});
+
+const AGE_STATUS = [
+  '# Status',
+  '',
+  '## Needs the owner',
+  '',
+  '### From /tend',
+  '',
+  '- **T5 [owner] An old question** (2026-10-20)',
+  '  Area: map.',
+  '- **T6 [owner] Answered** (2026-10-20)',
+  "  Nov 1: the owner's yes.",
+  '- **T7 [phone] On a device** (2026-10-01)',
+  '- **T8 [owner] A fresh one** (2026-11-20)',
+  '- **T9 [owner] Three weeks** (2026-11-05)',
+  '',
+  "### From the journal's audit (2026-10-15, `specs/x/spec.md`)",
+  '',
+  '- An item with no date of its own',
+  '',
+  '### From /slice x',
+  '',
+  '- No date anywhere',
+  '- A partial answer (2026-10-10)',
+  '  - ~~5. The pin, answered Nov 11~~',
+  '',
+  '### Last tend',
+  '',
+  '- The last run (2026-10-01)',
+  '',
+  '### Open before the loop',
+  '',
+  '- An edit for your hand (2026-10-01)',
+  '',
+  '## In flight',
+  '',
+].join('\n');
+
+test('LB5: inbox age lists what waited 14 days, marks 30 to move, and says the undated and the phone\'s apart', { todo: 'test first' }, () => {
+  const a = lb.inboxAge(AGE_STATUS, '2026-11-26');
+  const ids = (xs: Age[]) => xs.map((x) => x.id ?? x.text.split('\n')[0]);
+  assert.deepEqual(ids(a.wait), ['T9'], 'fourteen days or more, under thirty');
+  assert.ok(a.move.some((x) => x.id === 'T5' && x.age === 37));
+  assert.ok(!ids([...a.wait, ...a.move]).includes('T6'), 'an answered item does not age');
+  assert.ok(!ids([...a.wait, ...a.move]).includes('T8'));
+  assert.deepEqual(ids(a.phone), ['T7']);
+  assert.ok(ids(a.undated).includes('No date anywhere'));
+  assert.deepEqual(a.move.map((x) => x.age), [...a.move.map((x) => x.age)].sort((x, y) => y - x), 'oldest first');
+  assert.ok(![...a.wait, ...a.move, ...a.hand, ...a.undated].some((x) => /The last run/.test(x.text)), '"Last tend" is no item');
+});
+
+test('loop-budget audit 6: "Open before the loop" is listed with its age, never moved, and its area reads the same', { todo: 'test first' }, () => {
+  const a = lb.inboxAge(AGE_STATUS, '2026-11-26');
+  assert.deepEqual(a.hand.map((x) => [x.text, x.age]), [['- An edit for your hand (2026-10-01)'.slice(2), 56]]);
+  assert.ok(!a.move.some((x) => x.section === 'Open before the loop'));
+  assert.deepEqual(lb.beforeItems(AGE_STATUS).map((i) => i.title), ['An edit for your hand (2026-10-01)'], 'it still waits on the owner\'s hand, so its area cannot read finished');
+});
+
+test('loop-budget audit 7: an item takes its heading\'s date when it has none of its own', { todo: 'test first' }, () => {
+  const a = lb.inboxAge(AGE_STATUS, '2026-11-26');
+  const it = a.move.find((x) => /no date of its own/.test(x.text));
+  assert.ok(it);
+  assert.equal(it.date, '2026-10-15');
+});
+
+test('loop-budget audit 14: a word of an answer in a struck-through sub-item does not answer the whole item', { todo: 'test first' }, () => {
+  const a = lb.inboxAge(AGE_STATUS, '2026-11-26');
+  assert.ok(a.move.some((x) => /A partial answer/.test(x.text)));
+});
+
+const LEASE_STATUS = (from: string, session = 'session_abc') => [
+  '## In flight',
+  '',
+  '| Session | Branch | Doing |',
+  '|---|---|---|',
+  `| Lease: the loop's scripts (G8) | \`tend/inbox-x\` | holds \`scripts/tend.js\`, \`.claude/skills/tend/SKILL.md\`, \`src/app/walk.tsx\` from ${from}, session ${session} |`,
+  '| A slice | `claude/x` | built |',
+  '',
+].join('\n');
+
+test('LB6: a lease holds its process files for 24 h against every other session', { todo: 'test first' }, () => {
+  const rows = lb.leaseRows(LEASE_STATUS('2026-11-26T06:00Z'));
+  assert.deepEqual(rows, [{ files: ['scripts/tend.js', '.claude/skills/tend/SKILL.md'], from: '2026-11-26T06:00Z', session: 'session_abc', branch: 'tend/inbox-x' }], 'a file that is no process file is not held');
+  assert.equal(lb.leaseProblems({ files: ['scripts/tend.js'], date: '2026-11-26T10:00:00Z', session: 'session_other', rows }).length, 1);
+  assert.match(lb.leaseProblems({ files: ['scripts/tend.js'], date: '2026-11-26T10:00:00Z', session: 'session_other', rows })[0], /tend\/inbox-x/);
+  assert.deepEqual(lb.leaseProblems({ files: ['scripts/tend.js'], date: '2026-11-26T10:00:00Z', session: 'session_abc', rows }), [], 'the holder');
+  assert.deepEqual(lb.leaseProblems({ files: ['scripts/tend.js'], date: '2026-11-27T06:00:00Z', session: 'session_other', rows }), [], 'LB6b: lapsed after 24 h');
+  assert.deepEqual(lb.leaseProblems({ files: ['src/app/walk.tsx', 'scripts/records.js'], date: '2026-11-26T10:00:00Z', session: 'session_other', rows }), []);
+});
+
+test('loop-budget audit 13: a lease row is removed by its holder, after it lapsed, or with the owner\'s words quoted', { todo: 'test first' }, () => {
+  const removed = lb.leaseRows(LEASE_STATUS('2026-11-26T06:00Z'));
+  const at = '2026-11-26T10:00:00Z';
+  assert.equal(lb.leaseRemovalProblems({ removed, date: at, session: 'session_other', message: 'Records-Op: inflight remove x --reason "cleared"' }).length, 1);
+  assert.deepEqual(lb.leaseRemovalProblems({ removed, date: at, session: 'session_abc', message: '' }), []);
+  assert.deepEqual(lb.leaseRemovalProblems({ removed, date: '2026-11-27T07:00:00Z', session: 'session_other', message: '' }), []);
+  assert.deepEqual(lb.leaseRemovalProblems({ removed, date: at, session: 'session_other', message: 'Records-Op: inflight remove x --reason "the owner cleared the lease, 2026-11-26: \\"Clear it\\""' }), []);
+});
+
+test('LB6: check:tend refuses another session\'s commit to a held file, in a scratch repository', { todo: 'test first' }, () => {
+  const r = repo();
+  const from = new Date(Date.now() - 60 * 60 * 1000).toISOString().slice(0, 16) + 'Z';
+  mkdirSync(join(r.root, 'docs'), { recursive: true });
+  r.commit({ 'docs/STATUS.md': LEASE_STATUS(from) }, 'The owner takes a lease, by hand');
+  const base = r.git('rev-parse', 'HEAD');
+  r.commit({ 'scripts/tend.js': '// another session\n' }, `Something: an edit (XX1)${AGENT}`);
+  const refused = r.tendJs('commits', '--loop-only', `${base}..HEAD`);
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /lease/);
+  r.commit({ 'docs/STATUS.md': LEASE_STATUS(from, 'session_test') }, 'The lease is the test session\'s, by hand');
+  const mine = r.git('rev-parse', 'HEAD');
+  r.commit({ 'scripts/tend.js': '// the holder\n' }, `Something: an edit (XX1)${AGENT}`);
+  assert.equal(r.tendJs('commits', '--loop-only', `${mine}..HEAD`).status, 0, 'the holder\'s own commit');
+});
+
+test('LB8: tend, ship, the orchestrator and its briefs say the same of the budget, rotation, answers, age and lease', { todo: 'test first' }, () => {
+  const skill = flat(read('.claude/skills/tend/SKILL.md'));
+  const ship = flat(read('.claude/skills/ship.md'));
+  const orch = flat(read('.claude/skills/tend-orchestrator/SKILL.md'));
+  const briefs = flat(read('.claude/skills/tend-orchestrator/briefs.md'));
+  for (const [name, text] of Object.entries({ skill, ship, orch, briefs })) {
+    assert.match(text, /one review fix per fix/, `${name}: the budget`);
+    assert.match(text, /Regression: <sha>/, `${name}: the run's own regression`);
+    assert.match(text, /Severity: high/, `${name}: highs always fixed`);
+  }
+  assert.match(skill, /alternates/);
+  for (const text of [skill, orch, briefs]) assert.match(text, /"by"[^.]*"pick"/);
+  for (const text of [skill, orch]) assert.match(text, /inbox age/);
+  assert.match(orch, /four oldest/);
+  assert.match(orch, /confirms/);
+  for (const text of [ship, briefs]) assert.match(text, /Lease:/);
+});
+
+test('loop-budget audit 9: no skill says "medium and above" are fixed beside the budget', { todo: 'test first' }, () => {
+  for (const f of ['.claude/skills/tend/SKILL.md', '.claude/skills/ship.md', '.claude/skills/tend-orchestrator/SKILL.md', '.claude/skills/tend-orchestrator/briefs.md']) {
+    assert.doesNotMatch(flat(read(f)), /[Mm]edium and above (are )?fixed|Fixes in the run: medium and above/, f);
+  }
+});

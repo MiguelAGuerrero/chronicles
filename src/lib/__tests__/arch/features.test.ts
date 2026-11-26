@@ -277,3 +277,21 @@ test('NT12 the docs list the web notification transport as a web exception, with
   assert.match(section, /notify\/transport\.web\.ts/);
   assert.match(section, /expo-notifications has no web build/);
 });
+
+// Loop budget (specs/loop-budget, decision 0269): each area's verbs order the loop's sweeps, and nothing else.
+test('LB2: every feature but arch names its verbs, VISION\'s three, in the order the rotation reads them', { todo: 'test first' }, () => {
+  const f = features as unknown as { VERBS: string[]; FEATURES: { name: string; verbs?: string[] }[] };
+  assert.deepEqual(f.VERBS, ['Return', 'Honour', 'Earn']);
+  for (const x of f.FEATURES.filter((y) => y.name !== 'arch')) {
+    assert.ok(Array.isArray(x.verbs) && x.verbs.length > 0, `${x.name} names its verbs`);
+    for (const v of x.verbs ?? []) assert.ok(f.VERBS.includes(v), `${x.name}: ${v} is one of VISION's verbs`);
+  }
+});
+
+test('loop-budget audit 5: walk-screen and map keep the verbs already ruled; the table is never a Serves: ruling', { todo: 'test first' }, () => {
+  const f = features as unknown as { FEATURES: { name: string; verbs?: string[] }[] };
+  const verbs = (n: string) => [...(f.FEATURES.find((x) => x.name === n)?.verbs ?? [])].sort();
+  assert.deepEqual(verbs('walk-screen'), ['Earn', 'Honour'], 'decision 0261');
+  assert.deepEqual(verbs('map'), ['Earn', 'Return'], 'the proxy\'s ruling of Nov 20, unconfirmed');
+  assert.match(readFileSync(join(ROOT, 'scripts', 'features.js'), 'utf8'), /sweep order only[^\n]*never a ruling a `Serves:` line may cite|never a ruling a `Serves:` line may cite[^\n]*sweep/);
+});

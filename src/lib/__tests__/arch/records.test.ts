@@ -1529,3 +1529,52 @@ test('records help: prints the usage at the top of scripts/records.js', () => {
   const none = spawnSync(process.execPath, [join(ROOT, 'scripts', 'records.js')], { encoding: 'utf8' });
   assert.match(none.stderr, /npm run records -- help/, 'the usage line names it');
 });
+
+// Loop budget (specs/loop-budget, LB5, decisions 0235 and 0269): the inbox's age is read, never an operation.
+const AGED = [
+  '# Status',
+  '',
+  '## Needs the owner',
+  '',
+  '### From /tend',
+  '',
+  '- **T5 [owner] An old question** (2026-10-20)',
+  '  Area: map. Seen: the pin.',
+  '- **T9 [owner] Three weeks** (2026-11-05)',
+  '',
+  '### From /slice x',
+  '',
+  '- A stale question of a slice (2026-10-10)',
+  '  Its second line.',
+  '',
+  '### Open before the loop',
+  '',
+  '- An edit for your hand (2026-10-01)',
+  '',
+].join('\n');
+
+test('LB5: records inbox age lists, writes each bullet to move with its words kept, and prints the operations that move it', { todo: 'test first' }, () => {
+  const r = repo('age');
+  r.write('docs/STATUS.md', AGED);
+  r.commit('aged');
+  const json = r.node('scripts/records.js', 'inbox', 'age', '--json', '--today', '2026-11-26');
+  assert.equal(json.status, 0, json.stderr);
+  const a = JSON.parse(json.stdout) as { wait: { id: string }[]; move: { id: string | null }[]; hand: unknown[] };
+  assert.deepEqual(a.wait.map((x) => x.id), ['T9']);
+  assert.equal(a.move.length, 2);
+  assert.equal(a.hand.length, 1);
+  const out = join(tmp, 'age-out');
+  const w = r.node('scripts/records.js', 'inbox', 'age', '--today', '2026-11-26', '--write', out);
+  assert.equal(w.status, 0, w.stderr);
+  const files = readdirSync(out).sort();
+  assert.equal(files.length, 2, 'one bullet per item to move, none for "Open before the loop"');
+  const bodies = files.map((f) => readFileSync(join(out, f), 'utf8'));
+  const t5 = bodies.find((b) => /T5/.test(b)) ?? '';
+  assert.match(t5, /^- \[owner\] \*\*T5 \[owner\] An old question\*\* \(2026-10-20\)\n  Area: map\. Seen: the pin\.\n  Moved from the inbox \("From \/tend"\) on 2026-11-26, unanswered since 2026-10-20 \(decision 0235\)\.\n$/);
+  assert.match(w.stdout, /npm run records -- inbox remove T5 --reason "unanswered for 30 days \(decision 0235\)"/);
+  assert.match(w.stdout, /npm run records -- section item remove "From \/slice x" "A stale question of a slice \(2026-10-10\)" --reason "unanswered for 30 days \(decision 0235\)"/);
+  assert.match(w.stdout, /npm run records -- deferred item add "From the inbox, unanswered for 30 days" --new --file /);
+  assert.doesNotMatch(w.stdout, /open remove/, '"Open before the loop" is never moved (0269)');
+  assert.equal(r.read('docs/STATUS.md'), AGED, 'nothing written to the documents');
+  assert.ok(!existsSync(join(r.dir, '.claude', 'records')) || readdirSync(join(r.dir, '.claude', 'records')).length === 0, 'no sidecar: a read is no operation');
+});
