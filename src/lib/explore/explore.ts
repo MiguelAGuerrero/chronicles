@@ -311,7 +311,7 @@ export function buildChecklists(o: {
  * that area has no checklist of this build; around the fix itself when no
  * read of this build is within 1 km of it.
  */
-export function readCentre(o: {
+export type ReadAsk = {
   fix: LngLat;
   candidates: PlaceCandidate[];
   areas: (Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'> & { key?: string; archive?: string | null })[];
@@ -325,16 +325,36 @@ export function readCentre(o: {
   archive?: ArchiveAt;
   /** tend explore T65: the keys of areas whose items hold a retired kind (`retiredAreas`): read again too. */
   retired?: ReadonlySet<string>;
-}): LngLat | null {
+};
+export function readCentre(o: ReadAsk): LngLat | null {
+  return aimOf(o).centre;
+}
+
+/** Where `readCentre` reads, and the area holding a retired kind it reads around for that, if any (tend explore audit 56). */
+function aimOf(o: ReadAsk): { centre: LngLat | null; retired: string | null } {
   const near = o.reads.some((r) => r.build === o.build && distanceM(r.centre, o.fix) <= EXPLORE_RULES.rereadM);
-  if (!near) return o.fix;
+  if (!near) return { centre: o.fix, retired: null };
   const ref = areaFor(o.fix, uniqueAreas(o.candidates), o.outlines ?? null);
-  if (!ref) return null;
-  const kept = (a: (typeof o.areas)[number]) => a.build === o.build && !archiveStale(a.archive, archiveTagAt(o.archive, a.at)) && !(a.key != null && o.retired?.has(a.key));
-  if (o.areas.some((a) => kept(a) && sameArea(a, ref))) return null;
+  if (!ref) return { centre: null, retired: null };
+  const kept = (a: ReadAsk['areas'][number]) => a.build === o.build && !archiveStale(a.archive, archiveTagAt(o.archive, a.at)) && !(a.key != null && o.retired?.has(a.key));
+  if (o.areas.some((a) => kept(a) && sameArea(a, ref))) return { centre: null, retired: null };
   // tend explore audit 55: one stale for a retired kind is read around its own stored point, the only one a read can see it
   // whole from (a town's z11 and z14 points differ), so the read builds it again and it heals.
-  return retiredOf(ref, o)?.at ?? ref.at;
+  const stale = retiredOf(ref, o);
+  return { centre: stale?.at ?? ref.at, retired: stale?.key ?? null };
+}
+
+/**
+ * tend explore audit 56: the key of the area holding a retired kind that a read around `centre` (what `readCentre` gave for
+ * `o`) was aimed at, or null: a read around the fix for another reason, or none, aims at no area.
+ */
+export function retiredAimed(o: ReadAsk, centre: LngLat | null): string | null {
+  return centre ? aimOf(o).retired : null;
+}
+
+/** tend explore audit 56: the aimed area, when the items around you after its read still hold a retired kind of it, else null. */
+export function retiredToMark(aimed: string | null, items: Pick<ChecklistItem, 'area_key' | 'kind'>[]): string | null {
+  return aimed != null && retiredAreas(items).has(aimed) ? aimed : null;
 }
 
 /** The area holding a retired kind that `ref` names (`sameArea`), of this build, or null (tend explore audit 55). */

@@ -17,7 +17,9 @@ import {
   alertKeys,
   EXPLORE_RULES,
   readCentre,
+  retiredAimed,
   retiredAreas,
+  retiredToMark,
   retryAllowed,
   revealedKeys,
   routeMarks,
@@ -169,6 +171,7 @@ export function useExplore(opts: {
   const maybeRead = useCallback(async (fix: LngLat) => {
     if (exploreBusy() || !retryAllowed(failed.current, fix, Date.now())) return;
     const retired = retiredAreas(held.current, retiredTried.current);
+    let aimed: string | null = null;
     // tend explore audit 11: held from here, so a capture made while the read is still being decided waits for it; let go
     // before the read's items load, so the capture is looked at again with them.
     const read = await exploreHold(async () => {
@@ -178,7 +181,9 @@ export function useExplore(opts: {
       const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
       // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
       await placesArchive.refresh();
-      let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at), retired });
+      const ask = { fix, candidates, areas: k.areas, reads: k.reads, build, archive: (at: LngLat) => placesArchive.versionAt(at), retired };
+      let centre = readCentre(ask);
+      aimed = retiredAimed(ask, centre);
       if (!centre && rememberStorefronts(latest.current) && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
         const rows = await db.listLandings().catch(() => []);
         // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
@@ -190,7 +195,9 @@ export function useExplore(opts: {
     });
     if (!read) return;
     await loadItems(fix);
-    for (const key of retiredAreas(held.current)) if (retired.has(key)) retiredTried.current.add(key);
+    // tend explore audit 56: only the area this read was aimed at, if it left it as it was.
+    const left = retiredToMark(aimed, held.current);
+    if (left) retiredTried.current.add(left);
   }, [loadKnown, loadItems, readAt]);
 
   const { here, places } = opts;

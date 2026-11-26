@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import type { PlaceCandidate } from '../../areas/types';
 import type { Kind, Place } from '../../discovery/types';
-import { buildChecklists, checklistKey, readCentre, retiredAreas, type ChecklistArea, type ChecklistItem } from '../../explore/explore';
+import { buildChecklists, checklistKey, readCentre, retiredAimed, retiredAreas, retiredToMark, type ChecklistArea, type ChecklistItem } from '../../explore/explore';
 
 const ROOT = join(__dirname, '../../../..');
 const src = (p: string) => readFileSync(join(ROOT, p), 'utf8');
@@ -55,8 +55,9 @@ test('tend explore T65: the read leaves an area holding a retired kind out of wh
   const walk = src('src/lib/explore/useExplore.ts');
   const maybe = walk.slice(walk.indexOf('const maybeRead = useCallback'), walk.indexOf('const { here, places } = opts;'));
   assert.match(maybe, /const retired = retiredAreas\(held\.current, retiredTried\.current\);/, 'the items around you, less those already read again');
-  assert.match(maybe, /readCentre\(\{ fix, candidates, areas: k\.areas, reads: k\.reads, build, archive: \(at\) => placesArchive\.versionAt\(at\), retired \}\)/);
-  assert.match(maybe, /for \(const key of retiredAreas\(held\.current\)\) if \(retired\.has\(key\)\) retiredTried\.current\.add\(key\);/, 'an area a read left as it was is not read again for it on this screen');
+  assert.match(maybe, /const ask = \{ fix, candidates, areas: k\.areas, reads: k\.reads, build, archive: \(at: LngLat\) => placesArchive\.versionAt\(at\), retired \};\n\s*let centre = readCentre\(ask\);\n\s*aimed = retiredAimed\(ask, centre\);/);
+  // tend explore audit 56: after the read and its items, only the area it was aimed at, if left as it was.
+  assert.match(maybe, /if \(!read\) return;\n\s*await loadItems\(fix\);\n[^\n]*\n\s*const left = retiredToMark\(aimed, held\.current\);\n\s*if \(left\) retiredTried\.current\.add\(left\);/, 'an area a read left as it was is not read again for it on this screen');
   assert.match(walk, /if \(got\) held\.current = got;/, 'the items loaded around you are what the check reads');
 });
 
@@ -76,4 +77,21 @@ test('tend explore audit 55: a town stale for a retired kind is read around its 
   assert.deepEqual(from(p14).areas.map((a) => a.key), [KEY], 'rebuilt under its own key, so its old items are replaced');
   // An area stale only for its archive keeps main's way: read around the point listed.
   assert.deepEqual(readCentre({ ...at, archive: 'v2' }), CENTRE);
+});
+
+test('tend explore audit 56: only the area a read was aimed at, and left as it was, is not asked again on this screen', () => {
+  // Fox holds towers and the walker is in it; Elm, 1.2 km off, holds towers too but no read here aims at it.
+  const elmAt: [number, number] = [CENTRE[0] + 0.0142, CENTRE[1]];
+  const ELM = checklistKey({ level: 'neighborhood', name: 'Elm', at: elmAt });
+  const elm: ChecklistArea = { ...area, key: ELM, name: 'Elm', at: elmAt };
+  const at = { fix: CENTRE, candidates: [fox, { ...fox, name: 'Elm', at: elmAt }], areas: [area, elm], reads, build: 'b1', archive: 'v1', retired: new Set([FOX, ELM]) };
+  const centre = readCentre(at);
+  assert.deepEqual(centre, CENTRE);
+  assert.equal(retiredAimed(at, centre), FOX, 'the read is aimed at Fox, the area the walker is in');
+  const left = [item('a', 'towers'), item('e', 'towers', ELM)];
+  assert.equal(retiredToMark(retiredAimed(at, centre), left), FOX, 'Fox left as it was: not asked again');
+  assert.equal(retiredToMark(retiredAimed(at, centre), [item('a', 'water_towers'), item('e', 'towers', ELM)]), null, 'Fox healed: nothing to mark, and Elm, never aimed at, never marked');
+  assert.equal(retiredAimed(at, null), null, 'no read, no aim');
+  // A read around the fix for another reason (no read of this build within 1 km) is not aimed at the area.
+  assert.equal(retiredAimed({ ...at, reads: [] }, readCentre({ ...at, reads: [] })), null);
 });
