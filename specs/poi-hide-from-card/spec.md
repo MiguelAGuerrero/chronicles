@@ -51,10 +51,20 @@ The owner's answers to the steward's three questions (in person, 2026-11-25; the
 - **A found card's head is today's** ("Keep today's found head (Recommended)"): "Hessian Memorial · War memorials", no
   More and no kind line (HK5).
 
+The owner's answers to the ux-reviewer's two questions on the drawing (in person, 2026-11-25; the owner's own):
+
+- **"48 everywhere"** (U33): the card's More and the sheet's Done are 48 on both platforms, where the drawing has 44
+  (HK1; poi-hide-from-card audit 16).
+- **"Shared rows' sizes (Recommended)"** (U34): the sheet keeps SwitchRow's and PageRow's sizes (15 px, 48 tall); the
+  drawing's 16 px and 52 give way to the house rows (poi-hide-from-card audit 17).
+
 ## Mock-up
 
 Drawing: https://claude.ai/artifact/B2rLDb6EvciUx6LaUFJVHC#artboard-MenuSwitches (docs/mockups/poi-hide-from-card/MenuSwitches.dc.html)
 Approved: with G12, "Approve as redrawn" (the owner, 2026-11-21)
+
+Departures the owner approved after the build (2026-11-25, in person): More and Done 48 where drawn 44 ("48 everywhere");
+the sheet's rows at the house rows' sizes where drawn 16 px and 52 ("Shared rows' sizes (Recommended)").
 
 The boards before MenuSwitches on the canvas are the shapes it replaced (the menu with Hide, the Undo slab, the one-tap
 line). Words since the drawing: the categories' names became one table on Nov 24 (`tend explore T49`, decisions 0239,
@@ -94,7 +104,7 @@ own cards of shops and sights, not a find's, and stay as they are.
 G12's nine, in its words, numbered with the slice's prefix; HK10 is the states they imply (slice step 2).
 
 1. **HK1** (the owner's task: "toggle off points of interest based on a card … that applies over the category") An
-   unfound place's card on the walk has More (…) at its top right, in ink, 44 pt, spoken "More"; under the name a muted
+   unfound place's card on the walk has More (…) at its top right, in ink, 48 (the owner, "48 everywhere"), spoken "More"; under the name a muted
    line names its kind and, when it has one, its subtype ("Monuments and memorials · Plaques"). A "?" card has More too,
    and its head reads "A place to find" alone, as today (the owner, Q1; poi-hide-from-card audit 1). **Finding:** someone told only "stop being shown plaques" finds More on the plaque's card they
    just opened, by the three dots people know as More, and the sheet it opens by the word "Plaques".
@@ -184,3 +194,21 @@ Built 2026-11-25 under `/tend inbox G12 yes` on `tend/inbox-20261125-2132`, from
   each area no rougher by an open item.
 - **Native:** never run on a phone; two items in `docs/NATIVE_UNVERIFIED.md`, "Navigation and tabs" (the sheet over the
   walk's map, its switches and closes, the spoken names; What I'm into at the kind's row from it).
+
+## The diff review (Nov 25-26, one round)
+
+The `auditor` and the `ux-reviewer` (with the cold find: both goals found at the first try) over 98e6b9de..7a20222d, with
+the pictures before and after; triaged by the run's coordinator, the owner answering U33 and U34 in person. Accepted 10,
+each a todo first (0b73937a) and its fix (81e539b2): poi-hide-from-card audit 8 (F8, the card decided in render, so a kind
+turned off on What I'm into opened from the sheet leaves no card on return), 9 (F10, the landing keeps its p11 rows: it
+reads no subset), 10 (F11, a moment opened over the walk closes the sheet), 11 (F12, the walk's Escape and Back stand
+aside while the sheet is up), 12 (F14 with U31: the kind line breaks at its dot; a name that fits the narrowest line,
+`KIND_NAME_KEEP` 20 characters, is kept whole, and a longer one, "Monuments and memorials" at 320, wraps between its
+words, since the head's column there is about 150 px; F14's move of the line to the card's full width rejected as a
+departure from the drawing), 13 (F15, `.claude/rules/presence.md` names the card's line and sheet; words only), 14
+(U30, a section's first row opens at the section's top), 15 (U32, a "?" head centred against More), 16 (U33, 48), 17
+(U34, the house rows). Deferred 1: F13, the settings' save-echo race in `useExploreSettings` (main's, now reachable from
+the sheet), `[loop]` low in `docs/DEFERRED.md`. For the owner 1: F9 with the steward's S2, a checklist that holds a
+retired kind rebuilt on entry (amends E4), filed as a `T` entry. Rejected: U35 (no grabber: the house's sheets have none,
+`MemoryMenu` alike) and F14's full-width move. Checks that could not fail were rewritten: the rows' icons read from the
+drawn fonts, a failed read and the rows' sizes pictured on the screen; the bars with Water towers off were added (HK9).
