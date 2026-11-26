@@ -13,7 +13,7 @@ import { sweepCovered } from '../landing/view';
 import { ensureTileBuild } from '../tiles';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
-import { archiveStale, buildChecklists, EXPLORE_RULES, readKey, retiredAreas, type ExploreRead } from './explore';
+import { checklistsOfRead, EXPLORE_RULES, heldBounds, readKey, type ExploreRead } from './explore';
 import { createReadQueue, type ExploreResult } from './exploreQueue';
 
 /** The tile build, checked at most every 10 min: never a TileJSON fetch per fix (audit 1, 6). */
@@ -60,19 +60,18 @@ function readOnce(centre: LngLat, opts: { remember: boolean }, shouldStop: () =>
       const candidates = withoutOutlines(withOutlines(points, borders?.set));
       const now = Date.now();
       // Areas built for this build stay as they are; earlier reads' candidates keep places with their areas (audit 3).
-      // tend explore T65: every item of an area this read sees whole lies within 1.5 km of the area's point, itself within
-      // 1.5 km of the centre; an area holding a retired kind is built again, so its places take their own kinds.
+      // tend explore T65, audit 58: the kept items in reach of every area this read sees whole; one holding a retired kind
+      // is built again, so its places take their own kinds.
       const [done, reads, finds, held] = await Promise.all([
         db.listChecklistAreas(), db.listExploreReads(), db.listFinds().catch(() => []),
-        db.checklistItemsIn(boundsOf([centre], EXPLORE_RULES.readM * 2)!).catch(() => []),
+        db.checklistItemsIn(heldBounds(centre)).catch(() => []),
       ]);
-      const retired = retiredAreas(held);
       // PP13: with the pipeline's blocks, each area is tagged and judged at its own point, from the file this read used.
       const archiveAt = (at: LngLat) => (read.archive == null ? null : placesArchive.versionAt(at) ?? read.archive);
-      const built = buildChecklists({
+      const built = checklistsOfRead({
         places: read.places, candidates: points, centre, build, now, outlines: borders?.set ?? null,
-        // PW12: an area built before the places archive (or with an older version) is built again.
-        built: done.filter((a) => a.build === build && !archiveStale(a.archive, archiveAt(a.at)) && !retired.has(a.key)),
+        // PW12, T65: an area built before the places archive (or with an older version), or holding a retired kind, is built again.
+        done, held,
         archive: archiveAt,
         // Audit 1-2: a place already found keeps its find's key through a rebuild.
         finds,

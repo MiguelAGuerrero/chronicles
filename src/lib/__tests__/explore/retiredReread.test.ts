@@ -7,7 +7,9 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import type { PlaceCandidate } from '../../areas/types';
 import type { Kind, Place } from '../../discovery/types';
-import { buildChecklists, checklistKey, readCentre, retiredAimed, retiredAreas, retiredToMark, type ChecklistArea, type ChecklistItem } from '../../explore/explore';
+import { boundsOf, distanceM } from '../../geo';
+import { fakePorts } from '../fakes';
+import { buildChecklists, checklistKey, checklistsOfRead, heldBounds, readCentre, retiredAimed, retiredAreas, retiredToMark, type ChecklistArea, type ChecklistItem } from '../../explore/explore';
 
 const ROOT = join(__dirname, '../../../..');
 const src = (p: string) => readFileSync(join(ROOT, p), 'utf8');
@@ -47,11 +49,7 @@ test('tend explore T65: read again, the towers take their own kinds and the area
   assert.equal(readCentre({ fix: CENTRE, candidates: [fox], areas: again.areas, reads, build: 'b1', archive: 'v1', retired: rebuilt }), null, 'read once, then left');
 });
 
-test('tend explore T65: the read leaves an area holding a retired kind out of what it keeps, and the walk asks once per area', () => {
-  const run = src('src/lib/explore/exploreRun.ts');
-  // Every item of an area the read sees whole lies within 1.5 km of the area's point, itself within 1.5 km of the centre.
-  assert.match(run, /db\.checklistItemsIn\(boundsOf\(\[centre\], EXPLORE_RULES\.readM \* 2\)!\)/, 'the read looks at the items of every area it can see whole');
-  assert.match(run, /built: done\.filter\(\(a\) => a\.build === build && !archiveStale\(a\.archive, archiveAt\(a\.at\)\) && !retired\.has\(a\.key\)\)/);
+test('tend explore T65: the walk asks once per area, from the items loaded around you', () => {
   const walk = src('src/lib/explore/useExplore.ts');
   const maybe = walk.slice(walk.indexOf('const maybeRead = useCallback'), walk.indexOf('const { here, places } = opts;'));
   assert.match(maybe, /const retired = retiredAreas\(held\.current, retiredTried\.current\);/, 'the items around you, less those already read again');
@@ -102,4 +100,40 @@ test('tend explore audit 57: after a route\'s reads, the items around you that t
   assert.match(route, /if \(centre\) \{\n\s*if \(!\(await readAt\(centre, \(\) => !alive\)\)\) break;\n\s*readAny = true;\n\s*\}/, 'a route read that happened is noted');
   assert.match(route, /const at = itemsAt\.current;\n\s*if \(readAny && at && alive\) await loadItems\(at\)\.catch\(\(\) => \{\}\);/, 'then the items around you (held) are read again');
   assert.match(route, /\}, \[routePath, loadKnown, loadItems, readAt\]\);/);
+});
+
+test('tend explore audit 58: a read over the stored checklists builds an area holding a retired kind again, its items replaced, once', async () => {
+  const { db } = fakePorts();
+  const old = (key: string, kind: Kind, dx: number): ChecklistItem => ({ ...item(key, kind), name: key, at: [CENTRE[0] + dx, CENTRE[1]] });
+  await db.saveChecklists({ areas: [area], items: [old('Fox Water Tower', 'towers', 0.001), old('Old Mill', 'monuments', 0.002)], read: { key: 'r0', centre: CENTRE, build: 'b1', read_at: 1, candidates: [fox] } });
+  const place = (name: string, kind: Kind, dx: number): Place => ({ key: name, name, category: 'history', at: [CENTRE[0] + dx, CENTRE[1]], generic: false, build: 'b1', markable: true, kind });
+  const places = [place('Fox Water Tower', 'water_towers', 0.001), place('Old Mill', 'monuments', 0.002)];
+  const readOnce = async (now: number) => {
+    const [done, held] = await Promise.all([db.listChecklistAreas(), db.checklistItemsIn(heldBounds(CENTRE))]);
+    const built = checklistsOfRead({ places, candidates: [fox], centre: CENTRE, build: 'b1', now, archive: 'v1', done, held });
+    await db.saveChecklists({ ...built, read: { key: `r${now}`, centre: CENTRE, build: 'b1', read_at: now, candidates: [fox] } });
+    return built;
+  };
+  const first = await readOnce(2);
+  assert.deepEqual(first.areas.map((a) => a.key), [FOX], 'the area holding `towers` is built again');
+  const items = await db.checklistItemsIn(heldBounds(CENTRE));
+  assert.deepEqual(items.map((i) => [i.name, i.kind, i.area_key]).sort(), [['Fox Water Tower', 'water_towers', FOX], ['Old Mill', 'monuments', FOX]], 'its old items replaced, the tower its own kind');
+  assert.equal((await db.listChecklistAreas()).find((a) => a.key === FOX)?.built_at, 2);
+  assert.deepEqual((await readOnce(3)).areas, [], 'healed: the next read keeps it as built');
+  // An area the read sees whole has its point within 1.5 km of the centre and its items within 1.5 km of that point.
+  const far: [number, number] = [CENTRE[0] + 0.024, CENTRE[1]];
+  assert.ok(distanceM(CENTRE, far) > 1900 && distanceM(CENTRE, far) < 2100);
+  const inBox = (b: [number, number, number, number], p: [number, number]) => p[0] >= b[0] && p[0] <= b[2] && p[1] >= b[1] && p[1] <= b[3];
+  assert.ok(inBox(heldBounds(CENTRE), far), 'the items looked at reach twice the read');
+  assert.ok(!inBox(boundsOf([CENTRE], 1500)!, far));
+  // An area built with an older archive version is rebuilt as before; one of another build is not this read's.
+  assert.deepEqual(checklistsOfRead({ places, candidates: [fox], centre: CENTRE, build: 'b1', now: 4, archive: 'v2', done: [area], held: [] }).areas.map((a) => a.key), [FOX]);
+  assert.deepEqual(checklistsOfRead({ places, candidates: [fox], centre: CENTRE, build: 'b1', now: 4, archive: 'v1', done: [area], held: [] }).areas, []);
+});
+
+test('tend explore audit 58: the read builds its checklists through `checklistsOfRead`, over the items in `heldBounds`', () => {
+  const run = src('src/lib/explore/exploreRun.ts');
+  assert.match(run, /db\.checklistItemsIn\(heldBounds\(centre\)\)\.catch\(\(\) => \[\]\)/);
+  assert.match(run, /const built = checklistsOfRead\(\{[^}]*\bdone,\s*held,/);
+  assert.doesNotMatch(run, /buildChecklists\(/, 'no second way to build');
 });

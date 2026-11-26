@@ -9,7 +9,7 @@ import { isOffered } from '../discovery/places';
 import { isKindHidden, kindParent } from '../discovery/refinements';
 import { DEFAULT_OFF, foundRows, keepTheLows, passedNames, RETIRED, SUBTYPES } from '../discovery/subtypes';
 import type { CategoryId, Kind, Place } from '../discovery/types';
-import { distanceM, nearPoints, projector } from '../geo';
+import { boundsOf, distanceM, nearPoints, projector, type Bounds } from '../geo';
 import type { LngLat } from '../types';
 import { spansCover, type Spans } from './placesSpans';
 import { numberWord } from '../resurface/lines';
@@ -304,6 +304,26 @@ export function buildChecklists(o: {
     if (key) areas.get(key)!.count++;
   }
   return { areas: [...areas.values()], items };
+}
+
+/**
+ * tend explore audit 58: the box of kept items a read looks at for a retired kind. Every item of an area the read sees whole
+ * lies within 1.5 km of the area's point, itself within 1.5 km of the centre (`covers`).
+ */
+export const heldBounds = (centre: LngLat): Bounds => boundsOf([centre], EXPLORE_RULES.readM * 2)!;
+
+/**
+ * One read's checklists over what is stored (E4, PW12, PP13; tend explore T65, audit 58): the areas of this build stay as
+ * built (audit 3), less one built with another archive version (`archiveStale`) and one whose items in `held` (the kept
+ * items in `heldBounds`) hold a retired kind; those are built again, and their items replaced.
+ */
+export function checklistsOfRead(
+  o: Omit<Parameters<typeof buildChecklists>[0], 'built'> & { done: ChecklistArea[]; held: Pick<ChecklistItem, 'area_key' | 'kind'>[] },
+): { areas: ChecklistArea[]; items: ChecklistItem[] } {
+  const { done, held, ...read } = o;
+  const retired = retiredAreas(held);
+  const built = done.filter((a) => a.build === o.build && !archiveStale(a.archive, archiveTagAt(o.archive, a.at)) && !retired.has(a.key));
+  return buildChecklists({ ...read, built });
 }
 
 /**
