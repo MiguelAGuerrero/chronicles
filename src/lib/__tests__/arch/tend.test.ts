@@ -1255,22 +1255,25 @@ test('loop-budget audit 8: while any area is unswept, only an area\'s first swee
   assert.equal(lb.lastWasRotation(runs, areas), false, 'gallery waits: chronicle again is no rotation');
 });
 
-test('LB2: next prints the rotation\'s pick on the rotation turn, from this checkout\'s run log', () => {
+test('LB2: next prints the rotation\'s pick on the rotation turn and the resets\' on the other, in a scratch repository', () => {
+  // A scratch repository of its own, whole: CI clones this one 50 commits deep, where next refuses to answer (AS6).
   const features = createRequire(__filename)(join(ROOT, 'scripts', 'features.js')) as { FEATURES: { name: string; verbs?: string[] }[] };
-  const runs = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean).map((l) => JSON.parse(l));
-  const areas = features.FEATURES.filter((f) => f.name !== 'arch');
-  const out = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'next', '--here'], { cwd: ROOT, encoding: 'utf8' });
-  assert.equal(out.status, 0, out.stderr);
-  // The resting areas are the script's; read them from its state, as next does.
-  const state = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'state', '--here', '--json'], { cwd: ROOT, encoding: 'utf8' });
-  const resting = Object.entries(JSON.parse(state.stdout) as Record<string, { state: string }>).filter(([, x]) => x.state === 'resting').map(([a]) => a);
-  const evolve = /^evolve /.test(out.stdout.trim());
-  if (!lb2.lastWasRotation(runs, areas.map((f) => f.name), resting)) {
-    assert.match(out.stderr, /the rotation turn/);
-    const want = lb.rotationArea(runs, Object.fromEntries(areas.map((f) => [f.name, f.verbs ?? []])), resting);
-    assert.equal(out.stdout.trim(), evolve ? out.stdout.trim() : want, 'the rotation\'s pick');
-    if (evolve) assert.match(out.stderr, /an evolve is due first/);
-  } else assert.match(out.stderr, /the reset turn/);
+  const verbs = Object.fromEntries(features.FEATURES.filter((f) => f.name !== 'arch').map((f) => [f.name, f.verbs ?? []]));
+  const r = repo();
+  const next = (runs: unknown[]) => {
+    r.commit({ '.claude/skills/tend/runs.jsonl': runs.map((x) => JSON.stringify(x)).join('\n') + '\n' }, 'the run log, by hand');
+    return r.tendJs('next', '--here');
+  };
+  // Dated today, so no evolve is due (fourteen days with no G, counted from the log's first line).
+  const day = (back: number) => new Date(Date.now() - back * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const again = [sweepLine('explore', day(2)), sweepLine('explore', day(1))];
+  const rotation = next(again);
+  assert.equal(rotation.status, 0, rotation.stderr);
+  assert.match(rotation.stderr, /the rotation turn/);
+  assert.equal(rotation.stdout.trim(), lb.rotationArea(again, verbs), 'the never-swept area first in VISION\'s order');
+  const reset = next([sweepLine('explore', day(2)), sweepLine('replay', day(1))]);
+  assert.equal(reset.status, 0, reset.stderr);
+  assert.match(reset.stderr, /the reset turn/, 'after a first sweep, the resets\' turn');
 });
 
 const answerLine = (answers: unknown[], extra = {}) => ({ mode: 'inbox', deploy: 'main', base: 'abc1234', answerLog: '0235', answers, ...extra });
@@ -1336,12 +1339,24 @@ test('LB4: the balance reads the owner\'s take-up by class and the proxy\'s yese
   assert.deepEqual(kept.byClass.G, t.byClass.G, 'a keep is not the owner\'s take-up');
   const json = lb.balanceJson({ r: { areas: {}, unseen: [], firstSweep: {}, states: {}, share: {}, open: {}, inbox: {}, unattributed: [], unrated: 0, reading: 'in step', propose: false, why: '', evolve: null }, t: { slices: [], growth: 0, refinement: 0, other: 0 }, days: 14, runs, today: '2026-11-26' });
   assert.deepEqual(json.answers, t, 'balanceJson carries it');
-  // And the balance itself prints it, over main's run log (the tests that cannot fail, the diff review).
-  const printed = spawnSync(process.execPath, [join(ROOT, 'scripts', 'tend.js'), 'balance'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  // And the balance itself prints it, over main's run log (the tests that cannot fail, the diff review), in a whole
+  // scratch repository: CI clones this one 50 commits deep, where the balance refuses to answer (AS6).
+  const r = repo();
+  const today = new Date().toISOString().slice(0, 10);
+  const mainRuns = [{ ...runs[2], date: today }, { ...runs[3], date: today }];
+  mkdirSync(join(r.root, 'docs'), { recursive: true });
+  r.commit({
+    '.claude/skills/tend/runs.jsonl': mainRuns.map((x) => JSON.stringify(x)).join('\n') + '\n',
+    '.claude/skills/tend/ledger.json': '{ "lastT": 0, "lastG": 0 }\n',
+    'docs/STATUS.md': '# Status\n\n## Needs the owner\n\n### From /tend\n\nNothing open.\n',
+    'docs/DEFERRED.md': '# Deferred\n',
+  }, 'main, by hand');
+  r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  const printed = r.tendJs('balance');
   assert.equal(printed.status, 0, printed.stderr);
-  const mainRuns = spawnSync('git', ['show', 'origin/main:.claude/skills/tend/runs.jsonl'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).stdout.split('\n').filter(Boolean).map((l) => JSON.parse(l));
   const b = JSON.parse(printed.stdout) as { date: string; answers: unknown };
   assert.deepEqual(b.answers, lb.answerTakeUp(mainRuns, b.date), 'balance prints the take-up of main\'s run log');
+  assert.equal((b.answers as { byClass: Record<string, { owner: number }> }).byClass['T [owner]'].owner, 2);
 });
 
 test('loop-budget audit 3: an entry\'s yes logged twice counts once', () => {
