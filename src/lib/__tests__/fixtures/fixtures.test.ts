@@ -4,8 +4,10 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { PMTiles, type RangeResponse, type Source } from 'pmtiles';
+import { createPlacesArchive } from '../../discovery/archive/shell';
 import { PLACES_BASE, parseManifest } from '../../discovery/archiveManifest';
 import { HOSTS } from '../../net/policy';
+import { fakePorts } from '../fakes';
 
 // A town's fixtures, the data set (specs/town-fixtures: TF1, TF2, TF4, TF5, TF14, TF19, TF21, TF25, TF26; G13, decisions
 // 0225, 0255, 0268). chronicles-data owns the pack and its contract; contract/ here is the app's pinned copy (its README
@@ -43,30 +45,35 @@ async function examplePack(o: { manifest?: string | null; delayMs?: number } = {
   const opened: string[] = [];
   const asked: { url: string; offset: number; length: number }[] = [];
   const missing: string[] = [];
-  const m = o.manifest === null ? null : parseManifest(o.manifest ?? exampleManifest);
+  const open = (url: string) => {
+    opened.push(url);
+    return memoryArchive(exampleBytes, asked, url, o.delayMs);
+  };
+  // The places archive's own shell keeps the manifest and names the fixtures file (discovery/archive/shell.ts).
+  const archive = createPlacesArchive({
+    ...fakePorts(),
+    io: { base: PLACES_BASE, fetchText: async () => { if (o.manifest === null) throw new Error('offline'); return o.manifest ?? exampleManifest; }, open, decode: () => [] },
+  });
   const pack = createFixturesPack({
     manifest: {
-      fixturesFileAt: async () => (m?.regions[0].fixtures?.current ?? null),
-      fixturesMissing: (f: string) => missing.push(f),
+      fixturesFileAt: (at: [number, number]) => archive.fixturesFileAt(at),
+      fixturesMissing: (f: string) => { missing.push(f); archive.fixturesMissing(f); },
     },
     io: {
       base: PLACES_BASE,
-      open: (url: string) => {
-        opened.push(url);
-        return memoryArchive(exampleBytes, asked, url, o.delayMs);
-      },
+      open,
       decode: decodeFixturesTile,
     },
     tileMs: 2000,
     readMs: 3000,
   });
-  return { pack, opened, asked, missing };
+  return { pack, opened, asked, missing, archive };
 }
 /** A view over the example's Hudson fixtures: about 2.5 km by 2 km. */
 const HUDSON: [number, number, number, number] = [-74.03, 40.69, -73.99, 40.73];
 const key = (fs: { kind: string; name?: string; src: string }[]) => fs.map((f) => `${f.kind}:${f.name ?? ''}:${f.src}`).sort();
 
-test('TF1: the app\'s kinds are the pinned contract\'s closed list, thirteen, in its order; an unknown kind is ignored', { todo: 'test first' }, async () => {
+test('TF1: the app\'s kinds are the pinned contract\'s closed list, thirteen, in its order; an unknown kind is ignored', async () => {
   const { FIXTURE_KINDS } = await load('../../fixtures/kinds');
   assert.equal(schema.contractVersion, 9);
   assert.deepEqual([...FIXTURE_KINDS], schema.kinds.map((k: { kind: string }) => k.kind));
@@ -81,7 +88,7 @@ test('TF1: the app\'s kinds are the pinned contract\'s closed list, thirteen, in
   assert.deepEqual(fixturesFromFeatures([{ lon: -74, lat: 40.7, props: { kind: 'palace', id: 'f_1', src: 'osm', name: 'X' } }]), [], 'an unknown kind is dropped, never an error');
 });
 
-test('TF2: no practical amenity is a kind, and a pack feature of one is dropped', { todo: 'test first' }, async () => {
+test('TF2: no practical amenity is a kind, and a pack feature of one is dropped', async () => {
   const { FIXTURE_KINDS } = await load('../../fixtures/kinds');
   const { fixturesFromFeatures } = await load('../../fixtures/read');
   for (const k of ['toilets', 'parking', 'drinking_water', 'bench', 'atm', 'bank', 'bus_stop', 'post_box', 'fuel', 'pharmacy', 'supermarket', 'information', 'board']) {
@@ -90,17 +97,26 @@ test('TF2: no practical amenity is a kind, and a pack feature of one is dropped'
   }
 });
 
-test('TF4: fixtures come through the adapter from the pack, an in-memory source for tests; none is hard-coded, a region with no pack yields none', { todo: 'test first' }, async () => {
+test('TF4: fixtures come through the adapter from the pack, an in-memory source for tests; none is hard-coded, a region with no pack yields none', async () => {
   const { memoryFixtures, readFixtures } = await load('../../fixtures/read');
   const { pack } = await examplePack();
-  const got = await readFixtures(pack, [-74.1, 40.6, -73.4, 41.3]);
-  assert.deepEqual(key(got), key(records), 'the example pack\'s records, read by tile');
+  const inHudson = records.filter((r) => r.at[0] >= HUDSON[0] && r.at[0] <= HUDSON[2] && r.at[1] >= HUDSON[1] && r.at[1] <= HUDSON[3]);
+  assert.ok(inHudson.length >= 15);
+  assert.deepEqual(key(await readFixtures(pack, HUDSON)), key(inHudson), 'the example pack\'s records in view, read by tile');
+  const ridge = records.find((r) => r.name === 'Ridge Public Library')!;
+  const there: [number, number, number, number] = [ridge.at[0] - 0.01, ridge.at[1] - 0.01, ridge.at[0] + 0.01, ridge.at[1] + 0.01];
+  assert.deepEqual(key(await readFixtures(pack, there)), key([ridge]), 'and Wikidata\'s library elsewhere');
   const mem = memoryFixtures(records);
-  assert.deepEqual(key(await readFixtures(mem, HUDSON)), key(records.filter((r) => r.at[0] >= HUDSON[0] && r.at[0] <= HUDSON[2] && r.at[1] >= HUDSON[1] && r.at[1] <= HUDSON[3])));
+  assert.deepEqual(key(await readFixtures(mem, HUDSON)), key(inHudson));
   // A manifest with no fixtures, a point outside every region, no source and a failing source: none, and no throw.
   const noFixtures = JSON.stringify({ ...JSON.parse(exampleManifest), regions: JSON.parse(exampleManifest).regions.map(({ fixtures: _f, ...r }: any) => r) });
   assert.deepEqual(await readFixtures((await examplePack({ manifest: noFixtures })).pack, HUDSON), []);
   assert.deepEqual(await readFixtures((await examplePack({ manifest: null })).pack, HUDSON), []);
+  assert.equal(parseManifest(noFixtures)!.regions[0].fixtures, undefined, 'an older manifest has none');
+  const evil = JSON.parse(exampleManifest);
+  evil.regions[0].fixtures = { current: { file: '../evil.pmtiles', version: '1', bounds: [0, 0, 1, 1] }, previous: [] };
+  assert.equal(parseManifest(JSON.stringify(evil))!.regions[0].fixtures, undefined, 'a file that is not a fixtures pack\'s name is none');
+  assert.equal((await (await examplePack()).archive.fixturesFileAt([10, 10])), null, 'a point outside every region');
   assert.deepEqual(await readFixtures(null, HUDSON), []);
   assert.deepEqual(await readFixtures({ read: async () => { throw new Error('offline'); } }, HUDSON), []);
   // Nothing hard-coded: no fixture's name from the example is spelled anywhere under src/ but the tests.
@@ -112,7 +128,7 @@ test('TF4: fixtures come through the adapter from the pack, an in-memory source 
   }
 });
 
-test('TF5: a fixture carries its kind, its position and its name where it has one, and nothing a crowd says', { todo: 'test first' }, async () => {
+test('TF5: a fixture carries its kind, its position and its name where it has one, and nothing a crowd says', async () => {
   const { isFixture } = await load('../../fixtures/kinds');
   const { fixturesFromFeatures } = await load('../../fixtures/read');
   const good = { id: 'f_0000000000000001', kind: 'library', at: [-74, 40.7], name: 'Hudson Free Library', src: 'osm' };
@@ -128,7 +144,7 @@ test('TF5: a fixture carries its kind, its position and its name where it has on
   assert.deepEqual(Object.keys(sq).sort(), ['at', 'id', 'kind', 'src'], 'no name, not an empty one');
 });
 
-test('TF14: read by tile, only for what is on screen; bounded; a read can be stopped', { todo: 'test first' }, async () => {
+test('TF14: read by tile, only for what is on screen; bounded; a read can be stopped', async () => {
   const { FIXTURE_TILES_MAX, readFixtures } = await load('../../fixtures/read');
   assert.equal(FIXTURE_TILES_MAX, 9);
   const { pack, opened, asked } = await examplePack();
@@ -156,7 +172,7 @@ test('TF14: read by tile, only for what is on screen; bounded; a read can be sto
   assert.ok(Date.now() - t0 < 1400, 'it ended when told to, before the slow tile came');
 });
 
-test('TF19: nothing counts fixtures: the modules store nothing and export no count; the contract holds no count', { todo: 'test first' }, async () => {
+test('TF19: nothing counts fixtures: the modules store nothing and export no count; the contract holds no count', async () => {
   const dir = join(ROOT, 'src/lib/fixtures');
   for (const f of readdirSync(dir)) {
     const src = readFileSync(join(dir, f), 'utf8');
@@ -166,7 +182,7 @@ test('TF19: nothing counts fixtures: the modules store nothing and export no cou
   assert.doesNotMatch(JSON.stringify({ r: schema.record, f: schema.feature }), /count|total|tally/i);
 });
 
-test('TF21: nothing leaves the device beyond the pack\'s byte ranges from the host the other packs come from', { todo: 'test first' }, async () => {
+test('TF21: nothing leaves the device beyond the pack\'s byte ranges from the host the other packs come from', async () => {
   const { pack, opened, asked } = await examplePack();
   const { readFixtures } = await load('../../fixtures/read');
   await readFixtures(pack, HUDSON);
@@ -183,7 +199,7 @@ test('TF21: nothing leaves the device beyond the pack\'s byte ranges from the ho
   for (const f of readdirSync(dir)) assert.doesNotMatch(readFileSync(join(dir, f), 'utf8'), /fetch\(|https?:\/\//, `${f} makes no request of its own`);
 });
 
-test('TF25: one fixture is kept once, from both sources, in the pinned example', { todo: 'test first' }, async () => {
+test('TF25: one fixture is kept once, from both sources, in the pinned example', async () => {
   const { fixturesFromFeatures } = await load('../../fixtures/read');
   assert.ok(records.some((r) => r.src === 'osm') && records.some((r) => r.src === 'wd'), 'OpenStreetMap\'s and Wikidata\'s');
   const m = (a: [number, number], b: [number, number]) => Math.hypot((a[0] - b[0]) * 111_320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 110_540);
@@ -195,7 +211,7 @@ test('TF25: one fixture is kept once, from both sources, in the pinned example',
   assert.equal(fixturesFromFeatures([{ lon: -73.5, lat: 41.2, props: { kind: 'library', id: 'f_9', src: 'wd', name: 'Ridge Public Library' } }])[0].src, 'wd');
 });
 
-test('TF26: a tourist office is the town\'s own, information=office; an attraction\'s visitor centre is never a kind', { todo: 'test first' }, async () => {
+test('TF26: a tourist office is the town\'s own, information=office; an attraction\'s visitor centre is never a kind', async () => {
   const { FIXTURE_KINDS } = await load('../../fixtures/kinds');
   assert.equal(schema.kinds.find((k: { kind: string }) => k.kind === 'tourist_office').osm, 'information=office');
   assert.ok(!FIXTURE_KINDS.includes('visitor_centre'));

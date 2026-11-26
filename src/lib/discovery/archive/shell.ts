@@ -91,6 +91,15 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
     },
     /** QC14: a stores file the manifest lists answered 403/404: pass it over, as a places file is. */
     storesMissing: passOver,
+    /** TF4: the fixtures pack's file for a point (the region's, by its manifest), or null: no manifest, no region, no `fixtures`. */
+    async fixturesFileAt(at: LngLat): Promise<ArchiveFile | null> {
+      if (!p.io.base) return null;
+      const m = await ensureManifest().catch(() => null);
+      const region = m ? pickRegion(m, at) : null;
+      return region?.fixtures ? [region.fixtures.current, ...region.fixtures.previous].find((f) => !missing.has(f.file)) ?? null : null;
+    },
+    /** TF4: a fixtures file the manifest lists answered 403/404: pass it over, as a places file is. */
+    fixturesMissing: passOver,
     /** Loads the manifest when it is due (at most daily), so the version is known before any read (places-worth-the-stop audit 3). */
     async refresh(): Promise<void> {
       if (p.io.base) await ensureManifest().catch(() => null);

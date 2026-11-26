@@ -41,6 +41,8 @@ export interface Region {
   previous: ArchiveFile[];
   /** The region's stores pack beside the places archive (outing, QC14); absent in older manifests and where there is none. */
   stores?: { current: ArchiveFile; previous: ArchiveFile[] };
+  /** The region's town fixtures pack (TF4, contract v9); absent in older manifests and where there is none. */
+  fixtures?: { current: ArchiveFile; previous: ArchiveFile[] };
 }
 
 export interface Manifest {
@@ -51,6 +53,8 @@ export interface Manifest {
 const FILE = /^places-[a-z0-9]+-\d{8}(?:\.\d+)?\.pmtiles$/;
 /** A stores pack's file name, likewise. */
 const STORES_FILE = /^stores-[a-z0-9]+-\d{8}(?:\.\d+)?\.pmtiles$/;
+/** A fixtures pack's file name, likewise. */
+const FIXTURES_FILE = /^fixtures-[a-z0-9]+-\d{8}(?:\.\d+)?\.pmtiles$/;
 
 function fileOf(v: unknown, name: RegExp = FILE): ArchiveFile | null {
   const f = v as Partial<ArchiveFile> | null;
@@ -104,6 +108,10 @@ export function parseManifest(text: string): Manifest | null {
     const st = (r as { stores?: { current?: unknown; previous?: unknown } | null }).stores;
     const sc = st && typeof st === 'object' ? fileOf(st.current, STORES_FILE) : null;
     if (sc) region.stores = { current: sc, previous: (Array.isArray(st?.previous) ? st.previous : []).map((f: unknown) => fileOf(f, STORES_FILE)).filter((f): f is ArchiveFile => f != null) };
+    // TF4: the fixtures pack is optional too; one that does not parse is none.
+    const fx = (r as { fixtures?: { current?: unknown; previous?: unknown } | null }).fixtures;
+    const fc = fx && typeof fx === 'object' ? fileOf(fx.current, FIXTURES_FILE) : null;
+    if (fc) region.fixtures = { current: fc, previous: (Array.isArray(fx?.previous) ? fx.previous : []).map((f: unknown) => fileOf(f, FIXTURES_FILE)).filter((f): f is ArchiveFile => f != null) };
     regions.push(region);
   }
   return { regions };
