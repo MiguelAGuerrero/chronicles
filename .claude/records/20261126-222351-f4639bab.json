@@ -1,0 +1,24 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "Walk notes: the place check reads names as written"
+      ],
+      "body": "[owner] Walk notes: the place check reads names as written (specs/walk-notes, J1, WN4d). What still passes `scripts/walks.js`: a park, a station or a landmark with no gazetteer name in it, a town, region or country written in lowercase, and a name spelt with another script's look-alike letters; they are left to `/walked`'s rewrite and the owner's look at the stored words. A word list or a stricter check would be a dependency or refuse plain words (GeoNames' towns include \"of\", \"to\" and \"time\").\n",
+      "target": "sha256:98b53804f9974c94003e60171d9a14cedcc805ba2810c52b47b3a6126838f0e8"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Walk notes (the owner's own walks steer the loop"
+      ],
+      "body": "| Walk notes (the owner's own walks steer the loop: `/walked`, the owner's alone, keeps a line after a walk, reached for, got in the way or keep, with places and times stripped and the day as its only time, published only by `/walked publish` or a `/tend` push; a reach is a drafted expectation line ahead of the model's, a got-in-the-way puts its area first in `next`, a keep protects, the balance says the silence once a gap; WN1-WN9, decisions 0238, 0270; from G8) | built; no surface | tests first, then the code, 2026-11-26 (`check:test-first` 9 of 9; WN5's \"never ratified by the proxy\" met on main by decision 0236) | `specs/walk-notes/spec.md` | the steward's plan review, 2026-11-26: 12 accepted before any code (walk-notes audit 1-13), 6 Silent questions answered by the owner (decision 0270); the diff review (auditor), 2026-11-26: 14 fixed (walk-notes audit 14-27), 0 deferred, 0 rejected |\n",
+      "target": "sha256:f3f5f07f91e65ac1229bb407716af1c9fc32a3801d43abedb5ae3aea6934bac2"
+    }
+  ]
+}

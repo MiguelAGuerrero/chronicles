@@ -190,5 +190,24 @@ and ea78ac13, on main before any edit).
   scratch repositories (`records.test.ts`, `bookkeeping.test.ts`). No journey covers the files; no screen changed.
 - **The base it landed on:** `base --here --spec walk-notes` names `arch`, which no sweep reads: no area of the app was
   made rougher; nothing in the app changed.
+- **The diff review** (the auditor, Nov 26, one round, G8's own review, outside the budget, decision 0269; 6 high, 5
+  medium, 3 low; the orchestrator's rulings): accepted 14, deferred 0, rejected 0, each a failing test first, fixed as
+  walk-notes audit 14-27: the pack's other names (`alts`) indexed but for 88 words of the app's own pages
+  (`ALT_COMMON` in `scripts/walks.js`: each a lowercase word of `docs/VISION.md` or `docs/PRODUCT.md`, none a place's main
+  name) (14); a possessive is its name (15); the times of day the review found, NFKC first and no zero-width character
+  inside a name (16); every `walked:` commit held by the gate whatever its trailers, the skill writing them literally
+  (17); a run carries a note only as its push's first commits, named by day on a run-log line it adds (`carried`, which
+  `tend:log` writes), never a removal, and an agent never removes a keep or a got-in-the-way, a removal naming its line,
+  decision 0270 saying the owner's word is not machine-checked (18); an entry against a keep read as `T [keep]`, refused to
+  the proxy, by its words rather than a new tag in `scripts/records.js` (19); the run's own `check:tend` leaves to the walk
+  gate only a commit of `walks.jsonl` alone (20); more street forms (21), postcodes and coordinate forms (22); a merge that
+  changes the notes refused (23); only a sweep whose line says `walk: <day>` leaves the rotation's alternation (24); the
+  gate's refusals print classes, never values (25); `ship.md`'s rebase keeps a carried note's dates (26); the gate reads
+  the pack at the push's base, and `LANDED` is the day `/walked` lands on main (27). Six tests that could not fail were
+  made to read what they name (WN3b the whole of steps 1-5, WN5 its words and the store's parser, WN8 what main does not
+  hold, audit 2 the map's words, audits 6 and 7 no number at all, audit 3 the gate's own stderr). WN1-WN3 and audits 1, 5,
+  9, 11 and 26 are wording tests on purpose: their criteria are what a skill says. Every new wiring undone once to see its
+  test fail.
 - **Left out:** "settled after three walks" (the entry's "After it"); a park, a station or a landmark with no gazetteer
-  name in it, and a name written in lowercase, left to the skill's rewrite and the owner's look (WN4d, J1).
+  name in it, a name written in lowercase, and a name written in another script's look-alike letters, left to the skill's
+  rewrite and the owner's look (WN4d, J1; `docs/DEFERRED.md`, "Walk notes").

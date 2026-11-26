@@ -1184,5 +1184,5 @@ What the place offer leaves out (decision 0251).
 
 ## Walk notes (`/slice walk-notes`, Nov 26)
 
-- [owner] Walk notes: the place check reads names as written (specs/walk-notes, J1, WN4d). A town, region or country of the gazetteer written in lowercase, and a park, a station or a landmark with no gazetteer name in it, pass `scripts/walks.js`; they are left to `/walked`'s rewrite and the owner's look at the stored words. A word list or a stricter check would be a dependency or refuse plain words (GeoNames' towns include "of", "to" and "time").
+- [owner] Walk notes: the place check reads names as written (specs/walk-notes, J1, WN4d). What still passes `scripts/walks.js`: a park, a station or a landmark with no gazetteer name in it, a town, region or country written in lowercase, and a name spelt with another script's look-alike letters; they are left to `/walked`'s rewrite and the owner's look at the stored words. A word list or a stricter check would be a dependency or refuse plain words (GeoNames' towns include "of", "to" and "time").
 - [owner] Walk notes: "settled after three walks" (G8's "After it"): an area three walk notes in a row find nothing in the way of, read as settled; G6 computes the states it would join.
