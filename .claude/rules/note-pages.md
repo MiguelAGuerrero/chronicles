@@ -33,6 +33,9 @@ paths:
     closes only once what is written is kept (`closable`): a failed save keeps it open, "Not saved yet" in its top bar.
   - **Mentions** read as cards in the reader (RF4): `useMentionCards` gives JSON to the DOM, drawn by TipTap's
     `ReactNodeViewRenderer` under a React context; while writing, a chip. A gone moment's token is relabelled by `withGone`.
+    Every reader resolves a mention with `mentioned(pool.every, hidden, id)` (`lib/refs.ts`): the whole pool, a walk still
+    open included, never `pool.byId`/`views`, which leave an open walk out (RM17); on a walk the page's camera keeps its
+    photo in that walk, and a lookup among the feed's moments said "A moment no longer kept" (fix note-camera-photo).
   - **E2E:** `E2E_ONLY=notepage`. The editor is a contenteditable: `fill()` works, `inputValue()` doesn't (read
     `innerText()`), though `fill('')` can miss right after a relayout and leave the words in: read it empty before Done (fix picker-keyboard); the page is `note-page`, Done `note-done`, the body `note-input` being written and `note-text` read
     (a reply's page sits over a read note). The web's viewer takes no Escape: leave a page in the viewer by Done.

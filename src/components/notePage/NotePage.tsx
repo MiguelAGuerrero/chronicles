@@ -223,7 +223,7 @@ export const NotePage = forwardRef<NotePageHandle, {
   const menuCard = menuFor ? cards?.[menuFor] : undefined;
   const menuVideo = !!menuCard && !menuCard.gone && !!menuCard.picture?.video;
   const startEdit = () => {
-    const v = menuFor ? cardPool.byId.get(menuFor) : null;
+    const v = menuFor ? cardPool.every.get(menuFor) : null;
     setMenuFor(null);
     if (!v) return;
     // The caret lets go, so the keyboard is down under the editor; it comes back when the editor closes.

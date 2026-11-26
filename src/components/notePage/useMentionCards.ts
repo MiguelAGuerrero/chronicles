@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { memoWords } from '../../lib/voiceTrim';
-import { GONE, refIds } from '../../lib/refs';
+import { GONE, mentioned, refIds } from '../../lib/refs';
 import { fromLine } from '../../lib/resurface/views';
 import { refCardLine } from '../../lib/threads/lines';
 import { makePicture } from '../../lib/media/pictureData';
@@ -55,8 +55,8 @@ export function useMentionCards(body: string, pool: MomentPool, opts: Options = 
   const pieces = useMemo(() => {
     if (!pictureOn || !pool.ready) return [];
     const out: Faced[] = [];
-    for (const w of picturesWanted(ids, pool.byId, hidden, true)) {
-      const v = pool.byId.get(w.id);
+    for (const w of picturesWanted(ids, pool.every, hidden, true)) {
+      const v = pool.every.get(w.id);
       if (w.how !== 'picture' || !v) continue;
       const c = v.capture;
       out.push(c.kind === 'video' ? { ...c, thumb_path: shownStill(c.thumb_path, made[c.piece_id]) } : c);
@@ -82,8 +82,8 @@ export function useMentionCards(body: string, pool: MomentPool, opts: Options = 
     if (!pool.ready) return undefined;
     const out: Record<string, MentionCard> = {};
     for (const id of ids) {
-      const v = pool.byId.get(id);
-      if (!v || hidden.has(v.id)) {
+      const v = mentioned(pool.every, hidden, id);
+      if (!v) {
         out[id] = { gone: true, text: GONE[0].toUpperCase() + GONE.slice(1) };
         continue;
       }

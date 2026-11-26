@@ -710,6 +710,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 
 - **A mention's words are those it was written with** in plain text: a moment renamed or placed later still reads its old words outside the viewer, whose card looks it up live.
 - **Mentions from a note to a note opened from a mention** stack in the viewer without a limit; Back pops one at a time.
+- [loop] **A moment of a walk still open is not said to be mentioned** (fix note-camera-photo, RF7): the viewer's "Mentioned in a note" line, its Open note and the picker it opens read the feed's moments (`pool.views`, `pool.byId`), which leave a walk still open out, so a photo the page's camera kept on a walk does not say which note mentions it until the walk ends. A mention itself resolves across the open walk since that fix (`mentioned`, `lib/refs.ts`).
 
 ## Explore's map shows the selected area's places (fix area-marks, Nov 10)
 

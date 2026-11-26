@@ -598,6 +598,68 @@ async function run(h) {
     await pg.keyboard.press('Escape').catch(() => {});
   }
 
+  // fix note-camera-photo (the owner, Nov 26): on a walk, the page's camera keeps the photo as a moment of the walk still
+  // open, and the page and the viewer (opened from the note's pin, as the owner did) draw it as its picture, never
+  // "A moment no longer kept". In a page of its own, as a fresh phone: the walk's fixes come from the start.
+  {
+    const { c: c3, pg } = await freshPage('notepage-walk', { permissions: ['geolocation'] });
+    const there = (sel, timeout = 6000) => pg.waitForSelector(sel, { timeout }).then(() => true, () => false);
+    const gone = (sel, timeout = 6000) => pg.waitForSelector(sel, { state: 'detached', timeout }).then(() => true, () => false);
+    const input = () => pg.locator('[data-testid=note-page] [data-testid=note-input]');
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=start]');
+    await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 20000 });
+    // The walk's first fix, so what it keeps has a pin to open it by.
+    const fixed = () => pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('trace_point', 'readonly').objectStore('trace_point').count();
+        g.onsuccess = () => resolve(g.result > 0);
+        g.onerror = () => resolve(false);
+      };
+      req.onerror = () => resolve(false);
+    }));
+    for (let i = 0; i < 40 && !(await fixed()); i++) await pg.waitForTimeout(500);
+    await pg.click('[data-testid=cap-note]');
+    await there('[data-testid=note-page] [data-testid=note-input]', 8000);
+    await pg.waitForTimeout(600);
+    await pg.keyboard.type('On the walk ');
+    const [chooser3] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.click('[data-testid=note-camera]')]);
+    await chooser3.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
+    await there('[data-testid=note-page] [data-testid=note-input] .mention', 15000);
+    const onPage = await there('[data-testid=note-page] [data-testid=note-input] [data-testid=note-picture]', 8000);
+    const pageText = await input().innerText().catch(() => '');
+    await shot(pg, 'np-walk-01-camera');
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=note-done]');
+    await gone('[data-testid=note-page]');
+    await pg.waitForTimeout(1200);
+    const all3 = await stored(pg);
+    const note3 = all3.find((m) => /On the walk/.test(m.pieces?.[0]?.body ?? ''));
+    const photoId = /@\[([^|\]]+)/.exec(note3?.pieces[0].body ?? '')?.[1] ?? null;
+    const photo3 = all3.find((m) => m.id === photoId);
+    // The note in the viewer from its pin, as the owner opened it; a pill over the pin takes a real click, so the pin's own.
+    const pinSel = `[data-ids*="${note3?.id ?? 'none'}"]`;
+    await there(pinSel, 10000);
+    await pg.locator(pinSel).first().click({ timeout: 5000 }).catch(() => {});
+    if (!(await there('[data-testid=viewer-close]', 4000))) await pg.locator(pinSel).first().dispatchEvent('click').catch(() => {});
+    await there('[data-testid=viewer-close]', 8000);
+    // The pin holds the note and its photo, the note's place and time being the photo's: step to the note.
+    for (let i = 0; i < 3 && !(await pg.locator('[data-testid=note-reader]').count()); i++) {
+      await pg.locator('[aria-label="Next moment"]').filter({ visible: true }).first().click({ timeout: 2000 }).catch(() => {});
+      await pg.waitForTimeout(600);
+    }
+    const readerPic3 = await there('[data-testid=note-reader] [data-testid=note-picture]', 10000);
+    const readerText = await pg.locator('[data-testid=note-reader]').innerText().catch(() => '');
+    await pg.waitForTimeout(800);
+    await shot(pg, 'np-walk-02-viewer');
+    check(!!photo3 && photo3.walk_id === note3?.walk_id && !!photo3.walk_id && onPage && !/no longer kept/i.test(pageText) && readerPic3 && !/no longer kept/i.test(readerText),
+      `fix note-camera-photo: on a walk, the page's camera photo is a moment of the open walk, drawn as its picture on the page and in the viewer, never "A moment no longer kept" (${JSON.stringify({ photo: !!photo3, walk: photo3?.walk_id ?? null, onPage, page: pageText.slice(-50), readerPic3, reader: readerText.slice(-60) })})`);
+    await c3.close();
+  }
+
   await c.close();
 }
 

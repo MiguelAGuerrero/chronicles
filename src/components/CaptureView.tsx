@@ -36,7 +36,7 @@ import { noteHead, type NoteHead } from '../lib/notePage/head';
 import { UndoToast } from './UndoToast';
 import { deleteMoment, deletePiece } from '../lib/deletion';
 import { useHidden, useVisible } from '../lib/deletion/useDeletions';
-import { mentioning, plainNote, withGone } from '../lib/refs';
+import { mentioned, mentioning, plainNote, withGone } from '../lib/refs';
 import type { MomentView } from '../lib/resurface/types';
 import { useMomentPool } from './threads/useMomentPool';
 import { MomentPicker } from './threads/MomentPicker';
@@ -776,11 +776,11 @@ export function CaptureViewer(props: {
                     head: headOf(current),
                     onEdit: props.onSaveNote ? () => setNoting(current) : undefined,
                     onOpenMention: (id) => {
-                      const v = pool.byId.get(id);
-                      if (v && !hidden.has(v.id)) setOpenedStack((st) => [...st, v.capture]);
+                      const v = mentioned(pool.every, hidden, id);
+                      if (v) setOpenedStack((st) => [...st, v.capture]);
                     },
                     // A moment no longer kept, or waiting in Undo, reads so and opens nothing (RF5; note-pages audit 10).
-                    gone: pool.ready ? (id) => !pool.byId.has(id) || hidden.has(id) : undefined,
+                    gone: pool.ready ? (id) => !mentioned(pool.every, hidden, id) : undefined,
                   }
                 : undefined
             }

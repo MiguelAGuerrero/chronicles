@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Moment references"
+      ],
+      "body": "- [loop] **A moment of a walk still open is not said to be mentioned** (fix note-camera-photo, RF7): the viewer's \"Mentioned in a note\" line, its Open note and the picker it opens read the feed's moments (`pool.views`, `pool.byId`), which leave a walk still open out, so a photo the page's camera kept on a walk does not say which note mentions it until the walk ends. A mention itself resolves across the open walk since that fix (`mentioned`, `lib/refs.ts`).\n"
+    }
+  ]
+}

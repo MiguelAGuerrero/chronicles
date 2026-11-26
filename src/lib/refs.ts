@@ -21,6 +21,15 @@ export const refToken = (id: string, label?: string | null): string => (label ? 
 /** What a reference to a moment that is gone, or waiting in Undo, reads (RF5, RF6). */
 export const GONE = 'a moment no longer kept';
 
+/**
+ * The moment a mention names (RF4, RF5), from every kept moment the reader holds, a walk's still open among them (the
+ * page's camera on a walk keeps its photo there, NP14; fix note-camera-photo); null when it is gone or waits in Undo.
+ */
+export function mentioned<V extends { id: string }>(every: ReadonlyMap<string, V>, hidden: ReadonlySet<string>, id: string): V | null {
+  const v = every.get(id);
+  return v && !hidden.has(v.id) ? v : null;
+}
+
 /** A note's body in order: its words and its references (RF4). An empty run is never returned. */
 export function parseRefs(body: string): RefPart[] {
   const out: RefPart[] = [];
