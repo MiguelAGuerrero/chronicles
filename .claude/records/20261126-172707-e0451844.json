@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Walk notes (the owner's own walks steer the loop: `/walked` keeps a line with places stripped; a reach is a drafted expectation line, a got-in-the-way puts its area first in `next`, a keep protects, the report says once when none came in; WN1-WN9, decision 0238) | `tend/inbox-20261126-1716` | G8, built from the owner's yes under `/tend inbox G8 yes`, 2026-11-26: the spec and the plan, read by the steward; no screen, nothing in the app changes; spec `specs/walk-notes/spec.md` |\n"
+    }
+  ]
+}
