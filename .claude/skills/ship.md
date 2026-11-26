@@ -188,7 +188,8 @@ Only under a grant, and only what the grant covers. `/deploy`'s preconditions ho
 with the checks the calling skill names.
 
 1. The worktree holds only this run's commits.
-2. `git fetch origin main`; if `main` moved, rebase `<branch>`, run the caller's checks again, and only
+2. `git fetch origin main`; if `main` moved, rebase `<branch>` (with `--committer-date-is-author-date` when it carries a
+   walk note, whose dates are the day only: `tend/walks.md`), run the caller's checks again, and only
    then continue. On a conflict, stop: push `<branch>` and keep it for the owner ("Clean up", pushed
    for review), with one exception: a source conflict confined
    to imports and comments, where the two sides mean independent things, may be resolved by the run, with

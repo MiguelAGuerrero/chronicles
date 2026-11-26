@@ -75,8 +75,18 @@ the notes file, `tend/walks.jsonl` alone, nothing else, the dates the day only, 
 
 ```
 git add .claude/skills/tend/walks.jsonl
-GIT_AUTHOR_DATE="<day>T00:00:00+0000" GIT_COMMITTER_DATE="<day>T00:00:00+0000" git commit -m "walked: a note of <day>" (the session's trailers)
+GIT_AUTHOR_DATE="<day>T00:00:00+0000" GIT_COMMITTER_DATE="<day>T00:00:00+0000" git commit -F <message file>
 node scripts/tend.js commits --loop-only origin/main..HEAD
+```
+
+The message file, in the scratchpad, holds the subject, a blank line and the two trailer lines exactly so, the
+session's link in the second; the gate holds every `walked:` commit whatever its trailers:
+
+```
+walked: a note of <day>
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+Claude-Session: <this session's link>
 ```
 
 The last line is the gate before the note leaves this session: it refuses a commit that holds anything else, a time
@@ -104,9 +114,11 @@ instead (`.claude/skills/tend/walks.md`, "Carrying a note").
 
 If a published note holds a place or a time after all, the line is removed only at the owner's word (decision 0270), in a
 worktree from `origin/main`: delete that one line of the notes file (`tend/walks.jsonl`) and nothing else, commit it with
-the subject `walked: a line removed at the owner's word` and a line `The owner: "<their words>"` (their words, without
-the place), run the gate, and push only `HEAD:main` once the owner says so. The line stays in git's history; rewriting
-history is the owner's alone.
+the subject `walked: line <n> removed at the owner's word` (`<n>` the line's number) and a line `The owner: "<their
+words>"` (their words, without the place), run the gate, and push only `HEAD:main`, on its own, once the owner says so.
+An agent removes only a "reached for": a keep or a got-in-the-way steers the loop, so only the owner's own hand edit
+removes one. The owner's word is not machine-checked: no script can tell who typed it. The line stays in git's history;
+rewriting history is the owner's alone.
 
 ## Report
 

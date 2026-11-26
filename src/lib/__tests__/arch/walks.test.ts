@@ -323,7 +323,7 @@ test('walk-notes audit 4: the commit\'s subject and its dates are held by the ga
   assert.match(w.commitProblems({ ...c, subject: 'walked: a note of 2026-11-26' }).join(), /day/, 'the subject\'s day is the note\'s');
   assert.match(w.commitProblems({ ...c, files: [...c.files, { status: 'A', path: 'shot.png' }] }).join(), /alone/);
   assert.match(w.commitProblems({ ...c, files: [{ status: 'D', path: w.WALKS_REL }] }).join(), /delete/);
-  const removal = { ...c, subject: "walked: a line removed at the owner's word", before: c.after + JSON.stringify(note({ words: 'two' })) + '\n', after: c.after, authorDate: '2026-11-28 10:00:00 +0000', committerDate: '2026-11-28 10:00:00 +0000' };
+  const removal = { ...c, subject: "walked: line 2 removed at the owner's word", before: c.after + JSON.stringify(note({ kind: 'reached for', words: 'two' })) + '\n', after: c.after, authorDate: '2026-11-28 10:00:00 +0000', committerDate: '2026-11-28 10:00:00 +0000' };
   assert.match(w.commitProblems(removal).join(), /owner's words/);
   assert.deepEqual(w.commitProblems({ ...removal, message: `${removal.subject}\n\nThe owner: "remove the second line of the 27th"${AGENT}` }), [], 'decision 0270, S2');
   assert.match(w.commitProblems({ ...removal, before: c.after + 'x\ny\n', message: `${removal.subject}\n\nThe owner: "remove them"${AGENT}` }).join(), /one line/);
@@ -396,7 +396,7 @@ test('walk-notes audit 13: the notes and the test that holds their gate are in F
 const PACK_ALTS = { ...PACK, alts: [['Quillmarshia', 'Market', 'Walk'], [], []] };
 const altClasses = (words: string) => walks().placeProblems(words, walks().nameIndex(PACK_ALTS)).map((t) => t.class);
 
-test('walk-notes audit 14: the pack\'s other names trip too, but for the app\'s own words', { todo: 'test first' }, () => {
+test('walk-notes audit 14: the pack\'s other names trip too, but for the app\'s own words', () => {
   assert.ok(altClasses('the map was slow near Quillmarshia').includes('a town'));
   assert.deepEqual(altClasses('Market was busy, Walk was slow'), [], 'an other name that is a word of the app\'s own pages is left out');
   const w = walks() as Walks & { ALT_COMMON: Set<string> | string[] };
@@ -409,11 +409,11 @@ test('walk-notes audit 14: the pack\'s other names trip too, but for the app\'s 
   assert.equal(shipped.status, 1, 'an other name of the shipped pack, picked here and named nowhere');
 });
 
-test('walk-notes audit 15: a possessive name trips', { todo: 'test first' }, () => {
+test('walk-notes audit 15: a possessive name trips', () => {
   for (const w of ["slow in Quillmarsh's centre", 'slow in Quillmarsh’s centre', "Vellow Mere's edge"]) assert.ok(classes(w).includes('a town'), w);
 });
 
-test('walk-notes audit 16: the times of day the review found, NFKC first', { todo: 'test first' }, () => {
+test('walk-notes audit 16: the times of day the review found, NFKC first', () => {
   for (const w of ['left at 7.30', 'left at 1930', 'left at 19h', '19.30', 'half past six', 'seven thirty', 'quarter to eight', 'left at 7 and the map was slow', 'left at six', 'around 6ish', 'at T19:30', 'left at １９:３０', '7 a m', 'before breakfast', 'after school', 'on the way home from work', 'at teatime', '19 h 30', 'T1930']) {
     assert.ok(classes(w).includes('a time of day'), w);
   }
@@ -421,7 +421,7 @@ test('walk-notes audit 16: the times of day the review found, NFKC first', { tod
   assert.ok(classes('near Quill​marsh').includes('a town'), 'a zero-width space inside a name');
 });
 
-test('walk-notes audit 17: a walked: commit is held by the gate whatever its trailers', { todo: 'test first' }, () => {
+test('walk-notes audit 17: a walked: commit is held by the gate whatever its trailers', () => {
   const r = repo();
   const base = r.git('rev-parse', 'HEAD');
   writeFileSync(join(r.root, '.claude/skills/tend/walks.jsonl'), JSON.stringify(note({ words: 'lost near Quillmarsh at 7:30' })) + '\n');
@@ -436,7 +436,7 @@ test('walk-notes audit 17: a walked: commit is held by the gate whatever its tra
   assert.match(s, /^Claude-Session: /m);
 });
 
-test('walk-notes audit 18: a run carries a note only as its first commits, named on its run-log line; a keep or a got-in-the-way is never removed', { todo: 'test first' }, () => {
+test('walk-notes audit 18: a run carries a note only as its first commits, named on its run-log line; a keep or a got-in-the-way is never removed', () => {
   const rel = '.claude/skills/tend/walks.jsonl';
   const runLine = (carried?: string[]) => JSON.stringify({ mode: 'inbox', deploy: 'main', base: 'abc1234', answerLog: '0235', answers: [], ...(carried ? { carried } : {}) }) + '\n';
   // A note authored inside a run: after its first tend commit.
@@ -477,9 +477,16 @@ test('walk-notes audit 18: a run carries a note only as its first commits, named
   assert.deepEqual(w.commitProblems({ ...c, subject: "walked: line 2 removed at the owner's word", message: `walked: line 2 removed at the owner's word${owner}`, after: two.split('\n')[0] + '\n' }), []);
   assert.match(w.commitProblems({ ...c, subject: "walked: line 1 removed at the owner's word", message: `walked: line 1 removed at the owner's word${owner}`, after: two.split('\n')[0] + '\n' }).join(), /line 2/, 'the subject names the line it removes');
   assert.match(read('docs/decisions/0270-a-walk-note-waits-to-be-published.md'), /not machine-checked/);
+  // tend:log writes the days a run carries, and a run's JSON cannot give them.
+  const tend = load(join(ROOT, 'scripts', 'tend.js')) as { runLine(o: { date: string; subjects: string[]; given: Record<string, unknown> }): Record<string, unknown> };
+  assert.deepEqual(tend.runLine({ date: '2026-11-28', subjects: ['walked: a note of 2026-11-27', "tend replay: the run's record"], given: { mode: 'inbox' } }).carried, ['2026-11-27']);
+  assert.equal(tend.runLine({ date: '2026-11-28', subjects: ["tend replay: the run's record"], given: { mode: 'inbox' } }).carried, undefined);
+  const given = r.tendJs('log', `${base}..HEAD`, JSON.stringify({ mode: 'inbox', deploy: 'main', base: base.slice(0, 8), carried: ['2026-11-27'] }));
+  assert.equal(given.status, 1);
+  assert.match(given.stderr, /carried is the script's/);
 });
 
-test('walk-notes audit 20: the full mode skips only a commit whose one file is walks.jsonl', { todo: 'test first' }, () => {
+test('walk-notes audit 20: the full mode skips only a commit whose one file is walks.jsonl', () => {
   const r = repo();
   const base = r.git('rev-parse', 'HEAD');
   writeFileSync(join(r.root, '.claude/skills/tend/walks.jsonl'), JSON.stringify(note()) + '\n');
@@ -488,22 +495,23 @@ test('walk-notes audit 20: the full mode skips only a commit whose one file is w
   const out = r.tendJs('commits', `${base}..HEAD`);
   assert.equal(out.status, 1);
   assert.match(out.stderr, /alone/);
+  assert.match(out.stderr, /not a loop commit/, 'the run\'s own check reads it too: only a commit of walks.jsonl alone is left to the walk gate');
 });
 
-test('walk-notes audit 21: more street forms', { todo: 'test first' }, () => {
+test('walk-notes audit 21: more street forms', () => {
   for (const w of ['Quai Quillmarsh', 'on the Quai de Quillmarsh', 'Quillmarsh Straße', 'Quillmarsh Strasse', 'Quillmarsh-Straße', 'Quillmarsh Platz', 'Quillmarsh Laan', 'Quillmarsh Steig', 'stuck on Quillmarsh Str. again', 'stuck on Av. Quillmarsh', 'stuck on Avda. Quillmarsh', 'stuck on via Quillmarsh', 'stuck in calle de Quillmarsh', 'rue de Quillmarsh', 'stuck on strada Quillmarsh', 'ulica Quillmarsh', 'Quillmarshvej', 'Quillmarshgata', 'Quillmarshbrücke', 'Quillmarshring', 'Quillmarshdamm', 'Quillmarsh Walk', 'Quillmarsh Gardens', 'Quillmarsh Hill', 'Quillmarsh Market', 'Quillmarsh Bridge', 'Quillmarsh rd.', 'outside 12 quillmarsh street', '12 vellow lane']) {
     assert.ok(classes(w).includes('a street'), w);
   }
   for (const w of ['Start Walk was slow', 'Exploring the strip', 'Spring came', 'the walk was long', 'End Walk hid the map']) assert.ok(!classes(w).includes('a street'), w);
 });
 
-test('walk-notes audit 22: more postcodes and coordinate forms', { todo: 'test first' }, () => {
+test('walk-notes audit 22: more postcodes and coordinate forms', () => {
   for (const w of ['near sw9 9zz', 'near 99-950', 'near 9999-999', 'near 999-9999', 'near 999 99', 'near D99 X999']) assert.ok(classes(w).includes('a postcode'), w);
   for (const w of ['at 47,3769 8,5417', 'at 47,3769', '47.37 8.54', '47 degrees 22 minutes north', '47.37°N']) assert.ok(classes(w).includes('coordinates'), w);
   for (const w of ['it took 1,200 steps', 'a 12-15 minute walk', 'in 2026-11']) assert.deepEqual(classes(w), [], w);
 });
 
-test('walk-notes audit 23: a merge that changes walks.jsonl is refused', { todo: 'test first' }, () => {
+test('walk-notes audit 23: a merge that changes walks.jsonl is refused', () => {
   const r = repo();
   const base = r.git('rev-parse', 'HEAD');
   r.git('checkout', '-q', '-b', 'side');
@@ -520,7 +528,7 @@ test('walk-notes audit 23: a merge that changes walks.jsonl is refused', { todo:
   assert.match(out.stderr, /merge/);
 });
 
-test('walk-notes audit 25: a refusal in the gate prints classes, never values', { todo: 'test first' }, () => {
+test('walk-notes audit 25: a refusal in the gate prints classes, never values', () => {
   const w = walks();
   const c = { subject: 'walked: a note of 2026-11-27', message: `walked: a note of 2026-11-27${AGENT}`, files: [{ status: 'A', path: w.WALKS_REL }], before: '', authorDate: '2026-11-27 00:00:00 +0000', committerDate: '2026-11-27 00:00:00 +0000', names: w.nameIndex(PACK), areas: AREAS };
   for (const line of ['{"day":"2026-11-27","area":{"x":"Quillmarsh"},"kind":["Vellow Mere"],"words":"fine"}', '{"day":"2026-11-27","area":"x\\" near Quillmarsh","kind":"keep","words":"fine"}', '{"day":"2026-11-27","area":"walk-screen","kind":"Quillmarsh","words":"fine"}']) {
@@ -533,13 +541,13 @@ test('walk-notes audit 25: a refusal in the gate prints classes, never values', 
   }
 });
 
-test('walk-notes audit 26: ship.md\'s rebase keeps a carried note\'s dates', { todo: 'test first' }, () => {
+test('walk-notes audit 26: ship.md\'s rebase keeps a carried note\'s dates', () => {
   const ship = flat('.claude/skills/ship.md');
   const step2 = ship.slice(ship.indexOf('## Publish to main'), ship.indexOf('3. `main` is checked out elsewhere'));
   assert.match(step2, /--committer-date-is-author-date/);
 });
 
-test('walk-notes audit 27: the gate reads the pack at the push\'s base', { todo: 'test first' }, () => {
+test('walk-notes audit 27: the gate reads the pack at the push\'s base', () => {
   const r = repo();
   const base = r.git('rev-parse', 'HEAD');
   writeFileSync(join(r.root, 'assets/gazetteer/places.json'), JSON.stringify({ names: [], ascii: [], regions: [], countries: [] }));

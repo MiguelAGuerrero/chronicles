@@ -1775,7 +1775,7 @@ test('WN6: a got-in-the-way note puts its area first in next until a sweep after
   assert.equal(picked.turn, 'walk');
   assert.match(picked.why, /a walk note of 2026-11-14 found replay in the way/);
   assert.equal(wn.nextPick({ ...base, runs: [...runs, sweepLine('replay', '2026-11-14')], walks: [inTheWay('replay', '2026-11-14')] }).area, 'replay', 'WN6b: a sweep the same day does not count');
-  assert.equal(wn.nextPick({ ...base, runs: [...runs, sweepLine('replay', '2026-11-15')], walks: [inTheWay('replay', '2026-11-14')] }).turn, 'rotation', 'a sweep after it does');
+  assert.equal(wn.nextPick({ ...base, runs: [...runs, { ...sweepLine('replay', '2026-11-15'), walk: '2026-11-14' }], walks: [inTheWay('replay', '2026-11-14')] }).turn, 'rotation', 'a sweep after it does');
   assert.equal(wn.nextPick({ ...base, walks: [inTheWay('app', '2026-11-14'), inTheWay('arch', '2026-11-14'), { ...inTheWay('replay', '2026-11-14'), kind: 'keep' }] }).area, 'evolve chronicle', 'app, arch and a keep move nothing');
   assert.equal(wn.nextPick({ ...base, walks: [inTheWay('replay', '2026-11-15'), inTheWay('explore', '2026-11-14')] }).area, 'explore', 'the oldest note first');
   assert.equal(wn.nextPick({ ...base, walks: [inTheWay('replay', '2026-11-14'), inTheWay('explore', '2026-11-14')] }).area, 'explore', 'then by name');
@@ -1795,7 +1795,7 @@ test('walk-notes audit 12: the walk turn takes neither of the rotation\'s turns,
   const verbs = { chronicle: ['Return'], explore: ['Earn'], replay: ['Honour'] };
   const note = inTheWay('replay', '2026-11-14');
   // replay's walk-sent sweep follows a rotation (explore's first): the next turn is still the reset turn's.
-  const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('replay', '2026-11-12'), sweepLine('explore', '2026-11-13'), sweepLine('replay', '2026-11-15')];
+  const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('replay', '2026-11-12'), sweepLine('explore', '2026-11-13'), { ...sweepLine('replay', '2026-11-15'), walk: '2026-11-14' }];
   const states = { chronicle: { state: 'rough' }, explore: { state: 'rough' }, replay: { state: 'settling' } };
   const without = wn.nextPick({ counts: {}, states, evolve: null, runs: runs.slice(0, 3), verbs });
   assert.equal(without.turn, 'reset');
@@ -1829,7 +1829,7 @@ test('WN8: the balance says once when no note came in for 14 days, and nothing e
   assert.match(read('.claude/skills/tend-orchestrator/SKILL.md'), /no walk note/);
 });
 
-test('walk-notes audit 19: an entry filed against a keep is its own class, never the proxy\'s', { todo: 'test first' }, () => {
+test('walk-notes audit 19: an entry filed against a keep is its own class, never the proxy\'s', () => {
   const status = '# Status\n\n## Needs the owner\n\n### From /tend\n\n- **T90 [owner] Replay: a faster start, against the keep of 2026-11-27 (replay)** (2026-11-28)\n  Area: replay.\n- **T91 [owner] Replay: a label** (2026-11-28)\n';
   assert.equal(wn.classOf('T90', status), 'T [keep]');
   assert.equal(wn.classOf('T91', status), 'T [owner]');
@@ -1837,13 +1837,15 @@ test('walk-notes audit 19: an entry filed against a keep is its own class, never
   assert.deepEqual(wn.answerProblems({ entry: 'T90', answer: 'yes', by: 'owner', pick: 'recommended', words: 'Yes', class: 'T [keep]' }), []);
 });
 
-test('walk-notes audit 24: only a sweep a walk note picked, its line saying walk: <day>, leaves the rotation\'s alternation', { todo: 'test first' }, () => {
+test('walk-notes audit 24: only a sweep a walk note picked, its line saying walk: <day>, leaves the rotation\'s alternation', () => {
   const verbs = { chronicle: ['Return'], explore: ['Earn'], replay: ['Honour'], gallery: ['Return'] };
   const states = { chronicle: { state: 'rough' }, explore: { state: 'rough' } };
   // The review's case: a rotation sweep of replay on 11-15, a note of 11-14 about it published later.
   const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('chronicle', '2026-11-12'), sweepLine('replay', '2026-11-15')];
   const late = [inTheWay('replay', '2026-11-14')];
   assert.equal(wn.nextPick({ counts: {}, states, evolve: null, runs, verbs, walks: late }).turn, wn.nextPick({ counts: {}, states, evolve: null, runs, verbs }).turn, 'a sweep the note did not pick keeps its turn');
+  const again = [sweepLine('chronicle', '2026-11-11'), sweepLine('replay', '2026-11-12'), sweepLine('chronicle', '2026-11-13')];
+  assert.equal(wn.nextPick({ counts: {}, states, evolve: null, runs: again, verbs, walks: [inTheWay('replay', '2026-11-10')] }).turn, 'rotation', 'a sweep with no walk on its line stays in the alternation');
   const picked = [...runs.slice(0, 2), { ...sweepLine('replay', '2026-11-15'), walk: '2026-11-14' }];
   assert.equal(wn.nextPick({ counts: {}, states, evolve: null, runs: picked, verbs, walks: late }).turn, wn.nextPick({ counts: {}, states, evolve: null, runs: runs.slice(0, 2), verbs }).turn, 'the walk-picked sweep leaves the alternation');
   assert.equal(wn.nextPick({ counts: {}, states, evolve: null, runs: [...runs.slice(0, 2), { ...sweepLine('replay', '2026-11-14'), walk: '2026-11-14' }], verbs, walks: late }).turn === 'walk', false, 'a same-day sweep the note picked clears it');

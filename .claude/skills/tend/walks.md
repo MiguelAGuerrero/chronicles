@@ -26,25 +26,30 @@ A walk's line is identity like any other: the owner ratifies it, never the proxy
 ## `next`: what got in the way is swept first
 
 `node scripts/tend.js next` answers an area a "got in the way" note names before either of its turns and before a due
-evolve, a resting area too, until a sweep of that area has run after the note's day (decisions 0238, 0270). The sweep
-it sends takes neither turn of the rotation. Its report says it was sent by the walk note of `<day>`.
+evolve, a resting area too, until a sweep of that area has run after the note's day, or the sweep it sent (decisions
+0238, 0270). That sweep logs `"walk":"<the note's day>"` on its run-log line, so it takes neither turn of the rotation;
+no other sweep leaves the alternation. Its report says it was sent by the walk note of `<day>`.
 
 ## The triage: a keep protects
 
 `node scripts/walks.js keeps <the run's area>` lists the area's keeps, each with the later notes of that area. A keep
 holds until a later note about that area releases or contradicts it (decision 0270): lens 0 reads which still stand and
 says so in the report. A finding whose change would alter what a standing keep names is **filed `[owner]`, never
-shipped**, its entry saying "against the keep of <day> (<area>)". It is the owner's alone: never the proxy's to answer
-(decision 0157's list, in `.claude/skills/tend-orchestrator/SKILL.md`, section 2).
+shipped**, its entry saying "against the keep of <day> (<area>)". The answer log reads that entry as a class of its own,
+`T [keep]`, and refuses the proxy's answer to it: it is the owner's alone, never the proxy's (decision 0157's list, in
+`.claude/skills/tend-orchestrator/SKILL.md`, section 2).
 
 ## Carrying a note
 
 A note `/walked` committed in this session waits on a local `walked/<day>` branch until it is published (decision
-0270). A `/tend` run in the same session carries it: before its own first commit, it cherry-picks each such commit that
-`origin/main` lacks onto its branch, keeping its dates (`GIT_COMMITTER_DATE` set to the commit's author date), and every
-rebase of the run keeps them (`git rebase --committer-date-is-author-date origin/main`), since `commits` refuses a
-note's commit with a time of day in its dates. The run publishes it with its own push, says so in its report, and removes
-the `walked/*` worktree and branch after its publish. `next` reads `main`, so a note carried this way steers the run after.
+0270). A `/tend` run in the same session carries it: right after opening its worktree, before any commit of its own, it
+cherry-picks each such commit that `origin/main` lacks onto its branch, keeping its dates (`GIT_COMMITTER_DATE` set to
+the commit's author date), and every rebase of the run keeps them (`git rebase --committer-date-is-author-date
+origin/main`, `ship.md`, "Publish to main", step 2), since `commits` refuses a note's commit with a time of day in its
+dates. `tend:log` writes the days it carries on the run's line (`carried`), and `commits` refuses a push of a run whose
+notes are not its first commits, or are named on no line it adds: a run carries a note, it never writes one, and never
+a removal. The run publishes it with its own push, says so in its report, and removes the `walked/*` worktree and branch
+after its publish. `next` reads `main`, so a note carried this way steers the run after.
 
 ## The report: silence, once
 

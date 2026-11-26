@@ -17,7 +17,9 @@ The owner's answers, Nov 26:
   push is made.
 - **An agent, at your word** ("An agent, at your word (Recommended)"): an agent may remove one leaked line from
   `.claude/skills/tend/walks.jsonl` at the owner's word, the one exception to append-only: a commit whose message quotes
-  the owner's words, which the gate allows for that removal only. A history rewrite stays the owner's.
+  the owner's words, which the gate allows for that removal only. A history rewrite stays the owner's. The owner's word
+  is not machine-checked: no script can tell who typed it (as decision 0236 says of every recorded answer), so the gate
+  holds the form of a removal, and the rest rests on the session that asked.
 - **Until a later note says so** ("Until a later note says so (Recommended)"): a keep holds until a later note about that
   area releases or contradicts it.
 - **Wait for me** ("Wait for me"): with five lines in force, a walk's "reached for" is said in the report and waits for
@@ -28,8 +30,12 @@ The owner's answers, Nov 26:
   once, even when it is resting.
 
 ## Consequences
-- `node scripts/tend.js commits` holds an agent commit that touches `walks.jsonl` to that file alone, its subject
-  `walked: a note of <day>`, both its dates `<day> 00:00:00 +0000`, and only appended lines the check takes; or to the
-  removal of one line with the owner's words quoted. A refusal there names the line and the class, never the words.
-- A `/tend` run that carries a note keeps its dates through every rebase (`--committer-date-is-author-date`).
+- `node scripts/tend.js commits` holds every commit subject `walked: …`, and every agent commit that touches
+  `walks.jsonl`, to that file alone, its subject `walked: a note of <day>`, both its dates `<day> 00:00:00 +0000`, and only
+  appended lines the check takes; or to the removal of one "reached for" line, its subject naming the line, with the
+  owner's words quoted (a keep or a got-in-the-way is removed only by the owner's own hand). A merge that changes the file
+  is refused. A refusal there names the line and the class, never the words.
+- A `/tend` run that carries a note does so only as its push's first commits, named by their days on its run-log line
+  (`carried`, written by `tend:log`), and keeps their dates through every rebase (`--committer-date-is-author-date`).
+- An entry filed against a keep is read as its own class, `T [keep]`, which the proxy never answers (decision 0157).
 - Five of the six answers were the recommended options; "Wait for me" was the other.

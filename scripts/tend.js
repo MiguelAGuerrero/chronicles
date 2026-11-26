@@ -387,6 +387,8 @@ function logProblems(given, opts = {}) {
   if (!MODES.includes(g.mode)) p.push(`mode is one of ${MODES.join(', ')}`);
   if (g.mode === 'sweep' && (typeof g.area !== 'string' || !g.area)) p.push('a sweep names its area');
   if (!DEPLOYS.includes(g.deploy)) p.push(`deploy is one of ${DEPLOYS.join(', ')}`);
+  // A sweep `next` sent on its walk turn says the note's day (walk-notes audit 24).
+  if (g.walk !== undefined && (g.mode !== 'sweep' || !/^\d{4}-\d{2}-\d{2}$/.test(String(g.walk)))) p.push('walk is the day of the walk note that sent this sweep (YYYY-MM-DD), on a sweep only');
   if (typeof g.base !== 'string' || !/^[0-9a-f]{7,40}$/.test(g.base)) p.push('base is the commit the worktree was opened from');
   if (g.mode === 'sweep' && !g.backfilled) {
     const f = g.found ?? {};
@@ -546,6 +548,8 @@ function runLine({ date, subjects, given }) {
     built: all('built'),
     grew: tally(subjects.map((subject) => ({ subject }))).slices,
     reverted: subjects.filter((s) => /^Revert "tend /.test(s)).map((s) => testName(s.replace(/^Revert "/, '')) ?? s),
+    // The walk notes the run carries, by their days (decision 0270; walk-notes audit 18): the gate reads them.
+    ...(subjects.some((s) => /^walked: a note of /.test(s)) ? { carried: [...new Set(subjects.map((s) => /^walked: a note of (\d{4}-\d{2}-\d{2})$/.exec(s)?.[1]).filter(Boolean))] } : {}),
   };
 }
 
@@ -1147,7 +1151,7 @@ function appendLog(argv) {
     process.exit(2);
   }
   // The script writes the date and the marker; a run's JSON dates nothing and backfills nothing (decision 0236).
-  const owned = ['date', 'backfilled', 'lens', 'answerLog', 'regressions'].filter((k) => given && Object.prototype.hasOwnProperty.call(given, k));
+  const owned = ['date', 'backfilled', 'lens', 'answerLog', 'regressions', 'carried'].filter((k) => given && Object.prototype.hasOwnProperty.call(given, k));
   if (owned.length) {
     console.error(`tend log: ${owned.join(', ')} ${owned.length > 1 ? 'are' : 'is'} the script's to write, not the run's: leave ${owned.length > 1 ? 'them' : 'it'} out`);
     process.exit(1);
@@ -1298,7 +1302,8 @@ function commits(argv) {
   const shas = all.filter((sha) => {
     const s = git('show', '-s', '--format=%s', sha);
     if (loopOnly) return /^tend /.test(s);
-    return !(/^walked: /.test(s) && git('show', '--name-only', '--format=', sha).split('\n').includes('.claude/skills/tend/walks.jsonl'));
+    // Only a commit whose one file is the notes file (walk-notes audit 20).
+    return !(/^walked: /.test(s) && git('show', '--name-only', '--format=', sha).split('\n').filter(Boolean).join('\n') === '.claude/skills/tend/walks.jsonl');
   });
   // The push's base: a rule line it holds is add-only; one an earlier commit of the push added is not.
   const ends = range.split('..');
@@ -1419,34 +1424,67 @@ function commits(argv) {
       console.error(`${sha.slice(0, 7)} ${message.split('\n')[0].trim()}\n  ${p}`);
     }
   }
-  // The owner's walk notes (WN4c; decisions 0238, 0270): every agent commit that touches them, a note day-dated and alone,
-  // or one leaked line removed at the owner's word; the problems name a line and a class, never the words (CI's log).
+  // The owner's walk notes (WN4c; decisions 0238, 0270): every commit subject `walked: …` whatever its trailers (walk-notes
+  // audit 17), and every agent commit that touches the file: a note day-dated and alone, or one leaked line removed at
+  // the owner's word. The problems name a line and a class, never the words (CI's log). The pack is the push's base's
+  // (walk-notes audit 27), else this checkout's.
   const W = require('./walks');
   let walkNames;
+  const namesAtBase = () => {
+    if (walkNames) return walkNames;
+    const text = at(baseRev, 'assets/gazetteer/places.json');
+    walkNames = text ? W.nameIndex(JSON.parse(text)) : W.namesAt(ROOT);
+    return walkNames;
+  };
+  const say = (sha, subject, p) => {
+    bad += 1;
+    console.error(`${sha.slice(0, 7)} ${subject}\n  ${p}`);
+  };
+  const walked = [];
   for (const sha of all) {
     const files = git('show', '--name-status', '--format=', sha).split('\n').filter(Boolean).map((l) => {
       const cols = l.split('\t');
       return { status: cols[0][0], path: cols[cols.length - 1], from: cols.length > 2 ? cols[1] : undefined };
     });
-    if (!files.some((f) => f.path === W.WALKS_REL || f.from === W.WALKS_REL)) continue;
     const message = git('show', '-s', '--format=%B', sha);
-    if (!require('./records').isAgent(message)) continue;
+    const subject = message.split('\n')[0].trim();
+    const touches = files.some((f) => f.path === W.WALKS_REL || f.from === W.WALKS_REL);
+    const isWalked = /^walked: /.test(subject);
+    if (isWalked) walked.push({ sha, subject });
+    if (!touches && !isWalked) continue;
+    if (!isWalked && !require('./records').isAgent(message)) continue;
     const [authorDate, committerDate] = git('show', '-s', '--format=%ai%n%ci', sha).split('\n');
-    walkNames ??= W.namesAt(ROOT);
-    const problems = W.commitProblems({
-      subject: message.split('\n')[0].trim(),
-      message,
-      files,
-      before: at(`${sha}^`, W.WALKS_REL),
-      after: at(sha, W.WALKS_REL),
-      authorDate,
-      committerDate,
-      names: walkNames,
-      areas: W.featuresAt(ROOT).map((f) => f.name),
-    });
-    for (const p of problems) {
-      bad += 1;
-      console.error(`${sha.slice(0, 7)} ${message.split('\n')[0].trim()}\n  ${p}`);
+    const problems = W.commitProblems({ subject, message, files, before: at(`${sha}^`, W.WALKS_REL), after: at(sha, W.WALKS_REL), authorDate, committerDate, names: namesAtBase(), areas: W.featuresAt(ROOT).map((f) => f.name) });
+    for (const p of problems) say(sha, subject, p);
+  }
+  // A merge that changes the notes is refused (walk-notes audit 23): a note is a commit of its own.
+  for (const sha of git('rev-list', '--merges', range).split('\n').filter(Boolean)) {
+    if (git('diff', '--name-only', `${sha}^1`, sha).split('\n').includes(W.WALKS_REL)) say(sha, git('show', '-s', '--format=%s', sha).trim(), `a merge changes ${W.WALKS_REL}: a walk note is a commit of its own (decision 0270)`);
+  }
+  // A /tend run carries a note only as its push's first commits, each named by its day on a run-log line the push adds
+  // (`carried`, which tend:log writes); a note is never authored inside a run, nor removed in one (walk-notes audit 18).
+  if (all.some((sha) => /^tend /.test(git('show', '-s', '--format=%s', sha)))) {
+    const firstOther = all.findIndex((sha) => !walked.some((w) => w.sha === sha));
+    const tipRev = ends.length === 2 && ends[1] ? ends[1] : 'HEAD';
+    const had = new Set(at(baseRev, RUNS_REL).split('\n').filter(Boolean));
+    const carried = new Set(
+      at(tipRev, RUNS_REL)
+        .split('\n')
+        .filter((l) => l && !had.has(l))
+        .flatMap((l) => {
+          try {
+            return JSON.parse(l).carried ?? [];
+          } catch {
+            return [];
+          }
+        }),
+    );
+    for (const w of walked) {
+      const day = W.NOTE_SUBJECT.exec(w.subject)?.[1];
+      const k = all.indexOf(w.sha);
+      if (!day) say(w.sha, w.subject, 'a /tend run carries walk notes, never a removal: a removal is pushed on its own, at the owner\'s word (decision 0270)');
+      else if (firstOther >= 0 && k > firstOther) say(w.sha, w.subject, 'a walk note inside a /tend run: a note is carried only as a run\'s first commits, committed by /walked before the run opened, never authored in it (decision 0270)');
+      else if (!carried.has(day)) say(w.sha, w.subject, `a walk note this /tend push carries is named on no run-log line it adds (\`carried\` holds no ${day}; tend:log writes it)`);
     }
   }
   // What the record gate found in commits this loop does not read itself: agent commits, merges, reverts.
@@ -1750,6 +1788,7 @@ function answerProblems(a) {
   if (a?.by === 'proxy') {
     if (a.answer !== 'yes') p.push(`${e}: the proxy answers only yes; a no or a reshape is the owner's (decision 0157)`);
     if (/^T \[(arch|phone)\]$/.test(a.class ?? '')) p.push(`${e}: the proxy never answers an [arch] or [phone] entry (decision 0157)`);
+    if (a.class === 'T [keep]') p.push(`${e}: the proxy never answers an entry filed against the keep of the owner's walk note (decisions 0157, 0270)`);
   }
   if (a?.confirms !== undefined && (a.by !== 'owner' || a.answer !== 'yes' || !ISO_DAY.test(String(a.confirms)))) p.push(`${e}: confirms is the owner's keep of a proxy yes: by owner, answer yes, and the proxy line's date (YYYY-MM-DD)`);
   return p;
@@ -1800,6 +1839,8 @@ function classOf(entry, status) {
   const letter = String(entry)[0];
   if (letter === 'G') return 'G';
   const item = readInbox(status).items.find((i) => i.id === entry);
+  // An entry filed against the owner's walk note is its own class, the owner's alone (walk-notes audit 19).
+  if (item && /against the keep of \d{4}-\d{2}-\d{2}/.test(item.text)) return 'T [keep]';
   return item?.tag ? `T [${item.tag}]` : letter;
 }
 
