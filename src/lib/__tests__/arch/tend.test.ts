@@ -1758,6 +1758,9 @@ test('loop-budget audit 17, 21, 22, 25: check:tend and tend:log hold them end to
 type WalkNote = { day: string; area: string; kind: string; words: string };
 const wn = createRequire(__filename)(join(ROOT, 'scripts', 'tend.js')) as {
   nextPick(o: { counts: Record<string, number>; states: Record<string, { state: string }>; evolve: string | null; runs: unknown[]; verbs: Record<string, string[]>; walks?: WalkNote[] }): { area: string | null; turn: string; why: string };
+  answerProblems(a: unknown): string[];
+  classOf(entry: string, status: string): string;
+  logProblems(given: unknown): string[];
 };
 const inTheWay = (area: string, day: string): WalkNote => ({ day, area, kind: 'got in the way', words: 'the strip hid the map' });
 
@@ -1822,6 +1825,29 @@ test('WN8: the balance says once when no note came in for 14 days, and nothing e
   r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
   const again = JSON.parse(r.tendJs('balance').stdout) as { walks: { silence: string | null } };
   assert.equal(again.walks.silence, null, 'not said again for the same gap');
-  assert.match(read('.claude/skills/tend/SKILL.md'), /walk/);
+  assert.match(read('.claude/skills/tend/SKILL.md'), /its walk notes and silence, once: `walks\.md`/);
   assert.match(read('.claude/skills/tend-orchestrator/SKILL.md'), /no walk note/);
+});
+
+test('walk-notes audit 19: an entry filed against a keep is its own class, never the proxy\'s', { todo: 'test first' }, () => {
+  const status = '# Status\n\n## Needs the owner\n\n### From /tend\n\n- **T90 [owner] Replay: a faster start, against the keep of 2026-11-27 (replay)** (2026-11-28)\n  Area: replay.\n- **T91 [owner] Replay: a label** (2026-11-28)\n';
+  assert.equal(wn.classOf('T90', status), 'T [keep]');
+  assert.equal(wn.classOf('T91', status), 'T [owner]');
+  assert.match(wn.answerProblems({ entry: 'T90', answer: 'yes', by: 'proxy', pick: 'recommended', class: 'T [keep]' }).join(), /proxy/);
+  assert.deepEqual(wn.answerProblems({ entry: 'T90', answer: 'yes', by: 'owner', pick: 'recommended', words: 'Yes', class: 'T [keep]' }), []);
+});
+
+test('walk-notes audit 24: only a sweep a walk note picked, its line saying walk: <day>, leaves the rotation\'s alternation', { todo: 'test first' }, () => {
+  const verbs = { chronicle: ['Return'], explore: ['Earn'], replay: ['Honour'], gallery: ['Return'] };
+  const states = { chronicle: { state: 'rough' }, explore: { state: 'rough' } };
+  // The review's case: a rotation sweep of replay on 11-15, a note of 11-14 about it published later.
+  const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('chronicle', '2026-11-12'), sweepLine('replay', '2026-11-15')];
+  const late = [inTheWay('replay', '2026-11-14')];
+  assert.equal(wn.nextPick({ counts: {}, states, evolve: null, runs, verbs, walks: late }).turn, wn.nextPick({ counts: {}, states, evolve: null, runs, verbs }).turn, 'a sweep the note did not pick keeps its turn');
+  const picked = [...runs.slice(0, 2), { ...sweepLine('replay', '2026-11-15'), walk: '2026-11-14' }];
+  assert.equal(wn.nextPick({ counts: {}, states, evolve: null, runs: picked, verbs, walks: late }).turn, wn.nextPick({ counts: {}, states, evolve: null, runs: runs.slice(0, 2), verbs }).turn, 'the walk-picked sweep leaves the alternation');
+  assert.equal(wn.nextPick({ counts: {}, states, evolve: null, runs: [...runs.slice(0, 2), { ...sweepLine('replay', '2026-11-14'), walk: '2026-11-14' }], verbs, walks: late }).turn === 'walk', false, 'a same-day sweep the note picked clears it');
+  assert.deepEqual(wn.logProblems({ ...sweepLine('replay', '2026-11-15'), deploy: 'main', base: 'abc1234', found: { loop: { high: 0, medium: 0, low: 0 }, owner: 0, arch: 0, phone: 0, out: 0 }, walk: '2026-11-14' }).filter((p) => /walk/.test(p)), []);
+  assert.match(wn.logProblems({ mode: 'inbox', deploy: 'main', base: 'abc1234', walk: '2026-11-14' }).join(), /walk/);
+  assert.match(wn.logProblems({ ...sweepLine('replay', '2026-11-15'), deploy: 'main', base: 'abc1234', walk: 'yesterday' }).join(), /walk/);
 });
