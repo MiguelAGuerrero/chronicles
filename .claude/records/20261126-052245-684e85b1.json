@@ -1,0 +1,38 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G13",
+        "--reason",
+        "the owner's yes (in person, 2026-11-26), built as the town-fixtures data set (TF1, TF2, TF4, TF5, TF14, TF19, TF21, TF25, TF26 pass; TF27 waits on the first published fixtures pack), decision 0268"
+      ],
+      "target": "sha256:b45e43b451f83bfce5310d1a5eb3afe7a369a6bed2e6ed8bb505a8edfae02ac3"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Town fixtures: a fixtures filter change makes the next weekly run a fill that carries places' and stores' OSM answers a week** (2026-11-26)\n  Area: fixtures (chronicles-data's build). Seen: chronicles-data `src/adapters/osm/extract.ts`, `planPart` (FX10): whenever the fixtures filter's fingerprint changes, the next run that fetches OpenStreetMap is a fill: the four extracts are downloaded, only the fixtures filter runs, and the places' and stores' OSM answers (with their ETags and counts) are carried as they were, a week older; the first fill (the manual build, or Nov 30's weekly run) carries Nov 23's answers to the week after. Rests on: G13's diff review (the auditor's F12, Nov 26), FX10 as built so the first pack moves nothing else.\n  Recommended: in a fill, ask with the held copy's ETag first: a 304 carries everything and fills the new filter from a fresh download; a 200 runs every filter on the one download (the normal weekly cadence: places and stores take the week's edits, as any week does). Cost: about ten lines in `planPart` and `filterExtracts` and two tests in chronicles-data; once the first pack is out, a filter change no longer delays the places and stores, but a fill run may then republish them (the extracts change every week). /vision: no surface.\n  Precedent: none found (a rule of the data build, no adjacent app's job).\n  Otherwise: keep FX10 as built: a filter change costs the places and stores one week's freshness and never republishes them unasked.\n",
+      "number": "T66"
+    },
+    {
+      "argv": [
+        "inflight",
+        "set",
+        "Town fixtures (the staples"
+      ],
+      "body": "| Town fixtures (the staples of a settlement, a visitor centre, a plaza, a town hall, a library, a market, a station, told apart from the things to discover: said in words on a town's card and marked on the map as a layer of their own, from a third pack; a stop, never a find; TF1-TF27, decisions 0225, 0255, 0268) | `tend/inbox-20261126-0340` (on main) | G13, the data set, built 2026-11-26: chronicles-data's fixtures pack (FX1-FX14, on its main at `89767cd`) and the app's adapter (`src/lib/fixtures/`), no screen; TF27 waits on the first published fixtures pack (the owner's manual build), then its recording in a short follow-up run. The screens (TF6-TF13) after, with a mock-up. Nothing has run on a phone |\n",
+      "target": "sha256:da929dbe799c6c8471c3b5c698cba8f9711ca0f9715d895bc7a0ab9758df19df"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 26, `/tend inbox G13 yes`: each town's fixtures as a data set, read by the app** (opened from `63a5bd3e`; G13, \"Explore: each town's fixtures as a data set, read by the app\", the owner's yes in person, Nov 26, with the kind list of Nov 25; built as the town-fixtures spec's first slice, `--from` G13; no surface; an inbox run, so lenses 1-7 were not run).\n- Built, in two repositories. chronicles-data (pushed to its main, `0fc0e6e` and the review's fixes `89767cd`): a third pack, the owner's thirteen kinds from OpenStreetMap's tags with Wikidata's public libraries folded in (`P31 = Q28564` exactly, by a read of its own), one fixture kept once (OpenStreetMap first), contract v9 (FX1-FX14). The app: `src/lib/fixtures/` reads it through its adapter, by tile, nine z12 tiles at most, stoppable, from the host the other packs use; the kinds are spelled in `presence/fixtureKinds.ts` (PS7); nothing is stored. TF1, TF2, TF4, TF5, TF14, TF19, TF21, TF25 and TF26 pass.\n- TF27 (Stowe's and Marfa's fixtures read from the published pack) waits: the manual build could not be started from the session (the GitHub integration answered 403), and the owner will start it. Its expectations are written from OpenStreetMap's elements ahead of the recording; a short follow-up run records the pack and makes the test real.\n- The owner's answers in person (Nov 26, decision 0268, amending 0255): Wikidata's libraries now, Overture waits (\"Add Wikidata too\"); unnamed squares, markets and commons for the map, a card names only the named (\"Map only\"); every station but a heritage railway's (\"All but heritage\", its tags narrowed at the diff review); `information=office` trusted (\"Trust the tag\").\n- Reviews: the steward on the plan (6 accepted, 1 settled by the owner); the auditor on both diffs, one round (8 accepted and fixed as town-fixtures audit 7-15, one filed for the owner as T66). An old/new differential of the places and stores outputs over the same answers, main's data code against the branch's: no difference. chronicles-data's push runs 41 and 42 published nothing (places and stores unchanged; no fixtures pack until OpenStreetMap's fixtures are fetched).\n- Filed: T66 (a fixtures filter change makes the next weekly run carry places' and stores' OSM answers a week). `docs/DEFERRED.md`, \"Town fixtures\": Overture's fold [arch], TF3's overlap with the finds [owner].\n- Checks: `npm test`, typecheck, lint, `check:docs`, `check:records`, commits; chronicles-data's `npm test`, typecheck, `contract --check`. Journeys: `launch` (its known Layers click flake). The weekly full pass, due since Nov 23, was not run.\n- Waiting with the owner's yes, for the next `/tend inbox`: G7, G8, G5 (the owner's order, Nov 25); G9 also waits on the walk drawer sections slice reaching main.\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}
