@@ -230,6 +230,7 @@ export function useExplore(opts: {
     let alive = true;
     // tend explore audit 11: the route's reads hold the queue while they are decided, as `maybeRead`'s do, until its items load.
     (async () => {
+      let readAny = false;
       await exploreHold(async () => {
         for (const p of routeProbes(routePath)) {
           if (!alive || !retryAllowed(failed.current, p, Date.now())) break;
@@ -239,9 +240,16 @@ export function useExplore(opts: {
           const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
           const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: (at) => placesArchive.versionAt(at) });
           // tend explore audit 13: a route dropped meanwhile stops its reads, a waiting one included.
-          if (centre && !(await readAt(centre, () => !alive))) break;
+          if (centre) {
+            if (!(await readAt(centre, () => !alive))) break;
+            readAny = true;
+          }
         }
       });
+      // tend explore audit 57: a route read may have built the areas around you again (a retired kind gone): the items the
+      // check reads follow, so it never reads an area a second time for what the route's read already healed.
+      const at = itemsAt.current;
+      if (readAny && at && alive) await loadItems(at).catch(() => {});
       const box = boundsOf(routePath, EXPLORE_RULES.rangeMax);
       const got = box ? await db.checklistItemsIn(box).catch(() => []) : [];
       if (alive && mounted.current) setRouteItems(got);
@@ -249,7 +257,7 @@ export function useExplore(opts: {
     return () => {
       alive = false;
     };
-  }, [routePath, loadKnown, readAt]);
+  }, [routePath, loadKnown, loadItems, readAt]);
 
   // Named within 60 m, fix by fix, while Places is on (E7); a reload's fixes counted once.
   const seeded = useRef(false);

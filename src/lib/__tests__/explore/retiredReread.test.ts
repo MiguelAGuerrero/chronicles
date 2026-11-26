@@ -95,3 +95,11 @@ test('tend explore audit 56: only the area a read was aimed at, and left as it w
   // A read around the fix for another reason (no read of this build within 1 km) is not aimed at the area.
   assert.equal(retiredAimed({ ...at, reads: [] }, readCentre({ ...at, reads: [] })), null);
 });
+
+test('tend explore audit 57: after a route\'s reads, the items around you that the check reads are loaded again', () => {
+  const walk = src('src/lib/explore/useExplore.ts');
+  const route = walk.slice(walk.indexOf('const routePath = places ? opts.routePath : null;'), walk.indexOf('// Named within 60 m'));
+  assert.match(route, /if \(centre\) \{\n\s*if \(!\(await readAt\(centre, \(\) => !alive\)\)\) break;\n\s*readAny = true;\n\s*\}/, 'a route read that happened is noted');
+  assert.match(route, /const at = itemsAt\.current;\n\s*if \(readAny && at && alive\) await loadItems\(at\)\.catch\(\(\) => \{\}\);/, 'then the items around you (held) are read again');
+  assert.match(route, /\}, \[routePath, loadKnown, loadItems, readAt\]\);/);
+});
