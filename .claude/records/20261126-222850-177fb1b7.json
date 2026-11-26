@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G8",
+        "--reason",
+        "the owner's yes, Nov 22: \"Yes, queue it\", over the recommended \"Not yet, after G7\"; run after G7 by the owner's order of Nov 25; built as specs/walk-notes (WN1-WN9 pass), decisions 0238 and 0270"
+      ],
+      "target": "sha256:e6f7c1ce5667b2330588af7cb588a9317fe420b545c29408bb08e5146bd910a9"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Lease: walk notes",
+        "--reason",
+        "the holder's release at the run's close (lease tend-inbox-20261126-1716, its last record commit)"
+      ],
+      "target": "sha256:3bd81e5fa824d85de61c6bb019543a1bc329fe67ad54abfa3d6815aa21b80c5d"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 26, `/tend inbox G8 yes`: walk notes, the owner's own walks steer the loop** (opened from `f8519ac9`; G8, \"Walk notes: the owner's own walks steer the loop\", the owner's yes, Nov 22, \"Yes, queue it\", over the recommended \"Not yet, after G7\", run next by the owner's order of Nov 25, after G7; built as `specs/walk-notes`, `--from` G8; no surface; an inbox run, so lenses 1-7 were not run).\n- Built in `scripts/walks.js` (new) and `scripts/tend.js`, with `/walked` (the owner's skill, never the model's) and the skills saying the same (WN1-WN9, decisions 0238 and 0270): `/walked` sorts a line after a walk into reached for, got in the way and keep, each with an area, asks once for what is missing, shows the stored words, and commits the note alone, day-dated, unpublished until `/walked publish` or a `/tend` run in the session carries it; `walks.js add` refuses a street, a town, region or country of the gazetteer, a postcode, coordinates, a link or a time of day; `next` answers a got-in-the-way area first (a resting one too) until a sweep after the note's day; a reach is a drafted expectation line ahead of the model's; a keep protects, a finding against it filed for the owner alone (`T [keep]`); the balance lists the window's notes by day, area and kind and says the silence once a gap; `commits` holds every `walked:` commit and every agent commit to `walks.jsonl`, naming no words. The lease (`506b1d74`, `ea78ac13`) is released.\n- On `main` now: no walk note yet; `next` names `gallery`, as before.\n- The owner's answers in person (Nov 26, decision 0270, amending 0238): \"Hold, publish later\", \"An agent, at your word\", \"Until a later note says so\", \"Wait for me\", \"Refuse them too\", \"Yes, a walk wakes it\".\n- Reviews: the steward on the plan (12 accepted, 6 Silent questions to the owner); the auditor on the diff, one round (14 accepted and fixed as walk-notes audit 14-27). An old/new differential over today's history (main's scripts against the branch's): `next`, `commits` (both modes, over 200 commits and per push), `check:records` and `inbox age` identical; `balance` adds only `walks`.\n- Answered: G8 built. Filed: `docs/DEFERRED.md`, \"Walk notes\": the place check's limits, and \"settled after three walks\", both `[owner]`.\n- Checks: `npm test`, typecheck, lint, `check:docs`, `check:records`, `commits` in both modes, `check:test-first` (9 of 9). Journeys: `launch`. The weekly full pass, due since Nov 23, was not run.\n- Waiting with the owner's yes, for the next `/tend inbox`: T66, G5 (the owner's order, Nov 25); G9 also waits on the walk drawer sections slice reaching main.\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}
