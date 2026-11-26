@@ -31,6 +31,12 @@
 //                                                           --intro <file> its one paragraph)
 //   npm run records -- deferred|native item note <match> | item split <match> | item tag <match> <tag>
 //   npm run records -- deferred|native item remove|set <match> --reason r | item retag <match> <tag> --reason r
+//   npm run records -- inbox age [--main] [--json] [--today YYYY-MM-DD] [--write <dir>]
+//                                                           a read, never an operation: what under "Needs the owner"
+//                                                           waited 14 days unanswered, what waited 30 (to move to
+//                                                           DEFERRED as [owner]: --write puts each bullet in <dir> and
+//                                                           prints the operations), "Open before the loop" listed,
+//                                                           never moved (decisions 0235, 0269)
 //   npm run records -- trailers                             the pending operations' trailers, for the commit
 //   npm run records -- redo                                 the pending operations run again on HEAD's documents
 //                                                           (after taking main's side of a rebase conflict);
@@ -1807,7 +1813,70 @@ function main(argv) {
   if (group === 'verify') return verify(argv.slice(1));
   if (group === 'trailers') return trailers();
   if (group === 'redo') return redo();
+  if (group === 'inbox' && argv[1] === 'age') return inboxAge(argv.slice(2));
   return runOperation(argv);
+}
+
+// ---------------------------------------------------------------------------------------------------
+// The inbox's age (specs/loop-budget, LB5; decisions 0235, 0269): a read, never an operation. No sidecar, no trailer.
+
+const EXPIRED = 'From the inbox, unanswered for 30 days';
+const EXPIRY_REASON = 'unanswered for 30 days (decision 0235)';
+/** A word for a shell: double quotes when nothing in it would expand there, else single quotes. */
+const shellWord = (w) => (/^[\w./@%:+=,-]+$/.test(w) ? w : /["$`\\!]/.test(w) ? `'${w.replace(/'/g, `'\\''`)}'` : `"${w}"`);
+
+function inboxAge(argv) {
+  const flag = (name) => {
+    const k = argv.indexOf(name);
+    return k >= 0 ? argv[k + 1] : undefined;
+  };
+  const today = flag('--today') ?? new Date().toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(today)) fail(`--today ${today} is not YYYY-MM-DD`);
+  const status = argv.includes('--main')
+    ? execFileSync('git', ['show', 'origin/main:docs/STATUS.md'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    : fs.readFileSync(path.join(ROOT, 'docs/STATUS.md'), 'utf8');
+  const age = require('./tend').inboxAge(status, today);
+  if (argv.includes('--json')) {
+    console.log(JSON.stringify(age, null, 2));
+    return 0;
+  }
+  const name = (x) => x.id ?? x.text.split('\n')[0].slice(0, 90);
+  const list = (title, xs) => [title, ...(xs.length ? xs.map((x) => `  ${x.age === null ? 'undated' : `${x.age} days`} · ${x.section} · ${name(x)}${x.date ? ` (since ${x.date})` : ''}`) : ['  none'])];
+  console.log([
+    `inbox age on ${today} (decisions 0235, 0269): unanswered for 14 days or more, oldest first`,
+    ...list('to move to docs/DEFERRED.md as [owner] (30 days or more):', age.move),
+    ...list('waiting (14 days or more):', age.wait),
+    ...list('waiting on the owner\'s hand ("Open before the loop": listed, never moved):', age.hand),
+    ...list('undated (cannot age):', age.undated),
+    ...list('for a device (not aged):', age.phone),
+  ].join('\n'));
+  const dir = flag('--write');
+  if (!dir || !age.move.length) return 0;
+  // Each item's own lines, as the document holds them, become its DEFERRED bullet under [owner], its words kept.
+  const doc = parse(status.replace(/\r\n/g, '\n'));
+  const blocks = doc.blocks.filter((b) => b.kind === 'item' && b.h2 === OWNER && b.h3);
+  const deferred = fs.existsSync(path.join(ROOT, FILE_OF.deferred)) ? fs.readFileSync(path.join(ROOT, FILE_OF.deferred), 'utf8') : '';
+  let fresh = !deferred.split('\n').some((l) => l.trim() === `## ${EXPIRED}`);
+  fs.mkdirSync(dir, { recursive: true });
+  const ops = [];
+  age.move.forEach((x, k) => {
+    const first = x.text.split('\n')[0];
+    const b = blocks.find((y) => y.h3 === x.section && y.text.replace(/^[-*+]\s+/, '').split('\n')[0] === first);
+    if (!b) return ops.push(`# ${name(x)}: not found as one bullet of "${x.section}"; move it by hand`);
+    const lines = b.text.split('\n');
+    lines[0] = lines[0].replace(/^([-*+])\s+/, '$1 [owner] ');
+    lines.push(`  Moved from the inbox ("${x.section}") on ${today}, unanswered since ${x.date} (decision 0235).`);
+    const file = path.join(dir, `${String(k + 1).padStart(2, '0')}-${x.id ?? 'item'}.md`);
+    fs.writeFileSync(file, lines.join('\n') + '\n');
+    const unique = blocks.filter((y) => y.h3 === x.section && y.text.includes(first)).length === 1;
+    if (x.id) ops.push(`npm run records -- inbox remove ${x.id} --reason ${shellWord(EXPIRY_REASON)}`);
+    else if (/^From /.test(x.section) && unique) ops.push(`npm run records -- section item remove ${shellWord(x.section)} ${shellWord(first)} --reason ${shellWord(EXPIRY_REASON)}`);
+    else ops.push(`# ${name(x)}: no operation removes it by its first line; move it by hand`);
+    ops.push(`npm run records -- deferred item add ${shellWord(EXPIRED)}${fresh ? ' --new' : ''} --file ${shellWord(file)}`);
+    fresh = false;
+  });
+  console.log(['', `the operations that move them (two removals per section per commit at most, ship.md "The record documents"):`, ...ops].join('\n'));
+  return 0;
 }
 
 if (require.main === module) {

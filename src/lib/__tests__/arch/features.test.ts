@@ -279,7 +279,7 @@ test('NT12 the docs list the web notification transport as a web exception, with
 });
 
 // Loop budget (specs/loop-budget, decision 0269): each area's verbs order the loop's sweeps, and nothing else.
-test('LB2: every feature but arch names its verbs, VISION\'s three, in the order the rotation reads them', { todo: 'test first' }, () => {
+test('LB2: every feature but arch names its verbs, VISION\'s three, in the order the rotation reads them', () => {
   const f = features as unknown as { VERBS: string[]; FEATURES: { name: string; verbs?: string[] }[] };
   assert.deepEqual(f.VERBS, ['Return', 'Honour', 'Earn']);
   for (const x of f.FEATURES.filter((y) => y.name !== 'arch')) {
@@ -288,7 +288,7 @@ test('LB2: every feature but arch names its verbs, VISION\'s three, in the order
   }
 });
 
-test('loop-budget audit 5: walk-screen and map keep the verbs already ruled; the table is never a Serves: ruling', { todo: 'test first' }, () => {
+test('loop-budget audit 5: walk-screen and map keep the verbs already ruled; the table is never a Serves: ruling', () => {
   const f = features as unknown as { FEATURES: { name: string; verbs?: string[] }[] };
   const verbs = (n: string) => [...(f.FEATURES.find((x) => x.name === n)?.verbs ?? [])].sort();
   assert.deepEqual(verbs('walk-screen'), ['Earn', 'Honour'], 'decision 0261');

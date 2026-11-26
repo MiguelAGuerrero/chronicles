@@ -15,6 +15,12 @@
 // a tab's route); a test folder, a journey and a rule belong to one.
 // Globs: `**` any depth, `*` within one folder, `{a,b}` either.
 
+// Each feature's `verbs` (VISION's "The three verbs"; specs/loop-budget, decision 0269) order `tend.js next`'s rotation:
+// an area ranks by its first verb in the order Return, Honour, Earn (Chronicle first). The loop's
+// sweep order only, never a ruling a `Serves:` line may cite (the owner, Nov 26, "Sweep order only"); the verbs of the
+// infrastructure areas (storage, web, motion) are for sweep order alone.
+const VERBS = ['Return', 'Honour', 'Earn'];
+
 const FEATURES = [
   {
     name: 'arch',
@@ -26,6 +32,7 @@ const FEATURES = [
   },
   {
     name: 'storage',
+    verbs: ['Honour'],
     about: 'the db adapters, migrations and media paths',
     rule: 'storage',
     source: ['src/lib/db/**', 'src/lib/media/**', 'src/lib/space/**', 'src/components/SpaceLine.tsx'],
@@ -34,6 +41,7 @@ const FEATURES = [
   },
   {
     name: 'backup',
+    verbs: ['Honour'],
     about: 'Your data: the whole-app backup zip, its versioned format and its reader (decision 0241)',
     rule: 'backup',
     source: ['src/lib/backup/**', 'src/app/your-data.tsx', 'src/components/PageRow.tsx'],
@@ -42,6 +50,7 @@ const FEATURES = [
   },
   {
     name: 'recording',
+    verbs: ['Honour'],
     about: 'the trace: fixes, the recorder, the live dot, steps, pauses, gaps in time',
     rule: 'recording-and-traces',
     source: [
@@ -55,6 +64,7 @@ const FEATURES = [
   },
   {
     name: 'rides',
+    verbs: ['Honour'],
     about: 'a bus, trolley or train inside a walk',
     rule: 'rides',
     source: ['src/lib/rides.ts'],
@@ -63,6 +73,7 @@ const FEATURES = [
   },
   {
     name: 'streets',
+    verbs: ['Earn'],
     about: 'streets derived from tiles, the fog, snapping, tile builds',
     rule: 'streets-fog-snapping',
     source: ['src/lib/{streets,snapper,finish,tiles,tileMath,tileBuild,mapReads}.ts', 'src/lib/discovery/{tileDecode,tileFetch}.ts', 'src/lib/db/segmentBounds.ts'],
@@ -71,6 +82,7 @@ const FEATURES = [
   },
   {
     name: 'gaps',
+    verbs: ['Honour'],
     about: 'streets walked across a gap in the trace, and drawing a gap\'s way',
     rule: 'gaps',
     source: ['src/lib/gaps/**', 'src/lib/tileCollector/**', 'src/components/{GapCard,GapDraw,KeepGapsCard}.tsx'],
@@ -79,6 +91,7 @@ const FEATURES = [
   },
   {
     name: 'navigation',
+    verbs: ['Earn'],
     about: 'the way: routes, the heading, bridges, Open in Maps, time left',
     rule: 'navigation',
     source: ['src/lib/nav/**', 'src/lib/here/**', 'src/lib/routeLeanings/**', 'src/components/{RoutePreview,RouteLeaningSettings}.tsx'],
@@ -87,6 +100,7 @@ const FEATURES = [
   },
   {
     name: 'replay',
+    verbs: ['Return'],
     about: 'the five beats after a walk, the summary, the quiet lines',
     rule: 'replay',
     source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
@@ -95,6 +109,7 @@ const FEATURES = [
   },
   {
     name: 'moments',
+    verbs: ['Return'],
     about: 'moments and days: the day screen, moment pins, the moment bar',
     rule: 'moments-and-days',
     source: ['src/lib/{days,useLocate,momentPins,moment}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx'],
@@ -103,6 +118,7 @@ const FEATURES = [
   },
   {
     name: 'walk-screen',
+    verbs: ['Honour', 'Earn'], // decision 0261
     about: 'Navigate as the walk screen, ready or walking: the bar, the capture stack, the settings',
     rule: 'walk-screen',
     source: [
@@ -121,6 +137,7 @@ const FEATURES = [
   },
   {
     name: 'tabs',
+    verbs: ['Return', 'Honour'],
     about: 'the three tabs, the home sheet, the recording bar, the launch, the way to the walk screen',
     rule: 'tabs-and-home',
     source: [
@@ -134,6 +151,7 @@ const FEATURES = [
   },
   {
     name: 'presence',
+    verbs: ['Earn'],
     about: 'what a place is: one vocabulary of classes from every source\'s tags, read by density, marks and bars (decision 0140)',
     rule: 'presence',
     source: ['src/lib/presence/**'],
@@ -143,6 +161,7 @@ const FEATURES = [
   },
   {
     name: 'complexes',
+    verbs: ['Earn'],
     about: 'complexes: named, bounded places made of other places (a mall, a market, a campus, a station), on Explore and in a moment\'s place line',
     rule: 'complexes',
     source: ['src/lib/complexes/**', 'src/components/ComplexLabel.tsx'],
@@ -151,6 +170,7 @@ const FEATURES = [
   },
   {
     name: 'explore',
+    verbs: ['Earn'],
     about: 'the Explore tab (the atlas), discovery, marks, reminders',
     rule: 'explore-atlas',
     source: [
@@ -170,6 +190,7 @@ const FEATURES = [
   },
   {
     name: 'kind-walk',
+    verbs: ['Earn'],
     about: 'a suggested walk through where a kind is dense, opened from a kind on an area\'s card: one way, a distance, walkability said',
     rule: 'kind-walk',
     source: ['src/lib/kindWalk/**'],
@@ -178,6 +199,7 @@ const FEATURES = [
   },
   {
     name: 'walk-planner',
+    verbs: ['Earn'],
     about: 'a page of its own for a kind: up to three routes on the map, a loop or one-way, a distance ceiling, density, a feel for the commitment',
     rule: 'walk-planner',
     source: ['src/lib/walkPlanner/**', 'src/components/planner/**'],
@@ -186,6 +208,7 @@ const FEATURES = [
   },
   {
     name: 'roads',
+    verbs: ['Earn'],
     about: 'the road engine: main roads from the map\'s z12 tiles, a directed graph, one way between towns with a cost by kind of road; drawn on the outing page with distances by road',
     rule: 'roads',
     source: ['src/lib/roads/**'],
@@ -195,6 +218,7 @@ const FEATURES = [
   },
   {
     name: 'outing',
+    verbs: ['Earn'],
     about: 'plan an outing: describe what you want to see from a vocabulary, get one proposed circuit over candidates with facets; stops named on a tap or on arrival',
     rule: 'outing',
     source: ['src/lib/outing/**', 'src/components/outing/**'],
@@ -203,6 +227,7 @@ const FEATURES = [
   },
   {
     name: 'fixtures',
+    verbs: ['Earn'],
     about: 'a town\'s fixtures: chronicles-data\'s third pack (a tourist office, a town hall, a library, a square, a station...), read by tile through its adapter; a stop, never a find (decisions 0225, 0255, 0268)',
     rule: 'town-fixtures',
     source: ['src/lib/fixtures/**', 'src/lib/presence/fixtureKinds.ts'],
@@ -211,6 +236,7 @@ const FEATURES = [
   },
   {
     name: 'layers',
+    verbs: ['Earn'],
     about: 'map layers: the Layers button and panel, what is on, storefronts and town borders as layers',
     rule: 'layers',
     source: ['src/lib/layers/**', 'src/lib/pastLines/**', 'src/components/LayersControl.tsx'],
@@ -219,6 +245,7 @@ const FEATURES = [
   },
   {
     name: 'walkability',
+    verbs: ['Earn'],
     about: 'how a street treats someone on foot: the bands, the walkability layer and its icons, the area card\'s line, the heads-up',
     rule: 'walkability',
     source: ['src/lib/walk/**', 'src/components/{Tooltip,WalkBandIcon}.tsx'],
@@ -227,6 +254,7 @@ const FEATURES = [
   },
   {
     name: 'landing',
+    verbs: ['Earn'],
     about: 'what\'s good here: landing analysis, storefront streets, activity density',
     rule: 'landing',
     source: ['src/lib/landing/**', 'src/lib/activity/**'],
@@ -235,6 +263,7 @@ const FEATURES = [
   },
   {
     name: 'places',
+    verbs: ['Honour'],
     about: 'places and areas: boundaries, assignment, the walk\'s title',
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll}.ts', 'src/lib/backlog/**', 'src/components/{StarView,AreaPoint}.tsx'],
@@ -243,6 +272,7 @@ const FEATURES = [
   },
   {
     name: 'map',
+    verbs: ['Return', 'Earn'], // the proxy's ruling of Nov 20 (docs/expectations/map.md), unconfirmed by the owner
     about: 'the maps: pins, the scale bar, units, Locate, the compass, trace ends',
     rule: 'map',
     source: [
@@ -256,6 +286,7 @@ const FEATURES = [
   },
   {
     name: 'captures',
+    verbs: ['Honour'],
     about: 'notes, photos, memos and video: capture, media files, thumbnails, export',
     rule: 'captures-and-media',
     source: [
@@ -291,6 +322,7 @@ const FEATURES = [
   },
   {
     name: 'chronicle',
+    verbs: ['Return'],
     about: 'the Chronicle tab: the walks list, months, rename, editing a note',
     rule: 'tabs-and-home',
     source: ['src/app/(tabs)/index.tsx', 'src/lib/{rename,months,walkTitle}.ts', 'src/components/WalkActions.tsx'],
@@ -299,6 +331,7 @@ const FEATURES = [
   },
   {
     name: 'resurface',
+    verbs: ['Return'],
     about: 'Chronicle opens on Memories: a resurfaced moment, threads from the user\'s own words, Lately',
     rule: 'resurface',
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
@@ -307,6 +340,7 @@ const FEATURES = [
   },
   {
     name: 'transcript',
+    verbs: ['Honour'],
     about: 'a voice memo\'s words, read on the phone in the background and shown as a caption under the memo (memo transcripts, decision 0169)',
     rule: 'memo-transcripts',
     source: ['src/lib/transcript/**', 'src/lib/useTranscript.ts', 'src/components/MemoTranscript.tsx'],
@@ -315,6 +349,7 @@ const FEATURES = [
   },
   {
     name: 'reactions',
+    verbs: ['Return'],
     about: 'reactions on any moment, one per family (Feeling, Taste, Thought): the sign, the panel, marks, pin bubbles and the lenses (decision 0176)',
     rule: 'reactions',
     source: ['src/lib/reactions/**', 'src/components/reactions/**', 'src/lib/pins.ts'],
@@ -323,6 +358,7 @@ const FEATURES = [
   },
   {
     name: 'journal',
+    verbs: ['Return'],
     about: "Chronicle's Memories as a journal: one sheet in book order, ending in an open line where writing is the capture (decision 0155)",
     rule: 'journal',
     source: ['src/lib/journal/**', 'src/components/journal/**'],
@@ -331,6 +367,7 @@ const FEATURES = [
   },
   {
     name: 'gallery',
+    verbs: ['Return'],
     about: "Chronicle's Media: every photo, video and memo in an edge-to-edge grid under day headers; Years, Months, Days; Sort, a kind filter, pinch, square or aspect",
     rule: 'gallery',
     source: ['src/lib/gallery/**', 'src/components/gallery/**'],
@@ -339,6 +376,7 @@ const FEATURES = [
   },
   {
     name: 'threads',
+    verbs: ['Return'],
     about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
     rule: 'threads',
     source: ['src/lib/threads/**', 'src/lib/refs.ts', 'src/components/threads/**'],
@@ -347,6 +385,7 @@ const FEATURES = [
   },
   {
     name: 'notes',
+    verbs: ['Honour'],
     about: 'note pages: a note is a journal entry, written in TipTap (Expo DOM), kept as it is written, read in the viewer; its body is Markdown once the page wrote it',
     rule: 'note-pages',
     source: ['src/lib/notePage/**', 'src/components/notePage/**', 'src/lib/noteEdit.ts'],
@@ -355,6 +394,7 @@ const FEATURES = [
   },
   {
     name: 'motion',
+    verbs: ['Honour'],
     about: 'motion polish: timings, presses, entrances, haptics, the pocket alert',
     rule: 'motion-polish',
     source: ['src/lib/{motionTokens,motion,enter,zoomOut,haptics,canBuzz,canBuzz.web}.ts', 'src/components/{Enter,HomeSheet,ui}.tsx'],
@@ -363,6 +403,7 @@ const FEATURES = [
   },
   {
     name: 'notify',
+    verbs: ['Return'],
     about: 'notifications: reminders, the pause nudge, the service worker, openers',
     rule: 'notifications',
     source: ['src/lib/notify/**', 'src/components/pwa*.ts', 'src/components/NotificationSettings.tsx', 'src/lib/openers.ts'],
@@ -371,6 +412,7 @@ const FEATURES = [
   },
   {
     name: 'deletion',
+    verbs: ['Return'],
     about: 'clearing walks and moments, with undo',
     rule: 'deletion',
     source: ['src/lib/deletion/**', 'src/lib/emptyWalk/**', 'src/components/{WalkActions,UndoToast}.tsx'],
@@ -379,6 +421,7 @@ const FEATURES = [
   },
   {
     name: 'memories',
+    verbs: ['Return'],
     about: 'memories on revisit: faint pins, previews',
     rule: 'memories',
     source: ['src/lib/memories.ts', 'src/components/MemoryPreview.tsx'],
@@ -387,6 +430,7 @@ const FEATURES = [
   },
   {
     name: 'web',
+    verbs: ['Honour'],
     about: 'the web build\'s own styles and shims (react-native-web)',
     rule: 'react-native-web',
     source: ['src/components/webStyles*.ts'],
@@ -619,4 +663,4 @@ const featureOfJourney = (name) => FEATURES.find((f) => f.journeys.includes(name
 /** The features that list a spec slug. */
 const featuresOfSpec = (slug) => FEATURES.filter((f) => f.specs.includes(slug));
 
-module.exports = { FEATURES, RETIRED, UNTESTED, RENAMED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };
+module.exports = { VERBS, FEATURES, RETIRED, UNTESTED, RENAMED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };

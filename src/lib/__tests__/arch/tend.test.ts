@@ -271,6 +271,8 @@ const sweep = {
   filed: { T: ['T1', 'T2', 'T3'], G: [] }, review: { accepted: 1, rejected: 1, deferred: 0 }, state: { from: null, to: 'rough' },
   expectations, compass,
 };
+// A run logged end to end ships or files what its review accepted (loop-budget audit 1): these ship none.
+const NONE_ACCEPTED = { accepted: 0, rejected: 1, deferred: 0 };
 
 test('tend 0134: a run\'s line joins what its commits say with what only the run knows', () => {
   const line = tend.runLine({
@@ -350,20 +352,20 @@ test('tend audit 1: only a line the lens\'s script wrote is held to the lens, wh
   const old = { ...line, lens: undefined };
   assert.deepEqual(tend.logProblems(old), [], 'an older script\'s line logged on any date reads as it was');
   const r = repo();
-  const out = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'memories', expectations: undefined, compass: undefined }));
+  const out = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, review: NONE_ACCEPTED, area: 'memories', expectations: undefined, compass: undefined }));
   assert.equal(out.status, 1, 'tend:log holds the line it writes');
   assert.match(out.stderr, /logs its expectations/);
   const lines = { lines: [{ id: 'E-memories-1', is: 'met', evidence: 'memories:"a capture comes back"' }] };
   r.commit({ 'docs/expectations/memories.md': STORE.replace('pending "a capture comes back"', 'memories:"a capture comes back"') }, 'the check, by hand');
-  const ok = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'memories', expectations: lines, compass }));
+  const ok = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, review: NONE_ACCEPTED, area: 'memories', expectations: lines, compass }));
   assert.equal(ok.status, 0, ok.stderr);
   const written = JSON.parse(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8').trim()) as Record<string, unknown>;
   assert.equal(written.lens, '0236');
   assert.deepEqual(tend.logProblems(written), []);
-  const unknown = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-9', is: 'lacking' }] }, compass }));
+  const unknown = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, review: NONE_ACCEPTED, area: 'memories', expectations: { lines: [{ id: 'E-memories-9', is: 'lacking' }] }, compass }));
   assert.equal(unknown.status, 1, 'the lines are read against the store');
   assert.match(unknown.stderr, /E-memories-9 is no line/);
-  const elsewhere = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, area: 'threads', expectations: lines, compass }));
+  const elsewhere = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...sweep, review: NONE_ACCEPTED, area: 'threads', expectations: lines, compass }));
   assert.match(elsewhere.stderr, /not of the run's area, threads/, 'of the run\'s own area');
 });
 
@@ -372,7 +374,7 @@ test('tend audit 6: a run cannot date its own line or call it backfilled', () =>
   assert.equal(line.date, '2026-11-21', 'the script writes the date');
   assert.equal(line.lens, '0236');
   const r = repo();
-  const json = { ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-1', is: 'lacking' }] }, compass };
+  const json = { ...sweep, review: NONE_ACCEPTED, area: 'memories', expectations: { lines: [{ id: 'E-memories-1', is: 'lacking' }] }, compass };
   for (const extra of [{ date: '2020-01-01' }, { backfilled: true }]) {
     const out = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...json, ...extra }));
     assert.equal(out.status, 1, JSON.stringify(extra));
@@ -394,7 +396,7 @@ test('tend audit 8: a run is held to the lens by what its range built, not by th
 test('tend audit 20: the run\'s shots folder is a string, used to check its pictures, and kept out of the committed log', () => {
   assert.ok(tend.logProblems({ ...sweep, shots: 5 }).some((p) => /shots/.test(p)));
   const r = repo();
-  const json = { ...sweep, area: 'memories', expectations: { lines: [{ id: 'E-memories-1', is: 'lacking' }] }, compass };
+  const json = { ...sweep, review: NONE_ACCEPTED, area: 'memories', expectations: { lines: [{ id: 'E-memories-1', is: 'lacking' }] }, compass };
   const bad = r.tendJs('log', 'HEAD..HEAD', JSON.stringify({ ...json, shots: ['/tmp/shots'] }));
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /shots/);
@@ -758,7 +760,7 @@ test('tend 0229: next and the balance count an area as changed only by a commit 
   assert.match(body, /resetsArea\(/, 'the count is of commits that reset the area');
   assert.match(body, /'--stdin', '--no-walk=unsorted'/, 'read from one batched patch');
   assert.doesNotMatch(body, /c\.files\.some\(\(p\) => isAppSource\(p\)/, 'not of every commit that touched its source');
-  assert.match(src.slice(src.indexOf('function next() {')), /^function next\(\) \{[\s\S]*?readingAt\([\s\S]*?g\.resetsSince\.length/, 'next ranks by it');
+  assert.match(src.slice(src.indexOf('function next(argv = []) {')), /^function next\(argv = \[\]\) \{[\s\S]*?readingAt\([\s\S]*?g\.resetsSince\.length/, 'next ranks by it');
   assert.match(src.slice(src.indexOf('function readingAt(')), /^function readingAt\([^\n]*\n\s*const facts = gitFacts\(/, 'the balance reads it');
 });
 
@@ -1057,7 +1059,7 @@ test('area-states audit 14: a logged "none: <why>" line of a no-surface build re
   const r = repo();
   const base = r.git('rev-parse', 'HEAD');
   r.commit({ 'a.txt': 'x' }, 'Area states: the code (AS1-AS9)');
-  const json = { mode: 'inbox', area: 'arch', deploy: 'main', base: base.slice(0, 8), filed: { T: [], G: [] }, answers: [{ entry: 'G6', answer: 'yes' }], expectations: 'none: the loop\'s own bookkeeping', compass: { shipped: 0, filedLow: 0, lensG: [] } };
+  const json = { mode: 'inbox', area: 'arch', deploy: 'main', base: base.slice(0, 8), filed: { T: [], G: [] }, answers: [{ entry: 'G6', answer: 'yes', by: 'owner', pick: 'recommended', words: 'Allow a run to build G6 only' }], expectations: 'none: the loop\'s own bookkeeping', compass: { shipped: 0, filedLow: 0, lensG: [] } };
   const ok = r.tendJs('log', `${base}..HEAD`, JSON.stringify(json));
   assert.equal(ok.status, 0, ok.stderr);
   assert.match(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8'), /"expectations":"none: the loop's own bookkeeping"/, 'the reason is kept in the line');
@@ -1157,7 +1159,7 @@ const H = (n: number) => `${String(n).repeat(8)}`.slice(0, 8);
 const ch = (n: number, subject: string, body = '', files: File[] = [M('src/lib/x.ts')]): Change => ({ sha: H(n), subject, body, files });
 const sweepLine = (area: string, date: string) => ({ mode: 'sweep', area, date, lenses: { whole: true, skipped: [] } });
 
-test('LB1: check:tend fails a range whose review fixes outnumber its fixes and T items, but for the run\'s own regression', { todo: 'test first' }, () => {
+test('LB1: check:tend fails a range whose review fixes outnumber its fixes and T items, but for the run\'s own regression', () => {
   const fix = ch(1, 'tend explore 12: the card reads its name');
   const a1 = ch(2, 'tend explore audit 1: the name wraps at 320 px');
   const a2 = ch(3, 'tend explore audit 2: the name is spoken');
@@ -1182,7 +1184,7 @@ test('LB1: check:tend fails a range whose review fixes outnumber its fixes and T
   assert.deepEqual(lb.reviewBudget([ch(1, 'Town fixtures: the code (TF1)'), ch(2, 'Town fixtures: the review (town-fixtures audit 1)')]), [], 'a G slice\'s own review is outside it');
 });
 
-test('LB1: check:tend refuses a range over the budget, in a scratch repository', { todo: 'test first' }, () => {
+test('LB1: check:tend refuses a range over the budget, in a scratch repository', () => {
   const r = repo();
   const base = r.git('rev-parse', 'HEAD');
   const t = (name: string) => ({ [`src/lib/__tests__/memories/${name.replace(/\W+/g, '-')}.test.ts`]: `test('${name}: x', () => {});\n` });
@@ -1195,7 +1197,7 @@ test('LB1: check:tend refuses a range over the budget, in a scratch repository',
   assert.match(over.stderr, /review fix/);
 });
 
-test('loop-budget audit 1: tend:log refuses a review that accepted more than it fixed and filed, or filed a high', { todo: 'test first' }, () => {
+test('loop-budget audit 1: tend:log refuses a review that accepted more than it fixed and filed, or filed a high', () => {
   const line = { mode: 'sweep', area: 'explore', review: { accepted: 3, rejected: 0, deferred: 1 } };
   assert.deepEqual(lb.filedProblems(line, { auditsShipped: 2, added: [{ text: 'a stale comment (low)', severity: 'low' }] }), []);
   assert.match(lb.filedProblems(line, { auditsShipped: 2, added: [] }).join(), /accepted/, 'a third accepted finding neither shipped nor filed');
@@ -1204,18 +1206,18 @@ test('loop-budget audit 1: tend:log refuses a review that accepted more than it 
   assert.deepEqual(lb.filedProblems({ mode: 'inbox', grew: ['TF'], review: { accepted: 9, rejected: 0, deferred: 0 } }, { auditsShipped: 0, added: [] }), [], 'a G slice\'s review is outside the budget');
 });
 
-test('loop-budget audit 11: a regression is a commit of the range, of the same area, no review fix, and says what worked', { todo: 'test first' }, () => {
+test('loop-budget audit 11: a regression is a commit of the range, of the same area, no review fix, and says what worked', () => {
   const fix = ch(1, 'tend explore 12: the card reads its name');
   const a1 = ch(2, 'tend explore audit 1: x');
   const claim = (sha: string, words = ' the name read whole at the base') => ch(3, 'tend explore audit 2: y', `Regression: ${sha}${words}\n`);
   assert.equal(lb.reviewBudget([fix, a1, claim(a1.sha)]).length, 1, 'a review fix names no review fix as the regression');
   assert.equal(lb.reviewBudget([fix, a1, claim('abcdef12')]).length, 1, 'a commit outside the range is not the run\'s');
-  assert.equal(lb.reviewBudget([ch(1, 'tend tabs 3: z'), fix, a1, claim(H(1))]).length, 1, 'another area\'s commit is not this area\'s regression');
+  assert.equal(lb.reviewBudget([ch(9, 'tend tabs 3: z'), fix, a1, claim(H(9))]).length, 1, 'another area\'s commit is not this area\'s regression');
   assert.equal(lb.reviewBudget([fix, a1, claim(fix.sha, '')]).length, 1, 'the line says what worked at the base');
   assert.deepEqual(lb.reviewBudget([fix, a1, { ...ch(3, 'tend explore audit 2: y'), body: 'Severity: high\n' }]), [], 'a high is fixed whatever the budget (0269)');
 });
 
-test('LB1b: a reverted commit counts on neither side, and a finding two commits name counts once', { todo: 'test first' }, () => {
+test('LB1b: a reverted commit counts on neither side, and a finding two commits name counts once', () => {
   const fix = ch(1, 'tend explore 12: x');
   const a1 = ch(2, 'tend explore audit 1: y');
   const rule = ch(3, 'tend explore audit 1: the rule line says so', '', [M('.claude/rules/explore-marks.md')]);
@@ -1226,7 +1228,7 @@ test('LB1b: a reverted commit counts on neither side, and a finding two commits 
   assert.deepEqual(lb.reviewBudget([fix, a1, ch(6, 'tend explore audit 2: z'), revertAudit]), []);
 });
 
-test('LB2: next alternates: after a rotation the most-reset area, else the never-swept or longest-unswept, by verb', { todo: 'test first' }, () => {
+test('LB2: next alternates: after a rotation the most-reset area, else the never-swept or longest-unswept, by verb', () => {
   const areas = ['chronicle', 'explore'];
   assert.equal(lb.lastWasRotation([], areas), true, 'no sweep: the reset turn');
   assert.equal(lb.lastWasRotation([sweepLine('chronicle', '2026-11-11')], areas), true, 'a first sweep is a rotation');
@@ -1247,13 +1249,13 @@ test('LB2: next alternates: after a rotation the most-reset area, else the never
   assert.equal(lb.nextPick({ counts: { explore: 3 }, states, evolve: null, runs: after.slice(0, 2), verbs: v }).area, 'explore', 'the reset turn: as before');
 });
 
-test('loop-budget audit 8: while any area is unswept, only an area\'s first sweep is a rotation', { todo: 'test first' }, () => {
+test('loop-budget audit 8: while any area is unswept, only an area\'s first sweep is a rotation', () => {
   const areas = ['chronicle', 'explore', 'gallery'];
   const runs = [sweepLine('chronicle', '2026-11-11'), sweepLine('explore', '2026-11-12'), sweepLine('chronicle', '2026-11-13')];
   assert.equal(lb.lastWasRotation(runs, areas), false, 'gallery waits: chronicle again is no rotation');
 });
 
-test('LB2: next prints the rotation\'s pick on the rotation turn, from this checkout\'s run log', { todo: 'test first' }, () => {
+test('LB2: next prints the rotation\'s pick on the rotation turn, from this checkout\'s run log', () => {
   const features = createRequire(__filename)(join(ROOT, 'scripts', 'features.js')) as { FEATURES: { name: string; verbs?: string[] }[] };
   const runs = read('.claude/skills/tend/runs.jsonl').split('\n').filter(Boolean).map((l) => JSON.parse(l));
   const areas = features.FEATURES.filter((f) => f.name !== 'arch');
@@ -1268,7 +1270,7 @@ test('LB2: next prints the rotation\'s pick on the rotation turn, from this chec
 const answerLine = (answers: unknown[], extra = {}) => ({ mode: 'inbox', deploy: 'main', base: 'abc1234', answerLog: '0235', answers, ...extra });
 const owner = { by: 'owner', pick: 'recommended', words: 'Yes, queue it (Recommended)' };
 
-test('LB3: a line the script marks holds every answer to by and pick; an older line reads as it was', { todo: 'test first' }, () => {
+test('LB3: a line the script marks holds every answer to by and pick; an older line reads as it was', () => {
   assert.match(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes' }])).join(), /by/);
   assert.match(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes', by: 'owner', words: 'Yes' }])).join(), /pick/);
   assert.deepEqual(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes', ...owner }])), []);
@@ -1279,7 +1281,7 @@ test('LB3: a line the script marks holds every answer to by and pick; an older l
   assert.deepEqual(lb.logProblems({ mode: 'inbox', deploy: 'main', base: 'abc1234', answers: [{ entry: 'T3', answer: 'yes' }] }), [], 'LB3b: no marker, read as it was');
 });
 
-test('LB3: tend:log refuses an answer without by and pick, and the marker is the script\'s', { todo: 'test first' }, () => {
+test('LB3: tend:log refuses an answer without by and pick, and the marker is the script\'s', () => {
   const r = repo();
   const base = r.git('rev-parse', 'HEAD');
   const json = { mode: 'inbox', deploy: 'main', base: base.slice(0, 8), filed: { T: [], G: [] }, answers: [{ entry: 'T3', answer: 'yes' }] };
@@ -1292,7 +1294,7 @@ test('LB3: tend:log refuses an answer without by and pick, and the marker is the
   assert.match(readFileSync(join(r.root, '.claude/skills/tend/runs.jsonl'), 'utf8'), /"answerLog":"0235"/);
 });
 
-test('loop-budget audit 2: the owner\'s answer carries the owner\'s words; a keep of a proxy yes is a confirms, never take-up', { todo: 'test first' }, () => {
+test('loop-budget audit 2: the owner\'s answer carries the owner\'s words; a keep of a proxy yes is a confirms, never take-up', () => {
   assert.match(lb.logProblems(answerLine([{ entry: 'G9', answer: 'yes', by: 'owner', pick: 'recommended' }])).join(), /words/);
   assert.match(lb.logProblems(answerLine([{ entry: 'G9', answer: 'yes', by: 'owner', pick: 'recommended', words: ' ' }])).join(), /words/);
   assert.deepEqual(lb.logProblems(answerLine([{ entry: 'G9', answer: 'yes', ...owner, confirms: '2026-11-20' }])), []);
@@ -1302,12 +1304,12 @@ test('loop-budget audit 2: the owner\'s answer carries the owner\'s words; a kee
   assert.match(lb.confirmProblems([{ entry: 'G9', answer: 'yes', ...owner, confirms: '2026-11-21' }], runs).join(), /G9/);
 });
 
-test('loop-budget audit 12: the proxy never answers an [arch] or a [phone] entry', { todo: 'test first' }, () => {
+test('loop-budget audit 12: the proxy never answers an [arch] or a [phone] entry', () => {
   assert.deepEqual(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes', by: 'proxy', pick: 'recommended', class: 'T [owner]' }])), []);
   for (const c of ['T [arch]', 'T [phone]']) assert.match(lb.logProblems(answerLine([{ entry: 'T3', answer: 'yes', by: 'proxy', pick: 'recommended', class: c }])).join(), /proxy/, c);
 });
 
-test('LB4: the balance reads the owner\'s take-up by class and the proxy\'s yeses not confirmed, over 30 days', { todo: 'test first' }, () => {
+test('LB4: the balance reads the owner\'s take-up by class and the proxy\'s yeses not confirmed, over 30 days', () => {
   const runs = [
     { date: '2026-10-01', answerLog: '0235', answers: [{ entry: 'T1', answer: 'yes', ...owner, class: 'T [owner]' }] },
     { date: '2026-11-19', answers: [{ entry: 'T40', answer: 'yes' }] },
@@ -1327,7 +1329,7 @@ test('LB4: the balance reads the owner\'s take-up by class and the proxy\'s yese
   assert.deepEqual(json.answers, t, 'balance prints it');
 });
 
-test('loop-budget audit 3: an entry\'s yes logged twice counts once', { todo: 'test first' }, () => {
+test('loop-budget audit 3: an entry\'s yes logged twice counts once', () => {
   const yes = { entry: 'G13', answer: 'yes', ...owner, class: 'G' };
   const t = lb.answerTakeUp([{ date: '2026-11-25', answerLog: '0235', answers: [yes] }, { date: '2026-11-26', answerLog: '0235', answers: [yes] }], '2026-11-26');
   assert.equal(t.byClass.G.owner, 1);
@@ -1370,7 +1372,7 @@ const AGE_STATUS = [
   '',
 ].join('\n');
 
-test('LB5: inbox age lists what waited 14 days, marks 30 to move, and says the undated and the phone\'s apart', { todo: 'test first' }, () => {
+test('LB5: inbox age lists what waited 14 days, marks 30 to move, and says the undated and the phone\'s apart', () => {
   const a = lb.inboxAge(AGE_STATUS, '2026-11-26');
   const ids = (xs: Age[]) => xs.map((x) => x.id ?? x.text.split('\n')[0]);
   assert.deepEqual(ids(a.wait), ['T9'], 'fourteen days or more, under thirty');
@@ -1383,21 +1385,21 @@ test('LB5: inbox age lists what waited 14 days, marks 30 to move, and says the u
   assert.ok(![...a.wait, ...a.move, ...a.hand, ...a.undated].some((x) => /The last run/.test(x.text)), '"Last tend" is no item');
 });
 
-test('loop-budget audit 6: "Open before the loop" is listed with its age, never moved, and its area reads the same', { todo: 'test first' }, () => {
+test('loop-budget audit 6: "Open before the loop" is listed with its age, never moved, and its area reads the same', () => {
   const a = lb.inboxAge(AGE_STATUS, '2026-11-26');
   assert.deepEqual(a.hand.map((x) => [x.text, x.age]), [['- An edit for your hand (2026-10-01)'.slice(2), 56]]);
   assert.ok(!a.move.some((x) => x.section === 'Open before the loop'));
   assert.deepEqual(lb.beforeItems(AGE_STATUS).map((i) => i.title), ['An edit for your hand (2026-10-01)'], 'it still waits on the owner\'s hand, so its area cannot read finished');
 });
 
-test('loop-budget audit 7: an item takes its heading\'s date when it has none of its own', { todo: 'test first' }, () => {
+test('loop-budget audit 7: an item takes its heading\'s date when it has none of its own', () => {
   const a = lb.inboxAge(AGE_STATUS, '2026-11-26');
   const it = a.move.find((x) => /no date of its own/.test(x.text));
   assert.ok(it);
   assert.equal(it.date, '2026-10-15');
 });
 
-test('loop-budget audit 14: a word of an answer in a struck-through sub-item does not answer the whole item', { todo: 'test first' }, () => {
+test('loop-budget audit 14: a word of an answer in a struck-through sub-item does not answer the whole item', () => {
   const a = lb.inboxAge(AGE_STATUS, '2026-11-26');
   assert.ok(a.move.some((x) => /A partial answer/.test(x.text)));
 });
@@ -1412,7 +1414,7 @@ const LEASE_STATUS = (from: string, session = 'session_abc') => [
   '',
 ].join('\n');
 
-test('LB6: a lease holds its process files for 24 h against every other session', { todo: 'test first' }, () => {
+test('LB6: a lease holds its process files for 24 h against every other session', () => {
   const rows = lb.leaseRows(LEASE_STATUS('2026-11-26T06:00Z'));
   assert.deepEqual(rows, [{ files: ['scripts/tend.js', '.claude/skills/tend/SKILL.md'], from: '2026-11-26T06:00Z', session: 'session_abc', branch: 'tend/inbox-x' }], 'a file that is no process file is not held');
   assert.equal(lb.leaseProblems({ files: ['scripts/tend.js'], date: '2026-11-26T10:00:00Z', session: 'session_other', rows }).length, 1);
@@ -1422,7 +1424,7 @@ test('LB6: a lease holds its process files for 24 h against every other session'
   assert.deepEqual(lb.leaseProblems({ files: ['src/app/walk.tsx', 'scripts/records.js'], date: '2026-11-26T10:00:00Z', session: 'session_other', rows }), []);
 });
 
-test('loop-budget audit 13: a lease row is removed by its holder, after it lapsed, or with the owner\'s words quoted', { todo: 'test first' }, () => {
+test('loop-budget audit 13: a lease row is removed by its holder, after it lapsed, or with the owner\'s words quoted', () => {
   const removed = lb.leaseRows(LEASE_STATUS('2026-11-26T06:00Z'));
   const at = '2026-11-26T10:00:00Z';
   assert.equal(lb.leaseRemovalProblems({ removed, date: at, session: 'session_other', message: 'Records-Op: inflight remove x --reason "cleared"' }).length, 1);
@@ -1431,7 +1433,7 @@ test('loop-budget audit 13: a lease row is removed by its holder, after it lapse
   assert.deepEqual(lb.leaseRemovalProblems({ removed, date: at, session: 'session_other', message: 'Records-Op: inflight remove x --reason "the owner cleared the lease, 2026-11-26: \\"Clear it\\""' }), []);
 });
 
-test('LB6: check:tend refuses another session\'s commit to a held file, in a scratch repository', { todo: 'test first' }, () => {
+test('LB6: check:tend refuses another session\'s commit to a held file, in a scratch repository', () => {
   const r = repo();
   const from = new Date(Date.now() - 60 * 60 * 1000).toISOString().slice(0, 16) + 'Z';
   mkdirSync(join(r.root, 'docs'), { recursive: true });

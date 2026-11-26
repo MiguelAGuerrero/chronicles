@@ -1553,7 +1553,7 @@ const AGED = [
   '',
 ].join('\n');
 
-test('LB5: records inbox age lists, writes each bullet to move with its words kept, and prints the operations that move it', { todo: 'test first' }, () => {
+test('LB5: records inbox age lists, writes each bullet to move with its words kept, and prints the operations that move it', () => {
   const r = repo('age');
   r.write('docs/STATUS.md', AGED);
   r.commit('aged');
