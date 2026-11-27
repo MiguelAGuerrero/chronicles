@@ -204,3 +204,64 @@ test('walkability-car-ground audit 7: the fade\'s pieces nest, so the hatch buil
   }
   assert.equal(last, 6, 'past the fade, every piece: the whole strength');
 });
+
+// The auditor's findings (the diff review's round, Nov 27), written before the code.
+
+test('walkability-car-ground audit 10: the hatch reaches the read\'s edge, in steps at least two lattice steps wide, each point of the last 100 m in exactly one, fainter toward the edge', { todo: 'test first' }, () => {
+  const cells = field(12, 10, (di, dj) => (dj >= 3 && di >= 2 && di < 10 ? 'car' : 'foot'));
+  const g = carGroundOf(cells);
+  const top = cellBounds(I, J + 9).north;
+  const inPiece = (shape: LngLat[][], p: LngLat) => inside(p, shape[0]) && !shape.slice(1).some((h) => inside(p, h));
+  for (const [a, b] of [[3, 8], [4, 6], [5, 9]]) {
+    const x = (cellBounds(I + a, J + 9).west + cellBounds(I + b, J + 9).east) / 2;
+    let prev = -1;
+    const run = new Map<number, number>();
+    for (let m = 15; m <= 100; m += 1) {
+      const hits = g.areas.filter((p) => inPiece(p.shape, [x, top - m / M_LAT]));
+      assert.equal(hits.length, 1, `${m} m from the read's edge lies in ${hits.length} steps`);
+      const f = hits[0].fade;
+      if (prev >= 0) assert.ok(f <= prev, `fainter toward the edge (${m} m: fade ${f} after ${prev})`);
+      prev = f;
+      run.set(f, (run.get(f) ?? 0) + 1);
+    }
+    for (const [f, n] of run) if (f > 0) assert.ok(n >= 40, `step ${f} is ${n} m wide, at least two lattice steps`);
+  }
+});
+
+test('walkability-car-ground audit 11: a 12-tile mixed read draws a bounded number of pieces and vertices', { todo: 'test first' }, () => {
+  const j0 = Math.floor(47.37 / (250 / 110540));
+  const i0 = Math.floor(8.54 / (250 / (111320 * Math.cos((47.37 * Math.PI) / 180))));
+  const cells = field(26, 20, (a, b) => ((a * 7 + b * 3) % 5 < 2 || (a > 15 && b < 8) ? 'car' : 'foot'), i0, j0);
+  const g = carGroundOf(cells);
+  const vertices = g.areas.reduce((s, a) => s + a.shape.reduce((t, r) => t + r.length, 0), 0) + g.edges.reduce((s, e) => s + e.shape.length, 0);
+  assert.ok(g.areas.length <= 120, `${g.areas.length} pieces`);
+  assert.ok(vertices <= 16000, `${vertices} vertices`);
+});
+
+test('walkability-car-ground audit 12: car ground across the antimeridian is drawn on both sides, quickly', { todo: 'test first' }, () => {
+  const j = Math.floor(-16.8 / (250 / 110540));
+  const dl = 250 / (111320 * Math.cos(((j + 0.5) * (250 / 110540) * Math.PI) / 180));
+  const east = Math.floor(179.995 / dl);
+  const west = Math.floor(-179.995 / dl);
+  const cells: Cell[] = [];
+  for (let dj = -3; dj <= 3; dj++) {
+    for (let k = -4; k <= 0; k++) cells.push(cell(east + k, j + dj, Math.abs(dj) <= 1 && k >= -1 ? 'car' : 'foot'));
+    for (let k = 0; k <= 4; k++) cells.push(cell(west + k, j + dj, Math.abs(dj) <= 1 && k <= 1 ? 'car' : 'foot'));
+  }
+  const t0 = performance.now();
+  const g = carGroundOf(cells);
+  assert.ok(performance.now() - t0 < 2000, 'in well under the time a read takes');
+  const wrap = (lon: number) => ((((lon + 180) % 360) + 360) % 360) - 180;
+  const has = (p: LngLat) => g.areas.some((a) => [0, 360, -360].some((s) => inside([p[0] + s, p[1]], a.shape[0])));
+  const lat = (cellBounds(east, j).south + cellBounds(east, j).north) / 2;
+  assert.ok(has([wrap(cellBounds(east - 1, j).west + dl), lat]), 'the east side is drawn');
+  assert.ok(has([wrap(cellBounds(west + 1, j).west), lat]), 'the west side is drawn');
+  for (const p of g.areas.flatMap((a) => a.shape.flat())) assert.ok(p[0] >= -540 && p[0] <= 540, 'longitudes stay near the world');
+});
+
+test('walkability-car-ground audit 15: the key tells pictures apart whatever their counts, and not the order of their cells', { todo: 'test first' }, () => {
+  const row = (is: number[]) => is.map((i) => cell(I + i, J, 'car'));
+  assert.notEqual(carGroundOf(row([3, 5, 8, 10])).key, carGroundOf(row([3, 6, 7, 10])).key, 'one row, mirrored, the same bounds');
+  const cells = row([3, 5, 8, 10]);
+  assert.equal(carGroundOf([...cells].reverse()).key, carGroundOf(cells).key);
+});

@@ -28,6 +28,15 @@ const eastward = (dj: number, from: number, to: number): LngLat[] => {
   for (let di = from; di <= to; di++) out.push([cellBounds(I + di, J + dj).west, lat]);
   return out;
 };
+function insideRing(p: LngLat, ring: readonly LngLat[]): boolean {
+  let hit = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
 /** The distance from a point to the nearest point of a polyline, in metres (sampled each metre). */
 const toLine = (p: LngLat, line: readonly LngLat[]) => {
   let best = Infinity;
@@ -123,4 +132,39 @@ test('CG6: a small slate dot marks where each casing starts, and nothing else is
 test('walkability-car-ground audit 9: the casing ends where it ends: no round cap reaches past the hatch\'s edge', async () => {
   const { ROUTE_CAR_LAYOUT } = await import('../../../components/map/types');
   assert.equal(ROUTE_CAR_LAYOUT['line-cap'], 'butt');
+});
+
+// The auditor's findings (the diff review's round, Nov 27), written before the code.
+
+test('walkability-car-ground audit 13: at a concave corner the casing runs as far as the drawn hatch along the route', { todo: 'test first' }, () => {
+  // Car ground everywhere but a foot quadrant (columns 7 on, rows 7 on); the route runs east 10 m inside the quadrant's
+  // southern edge, where the smoothed car ground bulges past the cells.
+  const cells = field(14, 14, (di, dj) => (di >= 7 && dj >= 7 ? 'foot' : 'car'));
+  const lat = cellBounds(I, J + 7).south + 10 / M_LAT;
+  const path: LngLat[] = [];
+  for (let di = 1; di <= 13; di++) path.push([cellBounds(I + di, J + 7).west, lat]);
+  const g = carGroundOf(cells);
+  const lines = casingLines(path, areaStretches(path, cells), g);
+  const along = (p: LngLat) => metres(path[0], [p[0], path[0][1]]);
+  const drawnTo = (() => {
+    let last = 0;
+    for (let m = 0; m <= along(path[path.length - 1]); m += 1) {
+      const p: LngLat = [path[0][0] + m / mLon(lat), lat];
+      if (g.areas.some((a) => insideRing(p, a.shape[0]))) last = m;
+    }
+    return last;
+  })();
+  const casedTo = Math.max(...lines.flat().map(along));
+  assert.ok(Math.abs(casedTo - drawnTo) < 25, `the casing ends ${casedTo.toFixed(0)} m along, the hatch ${drawnTo} m`);
+});
+
+test('walkability-car-ground audit 16: a route\'s casing never takes another route\'s runs', { todo: 'test first' }, async () => {
+  const { createAheadWatch } = await import('../../walk/aheadWatch');
+  const { fakePorts } = await import('../fakes');
+  const { casingRunsFor } = await import('../../walk/ahead');
+  const w = createAheadWatch(fakePorts());
+  const run = { key: 'area@1,1', kind: 'area' as const, street: null, fromM: 100, toM: 600 };
+  w.stretches('route-a', [run], [run]);
+  assert.deepEqual(casingRunsFor('route-a', w.store.get()), [run]);
+  assert.deepEqual(casingRunsFor('route-b', w.store.get()), [], 'a new route, before its own runs are read, has none');
 });
