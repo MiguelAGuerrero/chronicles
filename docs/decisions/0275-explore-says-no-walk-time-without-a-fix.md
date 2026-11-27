@@ -21,8 +21,20 @@ The owner's four answers, in person, Nov 27:
 - **"Next launch (Recommended)".** A dismissed "location is off" notice stays dismissed until the app is next launched;
   still no dot either way. This amends 0273's "each time it comes to the front": each front until dismissed.
 
+Then, at the review of the built screens (the auditor, the ux-reviewer and the steward), four more answers in person,
+Nov 27:
+- **"After 5 minutes (Recommended)".** A fix read in front says "You're here" with a full dot for five minutes; then it is
+  drawn muted and said "From where you were five minutes ago.", counting on; gone at 30 minutes.
+- **"No ✕ on that line (Recommended)".** The "From where you were …" line stays while the old fix stands in, and leaves on
+  its own when a fresh fix comes or it ages out.
+- **“"Around <town>" (Recommended)”.** With no position, Explore's title says the existing words of a look, "Around
+  Cranston", naming the town the list is around. No new copy.
+- **"Quiet, old fix ages (Recommended)".** On a phone whose permission went back to undecided ("Allow Once", "Ask Next
+  Time"), Explore never raises the system prompt on a return: no read, no notice; the last fix shows muted and ages out
+  at 30 minutes; Find me or Locate asks when tapped.
+
 ## Consequences
-- YH4, YH5, YH6 and YH1 in `specs/current-position/spec.md` carry them.
+- YH1, YH2, YH4, YH5 and YH6 in `specs/current-position/spec.md` carry them.
 - Also from the same review, engineering calls without a question: Explore reads by itself only while the permission
   reads granted, and asks (a read that may raise the system prompt) only at its first front in a launch, Find me and
   Locate being the way to ask after (Never "Nagging"); its return read waits while Plan an outing or the walk planner is

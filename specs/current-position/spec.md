@@ -95,12 +95,14 @@ plan's review (decision 0275), are in YH1, YH4, YH5 and YH6 (slice step 2).
    front (from the back, never a passing `inactive`), and lists, frames and says "You're here" from it; no longer once
    per launch (NV16 amended). It reads by itself only while the location permission reads granted; otherwise it asks (a
    read that may raise the system prompt) only at its first front in a launch, and Find me and Locate are the way to ask
-   after (Never "Nagging"). A read reframes the map and selects your own town only when the town you stand in differs
+   after (Never "Nagging"). No other read asks: each checks the permission as it reads, and undecided again on a return
+   (iOS "Allow Once" expired, "Ask Next Time") reads nothing and says nothing, the last fix standing in muted and ageing out
+   (the owner, "Quiet, old fix ages (Recommended)"). A read reframes the map and selects your own town only when the town you stand in differs
    from the one listed before, on the page of the areas near you with no look and Move map off; otherwise only the dot
    and `you` move, and the reader's pick and frame stay (the owner, "Keep the pick (Recommended)"). **Finding:** someone
    back from a drive opens Explore and sees the town they stand in lead the row, "You're here" on it, with no tap.
-2. **YH2** Navigate's ready map reads one fix when the app returns to the front, as it does on its focus (NV17), while the
-   permission reads granted.
+2. **YH2** Navigate's ready map reads one fix when the app returns to the front, as it does on its focus (NV17): a fresh
+   one, which never asks for the permission; its focus read keeps the 15 s cached fix it took before.
 3. **YH3** Between reads nothing watches: each read ends its own watch on a fix, its timeout, or the screen leaving the
    front, and a test holds that no watch outlives a read on either screen (0036).
 4. **YH4** With location refused or off, each time Explore comes to the front it says the quiet notice in `LOCATION_OFF`'s
@@ -109,13 +111,18 @@ plan's review (decision 0275), are in YH1, YH4, YH5 and YH6 (slice step 2).
    (Recommended)"); a timeout stays quiet (O21), and a fix that comes takes the notice away. While Plan an outing or the
    walk planner is open over Explore, Explore's return read waits for it to close, so one notice is said.
 5. **YH5** With no fix read, no walker dot is drawn on Explore and nothing says "You're here", and no card, row or tile
-   says a walk time or distance from you (the owner, "No walk time (Recommended)"); the areas stay where it last listed
-   them (AT1), never drawn as you.
+   says a walk time or distance from you (the owner, "No walk time (Recommended)"), nor does Walk there, Walk to, a
+   storefront's or a complex's row, a look or a search measure from a point it did not read; the areas stay where it last
+   listed them (AT1), never drawn as you, the selected one framed; the title and the row say "Around <town>", the town the
+   list is around (the existing words of a look; the owner, “"Around <town>" (Recommended)”), never near or around you.
 6. **YH6** When a fresh fix does not come in time, a screen that lists or plans from where you are uses one up to 30
    minutes old (`FRESH_FIX_MS`) and says so in one line ("From where you were twenty minutes ago."); on Explore its dot is
    drawn muted and nothing says "You're here"; an older one is no position (YH5). Explore ages the fix it holds while it
-   stays in front, by a timer that reads nothing (the owner, "Age it out (Recommended)"): the stand-in's line counts on,
-   and past 30 minutes any fix is no position (no dot, no "You're here", no walk time) until the next read.
+   stays in front and at each front before it reads, by a timer that reads nothing (the owner, "Age it out
+   (Recommended)"): a fix read says "You're here" for five minutes, then is drawn muted and said "From where you were five
+   minutes ago.", counting on (the owner, "After 5 minutes (Recommended)"), and past 30 minutes any fix is no position (no
+   dot, no "You're here", no walk time) until the next read. The line has no ✕: it stays while the old fix stands in and
+   leaves on its own (the owner, "No ✕ on that line (Recommended)"), and is said once as it appears, not each minute.
 7. **YH7** The e2e moves the GPS with the page in the back and brings it to the front (the Done when), and refuses
    location for the notice and the missing dot.
 
@@ -154,6 +161,21 @@ Aligned with changes; triaged (the coordinator's rulings, the owner's answers in
 - S6 (low) deferred: `docs/DEFERRED.md`, Navigate's ready map.
 - S7 (low) accepted: the mirrors amended, NV17 added, the open item carries the wording.
 - Silent 2, the owner's "Next launch (Recommended)": YH4.
+
+## The diff's review (2026-11-27)
+
+The auditor (not ready: 1 high, 3 medium, 6 low), the ux-reviewer (pass with changes) and the steward (aligned with
+changes), one round; the coordinator's rulings and the owner's four answers in person (decision 0275): 16 accepted as 12
+fixes, `current-position audit 1-12`, 6 deferred to `docs/DEFERRED.md` ([loop] low), 0 rejected.
+
+- audit 1 (auditor 1, high; the owner's "Quiet, old fix ages (Recommended)"): no read but the launch's one ask asks.
+- audit 2 (auditor 2): no walk choice measures from an unread point. audit 3 (auditor 3, steward 11): nor a look or search.
+- audit 4 (auditor 4, steward 8; "After 5 minutes (Recommended)"): the fix aged at each front, muted after five minutes.
+- audit 5 (steward 9, ux 3; "No ✕ on that line (Recommended)"). audit 6 (ux 6): said once.
+- audit 7 (steward 10, ux 5; “"Around <town>" (Recommended)”). audit 8 (ux 1, auditor 9): the dot over a town's point.
+- audit 9 (ux 2): the selected town framed with no position. audit 10 (ux 4): the town page with no fix pictured.
+- audit 11 (auditor 7): Navigate's focus read cached again. audit 12 (auditor 10): the tests on the view's own paths.
+- Deferred: auditor 5, 6, 8 (scenarios 1, 3), ux 7; Silent 3 noted on S6's item.
 
 ## Tests
 

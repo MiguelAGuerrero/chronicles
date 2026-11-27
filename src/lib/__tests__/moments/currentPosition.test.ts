@@ -113,7 +113,7 @@ test('YH6: no fresh fix in time, one twenty minutes old stands in, muted and sai
 test('YH6: Explore in front 31 minutes after its read: no "You\'re here", no full dot, no read', async () => {
   const { exploreAged, exploreSeen, exploreNotice, POSITION_AGE_TICK_MS } = await mod();
   const read = here(FOX, NOW);
-  assert.equal(exploreAged(read, NOW + 10 * MIN), read, 'within thirty minutes nothing changes, nothing re-renders');
+  assert.equal(exploreAged(read, NOW + 4 * MIN), read, 'within five minutes nothing changes, nothing re-renders (current-position audit 4)');
   const gone = exploreAged(read, NOW + 31 * MIN);
   assert.deepEqual(exploreSeen(gone), { dot: null, here: false, distances: false });
   assert.deepEqual(exploreNotice(gone, 'web'), { kind: 'clear' }, 'no new words, and nothing about location being off');
