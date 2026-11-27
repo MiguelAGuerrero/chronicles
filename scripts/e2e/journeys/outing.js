@@ -828,8 +828,10 @@ async function ownPosition(h) {
   await shots('fix-outing-current-position-timeout');
   await pg.evaluate(() => { window.__geoHang = false; });
   await retry.click().catch(() => {});
-  await until(async () => near(await walker(), curio) && (await journeys()) === 1, 30000);
-  check(near(await walker(), curio) && (await journeys()) === 1 && (await line()) === '', `fix outing-current-position audit 8: Try again reads again and plans from the fix (${await walker()}; ${await sheet()})`);
+  // The journey that was open comes back open: its name over the stops, or the cards when it is not.
+  const proposed = async () => (await journeys()) === 1 || (await pg.locator('[data-testid=outing-journey-name]').count()) === 1;
+  await until(async () => near(await walker(), curio) && (await proposed()) && (await line()) === '', 30000);
+  check(near(await walker(), curio) && (await proposed()) && (await line()) === '', `fix outing-current-position audit 8: Try again reads again and plans from the fix (${await walker()}; ${await sheet()})`);
   await close();
   // 3. The launch fix over thirty minutes old, the watch hung: no position, nothing proposed.
   await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 31 * 60_000; });

@@ -471,8 +471,8 @@ async function ownPosition(h) {
   await shots('fix-planner-current-position-timeout');
   await pg.evaluate(() => { window.__geoHang = false; });
   await retry.click().catch(() => {});
-  await until(async () => near(await walker(), green), 20000);
-  check(near(await walker(), green) && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 0, `fix outing-current-position audit 8: Try again reads again and the planner plans from the fix (${await walker()}; ${await page()})`);
+  await until(async () => near(await walker(), green) && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 0 && (await line()) === '', 30000);
+  check(near(await walker(), green) && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 0 && (await line()) === '', `fix outing-current-position audit 8: Try again reads again and the planner plans from the fix (${await walker()}; ${await page()})`);
   await close();
   // 3. The launch fix over thirty minutes old, the watch hung: no position, no route.
   await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 31 * 60_000; });

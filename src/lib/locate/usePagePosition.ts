@@ -40,7 +40,9 @@ export function usePagePosition() {
     const next = pagePosition(r, held, Date.now());
     setPos((p) => settle(p, next));
     const text = positionLine(next, platform) ?? '';
-    if (text && positionLine(posRef.current, platform) !== text) {
+    // A line said once as it settles; none, and the region is emptied, so no old line is left for a screen reader to find.
+    if (!text) setSaid((s) => (s.text ? { text: '', n: s.n } : s));
+    else if (positionLine(posRef.current, platform) !== text) {
       setSaid((s) => ({ text, n: s.n + 1 }));
       if (platform === 'native') AccessibilityInfo.announceForAccessibility(text);
     }
