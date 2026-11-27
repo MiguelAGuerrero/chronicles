@@ -9,8 +9,20 @@ import { LOCATE_MAX_ACCURACY_M, LOCATE_MAX_AGE_MS, LOCATE_PROMPT_CAP_MS, LOCATE_
  * for permission, the timeout waits for the answer (audit: a slow "Allow"
  * read as no location), up to LOCATE_PROMPT_CAP_MS.
  */
-export function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS, opts: LocateOptions = {}): Promise<LocateResult> {
-  if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve({ at: null, reason: 'unavailable' });
+export async function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS, opts: LocateOptions = {}): Promise<LocateResult> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return { at: null, reason: 'unavailable' };
+  // A read that may not ask (specs/current-position, audit 1): the site's permission as it stands; only granted reads.
+  if (opts.ask === false) {
+    const perms = (navigator as Navigator & { permissions?: Permissions }).permissions;
+    const state = perms?.query ? await perms.query({ name: 'geolocation' as PermissionName }).then((st) => st.state, () => 'unknown') : 'unknown';
+    if (state === 'denied') return { at: null, reason: 'denied' };
+    if (state !== 'granted') return { at: null, reason: 'unavailable' };
+    if (opts.signal?.aborted) return { at: null, reason: 'unavailable' };
+  }
+  return watchOnce(timeoutMs, opts);
+}
+
+function watchOnce(timeoutMs: number, opts: LocateOptions): Promise<LocateResult> {
   return new Promise<LocateResult>((resolve) => {
     let settled = false;
     let id: number | null = null;

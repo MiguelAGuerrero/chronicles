@@ -9,7 +9,7 @@ import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { CentreMark, MoveMapToggle, ShowAreasPill } from '../../components/atlas/FreeLookControls';
 import { focusOn } from '../../lib/focus';
 import { SearchButton, SearchSheet } from '../../components/atlas/PlaceSearch';
-import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, youFresh, type NamedLook } from '../../lib/atlas/freeLook';
+import { centreOf, emptyLook, listedAround, lookPage, lookRowLabel, lookWords, lookedList, type NamedLook } from '../../lib/atlas/freeLook';
 import type { Place } from '../../lib/gazetteer/pack';
 import { searchAvailable } from '../../lib/gazetteer/words';
 import { BLOCKED_LINE, exploreBanner, findYou, refusalLifted, type PermissionSeen } from '../../lib/atlas/findYou';
@@ -64,7 +64,7 @@ import { boundsOf, distanceM as metresBetween, type Bounds } from '../../lib/geo
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { getLastFix, launchFix, offDismissed, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
-import { exploreAged, exploreDot, exploreNotice, exploreRead, exploreSeen, frontRead, POSITION_AGE_TICK_MS, reframes } from '../../lib/locate/front';
+import { exploreDot, exploreFront, exploreNamed, exploreNotice, exploreRead, exploreSeen, exploreYou, frontAsk, lookYou, POSITION_AGE_TICK_MS, reframes } from '../../lib/locate/front';
 import { newerFix, positionAt, positionLine, type PagePosition } from '../../lib/locate/pagePosition';
 import type { LocateResult } from '../../lib/locate/types';
 import { useAppReturn } from '../../lib/locate/useAppReturn';
@@ -148,11 +148,13 @@ export default function Explore() {
   // counts at the start only while it is under thirty minutes old.
   const [pos, setPos] = useState<PagePosition>(() => {
     const f = getLastFix();
-    const p: PagePosition = f ? exploreAged({ state: 'here', at: f.at, t: f.t }, Date.now()) : { state: 'none', refused: false };
+    const p: PagePosition = f ? exploreFront({ state: 'here', at: f.at, t: f.t }, Date.now()) : { state: 'none', refused: false };
     return p;
   });
   const stale = pos.state !== 'here';
   const noPosition = !exploreSeen(pos).distances;
+  // Where walk choices measure from (current-position audit 2): never the point Explore lists from when it has no position.
+  const youAt = exploreYou(pos, you);
   useEffect(() => {
     if (you) return;
     let live = true;
@@ -236,7 +238,7 @@ export default function Explore() {
       if (fix && fix.t > fixSeen.current) {
         fixSeen.current = fix.t;
         setYou(fix.at);
-        setPos(exploreAged({ state: 'here', at: fix.at, t: fix.t }, Date.now()));
+        setPos(exploreFront({ state: 'here', at: fix.at, t: fix.t }, Date.now()));
       }
       // A card or the long press's choices never outlive the tab's turn in front (audit 8, round 3).
       return () => {
@@ -337,6 +339,9 @@ export default function Explore() {
   // A read that moved you, waiting for the town you stand in to be listed: it reframes only if that town differs (the
   // owner's "Keep the pick", decision 0275).
   const reframeAsk = useRef<{ before: string | null; at: LngLat } | null>(null);
+  // A front that found no position: the leading town is framed once listed (current-position audit 9).
+  const frameLead = useRef(false);
+  const [leadAsk, setLeadAsk] = useState(0);
   const homeKey = fresh.home?.area.key ?? null;
   const homeKeyRef = useRef(homeKey);
   const townSeenRef = useRef(townSeen);
@@ -344,11 +349,13 @@ export default function Explore() {
     homeKeyRef.current = homeKey;
     townSeenRef.current = townSeen;
   }, [homeKey, townSeen]);
-  const readHere = async (mode: 'read' | 'ask' | 'off') => {
+  // `ask`: only the launch's one ask may raise the system prompt; every other read takes the permission as it stands, so a
+  // return under "Allow Once" expired reads nothing and says nothing (current-position audit 1, the owner's "Quiet, old fix ages").
+  const readHere = async (ask: boolean) => {
     readCtl.current?.abort();
     const c = new AbortController();
     readCtl.current = c;
-    const r: LocateResult = mode === 'off' ? { at: null, reason: 'denied' } : await locateOnce(undefined, { fresh: true, signal: c.signal }).catch(() => ({ at: null, reason: 'unavailable' as const }));
+    const r: LocateResult = await locateOnce(undefined, { fresh: true, ask, signal: c.signal }).catch(() => ({ at: null, reason: 'unavailable' as const }));
     if (c.signal.aborted) return;
     const held = r.at || r.reason === 'denied' ? null : newerFix(getLastFix(), await openWalkLast().catch(() => null));
     if (c.signal.aborted) return;
@@ -365,6 +372,9 @@ export default function Explore() {
     reframeAsk.current = null;
     if (at && d.first && mine) frame([at], ATLAS_RULES.ringM);
     else if (at && d.moved && mine) reframeAsk.current = { before: homeKeyRef.current, at };
+    // No position: the town the list leads with is framed once it is listed (current-position audit 9).
+    frameLead.current = d.pos.state === 'none' && mine;
+    if (frameLead.current) setLeadAsk((n) => n + 1);
     const n = exploreNotice(d.pos, platform);
     if (n.kind === 'off') {
       // Refused (YH4): the quiet notice, said, until dismissed for the launch; Find me waits on the permission, as after Locate.
@@ -373,15 +383,15 @@ export default function Explore() {
         setLocError(n.error);
         sayQuiet(n.error);
       }
-    } else {
-      setLocError((e) => (e?.refused ? null : e));
-      if (n.kind === 'earlier') sayQuiet({ message: n.message, tone: 'info' });
-    }
+    } else setLocError((e) => (e?.refused ? null : e));
   };
+  // Each front ages the fix first (current-position audit 4), so an old one never says "You're here" while the read is out.
   const front = () => {
-    const mode = frontRead(permissionNow.current?.state ?? null);
-    if (mode === 'ask' && !launchFix.take(false)) return;
-    void readHere(mode);
+    const aged = exploreFront(posRef.current, Date.now());
+    posRef.current = aged;
+    setPos(aged);
+    const ask = frontAsk(permissionNow.current?.state ?? null, launchFix);
+    void readHere(ask);
   };
   const frontRef = useRef(front);
   useEffect(() => {
@@ -431,12 +441,18 @@ export default function Explore() {
   // While in front, the fix ages (YH6, the owner's "Age it out"): a timer that reads nothing.
   useEffect(() => {
     if (!focused) return;
-    const t = setInterval(() => setPos((p) => exploreAged(p, Date.now())), POSITION_AGE_TICK_MS);
+    const t = setInterval(() => setPos((p) => exploreFront(p, Date.now())), POSITION_AGE_TICK_MS);
     return () => clearInterval(t);
   }, [focused]);
-  // A stand-in's line (YH6), in the notice slot, counting on as it ages; dismissed, it goes until another stand-in.
-  const [lineGone, setLineGone] = useState<number | null>(null);
-  const earlierLine = pos.state === 'earlier' && lineGone !== pos.t ? positionLine(pos, platform) : null;
+  // A stand-in's line (YH6), in the notice slot, counting on as it ages, with no ✕: it leaves when a fresh fix comes or the fix
+  // ages out (the owner's "No ✕ on that line"; current-position audit 5). Said once as it appears, never each minute (audit 6).
+  const earlierLine = pos.state === 'earlier' ? positionLine(pos, platform) : null;
+  const earlierOn = pos.state === 'earlier';
+  useEffect(() => {
+    if (!earlierOn) return;
+    const line = positionLine(posRef.current, platform);
+    if (line) sayQuiet({ message: line, tone: 'info' });
+  }, [earlierOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ownTown: Listed | null = useMemo(() => {
     if (!town) return null;
@@ -447,6 +463,16 @@ export default function Explore() {
   const listing = fresh.status === 'listing' || (fresh.status === 'idle' && !fresh.build);
   const shown = useMemo(() => rowOf({ ownTown, neighborhoods, towns: allTowns, townsListed: fresh.townsListed }), [ownTown, neighborhoods, allTowns, fresh.townsListed]);
   const words = useMemo(() => nearWords(shown), [shown]);
+  // With no position, the town the list leads with (selected) is framed as a visit frames it, its point and name in view
+  // (current-position audit 9): the camera never stays on a fix the page no longer has.
+  const lead = shown[0] ?? null;
+  useEffect(() => {
+    if (!frameLead.current || !noPosition || picked || !lead || !fresh.build || lookedRef.current || freeRef.current || townSeenRef.current) return;
+    frameLead.current = false;
+    // This visit's frame is the lead's: the areas' frame of the visit, which would take the old point in, never follows it.
+    framed.current = readerTook(framed.current, 'near', fresh.build);
+    frame([lead.area.at], lead.area.level === 'town' ? townReachM(lead.area) * 0.6 : ATLAS_RULES.ringM);
+  }, [lead, noPosition, picked, frame, leadAsk, fresh.build]);
   const order = useMemo(() => shown.map((l) => l.area.key), [shown]);
   const selected = useMemo(() => firstSelection(order, picked), [order, picked]);
   const famOf = useMemo(() => {
@@ -715,7 +741,7 @@ export default function Explore() {
     setSelected(null);
     setTownSeen(null);
     framed.current = null;
-    setLooked({ at, you: youFresh(getLastFix(), Date.now()), named });
+    setLooked({ at, you: lookYou(posRef.current), named });
     // A pick goes to a place the map may not have areas for: the map moves there itself.
     if (named) frame([at], 3000);
     say(lookWords(named).announcement);
@@ -726,7 +752,7 @@ export default function Explore() {
   }, [cam, lookAt]);
   // Place search (GZ1, GZ2, GZ6): the magnifier opens the sheet; a pick closes it and looks at the place.
   const openSearch = useCallback(() => {
-    setSearching({ origin: youFresh(getLastFix(), Date.now()) ?? centreOf(cam) });
+    setSearching({ origin: lookYou(posRef.current) ?? centreOf(cam) });
   }, [cam]);
   const closeSearch = useCallback(() => {
     setSearching(null);
@@ -767,7 +793,7 @@ export default function Explore() {
     if (!l) return;
     const t = walkTarget(l.area);
     const far = !l.unplaced && !canWalkTo(l.distanceM);
-    const choice = far ? 'later' : walkToChoice(you ? metresBetween(you, t.at) : null, stale ? null : fixSeen.current || null, Date.now());
+    const choice = far ? 'later' : walkToChoice(youAt ? metresBetween(youAt, t.at) : null, stale ? null : fixSeen.current || null, Date.now());
     const does = tileWalk(choice, { walkOpen: !!openInfo.walk, selected: true }).does;
     if (does === 'start') {
       setOpen(null);
@@ -783,7 +809,7 @@ export default function Explore() {
       framed.current = readerTook(framed.current, pickFrom.current.page, pickFrom.current.build);
       frame([l.area.at], ATLAS_RULES.ringM);
     }
-  }, [you, stale, openInfo.walk, selected, selectKey, frame, walkStart]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [youAt, stale, openInfo.walk, selected, selectKey, frame, walkStart]); // eslint-disable-line react-hooks/exhaustive-deps
   const onTileMaps = useCallback((key: string) => {
     const l = shownRef.current.find((x) => x.area.key === key);
     if (!l) return;
@@ -794,9 +820,14 @@ export default function Explore() {
   const wide = screen.w >= TWO_PANES;
   // The title names the level shown (fix explore-town-scope): the towns near you, or the town whose page is open.
   const lookOn = looked != null;
-  const title = town?.name ?? (lookOn ? lookWords(looked?.named).title : 'Near you');
+  // With no position, the list is around the town it leads with, named as a look names it, never "near you" (the owner's
+  // "Around <town>", decision 0275; current-position audit 7).
+  const nameless = !lookOn && !town ? exploreNamed(pos, shown[0]?.area.name ?? null) : null;
+  const title = town?.name ?? (lookOn ? lookWords(looked?.named).title : nameless ? lookWords(nameless).title : 'Near you');
   const subtitle = lookOn
     ? lookWords(looked?.named).subtitle
+    : nameless
+      ? lookWords(nameless).subtitle
     : town
       ? (ownTown?.here || (home && home.area.key === town.key) ? 'You’re here' : noPosition ? '' : distanceWords(ownTown?.distanceM ?? 0, false, fmt))
       : words.subtitle;
@@ -841,7 +872,7 @@ export default function Explore() {
       {notice.message}
     </Banner>
   ) : earlierLine ? (
-    <Banner tone="info" onDismiss={() => setLineGone(pos.state === 'earlier' ? pos.t : null)}>
+    <Banner tone="info" live={false}>
       {earlierLine}
     </Banner>
   ) : looking ? (
@@ -1032,7 +1063,7 @@ export default function Explore() {
               onPress={() => {
                 const at = spot.at;
                 // A far point, or none of your fixes fresh, asks first; a walk open routes as before (FL12).
-                const choice = walkToChoice(you ? metresBetween(you, at) : null, stale ? null : fixSeen.current || null, Date.now());
+                const choice = walkToChoice(youAt ? metresBetween(youAt, at) : null, stale ? null : fixSeen.current || null, Date.now());
                 if (openInfo.walk || choice === 'start') {
                   setSpot(null);
                   startWalk({ at, label: 'Your spot', kind: 'point' });
@@ -1095,7 +1126,7 @@ export default function Explore() {
             selected={selected}
             width={screen.w}
             reduced={reduced}
-            label={town ? `Areas in ${town.name}` : lookOn ? lookRowLabel(shown[0]?.area.level === 'town', looked?.named) : words.label}
+            label={town ? `Areas in ${town.name}` : lookOn ? lookRowLabel(shown[0]?.area.level === 'town', looked?.named) : nameless ? lookRowLabel(shown[0]?.area.level === 'town', nameless) : words.label}
             onSettle={selectKey}
             renderCard={(l, isSel) => (
               <AtlasTile
@@ -1147,23 +1178,23 @@ export default function Explore() {
           walked={fresh.walked}
           waiting={ringOf.get(card.area.key)?.waiting ?? NONE}
           finds={ringOf.get(card.area.key)?.finds ?? NONE}
-          you={you}
+          you={youAt}
           unplaced={card.unplaced}
           fromYou={lookOn}
           nextDoor={nextDoor(card.area, shown.map((l) => l.area), fresh.build)}
           walkTo={!card.here ? walkTarget(card.area) : null}
           // DW14: too far to walk (N5) offers When I get there alone.
           farOff={!card.unplaced && !canWalkTo(card.distanceM)}
-          storefronts={storefrontsOf(card.area, you).map((b) => ({ ...b, walkable: !!you && !!b.at && canWalkTo(metresBetween(you, b.at)) }))}
+          storefronts={storefrontsOf(card.area, youAt).map((b) => ({ ...b, walkable: !!youAt && !!b.at && canWalkTo(metresBetween(youAt, b.at)) }))}
           // CX4: the complexes of the selected area, nearest its point first, "See more" for the rest.
           complexSection={(expanded) => {
             if (!sel || sel.area.key !== card.area.key) return null;
             const s = complexSection(areaComplexes, { from: card.area.at, partial: complexPartial, hidden: hiddenKinds, expanded });
-            return s && { ...s, rows: s.rows.map((r) => ({ ...r, walkable: !!you && canWalkTo(metresBetween(you, r.at)) })) };
+            return s && { ...s, rows: s.rows.map((r) => ({ ...r, walkable: !!youAt && canWalkTo(metresBetween(youAt, r.at)) })) };
           }}
           // DW1, DW2, DW5 (decision 0121): near with a fresh fix starts at once; far, or with no fresh fix, asks.
           // With a walk open, Walk to routes that walk, as before (NV10).
-          askFirst={(to) => !openInfo.walk && walkToChoice(you ? metresBetween(you, to) : null, stale ? null : fixSeen.current || null, Date.now()) !== 'start'}
+          askFirst={(to) => !openInfo.walk && walkToChoice(youAt ? metresBetween(youAt, to) : null, stale ? null : fixSeen.current || null, Date.now()) !== 'start'}
           onLater={(at, label) => {
             setOpen(null);
             void walkStart.later({ at, label, kind: 'point' });

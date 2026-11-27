@@ -9,8 +9,15 @@ import { LOCATE_MAX_ACCURACY_M, LOCATE_MAX_AGE_MS, LOCATE_TIMEOUT_MS, type Locat
  */
 export async function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS, opts: LocateOptions = {}): Promise<LocateResult> {
   try {
-    const perm = await Location.requestForegroundPermissionsAsync();
-    if (!perm.granted) return { at: null, reason: 'denied' };
+    // A read that may not ask (specs/current-position, audit 1): the permission as it stands ("Allow Once" expired, "Ask
+    // Next Time" read as undecided); only granted reads. Unverified on a device (docs/NATIVE_UNVERIFIED.md).
+    if (opts.ask === false) {
+      const perm = await Location.getForegroundPermissionsAsync();
+      if (!perm.granted) return { at: null, reason: perm.status === 'denied' && !perm.canAskAgain ? 'denied' : 'unavailable' };
+    } else {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) return { at: null, reason: 'denied' };
+    }
   } catch {
     return { at: null, reason: 'unavailable' };
   }

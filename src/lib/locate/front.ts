@@ -1,5 +1,6 @@
 // @layer core
 import type { LocatePermission } from '../atlas/findYou';
+import type { NamedLook } from '../atlas/freeLook';
 import type { LngLat } from '../types';
 import { locateNotice, type LocateError } from './notice';
 import { aged, pagePosition, positionAt, positionLine, settle, type HeldFix, type PagePosition } from './pagePosition';
@@ -13,6 +14,9 @@ import type { LocateResult } from './types';
 
 /** How often Explore looks at its fix's age while it stays in front (YH6): a timer that reads nothing. */
 export const POSITION_AGE_TICK_MS = 15_000;
+
+/** How long a fix read in front says "You're here" before it is drawn muted and said (the owner, "After 5 minutes", 0275). */
+export const HERE_FOR_MS = 5 * 60_000;
 
 /**
  * The app is back at the front (YH1, YH2) only after it was in the back (`background`: home, the lock, another app; the
@@ -57,8 +61,32 @@ export function exploreRead(prev: PagePosition, read: LocateResult, held: HeldFi
   return { pos, first: !was && !!at, moved: !!at && at !== was };
 }
 
-/** Explore's fix as it stays in front (YH6, the owner's "Age it out"): the stand-in's line counts on; past thirty minutes, none. */
-export const exploreAged = (pos: PagePosition, now: number): PagePosition => aged(pos, now);
+/**
+ * Explore's fix as it ages (YH6; the owner's "Age it out" and "After 5 minutes", decision 0275; current-position audit 4),
+ * at each front before it reads and by the timer while in front: a fix read says "You're here" for `HERE_FOR_MS`, then
+ * stands in, muted and said, its line counting on; past thirty minutes, none. The same object when nothing changed.
+ */
+export function exploreFront(pos: PagePosition, now: number): PagePosition {
+  const p = aged(pos, now);
+  if (p.state === 'here' && now - p.t > HERE_FOR_MS) return { state: 'earlier', at: p.at, t: p.t, agoMs: now - p.t };
+  return p;
+}
+
+/** The same ageing, by its first name (YH6's tests). */
+export const exploreAged = exploreFront;
+
+/**
+ * Whether Explore's front may raise the system prompt (current-position audit 1, 12): only undecided, and only the launch's
+ * one ask (`launchFix`); every other read is made with `ask: false`, which never asks.
+ */
+export function frontAsk(permission: LocatePermission | null, launch: { take(known: boolean): boolean }): boolean {
+  return frontRead(permission) === 'ask' && launch.take(false);
+}
+
+/** Navigate's ready map (YH2; current-position audit 1, 11): its focus read as before, its return read fresh and never asking. */
+export function readyRead(trigger: 'focus' | 'return'): { fresh: boolean; ask: boolean } {
+  return trigger === 'focus' ? { fresh: false, ask: true } : { fresh: true, ask: false };
+}
 
 /**
  * Whether a read reframes Explore (YH1, the owner's "Keep the pick"): a first fix does; otherwise only when the town you stand
@@ -78,6 +106,23 @@ export function exploreSeen(pos: PagePosition): { dot: 'full' | 'muted' | null; 
   if (pos.state === 'here') return { dot: 'full', here: true, distances: true };
   if (pos.state === 'earlier') return { dot: 'muted', here: false, distances: true };
   return { dot: null, here: false, distances: false };
+}
+
+/**
+ * Where Explore measures walk choices from (YH5, current-position audit 2): `you` only while it has a position; with none,
+ * the point it lists from is not you, and Walk there, Walk to and the rows' walkable flags measure from nothing.
+ */
+export const exploreYou = (pos: PagePosition, you: LngLat | null): LngLat | null => (exploreSeen(pos).distances ? you : null);
+
+/** Where a look or a search measures "from you" (current-position audit 3): Explore's own position, else nothing. */
+export const lookYou = (pos: PagePosition): LngLat | null => (exploreSeen(pos).distances ? positionAt(pos) : null);
+
+/**
+ * With no position, the town the list is around (YH5, the owner's "Around <town>", decision 0275; current-position audit
+ * 7): named as a look names it ("Around Cranston", "Towns around Cranston"), never "near you". Null keeps "Near you".
+ */
+export function exploreNamed(pos: PagePosition, lead: string | null): NamedLook | null {
+  return !exploreSeen(pos).distances && lead ? { name: lead, region: '' } : null;
 }
 
 /** Where Explore's dot is, or null (YH5: a position the app did not read is never drawn as you). */

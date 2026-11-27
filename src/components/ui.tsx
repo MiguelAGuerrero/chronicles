@@ -204,13 +204,15 @@ export function Banner(props: {
   tone?: 'info' | 'error';
   onDismiss?: () => void;
   action?: { label: string; onPress: () => void };
+  /** `false`: no live region, for words that change on their own and are said once by their screen (current-position audit 6). */
+  live?: boolean;
 }) {
   const error = props.tone === 'error';
   return (
     <LiftIn
       style={[styles.banner, error && styles.bannerError]}
       accessibilityRole={error ? 'alert' : undefined}
-      accessibilityLiveRegion={error ? 'assertive' : 'polite'}
+      accessibilityLiveRegion={props.live === false ? 'none' : error ? 'assertive' : 'polite'}
     >
       <Text style={[styles.bannerText, error && { color: theme.danger }]}>{props.children}</Text>
       {props.action && (

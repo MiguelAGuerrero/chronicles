@@ -124,11 +124,21 @@ async function journey(h) {
   const onTop = await pg.evaluate(() => {
     const el = document.querySelector('[data-testid=walker-dot]');
     if (!el) return 'no walker-dot';
-    const r = el.getBoundingClientRect();
-    const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-    return hit && hit.closest('[data-testid=walker-dot]') ? 'walker' : hit?.closest('[data-testid=area-point]') ? 'area point' : 'other';
+    // Both are pointer-events: none on the map; made hittable for the probe alone, the one drawn on top answers.
+    const marks = [el, ...document.querySelectorAll('[data-testid=area-point]')];
+    for (const m of marks) m.style.pointerEvents = 'auto';
+    const pt = document.querySelector('[data-testid=area-point][data-name="Cranston"]');
+    const r = (pt ?? el).getBoundingClientRect();
+    const w = el.getBoundingClientRect();
+    // Over the town's point itself: the walker's dot moved onto it for the probe.
+    const was = el.style.transform;
+    el.style.transform = `translate(${r.x + r.width / 2 - (w.x + w.width / 2)}px, ${r.y + 6 - (w.y + w.height / 2)}px) ${was}`;
+    const hit = document.elementFromPoint(r.x + r.width / 2, r.y + 6);
+    el.style.transform = was;
+    for (const m of marks) m.style.pointerEvents = 'none';
+    return hit && hit.closest('[data-testid=walker-dot]') ? 'walker' : hit?.closest('[data-testid=area-point]') ? 'area point' : `other: ${hit?.tagName}`;
   });
-  check.todo(onTop === 'walker', `current-position audit 8: the walker's dot draws over a town's point (${onTop})`);
+  check(onTop === 'walker', `current-position audit 8: the walker's dot draws over a town's point (${onTop})`);
   // ... and Plan an outing plans around it (its own read, fix outing-current-position).
   await pg.click('[data-testid=outing-entry]').catch(() => {});
   await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
@@ -153,7 +163,7 @@ async function journey(h) {
   await tabTo(pg, 'explore');
   await pg.waitForTimeout(1000);
   const t2b = await tiles();
-  check.todo(!t2b.some((t) => /You’re here/.test(t.text)) && (await walker()).muted !== '0', `current-position audit 4: at a front with no fresh read, an old fix never says "You're here" (${JSON.stringify(t2b.slice(0, 2))}; ${JSON.stringify(await walker())})`);
+  check(!t2b.some((t) => /You’re here/.test(t.text)) && (!(await walker()).at || (await walker()).muted === '1'), `current-position audit 4: at a front with no fresh read, an old fix never says "You're here" (${JSON.stringify(t2b.slice(0, 2))}; ${JSON.stringify(await walker())})`);
   await pg.evaluate(() => { window.__geoHang = false; window.__clockShift = 0; });
   await pg.evaluate(() => window.__away());
   await until(async () => near((await walker()).at, fox) && (await walker()).muted === '0', 20000);
@@ -227,8 +237,8 @@ async function journey(h) {
   // The owner's "After 5 minutes": six minutes on in front, the fix is muted and said, counting on.
   await pg.evaluate(() => { window.__clockShift = 6 * 60_000; });
   await until(async () => /From where you were six minutes ago/.test(await banner()), 25000);
-  check.todo((await walker()).muted === '1' && /^From where you were six minutes ago\./.test(await banner()) && !(await tiles()).some((t) => /You’re here/.test(t.text)), `current-position audit 4: a fix read in front, six minutes on, is drawn muted and said ("${await banner()}")`);
-  check.todo((await pg.locator('[data-testid=banner-dismiss]').filter({ visible: true }).count()) === 0, `current-position audit 5: the stand-in's line has no ✕ ("${await banner()}")`);
+  check((await walker()).muted === '1' && /^From where you were six minutes ago\./.test(await banner()) && !(await tiles()).some((t) => /You’re here/.test(t.text)), `current-position audit 4: a fix read in front, six minutes on, is drawn muted and said ("${await banner()}")`);
+  check((await pg.locator('[data-testid=banner-dismiss]').filter({ visible: true }).count()) === 0, `current-position audit 5: the stand-in's line has no ✕ ("${await banner()}")`);
   await shots('yh-five-minutes');
   // Undecided again on the return ("Allow Once" expired): nothing asks, nothing is read, nothing says location is off.
   await pg.evaluate(() => { window.__geoHang = false; window.__clockShift = 0; });
@@ -238,7 +248,7 @@ async function journey(h) {
   const c7a = await calls();
   await pg.evaluate(() => window.__away());
   await pg.waitForTimeout(2500);
-  check.todo((await calls()) === c7a && !(await banner()).startsWith('Location is off') && !!(await walker()).at, `current-position audit 1: undecided on the return, Explore reads nothing, asks nothing and says nothing of location being off (${(await calls()) - c7a} reads; "${await banner()}")`);
+  check((await calls()) === c7a && !(await banner()).startsWith('Location is off') && !!(await walker()).at, `current-position audit 1: undecided on the return, Explore reads nothing, asks nothing and says nothing of location being off (${(await calls()) - c7a} reads; "${await banner()}")`);
   await pg.evaluate(() => { window.__geoPrompt = false; window.__geoHang = true; });
   const c7b = await calls();
   await pg.evaluate(() => { window.__clockShift = 31 * 60_000; });
@@ -260,7 +270,7 @@ async function journey(h) {
   await shots('yh-refused');
   const title = ((await pg.locator('[data-testid=atlas-title]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
   const rowLabel = await pg.evaluate(() => [...document.querySelectorAll('[aria-label]')].map((e) => e.getAttribute('aria-label')).find((l) => /^(Towns|Areas) (near|around) /.test(l ?? '')) ?? '');
-  check.todo(/^Around /.test(title) && !/you/i.test(title) && /^(Towns|Areas) around (?!you)/.test(rowLabel), `current-position audit 7: refused, the title and the row say where the list is around, never near or around you ("${title}"; "${rowLabel}")`);
+  check(/^Around /.test(title) && !/you/i.test(title) && /^(Towns|Areas) around (?!you)/.test(rowLabel), `current-position audit 7: refused, the title and the row say where the list is around, never near or around you ("${title}"; "${rowLabel}")`);
   // The selected town is framed, its point and name in view at 320.
   await pg.setViewportSize({ width: 320, height: 844 });
   await pg.waitForTimeout(1500);
@@ -270,7 +280,7 @@ async function journey(h) {
     const r = el.getBoundingClientRect();
     return { left: Math.round(r.left), right: Math.round(r.right), name: el.getAttribute('data-name') };
   });
-  check.todo(!!sel && sel.left >= 0 && sel.right <= 320, `current-position audit 9: with location refused the selected town's point and name are in view at 320 (${JSON.stringify(sel)})`);
+  check(!!sel && sel.left >= 0 && sel.right <= 320, `current-position audit 9: with location refused the selected town's point and name are in view at 320 (${JSON.stringify(sel)})`);
   await pg.setViewportSize({ width: 390, height: 844 });
   await pg.waitForTimeout(600);
   // A town's page with no fix: no subtitle and no empty line.
@@ -281,14 +291,14 @@ async function journey(h) {
     await pg.waitForTimeout(1500);
   }
   const sub = await pg.locator('[data-testid=explore-subtitle]').count();
-  check.todo(!!lead && (await pg.locator('[data-testid=atlas-back-pill]').count()) === 1 && sub === 0, `current-position audit 10: a town's page with no fix has no subtitle and no empty line (${lead?.name}; ${sub})`);
+  check(!!lead && (await pg.locator('[data-testid=atlas-back-pill]').count()) === 1 && sub === 0, `current-position audit 10: a town's page with no fix has no subtitle and no empty line (${lead?.name}; ${sub})`);
   await shots('yh-town-nofix');
   await pg.click('[data-testid=atlas-back-pill]').catch(() => {});
   await pg.waitForTimeout(1200);
   // Walk there with no position asks first (the card opens); nothing starts and no destination is kept.
   await pg.locator('[data-testid=tile-walk]').filter({ visible: true }).first().click().catch(() => {});
   await pg.waitForTimeout(1500);
-  check.todo((await pg.locator('[data-testid=atlas-card]').filter({ visible: true }).count()) === 1 && !/\/walk/.test(pg.url()), `current-position audit 2: with no position, Walk there asks first (${pg.url()})`);
+  check((await pg.locator('[data-testid=atlas-card]').filter({ visible: true }).count()) === 1 && !/\/walk/.test(pg.url()), `current-position audit 2: with no position, Walk there asks first (${pg.url()})`);
   await pg.click('[data-testid=atlas-card-close]').catch(() => {});
   await pg.waitForTimeout(800);
   // Each time it comes to the front, until dismissed.

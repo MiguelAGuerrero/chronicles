@@ -20,9 +20,8 @@ import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreS
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { getLastFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
-import { watchLocatePermission } from '../../lib/locate/permission';
+import { readyRead } from '../../lib/locate/front';
 import { useAppReturn } from '../../lib/locate/useAppReturn';
-import type { LocatePermission } from '../../lib/atlas/findYou';
 import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
 import { ready } from '../../lib/ready';
@@ -96,13 +95,14 @@ export function useReady(props: {
   const momentPins = useMemo(() => (pinZoom ? moments : NONE), [moments, pinZoom]);
 
   // One fix (NV17), which ends its own watch on a fix, its timeout, or the screen leaving the front; a newer read ends it too.
+  // The focus read as before; the return's fresh, never one from before the app went to the back, and never asking for the
+  // permission (current-position audits 1, 11).
   const readCtl = useRef<AbortController | null>(null);
-  const read = () => {
+  const read = (trigger: 'focus' | 'return') => {
     readCtl.current?.abort();
     const c = new AbortController();
     readCtl.current = c;
-    // A fresh fix (decision 0273): never a cached one from before the app went to the back.
-    locateOnce(undefined, { fresh: true, signal: c.signal }).then((r) => {
+    locateOnce(undefined, { ...readyRead(trigger), signal: c.signal }).then((r) => {
       if (c.signal.aborted || !r.at) return;
       setLastFix(r.at);
       setFix(r.at);
@@ -116,11 +116,9 @@ export function useReady(props: {
   useEffect(() => {
     readRef.current = read;
   });
-  // The app back at the front (specs/current-position YH2, NV17 amended): one more fix, while no walk is open, the ready map
-  // is in front and location reads allowed (a read there raises no prompt; the steward's S2).
-  const [permission, setPermission] = useState<LocatePermission | null>(null);
-  useEffect(() => watchLocatePermission(setPermission), []);
-  useAppReturn(() => readRef.current(), props.active && focused && permission === 'granted');
+  // The app back at the front (specs/current-position YH2, NV17 amended): one more fix, while no walk is open and the ready
+  // map is in front; it reads only while location is allowed, and never asks.
+  useAppReturn(() => readRef.current('return'), props.active && focused);
 
   // Each time the screen comes to the front: the choices, the moments, the first-walk note; and one fix.
   const { active } = props;
@@ -139,7 +137,7 @@ export function useReady(props: {
         setWebNoteOff(choices.webNoteOff);
       })().catch(() => {});
       // One fix, which ends its own watch (NV17): the first frames the map around you.
-      readRef.current();
+      readRef.current('focus');
       return () => {
         live = false;
         // The screen leaving the front ends its read's watch at once (specs/current-position YH3).

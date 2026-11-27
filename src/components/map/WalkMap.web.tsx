@@ -1289,13 +1289,41 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if ((window as { __perf?: unknown }).__perf) container.current?.setAttribute('data-hop-edge', String(hopEdgeOpacity(replayOn)));
     // paintTrace only reads refs.
   }, [ready, props.traceOpacity, replayOn]);
+  // On a map with area points (Explore), the walker's dot is a marker above them, never hidden under a town's point (specs/
+  // current-position, audit 8): area points are DOM markers over the canvas, so the canvas dot is left out there.
+  const dotOverPoints = !!props.areaPoints?.length && !glideOn;
+  const walkerDot = useRef<{ marker: Marker; el: HTMLDivElement } | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const at = dotOverPoints ? props.walker : null;
+    if (!at) {
+      walkerDot.current?.marker.remove();
+      walkerDot.current = null;
+      return;
+    }
+    if (!walkerDot.current) {
+      const el = document.createElement('div');
+      el.dataset.testid = 'walker-dot';
+      el.setAttribute('aria-hidden', 'true');
+      // The canvas dot's look: radius 7 with a 2 px white edge.
+      Object.assign(el.style, { width: '18px', height: '18px', boxSizing: 'border-box', borderRadius: '50%', border: '2px solid #ffffff', pointerEvents: 'none', zIndex: '3' });
+      walkerDot.current = { el, marker: new Marker({ element: el, anchor: 'center' }).setLngLat(at).addTo(map) };
+    } else walkerDot.current.marker.setLngLat(at);
+    walkerDot.current.el.style.background = props.walkerMuted ? COLORS.walkerMuted : COLORS.walker;
+    walkerDot.current.el.dataset.muted = props.walkerMuted ? '1' : '0';
+  }, [ready, dotOverPoints, props.walker, props.walkerMuted]);
+  useEffect(() => () => {
+    walkerDot.current?.marker.remove();
+    walkerDot.current = null;
+  }, []);
   useEffect(() => {
     if (!ready) return;
-    setData('points', walkerGeoJSON(glideOn ? null : props.walker, !!props.walkerMuted));
+    setData('points', walkerGeoJSON(glideOn || dotOverPoints ? null : props.walker, !!props.walkerMuted));
     // Where the dot is drawn (QL12), for the e2e; empty with none. A replay's frames say their own (`applyReplay`).
     if (!replayLast.current) container.current?.setAttribute('data-walker', fmt(props.walker));
     container.current?.setAttribute('data-walker-muted', props.walkerMuted ? '1' : '0');
-  }, [ready, glideOn, props.walker, props.walkerMuted]);
+  }, [ready, glideOn, dotOverPoints, props.walker, props.walkerMuted]);
   // The credits beside the scale bar (tend map 3), moved with the inset (a sheet's height) and the map's width.
   const scaleBottom = (props.scaleInset ?? DEFAULT_SCALE_INSET).bottom;
   const scaleLeft = (props.scaleInset ?? DEFAULT_SCALE_INSET).left;

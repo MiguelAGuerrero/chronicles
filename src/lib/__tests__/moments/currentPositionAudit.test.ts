@@ -35,9 +35,9 @@ function fakeBrowser(state: 'granted' | 'prompt' | 'denied') {
   return { watches: () => watches, restore: () => (was ? Object.defineProperty(globalThis, 'navigator', was) : undefined) };
 }
 
-test('current-position audit 1: a return read never asks for permission; undecided or blocked, it starts no watch', { todo: 'test first' }, async () => {
+test('current-position audit 1: a return read never asks for permission; undecided or blocked, it starts no watch', async () => {
   const { locateOnce } = await import('../../locate/index.web');
-  for (const [state, reason] of [['prompt', 'undecided'], ['denied', 'denied']] as const) {
+  for (const [state, reason] of [['prompt', 'unavailable'], ['denied', 'denied']] as const) {
     const b = fakeBrowser(state);
     try {
       const r = await locateOnce(1000, { fresh: true, ask: false });
@@ -57,12 +57,12 @@ test('current-position audit 1: a return read never asks for permission; undecid
   }
   // Undecided at a return is quiet (the owner's "Quiet, old fix ages"): the held fix stands in, muted, and nothing says location is off.
   const { exploreRead, exploreNotice } = await mod();
-  const quiet = exploreRead(here(FOX, NOW - 2 * MIN), { at: null, reason: 'undecided' }, { at: FOX, t: NOW - 2 * MIN }, NOW);
+  const quiet = exploreRead(here(FOX, NOW - 2 * MIN), { at: null, reason: 'unavailable' }, { at: FOX, t: NOW - 2 * MIN }, NOW);
   assert.equal(quiet.pos.state, 'earlier');
   assert.notEqual(exploreNotice(quiet.pos, 'web').kind, 'off');
 });
 
-test('current-position audit 2: with no position, Walk there asks and never saves a destination', { todo: 'test first' }, async () => {
+test('current-position audit 2: with no position, Walk there asks and never saves a destination', async () => {
   const { exploreYou } = await mod();
   const { walkToChoice } = await import('../../startPlan');
   const listed: LngLat = [-71.5, 41.8];
@@ -76,7 +76,7 @@ test('current-position audit 2: with no position, Walk there asks and never save
   assert.ok(!/walkable: !!you &&/.test(src), 'storefront and complex rows say walkable only from a position');
 });
 
-test('current-position audit 3: refused, a look says no distance from you', { todo: 'test first' }, async () => {
+test('current-position audit 3: refused, a look says no distance from you', async () => {
   const { lookYou } = await mod();
   assert.equal(lookYou(none), null);
   assert.equal(lookYou({ state: 'none', refused: true }), null);
@@ -86,7 +86,7 @@ test('current-position audit 3: refused, a look says no distance from you', { to
   assert.ok(!src.includes('youFresh(getLastFix()'), 'a look and a search take Explore\'s own position, never the fix the app holds');
 });
 
-test('current-position audit 4: at a front with no fresh read, a fix twenty minutes old stands in and never says "You\'re here"', { todo: 'test first' }, async () => {
+test('current-position audit 4: at a front with no fresh read, a fix twenty minutes old stands in and never says "You\'re here"', async () => {
   const { exploreFront, exploreSeen, exploreNotice, HERE_FOR_MS } = await mod();
   assert.equal(HERE_FOR_MS, 5 * MIN, 'the owner\'s "After 5 minutes"');
   const read = here(FOX, NOW);
@@ -101,13 +101,13 @@ test('current-position audit 4: at a front with no fresh read, a fix twenty minu
   assert.ok(/const front = \(\) => \{\n\s+const aged = exploreFront\(posRef\.current, Date\.now\(\)\);/.test(src), 'the front ages the fix before it reads');
 });
 
-test('current-position audit 5: the stand-in\'s line has no ✕ and leaves on its own', { todo: 'test first' }, async () => {
+test('current-position audit 5: the stand-in\'s line has no ✕ and leaves on its own', async () => {
   const src = readFileSync(join(SRC, 'app', '(tabs)', 'explore.tsx'), 'utf8');
   const banner = src.match(/earlierLine \? \(\n\s+<Banner[^>]*>/)?.[0] ?? '';
   assert.ok(banner && !banner.includes('onDismiss'), `no ✕ on the stand-in's line (${banner})`);
 });
 
-test('current-position audit 6: the stand-in line is announced once, not each minute', { todo: 'test first' }, async () => {
+test('current-position audit 6: the stand-in line is announced once, not each minute', async () => {
   const src = readFileSync(join(SRC, 'app', '(tabs)', 'explore.tsx'), 'utf8');
   const banner = src.match(/earlierLine \? \(\n\s+<Banner[^>]*>/)?.[0] ?? '';
   assert.ok(/live=\{false\}/.test(banner), `the counting words are out of the banner's live region (${banner})`);
@@ -115,7 +115,7 @@ test('current-position audit 6: the stand-in line is announced once, not each mi
   assert.ok(/live\?: boolean/.test(ui), 'the Banner can stand outside a live region');
 });
 
-test('current-position audit 7: with no position, the title and the row say "Around <town>", never near or around you', { todo: 'test first' }, async () => {
+test('current-position audit 7: with no position, the title and the row say "Around <town>", never near or around you', async () => {
   const { exploreNamed } = await mod();
   const { lookWords, lookRowLabel } = await import('../../atlas/freeLook');
   const named = exploreNamed(none, 'Cranston');
@@ -126,13 +126,13 @@ test('current-position audit 7: with no position, the title and the row say "Aro
   assert.equal(exploreNamed(none, null), null, 'nothing listed: "Near you" and the empty card');
 });
 
-test('current-position audit 11: Navigate\'s focus read accepts a 15 s cached fix; its return read does not', { todo: 'test first' }, async () => {
+test('current-position audit 11: Navigate\'s focus read accepts a 15 s cached fix; its return read does not', async () => {
   const { readyRead } = await mod();
   assert.deepEqual(readyRead('focus'), { fresh: false, ask: true }, 'the focus read as before (NV17)');
   assert.deepEqual(readyRead('return'), { fresh: true, ask: false }, 'the return: fresh, and never a prompt');
 });
 
-test('current-position audit 12: Explore\'s own front asks once per launch; the tick never reads; the dot and the launch flag', { todo: 'test first' }, async () => {
+test('current-position audit 12: Explore\'s own front asks once per launch; the tick never reads; the dot and the launch flag', async () => {
   const { frontAsk, exploreDot } = await mod();
   const { createLaunchFix, createLaunchFlag } = await import('../../lastFix');
   const launch = createLaunchFix();

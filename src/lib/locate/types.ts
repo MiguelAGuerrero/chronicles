@@ -7,7 +7,7 @@ import type { LngLat } from '../types';
  */
 export interface LocateResult {
   at: LngLat | null;
-  /** Why there is no place: location is off, or no fix good enough came in time. */
+  /** Why there is no place: location is off, or no fix good enough came in time (or, asked not to ask, none could be read). */
   reason?: 'denied' | 'timeout' | 'unavailable';
 }
 
@@ -16,6 +16,11 @@ export interface LocateOptions {
   fresh?: boolean;
   /** Ends the read at once, its watch cleared, answering `unavailable` (a page that closed: fix outing-current-position audit 6). */
   signal?: AbortSignal;
+  /**
+   * `false`: never raise the permission prompt (specs/current-position, audit 1): the permission is read as it stands, and a
+   * read starts only while it is granted; undecided answers `unavailable`, blocked `denied`, with no watch. Default: ask.
+   */
+  ask?: boolean;
 }
 
 /** How long a moment waits for its fix. */
