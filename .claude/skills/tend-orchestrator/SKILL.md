@@ -4,7 +4,7 @@ description: Run /tend again and again as the owner's proxy (decision 0157) - on
 when_to_use: The owner asks to "run the loop", "orchestrate /tend", "act as my proxy for /tend" or "keep tending until it stalls". Not for one /tend run (type /tend), one bug (/fix) or one feature (/slice).
 argument-hint: "[--runs=N] [--deploy=main|branch]"
 disable-model-invocation: true
-allowed-tools: Agent, SendMessage, Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, ToolSearch, mcp__github__actions_list, mcp__github__actions_get
+allowed-tools: Agent, SendMessage, Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, ToolSearch, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
 ---
 
 # Tend orchestrator: $ARGUMENTS
@@ -24,11 +24,14 @@ Two facts shape everything here:
   tests; you save their reports, and anything to be run for them, the run writes.
 
 A question of colour or look goes to the owner as candidates side by side (whole palettes, measured
-on what a person sees, the blend included), never one swatch.
+on what a person sees, the blend included), never one swatch, each pictured at its worst case beside its best
+(`.claude/skills/tend/traps.md`, "Looks, questions and claims"; `.claude/skills/mockup.md`, "What it is"). A build
+whose look the owner picks takes section 4's look pauses, so the owner picks from pictures and sees the built look
+before it publishes.
 
 **A mock-up is the owner's alone** (decisions 0252, 0259, `.claude/skills/mockup.md`): the proxy never approves a
 mock-up and never says yes to an entry whose look needs one ("When one is needed"), with or without its `Mock-up:`
-line. Such entries go to the owner (step 2), each question linking its drawn page. A small element, a restyle within
+line. Such entries go to the owner (step 3), each question linking its drawn page. A small element, a restyle within
 the tokens or reworded words is no look call under 0259.
 
 **Every question you put to the owner** has its recommended option first, and that option cites its
@@ -36,6 +39,14 @@ precedent (decision 0193): for what a person sees or does, how 2-3 adjacent apps
 `Precedent:` line, from `docs/research/adjacent-apps.md`, verified or not), so the owner has a model to
 judge the shape against; for the loop itself (section 0), the decision it rests on. An entry filed without
 a `Precedent:` line gets one from that file before it is asked, or "none found" said in the option.
+
+**Ask as questions arise, in batches, never held to the close** (the keep or revert of the proxy's answers stays
+at the close, section 9). The owner was present through Nov 25-27 and
+answered within minutes; a plan pause's Silent questions, asked at that pause, kept each build moving, where holding
+them to the close would have stalled every one. Each batch goes out when its questions are ready (a pause's at the
+pause, the inbox's as section 2 says), four at most a call. Check each question's premise in the code first (what
+the screen draws today, by file and line: `.claude/skills/tend/traps.md`, "Looks, questions and claims"): the owner
+answers what they are told.
 
 ## 0. Open: the grant, the stop rule, the authority
 
@@ -45,10 +56,14 @@ write the answers at the top of the notes (section 1):
 1. **Deploy.** `main`, as `/tend` does (0128), or `branch`. A session's own branch rules (a
    designated branch) win until the owner says `main` here; a `--deploy=main` the owner typed with
    this skill is that yes. Under `branch` no run's record reaches `main`, so the numbers stay
-   provisional and the ledger never moves: run once, then stop and report.
-2. **Stop rule.** Recommended: stop when no open entry is yours to answer (section 2), or the
+   provisional and the ledger never moves: run once, then stop and report. A build that spans a second
+   repository (`chronicles-data`) pushes to its `main` only when the owner names that repository (`ship.md`'s grant
+   paragraph): ask it when such a build comes up.
+2. **Stop rule.** Recommended: stop when no owner's yes that can be built now waits for its build, and no open
+   entry is yours to answer (section 2: each queued yes of the owner's is a run, and the loop does not stop while
+   one waits, within its N runs), or the
    balance reads "outgrowing its base" (`/tend` section 8: the rough share of the areas swept twice or more,
-   or more than ten unanswered `T` entries) and nothing is yours to answer, or two sweeps in a row ship
+   or more than ten unanswered `T` entries) and neither remains, or two sweeps in a row ship
    nothing; at most N runs (`--runs`, default 8). While `node scripts/tend.js next` answers `evolve <area>`
    (fourteen days with no loop-filed `G`, decision 0235), that run comes before the stop. A `balance` or `next`
    that exits non-zero on a shallow history is no reading: fetch from the date it names and ask again.
@@ -59,7 +74,8 @@ write the answers at the top of the notes (section 1):
    closing insights file, never made by the runs (`check:tend` refuses them). When the owner asks
    for them to be made first (from the last insights file), make them before the first run: the
    skill files yourself in a worktree of your own, the scripts by a non-loop subagent test-first on
-   a local branch, every diff read by you, one decision record, landed on `main` by you.
+   a local branch, every diff read by you, one decision record, landed on `main` by you under `ship.md`'s lease
+   ("Open the worktree", step 6).
 
 ## 1. Notes, from the first turn
 
@@ -96,23 +112,33 @@ Also before the first run:
 
 - **Other sessions.** `list_sessions` (mine) for live sessions; for each whose title or "In flight" row
   overlaps an area you plan to run, `send_message` it what you will touch and ask what it touches.
-  Never publish into a session's files without its answer; send it each landing's sha.
+  Never publish into a session's files without its answer; send it each landing's sha. Before a brief guards
+  against another branch, check it holds work (`git fetch -q origin <branch> && git log --oneline origin/main..FETCH_HEAD`): a
+  collision warned of for G13 named a branch already merged.
 - **Reds on `main`.** The last "Last tend" and the weekly pass name the checks red on `main`. A red
   new since the last phase is diagnosed (a run of its own, or a known constraint in every brief)
   before new work in its area. Confirm red at rest, k of n, before calling it anything: a red that
   comes and goes with load is a check race until shown otherwise, and a bisect needs both ends
-  confirmed.
+  confirmed. A red with nothing landed may be the calendar's (`.claude/skills/tend/traps.md`, "Tests":
+  `IN_PROGRESS`'s dates); renewing them is the owner's.
 
 ## 2. Choose the next run
 
-1. **An entry you may answer yes to**, by 0157 and section 0's answer, in the order the entries'
+1. **An owner's yes waiting for its build**: an entry `main` holds with the owner's yes noted on it, or one the
+   owner answered yes to in this session (`owner-answers.md`), in the order the owner gave, else the order the
+   entries' dependencies state. It is the owner's answer, not yours (the brief marks it so), and a run like any
+   other: section 0's stop rule waits for it; one build per run, as in step 2. Step 2's outgrowing hold is the
+   proxy's and does not hold an owner's yes. One whose look needs a mock-up it lacks, or with an `Open:` line other
+   than a look the owner picks from candidates, is not built (`.claude/skills/tend/inbox.md`); its open call goes to
+   the owner (step 3). Such a look is answered at section 4's look pause.
+2. **An entry you may answer yes to**, by 0157 and section 0's answer, in the order the entries'
    dependencies state. For each: run `/vision` on it as `main` holds it (`.claude/skills/vision/SKILL.md`,
    called, returning its block), and say yes only to **aligned** or **no surface** with `Open:` and
    `Touches:` none, and only to an entry whose look needs no mock-up (decisions 0252, 0259). A slice-sized entry while the balance reads "outgrowing its base" is held this
    session, and the hold goes to the owner as a recommendation; a `G` from `/tend`'s lens 0 is not
    held (decision 0236). One build per run (`/tend` section 7):
    give the run every yes so its record carries them; it builds the first.
-2. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
+3. **Everything else in the inbox goes to the owner**: every no, reshape or hold you would give (as
    a recommendation), every class 0157 keeps for the owner, an entry filed "against the keep of <day> (<area>)" (a
    finding against the owner's walk note, the owner's alone: `.claude/skills/tend/walks.md`), and whatever `/vision` did
    not clear.
@@ -132,20 +158,23 @@ Also before the first run:
    in a worktree of your own from `origin/main`, as one commit,
    `expectations <feature>: the owner's answer, <date>`, with your trailers, and push it to `main` before or
    between runs, never inside one (a non-loop write; `check:tend` lets only that commit change a line's status: `/tend`'s `expectations.md`).
-3. **An owner's yes the loop cannot build** (a rule file to split, a rule line to reword, a VISION
+4. **An owner's yes the loop cannot build** (a rule file to split, a rule line to reword, a VISION
    edit, a decision to supersede): a non-loop run, briefed from `briefs.md` "The non-loop run", one
    job, its own decision record when the owner's answer is a call, reviewed by you before it lands.
-4. **A sweep**: brief `/tend` with no area; the run asks `node scripts/tend.js next` itself. When
+5. **A sweep**: brief `/tend` with no area; the run asks `node scripts/tend.js next` itself. When
    `next` answers `evolve <area>`, the run is `/tend evolve <area>`; when it names none, the run is `/tend evolve`
    (`/tend`'s table), which files and builds nothing.
-5. **Stop** by section 0's rule.
+6. **Stop** by section 0's rule.
 
 Before a `G` build (a slice), look at what is moving on `main` ("In flight", the day's
 `git log origin/main`): a slice that refactors modules another session is changing will be parked
 by a source conflict. Build it when `main` is quiet there.
 
-**Pacing.** A run costs about 200-460 thousand tokens and each review 50-180 thousand; the account's
-usage window is shared by every run and reviewer. Late in a window, prefer an inbox build to a
+**Pacing.** Measured on Nov 25-27 (no sweep ran then), each run alone and then its reviewers: a `T` build
+0.3-0.5 million tokens and under an hour, its reviewer about 0.1 million more; a `/fix` about 0.6 million and an
+hour, its reviewers about 0.15 million more; a `G` build 1.1-2.5 million and 1.5-6 hours, its reviewers 0.2-0.6
+million more, most of it the two review pauses and their fixes; a reviewer 50-180 thousand. Count a run's pauses and their reviewers before starting it:
+the account's usage window is shared by every run and reviewer. Late in a window, prefer an inbox build to a
 sweep, and never start a `G` build or a second run.
 
 ## 3. Brief the run
@@ -156,7 +185,11 @@ its fixed text as it stands, never retyped or reworded, with only this run's spe
 `"pick"`, with the owner's words verbatim; decision 0235), the
 tripwires, the kind of run, a constraint the notes learned since the template last changed, the
 attribution lines. A constraint every run needs belongs in the template: propose it in the
-insights file (section 9); a run that rediscovers one spends a review round on it.
+insights file (section 9); a run that rediscovers one spends a review round on it. The brief points to
+`.claude/skills/tend/traps.md`, the maintained list of what the gates and tools misread: a trap already there is
+never repeated in a brief.
+
+Before sending, check every repository path the brief names on `<main-tools>`, and every fact it carries from another run's report in the file it names (section 5).
 
 Never poll a run: no `sleep`, no reading its transcript, no status loops. You act when its hand-back
 or its completion notice arrives.
@@ -172,6 +205,8 @@ prompt the run wrote. The pauses are:
 | a `T` build | after the diff |
 | a `G` build | after the plan (`steward`, slice step 3); after the diff |
 | `evolve` | before it files (`steward`, on its expectation lines) |
+| a `/fix` (section 6) | after the diff |
+| a build whose `Open:` is a look the owner picks | also a look pause before building (before the plan, in a `G` build) and a look check of the built pictures before it publishes: no reviewer; the run hands back `LOOK PAUSE:` with the pictures' paths, you ask the owner (each candidate with its worst case), and resume it with the pick verbatim |
 
 At a run's first pause the `steward` also checks the run's drafted expectation lines and amendments
 (`/tend` lens 0) against VISION's Never lines and the persona, whoever else the pause calls for; at the
@@ -192,7 +227,12 @@ gets the `steward`** (0157).
 3. **Save each report** to `reviews/<run branch>-<pause>-<agent>.md` as it arrives: each finding in
    substance (failing input, file and line, change, test name), the steward's quoted lines and its
    Silent questions verbatim, the commands and counts, the verdict.
-4. **Wait for every reviewer of the pause**, then send one resume message (section 5).
+4. **Wait for every reviewer of the pause**, then send one resume message (section 5), except for a
+   reviewer lost to a restart: one that ends with no report (a transcript of tool calls is no report) is rerun
+   with the same prompt pinned to the committed range it reviews (the relay's range line). At the diff pause,
+   resume the run with the other reports and the resume's hold line, so it fixes them but does not publish; send
+   the rerun's rulings when it arrives, in the same round. A plan pause waits for it
+   (`.claude/skills/tend/traps.md`, "The session: restarts and refusals").
 
 The diff review is one round (`/tend` section 10, step 2).
 
@@ -204,7 +244,9 @@ classification; these are what the session learned:
 - **Look before you rule.** Grep that a rule line exists before naming it as a `Source:`. Read
   `FORBIDDEN` in `scripts/tend.js` itself before ruling an edit (it refuses far more than specs,
   decisions and existing rule lines; any list in a brief is a reminder, not the rule). Read the
-  decision an entry says it amends.
+  decision an entry says it amends. A fact a run's report claims that you will relay, to the owner or to
+  the next run, is checked in the file it names first: run 3 was sent a "44 pt" in two lines that named no
+  size, taken from run 2's report.
 - **The owner's, whatever the ruling would be:** a steward's Silent question; a finding that quotes a
   Never or Always line against a decision; a challenge to an owner's decision or a shipped criterion.
   They go in the owner's next batch with both lines quoted. Only an engineering or UI-pattern
@@ -274,6 +316,11 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
   `docs/NATIVE_UNVERIFIED.md` section, a "From <skill>" section). The inbox, "Last tend" and the
   ledger are shared; a conflict there resolves with `npm run records -- redo` (`/tend` section
   10.3). Never two `G` builds, and never a second run late in a usage window.
+- **A bug the owner reports mid-session** may run as a `/fix` beside the running build when its files are
+  disjoint from the build's, by the same test, and the owner says so (recommended: in parallel). It is one of
+  the session's runs, briefed with the run brief's `/fix` choices (`.claude/skills/fix/SKILL.md`; its grant is
+  `/fix`'s, one issue, decision 0081), reviewed through the relay (one round: the faster lane binds the runs this
+  skill briefs, 0181).
 - When one lands, send the other one line: "main moved to <sha>; lastT is now N".
 - **Two runs in one area** clash on finding numbers (`tend <area> N`, `audit N`): give each a range in
   its brief, or the second to publish renumbers at its rebase.
@@ -289,7 +336,9 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
    head the run reports as pushed (a range ending at `origin/main` holds whatever landed and is refused):
    the run's commits on `main`, no worktree or local branch left, the live bundle (compared with nothing:
    `<main-tools>` has no export). Pages with the GitHub tools. Take commit hashes from `origin/main`, not
-   the run's report (a rebase or amend renames them).
+   the run's report (a rebase or amend renames them). List the remote branches the run pushed, in each repository it
+   pushed to (`git ls-remote --heads origin '<run branch>*'`): one that `ship.md` "Clean up", step 4, does not call
+   for is a leftover reported to the owner, as the session's network proxy refuses its deletion.
 2. Update the notes.
 3. Tell the owner in a few lines: what landed and its Pages run, the compass's reading (`node
    <main-tools>/scripts/tend.js compass`, its last line; decision 0236), what you answered (as the proxy) and
@@ -298,6 +347,13 @@ says so); STATUS, DEFERRED and the ledger follow `/tend` section 10.3.
    AskUserQuestion at this report, not merely listed (decision 0173).
 4. Choose the next run (section 2).
 
+**A build that waits on a data build** (`chronicles-data`'s manual workflow, `.claude/skills/data-build/SKILL.md`):
+the dispatch is the owner's click and a green run is no published pack (`.claude/skills/tend/traps.md`, "Data and
+second repositories"). Ask for it when the data change has landed, naming only the sources it needs. When it
+completes, read its log lines (`get_job_logs`, loaded with ToolSearch; it answers 404 while the job runs) before
+calling the pack published or starting the run that waits on it. Set yourself a reminder for when it should be
+done; never poll it.
+
 ## 8. When a run stops early
 
 **After a container or worker restart**, before resuming anything: fetch `main`, read Pages, and list
@@ -305,6 +361,8 @@ the worktrees with each one's `git status --short -uall` and `git log --oneline 
 Background journeys and exports are gone; a hand-back lost in the restart is in the agent's transcript
 (its `SubagentHandback` call), recovered with a short script, never read whole. A run that finished
 before the restart may have left its last steps (Pages, the live check, cleanup) undone: they are yours.
+A reviewer running at the restart: section 4, step 4. Keep the scratchpad path the notes and briefs name, even
+when the session names a new one.
 
 - **A usage limit or an API error** ends a run mid-step; its worktree and commits survive. After the
   reset, resume **the same agent** (its id is in the notes) with the resume text from `briefs.md`.
@@ -315,6 +373,8 @@ before the restart may have left its last steps (Pages, the live check, cleanup)
   it is red, before anything else start a run whose only job is `ship.md` "A red run" for that
   range, under the same grant; if that is not clearly covered, ask the owner. Never publish over a
   red `main`.
+- **A refusal by the auto-mode classifier** (relaying "the owner approved" to a run, fetching a signed URL) is
+  asked of the owner, never routed around (`.claude/skills/tend/traps.md`, "The session: restarts and refusals").
 
 ## 9. Close
 

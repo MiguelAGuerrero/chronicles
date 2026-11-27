@@ -8,21 +8,23 @@ run's specifics. A change every run needs is made here, by the owner's yes, not 
 ## The run brief
 
 ```
-You are running one execution of this repository's `/tend` skill on behalf of the repository
-owner, in <repo path>. Read `AGENTS.md`, `.claude/skills/tend/SKILL.md` and
+You are running one execution of this repository's <`/tend` | `/fix`> skill on behalf of the repository
+owner, in <repo path>. Read `AGENTS.md`, <`.claude/skills/tend/SKILL.md` | `.claude/skills/fix/SKILL.md`> and
 `.claude/skills/ship.md` first, from your worktree (cut from origin/main; the primary checkout may
 be stale), and follow them exactly. The skills disable model invocation: carry them out yourself
 (and `slice`, `vision`, where they are called).
 
-The run: `/tend <mode and answers>` --deploy=<main|branch>.
+The run: <`/tend <mode and answers>` | `/fix <the owner's report, verbatim>`> --deploy=<main|branch>.
 [The answers are the proxy's under the owner's delegation (decision 0157), <date>: write them so in
 every record, entry removal and run-log line ("the proxy's yes under 0157, <date>"), never "the
 owner's". | The owner answered <entry> personally.] In the run log each answer is logged with `"by"` (`owner` or
 `proxy`) and `"pick"` (`recommended`, `other`, `reshape`, `no`), the owner's with their `words` verbatim, the words also in the entry's inbox operation[, and the owner's
 keep of the proxy's yes to <entry> as `"confirms": "<the proxy line's date>"`] (decision 0235).
 The owner has authorised <a fast-forward push of this run's work to main, ship.md "Publish to
-main" | pushing the run's branch only>. Push nowhere else, except the branches ship.md and /tend
-section 7 name (`slice/<slug>-parked`, `<branch>-retry`, a review branch).
+main" | pushing the run's branch only>.[ The owner named <second repository> for this run: its `main`
+takes the same fast-forward push (ship.md's grant paragraph).] Push nowhere else, except the branches ship.md
+and /tend section 7 name (`slice/<slug>-parked`, `<branch>-retry`, a review branch): never a branch for safety
+and never with force; a copy kept for safety is a patch in SCRATCH (ship.md, "Clean up", step 4).
 
 [Inbox: <entry> as STATUS holds it: "<title>". Say it back as main holds it, then build its
 recommended shape: <the shape>. One build per run: <later yeses> wait, noted.]
@@ -32,8 +34,12 @@ worktree, `npm run book:files -- HEAD --max-src 8`), a dependency or a change el
 "any golden or differential result beyond <list> moves: stop and tell me">.
 
 Review handoff. You have no Agent tool and never review your own work in place of a reviewer.
-Review points: <a sweep: after the lenses, then after the diff | a T build: after the diff |
-a G build: after the plan (steward), then after the diff | evolve: before filing (steward)>. At the
+Review points: <a sweep: after the lenses, then after the diff | a T build or a fix: after the diff |
+a G build: after the plan (steward), then after the diff | evolve: before filing (steward)>.[ The owner
+picks the look (the entry's `Open:`): before building (before the plan, in a G build), a look pause (the candidates side by side, each
+with its worst case beside it: `.claude/skills/tend/traps.md`, "Looks, questions and claims"), and before publishing, a look check (the built look's
+pictures); at each, hand back `LOOK PAUSE:` with the pictures' paths and end your turn, and I resume you
+with the owner's pick verbatim.] At the
 first, the `steward` also checks your drafted expectation lines and amendments (/tend lens 0) against
 VISION's Never lines and the persona: list them in its prompt; at the diff pause, give the `auditor` each
 `met` line with its evidence (decision 0236). At each, fetch and rebase first, then
@@ -67,7 +73,10 @@ log's `e2e`.
 The check for your commits: <sweep or T build: `npm run check:tend -- origin/main..HEAD` |
 G build: `node scripts/tend.js commits --loop-only origin/main..HEAD`; slice commits named the
 slice's way; only the final `tend <area>: the run's record` commit, holding STATUS, DEFERRED, the
-ledger and runs.jsonl alone, is named `tend`>. STATUS, DEFERRED and NATIVE_UNVERIFIED change only
+ledger and runs.jsonl alone, is named `tend` | a fix: `/fix`'s own checks (its sections 6 and 8), commits
+named `fix <name>` and `fix <name> audit N` (N from `npm run book:next-audit -- "fix <name>"` in your worktree,
+where this brief says `tend <area>`), no run-log line (drop this brief's run-log lines: `"by"`, `e2e`, the review
+counts), one review round (decision 0181, 7)>. STATUS, DEFERRED and NATIVE_UNVERIFIED change only
 through `npm run records -- <op>` (decision 0156; ship.md, "The record documents"): each record
 commit carries the lines `npm run records -- trailers` prints and the sidecar the operations staged,
 an entry the run did not file leaves or changes only with `--reason` (two per section per commit),
@@ -128,7 +137,8 @@ pushed, Pages and the live check; 3. every entry filed, in full, its `Precedent:
 
 ```
 Read <prompt path> and do exactly what it asks, report-only: edit nothing. You cannot write files,
-so return the full report as your answer. [Also judge <the orchestrator's own question>.]
+so return the full report as your answer. [Also judge <the orchestrator's own question>.][ Review the
+committed range <base>..<sha> only: the branch may have moved on since the prompt was written.]
 Every finding titled "<agent> N" (auditor 1, ux 1, steward 1: the run numbers the audits) with a
 failing input or a file and line, its severity, the fix and a test name[ (auditor: also the tests that cannot fail, and
 whether each `met` expectation's evidence exists and tests the line) | (steward: each finding with the lines
@@ -149,6 +159,8 @@ My rulings:
 Review counts for the log: accepted <n>, deferred <n>, rejected <n>. One round.
 Then: rerun only the journeys the fixes touch, the record, fetch and rebase (10.3), publish, Pages,
 the live check, cleanup, and the final report in the shape I asked for.
+[The <agent>'s report was lost to a restart; it is rerun on <base>..<sha>. Fix these, then hand back
+`RESUME WITH:` without publishing; its rulings follow in this round.]
 ```
 
 ## The resume after a stop
@@ -163,7 +175,7 @@ carry on from there with the rulings you have.
 
 ## The non-loop run
 
-For an owner's yes the loop cannot build (orchestrator section 2.3): a rule file split, a rule line
+For an owner's yes the loop cannot build (orchestrator section 2.4): a rule file split, a rule line
 reworded, a VISION edit, a decision superseded.
 
 ```
