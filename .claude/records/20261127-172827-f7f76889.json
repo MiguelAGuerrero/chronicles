@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Walk planner (WP1-WP27, KW15, decision 0102)"
+      ],
+      "body": "- [ ] **Do:** with location allowed \"While using\", open Explore, go a few kilometres, then open Plan an outing and an area card's \"Suggest a walk\"; then, indoors with no fix, open either within half an hour of Explore's last fix and again after it; then turn location off for Chronicles and open either. **Expect:** each page says \"Finding you…\", then plans around where the phone is now (its dot there) and Start routes from there; with no fix in ten seconds, the plan from the earlier fix with \"From where you were … minutes ago.\", and past half an hour \"Needs your location…\" with nothing proposed; with location off, that line and \"Location is turned off for Chronicles. Turn it on in Settings to find your position.\", nothing proposed and no dot (fix outing-current-position, decision 0273; `usePagePosition`, `locate/index.native.ts` with `fresh`).\n"
+    }
+  ]
+}

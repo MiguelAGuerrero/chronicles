@@ -15,7 +15,7 @@ const CRANSTON: LngLat = [-71.44, 41.78];
 const NOW = 1_800_000_000_000;
 const MIN = 60_000;
 
-test('fix outing-current-position 1: OJ10, WP3: the page plans from the fix it read as it opened, never the one held before', { todo: 'test first' }, async () => {
+test('fix outing-current-position 1: OJ10, WP3: the page plans from the fix it read as it opened, never the one held before', async () => {
   const { pagePosition, positionAt } = await mod();
   // Explore's launch fix at Fox Point, a minute old; the page's own read finds Cranston, 4 km off.
   const p = pagePosition({ at: CRANSTON }, { at: FOX, t: NOW - MIN }, NOW);
@@ -26,7 +26,7 @@ test('fix outing-current-position 1: OJ10, WP3: the page plans from the fix it r
   assert.equal(positionAt({ state: 'finding' }), null);
 });
 
-test('fix outing-current-position 2: OJ10, QC30, WP3: refused, the page has no position, whatever fix is held, and says location is off', { todo: 'test first' }, async () => {
+test('fix outing-current-position 2: OJ10, QC30, WP3: refused, the page has no position, whatever fix is held, and says location is off', async () => {
   const { pagePosition, positionAt, positionLine } = await mod();
   const { LOCATION_OFF } = await import('../../locate/notice');
   const p = pagePosition({ at: null, reason: 'denied' }, { at: FOX, t: NOW - MIN }, NOW);
@@ -40,7 +40,7 @@ test('fix outing-current-position 2: OJ10, QC30, WP3: refused, the page has no p
   assert.equal(positionLine(none, 'web'), null);
 });
 
-test('fix outing-current-position 3: no fresh fix in time, one up to thirty minutes old is used and said; an older one never', { todo: 'test first' }, async () => {
+test('fix outing-current-position 3: no fresh fix in time, one up to thirty minutes old is used and said; an older one never', async () => {
   const { pagePosition, positionAt, positionLine } = await mod();
   for (const reason of ['timeout', 'unavailable'] as const) {
     const p = pagePosition({ at: null, reason }, { at: FOX, t: NOW - 20 * MIN }, NOW);
@@ -55,7 +55,7 @@ test('fix outing-current-position 3: no fresh fix in time, one up to thirty minu
   assert.deepEqual(pagePosition({ at: null, reason: 'timeout' }, { at: FOX, t: NOW + MIN }, NOW), { state: 'none', refused: false });
 });
 
-test('fix outing-current-position 4: the line of an earlier fix says how long ago in words, and the wait says it is finding you', { todo: 'test first' }, async () => {
+test('fix outing-current-position 4: the line of an earlier fix says how long ago in words, and the wait says it is finding you', async () => {
   const { positionLine, FINDING_LINE } = await mod();
   const said = (agoMs: number) => positionLine({ state: 'earlier', at: FOX, t: NOW - agoMs, agoMs }, 'web');
   assert.equal(said(15_000), 'From where you were a moment ago.');
@@ -68,7 +68,7 @@ test('fix outing-current-position 4: the line of an earlier fix says how long ag
   assert.equal(positionLine({ state: 'here', at: CRANSTON, t: NOW }, 'web'), null);
 });
 
-test('fix outing-current-position 5: Explore hands the outing page and the planner no position; each reads its own as it opens', { todo: 'test first' }, () => {
+test('fix outing-current-position 5: Explore hands the outing page and the planner no position; each reads its own as it opens', () => {
   const explore = readFileSync(join(SRC, 'app', '(tabs)', 'explore.tsx'), 'utf8');
   for (const el of ['OutingPage', 'PlannerDrawer']) {
     const at = explore.indexOf(`<${el}`);

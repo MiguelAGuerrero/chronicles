@@ -761,7 +761,7 @@ async function ownPosition(h) {
   await open();
   await until(async () => near(await walker(), moved), 15000);
   const w1 = await walker();
-  check.todo(near(w1, moved) && !near(w1, curio), `fix outing-current-position: OJ10, QC30: moved 4 km since Explore's launch fix, the page is where the phone is now, not where Explore read it (${w1}; ${await sheet()})`);
+  check(near(w1, moved) && !near(w1, curio), `fix outing-current-position: OJ10, QC30: moved 4 km since Explore's launch fix, the page is where the phone is now, not where Explore read it (${w1}; ${await sheet()})`);
   await pg.waitForTimeout(2500);
   await shots('fix-outing-current-position-moved');
   await close();
@@ -772,7 +772,7 @@ async function ownPosition(h) {
   await pg.waitForSelector('[data-testid=outing-journey-0]', { timeout: 60000 }).catch(() => {});
   const l2 = await line();
   const w2 = await walker();
-  check.todo(l2 === 'From where you were twenty minutes ago.' && near(w2, curio) && (await pg.locator('[data-testid=outing-journey-0]').count()) === 1,
+  check(l2 === 'From where you were twenty minutes ago.' && near(w2, curio) && (await pg.locator('[data-testid=outing-journey-0]').count()) === 1,
     `fix outing-current-position: with no fresh fix in time, a fix twenty minutes old is used and said ("${l2}", ${w2})`);
   await pg.waitForTimeout(1500);
   await shots('fix-outing-current-position-earlier');
@@ -783,7 +783,7 @@ async function ownPosition(h) {
   await until(async () => (await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && !/^Finding/.test(await line()), 25000);
   await pg.waitForTimeout(1500);
   const w3 = await walker();
-  check.todo((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && (await pg.locator('[data-testid=outing-journey-0]').count()) === 0 && !w3 && !/From where you were/.test(await sheet()),
+  check((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && (await pg.locator('[data-testid=outing-journey-0]').count()) === 0 && !w3 && !/From where you were/.test(await sheet()),
     `fix outing-current-position: OJ10: a fix over thirty minutes old is never used: the page needs your location and proposes nothing (${w3}; ${await sheet()})`);
   await close();
   // 4. Refused, after a reload (no fix in memory; Explore falls back to the area it last listed).
@@ -796,7 +796,7 @@ async function ownPosition(h) {
   await pg.waitForTimeout(1500);
   const w4 = await walker();
   const l4 = await line();
-  check.todo((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && /^Location is off for this site\./.test(l4) && (await pg.locator('[data-testid=outing-journey-0]').count()) === 0 && !w4,
+  check((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && /^Location is off for this site\./.test(l4) && (await pg.locator('[data-testid=outing-journey-0]').count()) === 0 && !w4,
     `fix outing-current-position: OJ10, QC30: location refused, the page says it needs your location and that location is off, proposes nothing and draws no dot ("${l4}", ${w4}; ${await sheet()})`);
   await shots('fix-outing-current-position-refused');
   await c.close();

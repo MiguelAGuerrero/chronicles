@@ -7,12 +7,13 @@ import type { LngLat } from '../types';
 import { useUnits } from '../useUnits';
 import { planner, navRaw, openWalkId } from './app';
 import { destFor } from './dest';
-import { applyRound, close, headingNote, open, replanned, roundFor, select, startable, type PageState } from './page';
+import { applyRound, headingNote, open, replanned, roundFor, select, startable, type PageState } from './page';
 import { ceilingFor } from './settings';
 import { startFrom, type PlannerResult, type PlannerRoute } from './service';
 
 /**
- * The planner page's state (WP1-WP4, WP12, WP13, WP18, WP24): reads once the page is open and again when a setting changes or
+ * The planner page's state (WP1-WP4, WP12, WP13, WP18, WP24): reads once the page is open and its position is in (`active`: the
+ * page's own fix has been read, or refused, or not come; fix outing-current-position), and again when a setting changes or
  * different routes are asked for; the only memory is the routes on screen (WP13). An empty answer to "different routes" leaves the
  * routes on screen (audit 2); the round starts over with the settings in the same render (audit 10); the ceiling is the step shown (audit 6).
  */
@@ -20,7 +21,8 @@ export function usePlanner(kind: CategoryId, area: { at: LngLat; reachM: number 
   const prefs = useKindWalkPrefs();
   const units = useUnits();
   const ceilingM = ceilingFor(prefs.budgetM, units);
-  const [page, setPage] = useState<PageState>(() => (active ? open() : close()));
+  // The page is open from the first render; `active` only holds the reads back until its position is settled.
+  const [page, setPage] = useState<PageState>(open);
   const [result, setResult] = useState<PlannerResult | null>(null);
   const [nothing, setNothing] = useState(false);
   const [walkId, setWalkId] = useState<string | null>(null);

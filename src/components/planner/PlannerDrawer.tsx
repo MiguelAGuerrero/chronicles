@@ -6,6 +6,8 @@ import type { AtlasArea } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { Waypoint } from '../../lib/nav/types';
 import { focusOn, useFocusReturn, useFocusTrap } from '../../lib/focus';
+import { positionAt, positionLine } from '../../lib/locate/pagePosition';
+import { usePagePosition } from '../../lib/locate/usePagePosition';
 import { hideTabs, modalsUp } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { useUnits } from '../../lib/useUnits';
@@ -28,17 +30,17 @@ const NONE: never[] = [];
 export function PlannerDrawer(props: {
   kind: CategoryId;
   area: AtlasArea;
-  you: LngLat | null;
-  lastFixAt: number | null;
-  /** The walker's latest position, read when Start is pressed (audit 13). */
-  fixNow: () => LngLat | null;
   starting: boolean;
   onClose: () => void;
   onStart: (dest: Waypoint) => void;
 }) {
   const insets = useSafeAreaInsets();
   const units = useUnits();
-  const p = usePlanner(props.kind, { at: props.area.at, reachM: props.area.reachM }, props.you, true);
+  // WP3 (fix outing-current-position, decision 0273): the planner's own fix, read as it opens; nothing is planned until it is in.
+  const pos = usePagePosition();
+  const you: LngLat | null = positionAt(pos);
+  const posLine = positionLine(pos, Platform.OS === 'web' ? 'web' : 'native');
+  const p = usePlanner(props.kind, { at: props.area.at, reachM: props.area.reachM }, you, pos.state !== 'finding');
   const [busy, setBusy] = useState(false);
   // tend explore 27: focus moves into the planner as it opens, at its title, as the card's does at its name, and goes back
   // to the kind's button as it closes. tend explore 27: and Tab stays inside it on the web.
@@ -82,7 +84,8 @@ export function PlannerDrawer(props: {
     setBusy(true);
     setFailed(false);
     try {
-      const dest = await p.start(props.fixNow());
+      // Start routes from the planner's own fix (decision 0273), the one it planned from.
+      const dest = await p.start(you);
       if (dest) props.onStart(dest);
     } catch {
       setFailed(true);
@@ -105,7 +108,7 @@ export function PlannerDrawer(props: {
           walked={NONE}
           fog={NONE}
           captures={NONE}
-          walker={props.you}
+          walker={you}
           route={map.route}
           alternates={map.alternates}
           routeGrades={map.grades}
@@ -115,12 +118,15 @@ export function PlannerDrawer(props: {
         />
       </View>
       <ScrollView style={styles.body} contentContainerStyle={styles.content}>
+        {/* Finding you, or how long ago the fix it plans from was, above the routes; location off under "needs your position". */}
+        {posLine && pos.state !== 'none' ? <Text style={styles.line} testID="plan-position" accessibilityLiveRegion="polite">{posLine}</Text> : null}
         {p.reading ? <Text style={styles.line} testID="plan-reading">{readingLine}</Text> : null}
         {p.routes.length > 0 ? (
           <RouteRows routes={p.routes} selected={p.page.selected} kind={props.kind} units={units} ceilingM={p.ceilingM} onSelect={p.choose} />
         ) : null}
         {reasons.map((r) => <Text key={r} style={styles.line} testID={`plan-reason-${r}`}>{reasonLine(r)}</Text>)}
         {p.nothing ? <Text style={styles.line} testID="plan-reason-nothingDifferent">{reasonLine('nothingDifferent')}</Text> : null}
+        {posLine && pos.state === 'none' ? <Text style={styles.line} testID="plan-position" accessibilityLiveRegion="polite">{posLine}</Text> : null}
         {failed ? <Text style={styles.line} testID="plan-failed">{reasonLine('noRoute')}</Text> : null}
         {p.walkId && p.replaces ? <Text style={styles.line} testID="plan-replaces">{replacesLine}</Text> : null}
         <View style={styles.actions}>
@@ -129,7 +135,7 @@ export function PlannerDrawer(props: {
         </View>
         <PlannerSettings prefs={p.prefs} units={units} kind={props.kind} />
       </ScrollView>
-      {p.walkId ? <PlannerCapture walkId={p.walkId} here={props.you} lastFixAt={props.lastFixAt} leaving={starting} /> : null}
+      {p.walkId ? <PlannerCapture walkId={p.walkId} here={you} lastFixAt={pos.state === 'here' || pos.state === 'earlier' ? pos.t : null} leaving={starting} /> : null}
     </View>
   );
 }

@@ -537,7 +537,6 @@ const UNTESTED = {
     OJ4: 'deferred: held in parts by other ids: the card\'s words by OJ21 and RE17, the map\'s line by RE1 and RE16 (the journey `journey`); the finding criterion is the ux-reviewer\'s cold find (Nov 18, in specs/road-engine\'s Audit)',
     OJ6: 'deferred: by construction: the page hosts Explore\'s own search component (GZ9-GZ13 hold that nothing of a query is stored or sent); the journeys `outing` and `journey` pick a destination through it',
     OJ8: 'deferred: not built: the towns near you as shortcuts (docs/DEFERRED.md, outing journey step 1)',
-    OJ10: 'deferred: no journey opens the page with no position; the line is the one QC30 tests in words, and the hook proposes nothing without an origin',
     OJ16: 'deferred: held by QC41\'s tests (the switch, off by default, kept) and the journey `outing`, which toggles `outing-chains`',
     OJ32: 'deferred: unchanged from QC19 and QC26, whose tests hold the chip; no journey of this slice walks to a stop',
     OJ51: 'deferred: superseded in part by RE1 (the road in place of the straight line); the straight line that remains is checked by the journey `journey` as the count of points handed to the map',

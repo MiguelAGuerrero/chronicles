@@ -1078,10 +1078,8 @@ export default function Explore() {
         />
       )}
       {outingOpen && (
+        // The page reads its own fix as it opens (OJ10, QC30; fix outing-current-position, decision 0273): none is handed over.
         <OutingPage
-          you={getLastFix()?.at ?? you}
-          lastFixAt={getLastFix()?.t ?? null}
-          fixNow={() => getLastFix()?.at ?? you}
           starting={walkStart.starting}
           onClose={() => setOutingOpen(false)}
           onStart={(dest, plan) => {
@@ -1104,9 +1102,6 @@ export default function Explore() {
         <PlannerDrawer
           kind={plan}
           area={card.area}
-          you={getLastFix()?.at ?? you}
-          lastFixAt={getLastFix()?.t ?? null}
-          fixNow={() => getLastFix()?.at ?? you}
           starting={walkStart.starting}
           onClose={() => setPlan(null)}
           onStart={(dest) => {
