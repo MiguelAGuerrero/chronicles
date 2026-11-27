@@ -98,7 +98,8 @@ test('CG10: the native map\'s hatch images are the web\'s pixels', () => {
 });
 
 test('walkability-car-ground audit 4: the swatch draws two lines, none corner to corner', () => {
-  const size = 20 - 2 * WALK_STYLE.car.edgeWidthPx;
+  // The square swatch has no border since the owner's "Square swatch, no box border": the hatch runs to its edges.
+  const size = 20;
   const lines = swatchLines(WALK_STYLE.car, size);
   assert.equal(lines.length, 2, 'two lines in the swatch');
   for (const l of lines) {

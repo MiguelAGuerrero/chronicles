@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { tilesNear } from '../tileMath';
 import type { LngLat } from '../types';
 import { useStore } from '../useStore';
-import { alongRoute, areaStretches, carStretches, casingLines, mergeStretches, warningLine } from './ahead';
+import { alongRoute, areaStretches, carStretches, casingLines, casingRunsFor, mergeStretches, routeKeyOf, warningLine } from './ahead';
 import type { CarGround } from './carGround';
 import { cellsFor } from './cells';
 import { routeSegments } from './layer';
@@ -21,7 +21,7 @@ const ROUTE_TILE_M = 500;
 export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | null, enabled: boolean): string | null {
   // Only while the Walkability layer is on (the owner's call, 2026-11-05): the walker asked for the information, and no route
   // tile is read otherwise (the vision review S2, S3).
-  const key = enabled && route && route.length > 1 ? `${route[0].join(',')}>${route[route.length - 1].join(',')}#${route.length}` : null;
+  const key = enabled && route && route.length > 1 ? routeKeyOf(route) : null;
   /** The distance last found along this route, so a route that retraces itself is read on the leg being walked. */
   const lastAlong = useRef<number | null>(null);
   useEffect(() => {
@@ -71,9 +71,12 @@ export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | 
  */
 export function useCarRoute(route: readonly LngLat[] | null, enabled: boolean, ground: CarGround | null): LngLat[][] | null {
   const runs = useStore(aheadWatch.store, (s) => s.runs);
+  const runsRoute = useStore(aheadWatch.store, (s) => s.runsRoute);
+  // Computed again only when the route, its runs or the drawn ground change, never on a render of its own.
   return useMemo(() => {
-    if (!enabled || !route || !runs.length) return null;
-    const lines = casingLines(route, runs, ground);
+    if (!enabled || !route || route.length < 2) return null;
+    const mine = casingRunsFor(routeKeyOf(route), { runs, runsRoute });
+    const lines = casingLines(route, mine, ground);
     return lines.length ? lines : null;
-  }, [enabled, route, runs, ground]);
+  }, [enabled, route, runs, runsRoute, ground]);
 }

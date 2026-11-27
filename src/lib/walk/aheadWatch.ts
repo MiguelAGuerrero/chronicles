@@ -10,8 +10,8 @@ import { aheadStep, type AheadState, type Stretch } from './ahead';
  */
 
 export interface AheadWatch {
-  /** `runs`: the route's runs of car ground as found, for the map's casing (G5); empty until they are read and on no route. */
-  store: Store<{ show: Stretch | null; runs: readonly Stretch[] }>;
+  /** `runs`: the route's runs of car ground as found, for the map's casing (G5), with `runsRoute` the route they were found for. */
+  store: Store<{ show: Stretch | null; runs: readonly Stretch[]; runsRoute: string | null }>;
   /** A new route is being followed: the old route's stretches and line go, what was said stays (walkability audit 7). */
   route(route: string | null): void;
   /**
@@ -24,7 +24,7 @@ export interface AheadWatch {
 }
 
 export function createAheadWatch(p: Pick<Ports, 'clock'>): AheadWatch {
-  const store = createStore<{ show: Stretch | null; runs: readonly Stretch[] }>({ show: null, runs: [] });
+  const store = createStore<{ show: Stretch | null; runs: readonly Stretch[]; runsRoute: string | null }>({ show: null, runs: [], runsRoute: null });
   let route: string | null = null;
   let list: readonly Stretch[] = [];
   let state: AheadState = { said: [], shown: null };
@@ -41,7 +41,7 @@ export function createAheadWatch(p: Pick<Ports, 'clock'>): AheadWatch {
     route = next;
     list = [];
     state = { said: keepSaid ? state.said : [], shown: null };
-    if (store.get().show || store.get().runs.length) store.set({ show: null, runs: [] });
+    if (store.get().show || store.get().runs.length) store.set({ show: null, runs: [], runsRoute: null });
   };
   return {
     store,
@@ -51,7 +51,7 @@ export function createAheadWatch(p: Pick<Ports, 'clock'>): AheadWatch {
         list = [];
         along = null;
         state = { said: [], shown: null };
-        if (store.get().show || store.get().runs.length) store.set({ show: null, runs: [] });
+        if (store.get().show || store.get().runs.length) store.set({ show: null, runs: [], runsRoute: null });
         return;
       }
       if (next !== route) reset(next, true);
@@ -62,13 +62,13 @@ export function createAheadWatch(p: Pick<Ports, 'clock'>): AheadWatch {
         list = [];
         along = null;
         state = { said: [], shown: null };
-        store.set({ show: null, runs: [] });
+        store.set({ show: null, runs: [], runsRoute: null });
         return;
       }
       // A reroute keeps what was said: stretches are keyed by street and segment, not by the route.
       if (next !== route) reset(next, true);
       list = found;
-      store.set({ ...store.get(), runs });
+      store.set({ ...store.get(), runs, runsRoute: next });
       step();
     },
     at(alongM) {

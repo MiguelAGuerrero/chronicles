@@ -49,17 +49,28 @@ How an area treats someone on foot, judged from how the ground is built and show
   step in degrees east-west), smoothed by a 90 m Gaussian over read ground only, outlined at one half (marching squares).
   The lattice is global, so a point's shape depends only on the cells within 270 m of it, whichever read it came from. No
   derivation bump: the cells and `WALK_CODE` are untouched; only the drawing changes, and it is never stored.
-- **The read's edge fades** (the owner, "Fade over ~100 m"): a chamfer distance from the edge of what was read cuts the
-  ground into pieces that never overlap, whole beyond 100 m and five 20 m steps toward it (`kind` 'area-1'..'area-5',
-  each fainter); the edge line is drawn only between read points, faded the same. A band narrower than the lattice step
-  needs the distance measured from the read's edge (half a step outside the last point read), or it comes out empty.
+- **The read's edge fades** (the owner, "Fade over ~100 m"): a signed chamfer distance from the edge of what was read
+  (halfway between the last point read and the first not, below zero outside) cuts the ground into pieces that never
+  overlap, whole beyond 100 m and two 50 m steps toward it (`kind` 'area-1', 'area-2', each fainter); the edge line is
+  drawn only between read points, faded the same.
+- **Trap: a band is cut by min(share, d - lo, hi - d), so it must be two lattice steps wide** or the lattice cannot place
+  both its edges: 20 m steps on a 25 m lattice came out as 2 m slivers with gaps (the auditor's F1). And the share must be
+  in the distances' unit (metres, a thousand to the unit), or it undercuts them and the crossings land beside a point.
+- **A read across the antimeridian** is laid out next to its first car cell (±360), and a shape wholly off the world is
+  moved back; the raw longitudes made a lattice a world wide (30 s).
 - **The look is one constant**, `WALK_STYLE.car` (the owner's Soft A2): `hatchImage` gives the web's `addImage` pixels,
-  `hatchPng` the native images (`assets/map/walk-hatch*.png`, written by `scripts/walk-hatch.ts`; a test fails when they
-  drift), `swatchLines` the legend's two lines, none corner to corner. Change the look only with the owner's pick.
+  `hatchPng` the native images (`assets/map/walk-hatch-<q>[@2x|@3x].png`, written by `scripts/walk-hatch.ts`; a test fails when
+  they drift), `swatchLines` the legend's two lines, none corner to corner. Change the look only with the owner's pick.
 - **Trap: a fill pattern scales with fractional zoom.** MapLibre draws the tile at its size on whole zooms and up to twice
-  it between, so "9 px apart" holds at a whole zoom only. Draw the pattern without antialiasing, or the fade's steps meet
-  with a hairline.
-- **The route's casing** is the area runs alone (`areaStretches`, 300 m or more, never the merged list: a fast road on
-  plain ground is not car ground), cut to the drawn ground by `insideCarGround` (`casingLines`), so it begins and ends at
-  the hatch's edge. `aheadWatch`'s store holds them as `runs`.
+  it between (`pattern.ts`, `tileZoom`), and evaluates a `fill-pattern` expression at whole zooms only, so a zoom `step`
+  cannot hold it. The map shows one of four images, a quarter zoom apart, each drawn 2^(q/4) smaller (`hatchQuarter`,
+  `hatchLookAt`), switched by `setPaintProperty` as the zoom crosses a quarter (web) or as a move settles (native): 9 to
+  11.5 px apart at every zoom. Draw the pattern without antialiasing, or the fade's steps meet with a hairline.
+- **The route's casing** is the drawn car ground along the whole route (`insideRunsAlong`, its ring edges indexed by
+  latitude), each piece kept when it overlaps a run of car cells of 300 m or more (`areaStretches`, never the merged list:
+  a fast road on plain ground is not car ground); cut from the drawing, not the cells, so it ends where the hatch does even
+  at a concave corner (the auditor's F4). Cut square, a slate dot at its start. `aheadWatch`'s store holds the runs with
+  the route they were found for (`runsRoute`), and `casingRunsFor` gives a route only its own (F7).
+- **Native order:** the hatch and its edge take `beforeId={WALK_BELOW}` (the base map's first label), as the web map adds
+  them before its first symbol layer.
 - **Native, unverified:** `<Images>` with the PNGs, `fill-pattern`, the faded edge and the `route-car` line on MapLibre RN.

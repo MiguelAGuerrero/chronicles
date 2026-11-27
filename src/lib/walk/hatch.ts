@@ -132,7 +132,9 @@ export function swatchLines(look: HatchLook, size: number): { x1: number; y1: nu
   const drop = size * Math.tan(theta);
   const start = (size + drop) / 2 + step / 2;
   const out: { x1: number; y1: number; x2: number; y2: number }[] = [];
-  for (let c = start - Math.floor(start / step) * step; c < size + drop; c += step) if (c > 0) out.push({ x1: 0, y1: c, x2: size, y2: c - drop });
+  // A line clipping only a corner of the square is left out, so the swatch reads as its lines, not as slivers.
+  const shown = (c: number) => Math.min(c, size, size + drop - c, drop) >= size / 3;
+  for (let c = start - Math.floor(start / step) * step; c < size + drop; c += step) if (c > 0 && shown(c)) out.push({ x1: 0, y1: c, x2: size, y2: c - drop });
   return out;
 }
 

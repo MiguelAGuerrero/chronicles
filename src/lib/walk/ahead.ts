@@ -1,7 +1,7 @@
 // @layer core
 import { pointSegmentDist, projector } from '../geo';
 import type { LngLat } from '../types';
-import { insideCarGround, type CarGround } from './carGround';
+import { insideRunsAlong, type CarGround } from './carGround';
 import { cellIndexOf, type Cell } from './cells';
 import type { Band } from './types';
 
@@ -233,10 +233,25 @@ export function stretchLines(path: readonly LngLat[], stretches: readonly Pick<S
 }
 
 /**
- * G5 (CG6): the route's slate casing: its runs of car ground (`areaStretches`, never a fast road on plain ground:
- * walkability-car-ground audit 1) as lines along the route, cut to the car ground the map draws, so each casing begins and
- * ends at the hatch's edge (audit 3). A crossing too short to be a run is not cased, as it is not said.
+ * G5 (CG6): the route's slate casing: the parts of the whole route inside the drawn car ground (`insideRunsAlong`), each
+ * kept when it overlaps a run of car ground the heads-up found (`areaStretches`, 300 m or more; never a fast road on plain
+ * ground: walkability-car-ground audit 1). Cut from the drawn ground, not the cells, so it begins and ends at the hatch's
+ * edge even where the smoothing bulges past the cells at a concave corner (audit 13). A crossing too short to be a run is
+ * not cased, as it is not said.
  */
 export function casingLines(path: readonly LngLat[], runs: readonly Pick<Stretch, 'fromM' | 'toM'>[], ground: CarGround | null): LngLat[][] {
-  return insideCarGround(stretchLines(path, runs), ground);
+  if (!runs.length) return [];
+  return insideRunsAlong(path, ground)
+    .filter((piece) => runs.some((r) => piece.fromM < r.toM && r.fromM < piece.toM))
+    .map((piece) => piece.line);
+}
+
+/** A route's key: its ends and its number of points, so the stretches found for one route are never laid on another. */
+export function routeKeyOf(route: readonly LngLat[]): string {
+  return `${route[0].join(',')}>${route[route.length - 1].join(',')}#${route.length}`;
+}
+
+/** The casing's runs for this route: the watch's, only when they were found for it (walkability-car-ground audit 16). */
+export function casingRunsFor(routeKey: string | null, state: { runs: readonly Stretch[]; runsRoute: string | null }): readonly Stretch[] {
+  return routeKey !== null && state.runsRoute === routeKey ? state.runs : [];
 }

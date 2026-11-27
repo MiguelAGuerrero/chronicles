@@ -28,10 +28,14 @@ A warning only: the slice builds its own criteria and takes none of those items 
   smallest lattice crossing, so the same cells give the same rings.
 - **The edge** (CG4): the outline's runs whose two lattice points were both read; where the outline meets ground nobody
   read (the edge of the 1.5 km read) it is not lined.
-- **The fade** (CG4, the owner's "Fade over ~100 m"): a chamfer distance from every lattice point to the nearest point
-  nobody read; the car ground is cut by it into six pieces that do not overlap, whole beyond 100 m and five steps of 20 m
-  toward the read's edge, each drawn fainter (`kind` 'area-1' to 'area-5', 5/6 down to 1/6 of the hatch's strength), and
-  the edge line the same. The pattern fill draws without antialiasing, so the steps meet with no hairline.
+- **The fade** (CG4, the owner's "Fade over ~100 m"; the auditor's F1, audit 10): a signed chamfer distance from the
+  edge of what was read (halfway between the last point read and the first not); the car ground is cut by it into three
+  pieces that never overlap, whole beyond 100 m and two steps of 50 m toward the read's edge (two lattice steps each, so
+  each step's edges lie where its distances say), drawn at 2/3 and 1/3 of the hatch's strength (`kind` 'area-1',
+  'area-2'), and the edge line the same. The share is in metres too (a thousand to the unit), so it never undercuts a
+  step's distance. The pattern fill draws without antialiasing, so the steps meet with no hairline. Outlines are thinned
+  to 1.5 m (Douglas-Peucker); a read across the antimeridian is taken next to its first car cell (audit 12); the key is an
+  FNV-1a over the sorted cells (audit 15).
 - **The hatch** (`walk/hatch.ts`, new, core): one tile that repeats with no seam (lines corner to corner of a tile of
   `run` by `rise`), its pixels from the look, four by four samples a pixel for a soft line edge; the web map's
   `addImage` takes it at the screen's pixel ratio (1 to 3). The look is `WALK_STYLE.car` in `components/map/types.ts`:
@@ -131,8 +135,12 @@ it, the walker walking toward it until the heads-up shows), pictured at 390 and 
 
 - **What it reads:** nothing new. The cells as today (n: the cells in the 1.5 km read, about 100 to 600).
 - **What it computes:** `carGroundOf` once per new read, O(L · k) for L lattice points in the car cells' bounds plus
-  270 m (at most about 120,000 for a read that is all car) and k = 23 taps a pass; 2 to 22 ms on the five real fixtures
-  in Node. Never per frame or per fix. The hatch image once per map. `stretchLines` once per new runs, O(route points).
+  270 m (at most about 120,000 for a read that is all car) and k = 23 taps a pass, each fade step contoured only in its own
+  box. Measured in Node after the auditor's round: about 8 to 70 ms on the five real fixtures (4 tiles; runs vary); 128 to 138 ms on a
+  12-tile mixed read (520 to 720 cells; 146 to 192 pieces, 8,800 to 12,200 vertices, 330 to 460 KB of GeoJSON), so
+  several times that on a phone, once per new read (a device item). Never per frame or per fix. The hatch images once
+  per map. The casing (`insideRunsAlong`, edges indexed by latitude): 7 to 11 ms on a 4 km route over that read, once
+  per new route, runs or ground (memoised by them).
 - **Harness:** the five fixtures timed in the unit test (the scaling check); on a phone, device only.
 
 ## The actions a person takes

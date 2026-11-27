@@ -1,0 +1,24 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "turn Walkability on over ground built around cars on Explore"
+      ],
+      "body": "- [ ] **Do:** turn Walkability on over ground built around cars on Explore's map and on a walk's map, and zoom in and out slowly through a whole zoom level. **Expect:** the car ground draws as the slate hatch (`<Images>` with `assets/map/walk-hatch-<q>.png` at the phone's scale, one image a quarter zoom, `fill-pattern` switched as each move settles, no antialiasing) with its 1 px slate edge, the lines about 9 to 11 px apart and crisp at every zoom, under the base map's labels (`beforeId={WALK_BELOW}`), the streets and labels readable through it; ground easy on foot is the plain map. (CG1, CG2, CG10)\n",
+      "target": "sha256:439eb20b4622be374af54ef9eb603352b4d92660bebbe23324b6c52a073ea470"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "with the layer on, navigate a route into ground built around cars"
+      ],
+      "body": "- [ ] **Do:** with the layer on, navigate a route into ground built around cars, then switch the layer off and on, then End. **Expect:** the route's stretch through the hatch wears a slate casing between the white edge and the blue line (`route-car`, `beforeId=\"route\"`, cut square), beginning and ending at the hatch's edge, a small slate dot ringed in white where it begins (`route-car-start`); gone with the layer off and at End. (CG6, CG11)\n",
+      "target": "sha256:6f60b9bef059232b601aad6bcf76be266dd39a73d119b269e415fabc5abae7b5"
+    }
+  ]
+}

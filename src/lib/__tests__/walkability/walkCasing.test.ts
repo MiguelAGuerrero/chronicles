@@ -83,15 +83,22 @@ test('walkability-car-ground audit 1: only runs of car ground are cased: a fast 
 });
 
 test('walkability-car-ground audit 3: a casing begins and ends within 25 m of the drawn car ground\'s edge', () => {
-  const cells = field(14, 6, (di) => (di >= 5 && di < 10 ? 'car' : 'foot'));
-  const path = eastward(3, 1, 13);
+  // A route crossing a car block on a slant, measured along the route against where the hatch is drawn (the auditor: a
+  // right-angle crossing could not fail).
+  const cells = field(14, 8, (di, dj) => (di >= 5 && di < 10 && dj >= 2 && dj < 7 ? 'car' : 'foot'));
   const g = carGroundOf(cells);
-  const [line] = casingLines(path, areaStretches(path, cells), g);
-  const outline = g.areas.filter((a) => a.fade === 0).flatMap((a) => a.shape);
-  for (const end of [line[0], line[line.length - 1]]) {
-    const d = Math.min(...outline.map((ring) => toLine(end, ring)));
-    assert.ok(d < 25, `a casing's end is ${d.toFixed(1)} m from the hatch's edge`);
-  }
+  const a: LngLat = [cellBounds(I + 1, J + 2).west, cellBounds(I, J + 2).south + 30 / M_LAT];
+  const b: LngLat = [cellBounds(I + 13, J + 6).west, cellBounds(I, J + 6).south];
+  const path: LngLat[] = [a, b];
+  const lines = casingLines(path, areaStretches(path, cells), g);
+  assert.ok(lines.length >= 1, 'cased');
+  const L = metres(a, b);
+  const at = (m: number): LngLat => [a[0] + ((b[0] - a[0]) * m) / L, a[1] + ((b[1] - a[1]) * m) / L];
+  let [first, last] = [Infinity, -Infinity];
+  for (let m = 0; m <= L; m += 1) if (g.areas.some((x) => insideRing(at(m), x.shape[0]) && !x.shape.slice(1).some((h) => insideRing(at(m), h)))) [first, last] = [Math.min(first, m), m];
+  const ends = lines.flat().map((p) => metres(a, p));
+  assert.ok(Math.abs(Math.min(...ends) - first) < 25, `the casing begins ${Math.min(...ends).toFixed(0)} m along, the hatch ${first} m`);
+  assert.ok(Math.abs(Math.max(...ends) - last) < 25, `the casing ends ${Math.max(...ends).toFixed(0)} m along, the hatch ${last} m`);
 });
 
 test('walkability-car-ground audit 3: a crossing of car ground under 300 m is uncased', () => {
@@ -136,7 +143,7 @@ test('walkability-car-ground audit 9: the casing ends where it ends: no round ca
 
 // The auditor's findings (the diff review's round, Nov 27), written before the code.
 
-test('walkability-car-ground audit 13: at a concave corner the casing runs as far as the drawn hatch along the route', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 13: at a concave corner the casing runs as far as the drawn hatch along the route', () => {
   // Car ground everywhere but a foot quadrant (columns 7 on, rows 7 on); the route runs east 10 m inside the quadrant's
   // southern edge, where the smoothed car ground bulges past the cells.
   const cells = field(14, 14, (di, dj) => (di >= 7 && dj >= 7 ? 'foot' : 'car'));
@@ -158,7 +165,7 @@ test('walkability-car-ground audit 13: at a concave corner the casing runs as fa
   assert.ok(Math.abs(casedTo - drawnTo) < 25, `the casing ends ${casedTo.toFixed(0)} m along, the hatch ${drawnTo} m`);
 });
 
-test('walkability-car-ground audit 16: a route\'s casing never takes another route\'s runs', { todo: 'test first' }, async () => {
+test('walkability-car-ground audit 16: a route\'s casing never takes another route\'s runs', async () => {
   const { createAheadWatch } = await import('../../walk/aheadWatch');
   const { fakePorts } = await import('../fakes');
   const { casingRunsFor } = await import('../../walk/ahead');

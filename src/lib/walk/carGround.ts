@@ -10,7 +10,7 @@ import type { Cell } from './cells';
  * stored. The car cells are sampled on a fixed lattice, smoothed with a Gaussian that ignores ground nobody read, and
  * outlined at half (marching squares). The lattice is global, so a point's shape depends only on the cells around it,
  * never on where the read was centred. The outline is drawn only where car ground meets ground that was read; toward the
- * read's own edge the hatch fades out over GROUND_FADE_M, in steps, never a straight cut. Pure.
+ * read's own edge the hatch fades out over GROUND_FADE_M, in steps that never overlap, never a straight cut. Pure.
  */
 
 /** The lattice's step, north to south, in metres; east to west it is the same in degrees, so finer away from the equator. */
@@ -26,16 +26,14 @@ const dLon = GROUND_STEP_M / M_PER_DEG_LON;
 
 /** The hatch fades out over this much toward the edge of what was read (the owner, Nov 27: "Fade over ~100 m"). */
 export const GROUND_FADE_M = 100;
-/** In this many steps, the faintest nearest the read's edge. */
-export const GROUND_FADE_STEPS = 5;
+/**
+ * In this many steps, the faintest nearest the read's edge: each 50 m, two lattice steps, so each is cut from the next
+ * exactly where its distance says (a step narrower than the lattice came out as slivers: walkability-car-ground audit 10).
+ */
+export const GROUND_FADE_STEPS = 2;
 
 export interface CarPiece<T> {
-  /**
-   * Areas: the car ground at least (GROUND_FADE_STEPS - fade) steps in from the read's edge, so the pieces nest: `fade`
-   * GROUND_FADE_STEPS is all of it, 0 only what lies GROUND_FADE_M or more in. A map draws each faintly, one over
-   * another (`walkFadeArea`), so the hatch builds up step by step from the read's edge to its whole strength, and two
-   * steps never leave a gap between them. Edges: 0 whole, 1 to GROUND_FADE_STEPS fainter toward the read's edge.
-   */
+  /** 0 drawn whole; 1 to GROUND_FADE_STEPS fainter toward the read's edge, the last the faintest. Pieces never overlap. */
   fade: number;
   shape: T;
 }
@@ -51,12 +49,34 @@ export interface CarGround {
 
 const NONE: CarGround = { areas: [], edges: [], key: `${WALK_CODE}|g|0` };
 
+/** FNV-1a over the cells, sorted: the same cells in any order give one key, different ones another (audit 15). */
+function cellsKey(cells: readonly Cell[]): string {
+  const ids = cells.map((c) => `${c.i},${c.j},${c.band}`).sort();
+  let h = 0x811c9dc5;
+  for (const id of ids) {
+    for (let k = 0; k < id.length; k++) {
+      h ^= id.charCodeAt(k);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    h ^= 59;
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
+}
+
 /** Car ground as areas and edges, from the judged cells (car cells drawn; every judged cell is ground that was read). */
 export function carGroundOf(cells: readonly Cell[]): CarGround {
   const car = cells.filter((c) => c.band === 'car');
   if (!car.length) return NONE;
+  // Longitudes are taken next to the first car cell, so a read across the antimeridian is one stretch of ground, not the
+  // whole world (walkability-car-ground audit 12); what is drawn is put back on the world's own copy.
+  const ref = (car[0].west + car[0].east) / 2;
+  const shiftOf = (c: Cell) => (c.west - ref > 180 ? -360 : c.east - ref < -180 ? 360 : 0);
   let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
-  for (const c of car) [w, s, e, n] = [Math.min(w, c.west), Math.min(s, c.south), Math.max(e, c.east), Math.max(n, c.north)];
+  for (const c of car) {
+    const sh = shiftOf(c);
+    [w, s, e, n] = [Math.min(w, c.west + sh), Math.min(s, c.south), Math.max(e, c.east + sh), Math.max(n, c.north)];
+  }
   const margin = GROUND_SIGMA_M * REACH + 2 * GROUND_STEP_M;
   const maxCos = Math.cos((Math.max(Math.abs(s), Math.abs(n)) * Math.PI) / 180);
   const r0 = Math.floor((s - margin / M_PER_DEG_LAT) / dLat);
@@ -67,16 +87,14 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
   const Q = q1 - q0 + 1;
   // What each lattice point lies in: 0 nothing read, 1 read ground, 2 car ground.
   const at = new Uint8Array(R * Q);
-  let sum = 0;
   for (const c of cells) {
+    const sh = shiftOf(c);
     const ra = Math.max(r0, Math.ceil(c.south / dLat - 1e-9));
     const rb = Math.min(r1, Math.ceil(c.north / dLat - 1e-9) - 1);
-    const qa = Math.max(q0, Math.ceil(c.west / dLon - 1e-9));
-    const qb = Math.min(q1, Math.ceil(c.east / dLon - 1e-9) - 1);
+    const qa = Math.max(q0, Math.ceil((c.west + sh) / dLon - 1e-9));
+    const qb = Math.min(q1, Math.ceil((c.east + sh) / dLon - 1e-9) - 1);
     if (ra > rb || qa > qb) continue;
     const v = c.band === 'car' ? 2 : 1;
-    if (v === 2) sum = (sum + c.i * 31 + c.j * 17) % 1_000_000_007;
-    else sum = (sum + c.i * 7 + c.j * 3 + 1) % 1_000_000_007;
     for (let r = ra; r <= rb; r++) for (let q = qa; q <= qb; q++) at[(r - r0) * Q + (q - q0)] = v;
   }
   const cosOf = (r: number) => Math.cos((((r + r0) * dLat) * Math.PI) / 180);
@@ -104,7 +122,9 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
     }
   }
   const hv = (kv.length - 1) / 2;
-  const val = new Float64Array(R * Q);
+  // The share above or below a half, in metres (a thousand to the unit), one unit with the distances it is cut by: where
+  // it crosses zero is where the share does, and inside the car ground it never undercuts a step's distance.
+  const V = new Float64Array(R * Q);
   for (let r = 0; r < R; r++) {
     for (let q = 0; q < Q; q++) {
       // Ground nobody read takes the share of the read ground around it; the hatch is cut at the read's edge by distance.
@@ -116,41 +136,53 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
         a += kv[k + hv] * hc[rr * Q + q];
         b += kv[k + hv] * hk[rr * Q + q];
       }
-      val[r * Q + q] = b > 0 ? a / b : 0;
+      V[r * Q + q] = ((b > 0 ? a / b : 0) - LEVEL) * 1000;
     }
   }
-  // How far each lattice point is from ground nobody read, in metres (a chamfer distance, two passes): the hatch fades
-  // out over the last GROUND_FADE_M toward it, never a straight cut (decision 0232: never a missing tile).
-  const dist = unreadDistance(at, R, Q, cosOf);
+  // How far each lattice point is from the edge of what was read, in metres, below zero outside it (a chamfer distance):
+  // the hatch fades out over the last GROUND_FADE_M toward it, never a straight cut (decision 0232: never a missing tile).
+  const D = unreadDistance(at, R, Q, cosOf);
   const step = GROUND_FADE_M / GROUND_FADE_STEPS;
-  const fadeOf = (d: number) => (d >= GROUND_FADE_M ? 0 : GROUND_FADE_STEPS - Math.floor(d / step));
-  // The share above or below a half, in "metres" a thousand to the unit: where it crosses zero is where the share does,
-  // and inside the car ground it is never less than the distance it is cut with, so a step's edge lies where its distance
-  // says (walkability-car-ground audit 7).
-  const V = (r: number, q: number) => (r < 0 || q < 0 || r >= R || q >= Q ? -1000 : (val[r * Q + q] - LEVEL) * 1000);
-  const D = (r: number, q: number) => (r < 0 || q < 0 || r >= R || q >= Q ? Infinity : dist[r * Q + q]);
-  const known = (r: number, q: number) => r >= 0 && q >= 0 && r < R && q < Q && at[r * Q + q] > 0;
+  const fadeOf = (d: number) => (d >= GROUND_FADE_M ? 0 : GROUND_FADE_STEPS - Math.floor(Math.max(0, d) / step));
   const toLngLat = (p: [number, number]): LngLat => [(p[1] + q0) * dLon, (p[0] + r0) * dLat];
-  // The areas: nested, one a step, each the car ground at least its step in from the read's edge. Each is cut by one
-  // distance alone, which the lattice interpolates exactly, so the steps are evenly spaced and meet with no gap (two
-  // bands cut by a lower and an upper distance each lost a few metres a step: walkability-car-ground audit 7).
+  // Lattice positions to metres (rows north, columns east at the middle row's scale), for simplifying the outlines.
+  const ewM = GROUND_STEP_M * cosOf(R / 2);
+  const thin = (pts: [number, number][], closed: boolean) => simplify(pts, closed, GROUND_SIMPLIFY_M / GROUND_STEP_M, ewM / GROUND_STEP_M);
+  /** A shape wholly off the world's own copy is moved back onto it. */
+  const home = <T extends LngLat[] | LngLat[][]>(shape: T): T => {
+    const pts = (Array.isArray(shape[0][0]) ? (shape as LngLat[][]).flat() : (shape as LngLat[])) as LngLat[];
+    const k = pts.every((p) => p[0] > 180) ? -360 : pts.every((p) => p[0] < -180) ? 360 : 0;
+    if (!k) return shape;
+    const move = (r: LngLat[]) => r.map((p) => [p[0] + k, p[1]] as LngLat);
+    return (Array.isArray(shape[0][0]) ? (shape as LngLat[][]).map(move) : move(shape as LngLat[])) as T;
+  };
+  // The areas: the whole hatch past GROUND_FADE_M, and each fade step the car ground between two distances from the
+  // read's edge, so the steps never overlap and meet where their distances say.
   const areas: CarPiece<LngLat[][]>[] = [];
+  const field = new Float64Array(R * Q);
   for (let f = 0; f <= GROUND_FADE_STEPS; f++) {
-    const lo = (GROUND_FADE_STEPS - f) * step;
-    const field = (r: number, q: number) => clamp(Math.min(V(r, q), D(r, q) - lo));
-    for (const shape of polygons(contours(field, known, D, R, Q).map((c) => c.pts.map(toLngLat)))) areas.push({ fade: f, shape });
+    const lo = f === 0 ? GROUND_FADE_M : (GROUND_FADE_STEPS - f) * step;
+    const hi = f === 0 ? Infinity : lo + step;
+    for (let i = 0; i < R * Q; i++) field[i] = clamp(Math.min(V[i], D[i] - lo, hi === Infinity ? Infinity : hi - D[i]));
+    for (const ring of polygons(contours(field, at, D, R, Q).map((c) => thin(c.pts, true).map(toLngLat)))) areas.push({ fade: f, shape: home(ring) });
   }
   // The edge: the outline of the car ground alone, in the runs whose ends lie between read ground (criterion 4), each run
   // as faint as the ground it borders.
+  for (let i = 0; i < R * Q; i++) field[i] = clamp(V[i]);
   const edges: CarPiece<LngLat[]>[] = [];
-  for (const { pts, read, d } of contours((r, q) => clamp(V(r, q)), known, D, R, Q)) {
+  for (const c of contours(field, at, D, R, Q)) {
+    // Thinned like the areas, keeping each kept vertex's flags, so the edge lies on the hatch's own outline.
+    const keep = thin(c.pts.map((p, k) => [p[0], p[1], k] as unknown as [number, number]), true) as unknown as [number, number, number][];
+    const pts = keep.map(([r, q]) => [r, q] as [number, number]);
+    const read = keep.map((p) => c.read[p[2]]);
+    const d = keep.map((p) => c.d[p[2]]);
     const m = pts.length;
     const ring = pts.map(toLngLat);
     // A segment k runs from vertex k to k + 1; its fade is its middle's.
     const segFade = (k: number) => (read[k] && read[(k + 1) % m] ? fadeOf((d[k] + d[(k + 1) % m]) / 2) : -1);
     const first = [...Array(m).keys()].find((k) => segFade(k) !== segFade((k - 1 + m) % m));
     if (first === undefined) {
-      if (segFade(0) >= 0) edges.push({ fade: segFade(0), shape: [...ring, ring[0]] });
+      if (segFade(0) >= 0) edges.push({ fade: segFade(0), shape: home([...ring, ring[0]]) });
       continue;
     }
     let run: LngLat[] = [ring[first]];
@@ -159,79 +191,161 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
       const k = (first + j) % m;
       const fk = segFade(k);
       if (fk !== cur) {
-        if (cur >= 0 && run.length >= 2) edges.push({ fade: cur, shape: run });
+        if (cur >= 0 && run.length >= 2) edges.push({ fade: cur, shape: home(run) });
         run = [ring[k]];
         cur = fk;
       }
       run.push(ring[(k + 1) % m]);
     }
-    if (cur >= 0 && run.length >= 2) edges.push({ fade: cur, shape: run });
+    if (cur >= 0 && run.length >= 2) edges.push({ fade: cur, shape: home(run) });
   }
-  return { areas, edges, key: `${WALK_CODE}|g|${car.length}|${sum}` };
+  return { areas, edges, key: `${WALK_CODE}|g|${cellsKey(cells)}` };
 }
 
+/** A piece of a route inside the drawn car ground, and how far along the route it begins and ends, in metres. */
+export interface InsideRun {
+  line: LngLat[];
+  fromM: number;
+  toM: number;
+}
+
+/** Rows of the pieces' ring edges, so a point is tested against the few edges at its latitude, not every ring (audit 11). */
+const ROW_DEG = 0.0005;
+
 /**
- * G5, criterion 6: the parts of the route's lines that lie inside the drawn car ground (any of its fade steps), so the
- * route's casing begins and ends where the hatch does, within a metre. Lines are walked in steps of 5 m; a crossing is
- * found between the two steps either side of it.
+ * G5, criterion 6: the parts of a route inside the drawn car ground (any of its fade steps), each with where it begins
+ * and ends along the route, so the route's casing begins and ends where the hatch does, within a metre. The route is
+ * walked in steps of 5 m; a crossing is found by halving between the two steps either side of it. The pieces' edges are
+ * indexed by latitude, so each test is a few edges.
  */
-export function insideCarGround(lines: readonly (readonly LngLat[])[], g: CarGround | null): LngLat[][] {
-  if (!g || !g.areas.length || !lines.length) return [];
-  const polys = g.areas.map((a) => a.shape);
-  const box = polys.map((rings) => {
-    let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
-    for (const [x, y] of rings[0]) [w, s, e, n] = [Math.min(w, x), Math.min(s, y), Math.max(e, x), Math.max(n, y)];
-    return [w, s, e, n];
-  });
-  const isIn = (p: LngLat) => polys.some((rings, k) => {
-    const [w, s, e, n] = box[k];
-    if (p[0] < w || p[0] > e || p[1] < s || p[1] > n || !inside(p, rings[0])) return false;
-    return !rings.slice(1).some((h) => inside(p, h));
-  });
-  const out: LngLat[][] = [];
-  for (const line of lines) {
-    if (line.length < 2) continue;
-    const project = projector(line[0]);
-    let run: LngLat[] | null = null;
-    let prev: { p: LngLat; in: boolean } | null = null;
-    const lerp = (a: LngLat, b: LngLat, t: number): LngLat => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-    const edge = (a: LngLat, b: LngLat, aIn: boolean): LngLat => {
-      let [lo, hi] = [0, 1];
-      for (let k = 0; k < 12; k++) {
-        const mid = (lo + hi) / 2;
-        if (isIn(lerp(a, b, mid)) === aIn) lo = mid;
-        else hi = mid;
-      }
-      return lerp(a, b, (lo + hi) / 2);
-    };
-    const visit = (p: LngLat, corner: boolean) => {
-      const now = isIn(p);
-      if (prev && now !== prev.in) {
-        const x = edge(prev.p, p, prev.in);
-        if (now) run = [x];
-        else if (run) {
-          run.push(x);
-          if (run.length >= 2) out.push(run);
-          run = null;
+export function insideRunsAlong(path: readonly LngLat[], g: CarGround | null): InsideRun[] {
+  if (!g || !g.areas.length || path.length < 2) return [];
+  const rows = new Map<number, { piece: number; a: LngLat; b: LngLat }[]>();
+  g.areas.forEach((area, piece) => {
+    for (const ring of area.shape) {
+      for (let k = 1; k < ring.length; k++) {
+        const [a, b] = [ring[k - 1], ring[k]];
+        const lo = Math.floor(Math.min(a[1], b[1]) / ROW_DEG);
+        const hi = Math.floor(Math.max(a[1], b[1]) / ROW_DEG);
+        for (let r = lo; r <= hi; r++) {
+          const row = rows.get(r);
+          if (row) row.push({ piece, a, b });
+          else rows.set(r, [{ piece, a, b }]);
         }
-      } else if (!prev && now) run = [p];
-      if (now && run && (corner || !prev || now !== prev.in)) {
-        if (run[run.length - 1] !== p) run.push(p);
       }
-      prev = { p, in: now };
-    };
-    for (let i = 0; i < line.length; i++) {
-      if (i > 0) {
-        const [a, b] = [line[i - 1], line[i]];
-        const [pa, pb] = [project(a), project(b)];
-        const n = Math.max(1, Math.ceil(Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) / 5));
-        for (let k = 1; k < n; k++) visit(lerp(a, b, k / n), false);
-      }
-      visit(line[i], true);
     }
-    if (run && (run as LngLat[]).length >= 2) out.push(run);
+  });
+  const isIn = (p: LngLat) => {
+    const odd = new Set<number>();
+    for (const { piece, a, b } of rows.get(Math.floor(p[1] / ROW_DEG)) ?? []) {
+      if (a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]) {
+        if (odd.has(piece)) odd.delete(piece);
+        else odd.add(piece);
+      }
+    }
+    return odd.size > 0;
+  };
+  const project = projector(path[0]);
+  const lerp = (a: LngLat, b: LngLat, t: number): LngLat => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const out: InsideRun[] = [];
+  let run: InsideRun | null = null;
+  let prev: { p: LngLat; m: number; in: boolean } | null = null;
+  const cross = (a: { p: LngLat; m: number; in: boolean }, b: { p: LngLat; m: number }) => {
+    let [lo, hi] = [0, 1];
+    for (let k = 0; k < 12; k++) {
+      const mid = (lo + hi) / 2;
+      if (isIn(lerp(a.p, b.p, mid)) === a.in) lo = mid;
+      else hi = mid;
+    }
+    const t = (lo + hi) / 2;
+    return { p: lerp(a.p, b.p, t), m: a.m + (b.m - a.m) * t };
+  };
+  const visit = (p: LngLat, m: number, corner: boolean) => {
+    const now = isIn(p);
+    if (prev && now !== prev.in) {
+      const x = cross(prev, { p, m });
+      if (now) run = { line: [x.p], fromM: x.m, toM: x.m };
+      else if (run) {
+        run.line.push(x.p);
+        run.toM = x.m;
+        if (run.line.length >= 2) out.push(run);
+        run = null;
+      }
+    } else if (!prev && now) run = { line: [p], fromM: m, toM: m };
+    if (now && run && corner && run.line[run.line.length - 1] !== p) {
+      run.line.push(p);
+      run.toM = m;
+    }
+    prev = { p, m, in: now };
+  };
+  let along = 0;
+  for (let i = 0; i < path.length; i++) {
+    if (i > 0) {
+      const [a, b] = [path[i - 1], path[i]];
+      const [pa, pb] = [project(a), project(b)];
+      const L = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]);
+      const n = Math.max(1, Math.ceil(L / 5));
+      for (let k = 1; k < n; k++) visit(lerp(a, b, k / n), along + (L * k) / n, false);
+      along += L;
+    }
+    visit(path[i], along, true);
   }
+  if (run && (run as InsideRun).line.length >= 2) out.push(run);
   return out;
+}
+
+/** The parts of each line inside the drawn car ground (`insideRunsAlong`, line by line). */
+export function insideCarGround(lines: readonly (readonly LngLat[])[], g: CarGround | null): LngLat[][] {
+  return lines.flatMap((l) => insideRunsAlong(l, g).map((r) => r.line));
+}
+
+/** An outline's points closer than this to the line through their neighbours are left out (about a pixel at walking zoom). */
+const GROUND_SIMPLIFY_M = 1.5;
+
+/**
+ * Douglas-Peucker over lattice positions [row, column] (a ring when `closed`), a row `1` and a column `ew` in the same
+ * unit as `tol`. Deterministic: the same ring gives the same points. Extra fields on a point ride along.
+ */
+function simplify<P extends [number, number]>(pts: P[], closed: boolean, tol: number, ew: number): P[] {
+  if (pts.length < 4) return pts;
+  const keep = new Uint8Array(pts.length);
+  const d2 = (p: P, a: P, b: P) => {
+    const [px, py, ax, ay, bx, by] = [p[1] * ew, p[0], a[1] * ew, a[0], b[1] * ew, b[0]];
+    const [dx, dy] = [bx - ax, by - ay];
+    const L = dx * dx + dy * dy;
+    const t = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0;
+    return (px - ax - dx * t) ** 2 + (py - ay - dy * t) ** 2;
+  };
+  const stack: [number, number][] = [];
+  // A ring is split at its first point and the point farthest from it.
+  let far = 0;
+  if (closed) {
+    let best = -1;
+    for (let k = 1; k < pts.length; k++) {
+      const dd = d2(pts[k], pts[0], pts[0]);
+      if (dd > best) [best, far] = [dd, k];
+    }
+    keep[0] = keep[far] = 1;
+    stack.push([0, far], [far, pts.length]);
+  } else {
+    keep[0] = keep[pts.length - 1] = 1;
+    stack.push([0, pts.length - 1]);
+  }
+  const at = (k: number) => pts[k % pts.length];
+  while (stack.length) {
+    const [i, j] = stack.pop()!;
+    let best = -1;
+    let idx = -1;
+    for (let k = i + 1; k < j; k++) {
+      const dd = d2(at(k), at(i), at(j));
+      if (dd > best) [best, idx] = [dd, k];
+    }
+    if (idx >= 0 && best > tol * tol) {
+      keep[idx % pts.length] = 1;
+      stack.push([i, idx], [idx, j]);
+    }
+  }
+  return pts.filter((_, k) => keep[k]);
 }
 
 /** Keeps a field finite (a distance with no unread ground in reach is Infinity), so a crossing is always interpolated. */
@@ -299,17 +413,25 @@ function kernel(sigmaSteps: number): Float64Array {
 
 /**
  * The outlines where `field` crosses zero, inside (zero or more) on the right, as rings of lattice positions [row, column];
- * each vertex says whether both lattice points it lies between were read, and its distance from ground nobody read.
- * Rings start at their smallest crossing, so the same field gives the same rings.
+ * each vertex says whether both lattice points it lies between were read, and its distance from the read's edge. Only the
+ * box around the points at or above zero is walked (a fade step is a strip along the read's edge: audit 11). Rings start
+ * at their smallest crossing, so the same field gives the same rings.
  */
-function contours(
-  field: (r: number, q: number) => number,
-  known: (r: number, q: number) => boolean,
-  dist: (r: number, q: number) => number,
-  R: number,
-  Q: number,
-): { pts: [number, number][]; read: boolean[]; d: number[] }[] {
-  const v = field;
+function contours(field: Float64Array, at: Uint8Array, dist: Float64Array, R: number, Q: number): { pts: [number, number][]; read: boolean[]; d: number[] }[] {
+  let [rLo, rHi, qLo, qHi] = [R, -1, Q, -1];
+  for (let r = 0; r < R; r++) {
+    for (let q = 0; q < Q; q++) {
+      if (field[r * Q + q] < 0) continue;
+      if (r < rLo) rLo = r;
+      if (r > rHi) rHi = r;
+      if (q < qLo) qLo = q;
+      if (q > qHi) qHi = q;
+    }
+  }
+  if (rHi < 0) return [];
+  const v = (r: number, q: number) => (r < 0 || q < 0 || r >= R || q >= Q ? -1e6 : field[r * Q + q]);
+  const known = (r: number, q: number) => r >= 0 && q >= 0 && r < R && q < Q && at[r * Q + q] > 0;
+  const D = (r: number, q: number) => (r < 0 || q < 0 || r >= R || q >= Q ? Infinity : dist[r * Q + q]);
   // A crossing is on a lattice edge: 'h' between (r, q) and (r, q + 1), 'v' between (r, q) and (r + 1, q).
   const id = (t: 'h' | 'v', r: number, q: number) => (t === 'h' ? 2 : 1) + 4 * (q + 1 + (Q + 2) * (r + 1));
   const next = new Map<number, number>();
@@ -320,21 +442,21 @@ function contours(
       const [ra, qa, rb, qb] = t === 'h' ? [r, q, r, q + 1] : [r, q, r + 1, q];
       const a = v(ra, qa);
       const b = v(rb, qb);
-      const f = a === b || !Number.isFinite(a - b) ? 0.5 : -a / (b - a);
-      const [da, db] = [dist(ra, qa), dist(rb, qb)];
+      const f = a === b ? 0.5 : -a / (b - a);
+      const [da, db] = [D(ra, qa), D(rb, qb)];
       const d = Number.isFinite(da) && Number.isFinite(db) ? da + (db - da) * f : Math.min(da, db);
       pos.set(k, { p: [ra + (rb - ra) * f, qa + (qb - qa) * f], read: known(ra, qa) && known(rb, qb), d });
     }
     return k;
   };
-  for (let r = -1; r < R; r++) {
-    for (let q = -1; q < Q; q++) {
+  for (let r = rLo - 1; r <= rHi; r++) {
+    for (let q = qLo - 1; q <= qHi; q++) {
       // Corners: a (r, q), b (r, q + 1), c (r + 1, q + 1), d (r + 1, q); rows run north, columns east.
       const A = v(r, q) >= 0 ? 1 : 0;
       const B = v(r, q + 1) >= 0 ? 1 : 0;
       const C = v(r + 1, q + 1) >= 0 ? 1 : 0;
-      const D = v(r + 1, q) >= 0 ? 1 : 0;
-      const code = A | (B << 1) | (C << 2) | (D << 3);
+      const Dd = v(r + 1, q) >= 0 ? 1 : 0;
+      const code = A | (B << 1) | (C << 2) | (Dd << 3);
       if (code === 0 || code === 15) continue;
       const S = () => put('h', r, q);
       const E = () => put('v', r, q + 1);
@@ -357,7 +479,7 @@ function contours(
         case 14: link(S(), W()); break;
         case 5:
         case 10: {
-          const mid = (Math.max(-9, Math.min(9, v(r, q))) + Math.max(-9, Math.min(9, v(r, q + 1))) + Math.max(-9, Math.min(9, v(r + 1, q + 1))) + Math.max(-9, Math.min(9, v(r + 1, q)))) / 4 >= 0;
+          const mid = (v(r, q) + v(r, q + 1) + v(r + 1, q + 1) + v(r + 1, q)) / 4 >= 0;
           if (code === 5) {
             if (mid) { link(W(), N()); link(E(), S()); } else { link(W(), S()); link(E(), N()); }
           } else if (mid) { link(S(), W()); link(N(), E()); } else { link(S(), E()); link(N(), W()); }

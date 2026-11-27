@@ -904,6 +904,8 @@ export const WALK_SLATE = '#3b4a6b';
 export const WALK_STYLE: { car: HatchLook } = {
   car: { run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.65, color: WALK_SLATE },
 };
+/** The hatch and its edge sit under the base map's labels (walkability-car-ground audit 14); the web map finds its first symbol layer. */
+export const WALK_BELOW = BASE_FIRST_LABEL;
 /** The hatch's image names on a map, one a quarter zoom (`hatchQuarter`). */
 export const walkHatchAt = (q: number) => `walk-hatch-${q}`;
 /** G5: the route's stretches through car ground, as lines (`kind` 'line'), and where each starts (`kind` 'start', CG6). */
@@ -936,22 +938,7 @@ export function walkabilityGeoJSON(g: CarGround | null | undefined): GeoJSON.Fea
   };
 }
 
-/**
- * How strong each nested piece of car ground is drawn (`CarPiece.fade`), as a MapLibre expression: one over another, so
- * a point k steps in from the read's edge shows k / (steps + 1) of the hatch's strength and a point past the fade all of
- * it. The hatch's lines are `lineOpacity` strong, so each piece adds what takes the stack from k - 1 to k steps' worth.
- */
-export function walkFadeArea(lineOpacity: number): unknown[] {
-  const n = GROUND_FADE_STEPS + 1;
-  const strength = (k: number) => (lineOpacity * k) / n;
-  const add = (k: number) => (1 - (1 - strength(k)) / (1 - strength(k - 1))) / lineOpacity;
-  const steps: unknown[] = [];
-  // The piece of fade f is in k = n - f of the stack's layers (the faintest, f = steps, is everywhere).
-  for (let f = 1; f <= GROUND_FADE_STEPS; f++) steps.push(`area-${f}`, add(n - f));
-  return ['match', ['get', 'kind'], ...steps, add(n)];
-}
-
-/** How strong each fade step of the edge is drawn, as a MapLibre expression: whole, then fainter toward the read's edge. */
+/** How strong each fade step is drawn, as a MapLibre expression: whole, then fainter toward the read's edge. */
 export function walkFade(prefix: 'area' | 'edge', whole: number): unknown[] {
   const steps: unknown[] = [];
   for (let f = 1; f <= GROUND_FADE_STEPS; f++) steps.push(`${prefix}-${f}`, (whole * (GROUND_FADE_STEPS + 1 - f)) / (GROUND_FADE_STEPS + 1));

@@ -172,10 +172,10 @@ async function run(h) {
   };
   {
     const inCar = await rendered(await boxAt(at(3, -1), 90)).catch(() => []);
-    check.todo(inCar.includes('walk-car:area') && inCar.includes('roads:') && inCar.includes('road-label:'),
+    check(inCar.includes('walk-car:area') && inCar.includes('roads:') && inCar.includes('road-label:'),
       `walkability-car-ground audit 6: inside the car ground the map draws its streets and their names through the hatch (${inCar.join(', ')})`);
     const all = await rendered([[0, 0], [390, 844]]).catch(() => []);
-    check.todo(all.includes('route-car-start:start'), `CG6: a small slate dot marks where the casing starts (${all.filter((x) => x.startsWith('route')).join(', ')})`);
+    check(all.includes('route-car-start:start'), `CG6: a small slate dot marks where the casing starts (${all.filter((x) => x.startsWith('route')).join(', ')})`);
   }
   const iconInk = await p4.locator('[data-testid=walk-ahead] [data-testid=walk-band-car] div[dir], [data-testid=walk-ahead] [data-testid=walk-band-car] *').first()
     .evaluate((e) => getComputedStyle(e).color).catch(() => '');
@@ -215,12 +215,12 @@ async function run(h) {
     const png = await p5.screenshot({ clip: { x: Math.round(cx - 30), y: Math.round(cy), width: 60, height: 1 } });
     spacings.push([z, hatchSpacing(png)]);
   }
-  check.todo(spacings.every(([, s]) => s >= 8.5 && s <= 12), `walkability-car-ground audit 5: the hatch's lines are 9 to 11.5 px apart on the screen at every zoom (${spacings.map(([z, s]) => `${z}: ${s.toFixed(1)}`).join(', ')})`);
+  check(spacings.every(([, s]) => s >= 8.5 && s <= 12), `walkability-car-ground audit 5: the hatch's lines are 9 to 11.5 px apart on the screen at every zoom (${spacings.map(([z, s]) => `${z}: ${s.toFixed(1)}`).join(', ')})`);
   await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, -13), 14.6]);
   await p5.waitForTimeout(2500);
   await shot(p5, 'g5-fade-146');
   const edge = await p5.evaluate(() => window.__renderedIn([[0, 0], [innerWidth, innerHeight]])).catch(() => []);
-  check.todo(edge.some((k) => /^walk-car:area-\d$/.test(k)), `walkability-car-ground audit 7: toward the edge of what was read the hatch fades in steps (${edge.filter((k) => k.startsWith('walk')).join(', ')})`);
+  check(edge.some((k) => /^walk-car:area-\d$/.test(k)), `walkability-car-ground audit 7: toward the edge of what was read the hatch fades in steps (${edge.filter((k) => k.startsWith('walk')).join(', ')})`);
   await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, -6), 13.2]);
   await p5.waitForTimeout(2500);
   await shot(p5, 'g5-fade-132');

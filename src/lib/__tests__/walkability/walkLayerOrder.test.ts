@@ -12,7 +12,7 @@ import { WALK_BELOW } from '../../../components/map/types';
 
 const MAP = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'components', 'map');
 
-test('walkability-car-ground audit 14: both maps put the hatch and its edge under the base map\'s first label', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 14: both maps put the hatch and its edge under the base map\'s first label', () => {
   const native = readFileSync(join(MAP, 'WalkMap.native.tsx'), 'utf8');
   for (const id of ['walk-car', 'walk-car-edge']) {
     const tag = native.slice(native.indexOf(`<Layer id="${id}"`), native.indexOf('/>', native.indexOf(`<Layer id="${id}"`)));
