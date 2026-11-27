@@ -250,7 +250,7 @@ const FEATURES = [
     rule: 'walkability',
     source: ['src/lib/walk/**', 'src/components/{Tooltip,WalkBandIcon}.tsx'],
     journeys: ['walkability', 'headsup'],
-    specs: ['walkability', 'walkability-headsup', 'walkability-urban-form'],
+    specs: ['walkability', 'walkability-headsup', 'walkability-urban-form', 'walkability-car-ground'],
   },
   {
     name: 'landing',
@@ -625,6 +625,7 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
+  'walkability-car-ground': { branch: 'tend/inbox-20261126-2339', since: '2026-11-27' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
