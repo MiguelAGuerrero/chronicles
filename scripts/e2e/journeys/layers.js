@@ -87,7 +87,7 @@ async function run(h) {
   // ML5, ML7: a switch moves no other layer, and the setting is one for every map and survives a reload.
   await pg.click('[data-testid=layer-walkability]');
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await attr(pg, 'data-walk')) ?? '') && (await on(pg, 'storefronts')) && !(await on(pg, 'borders')), `ML5: Walkability on draws its layer and moves no other (${await attr(pg, 'data-walk')})`);
+  check(/^car:[1-9]\d*\|edges:\d+$/.test((await attr(pg, 'data-walk')) ?? '') && (await on(pg, 'storefronts')) && !(await on(pg, 'borders')), `ML5: Walkability on draws its layer and moves no other (${await attr(pg, 'data-walk')})`);
   await pg.click('[data-testid=layer-borders]');
   await pg.reload();
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
@@ -98,7 +98,7 @@ async function run(h) {
   await openPanel(pg);
   check((await on(pg, 'walkability')) && (await on(pg, 'storefronts')) && (await on(pg, 'borders')), 'ML7: Navigate\'s map has the same layers, one setting for every map');
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check(/^foot:/.test((await attr(pg, 'data-walk')) ?? ''), 'ML3: Navigate\'s Layers button switches the same drawing');
+  check(/^car:/.test((await attr(pg, 'data-walk')) ?? ''), 'ML3: Navigate\'s Layers button switches the same drawing');
   // fix layers-pad 1, 2: on the ready screen (the map ends at the strip's top) the scale bar is under the Layers button, not behind it,
   // and the panel's rows keep off the card's edges.
   const sb = await box(pg, '[data-testid=scale-bar]');

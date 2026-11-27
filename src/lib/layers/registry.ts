@@ -8,7 +8,7 @@ import { bandWhy } from '../walk/bandWords';
  */
 
 /** Which colour a legend row's swatch wears; the view maps these to the map's own colours (`components/map/types`). */
-export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line' | 'past' | 'mark';
+export type SwatchKey = 'car' | 'hotspot' | 'border-tint' | 'border-line' | 'past' | 'mark';
 
 /** The maps that have a Layers panel (specs/places-layer PL9): a layer lists only on the maps it can draw on. */
 export type LayerMap = 'explore' | 'navigate' | 'walk';
@@ -47,7 +47,6 @@ export const LAYERS: readonly LayerDef[] = [
     icon: 'walk-outline',
     defaultOn: false,
     legend: [
-      { key: 'foot', text: 'Easy on foot', swatch: 'foot', band: 'foot', tip: bandWhy('foot') ?? undefined },
       { key: 'car', text: 'Built around cars', swatch: 'car', band: 'car', tip: bandWhy('car') ?? undefined },
     ],
     note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.",

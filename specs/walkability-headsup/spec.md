@@ -43,7 +43,7 @@ the useful moment is just before the stretch, without opening anything.
 
 ### What it says
 
-7. **WH7 · The words.** "Next: a stretch built around cars on <street>", with the pedestrian-and-car icon beside it
+7. **WH7 · The words.** "Next: a stretch built around cars on <street>", with the pedestrian-and-car icon beside it (in slate since specs/walkability-car-ground CG7)
    (specs/walkability WK21). With no street name: "Next: a stretch built around cars". No digit appears in the line.
 8. **WH8 · Quiet.** No sound, no haptic, no notification, no modal and nothing to press. It cannot be tapped, takes no
    focus and its icon has an accessible label. A screen reader hears it once, politely (a polite live region).

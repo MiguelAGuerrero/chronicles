@@ -5,6 +5,7 @@ import { cornerPanelBox, panelBox } from '../lib/layers/layout';
 import { layersFor, type LayerMap, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
+import { HatchSwatch } from './HatchSwatch';
 import { BORDER, COLORS, HOTSPOT, PAST_STYLE, WALK_STYLE } from './map/types';
 import { SwitchRow } from './SwitchRow';
 import { Tooltip } from './Tooltip';
@@ -12,9 +13,7 @@ import { theme } from './ui';
 import { WalkBandIcon } from './WalkBandIcon';
 
 /** The legend swatch of each row: the colour the map draws it in, at the map's own strength over the map's own ground (layers audit 11). */
-const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: boolean }> = {
-  foot: { color: WALK_STYLE.foot.color, opacity: WALK_STYLE.foot.opacity },
-  car: { color: WALK_STYLE.car.color, opacity: WALK_STYLE.car.opacity },
+const SWATCH: Record<Exclude<SwatchKey, 'car'>, { color: string; opacity: number; outline?: boolean }> = {
   hotspot: { color: HOTSPOT, opacity: 0.85 },
   'border-tint': { color: BORDER.color, opacity: BORDER.fillOpacity, outline: true },
   'border-line': { color: BORDER.lined, opacity: BORDER.linedOpacity, outline: true },
@@ -29,6 +28,15 @@ const CORNER_Z = 1;
 const BESIDE = BUTTON + 8;
 
 function Swatch(props: { swatch: SwatchKey; testID: string }) {
+  if (props.swatch === 'car') {
+    // G5: the hatch as the map draws it, its firm edge as the swatch's border.
+    const look = WALK_STYLE.car;
+    return (
+      <View testID={props.testID} style={[styles.swatch, look.edgeWidthPx > 0 && { borderColor: look.color, borderWidth: look.edgeWidthPx }]}>
+        <HatchSwatch look={look} size={20 - 2 * (look.edgeWidthPx > 0 ? look.edgeWidthPx : 1)} />
+      </View>
+    );
+  }
   const sw = SWATCH[props.swatch];
   return (
     <View testID={props.testID} style={[styles.swatch, sw.outline && { borderColor: sw.color }]}>

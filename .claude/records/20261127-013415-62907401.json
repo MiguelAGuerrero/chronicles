@@ -1,0 +1,58 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "remove",
+        "the two fill layers on MapLibre RN",
+        "--reason",
+        "replaced by G5's hatch (specs/walkability-car-ground): the foot layer is gone and the car layer is a pattern; its check is the new section's"
+      ],
+      "target": "sha256:8e8f9e7e0391f5517e48c3f89bcdf7a2362f8ae66da1f15d8a626d8da04703c9"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Walkability car ground (CG1-CG11, decisions 0232, 0271)",
+        "--new"
+      ],
+      "body": "- [ ] **Do:** turn Walkability on over ground built around cars on Explore's map and on a walk's map, and zoom in and out. **Expect:** the car ground draws as the slate hatch (`<Images>` with `assets/map/walk-hatch.png` at the phone's scale, `fill-pattern`, no antialiasing) with its 1 px slate edge, the lines about 9 px apart and crisp, the streets and labels readable through it; ground easy on foot is the plain map. (CG1, CG2, CG10)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Walkability car ground (CG1-CG11, decisions 0232, 0271)",
+        "--after",
+        "turn Walkability on over ground built around cars on Explore"
+      ],
+      "body": "- [ ] **Do:** zoom out until the edge of what was read shows beside car ground. **Expect:** the hatch fades out over about 100 m in steps, with no hairline between the steps and no edge line along the read's edge. (CG4)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Walkability car ground (CG1-CG11, decisions 0232, 0271)",
+        "--after",
+        "zoom out until the edge of what was read"
+      ],
+      "body": "- [ ] **Do:** with the layer on, navigate a route into ground built around cars, then switch the layer off and on, then End. **Expect:** the route's stretch through the hatch wears a slate casing between the white edge and the blue line (`route-car`, `beforeId=\"route\"`), beginning and ending at the hatch's edge; gone with the layer off and at End. (CG6, CG11)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Walkability car ground (CG1-CG11, decisions 0232, 0271)",
+        "--after",
+        "navigate a route into ground built around cars"
+      ],
+      "body": "- [ ] **Do:** wait for the heads-up on that route, then open the legend. **Expect:** the pedestrian-with-car icon is slate in the heads-up and in the legend; the swatch is two slate lines with a thin slate edge. (CG5, CG7)\n"
+    }
+  ]
+}

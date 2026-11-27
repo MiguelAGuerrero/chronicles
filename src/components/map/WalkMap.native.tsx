@@ -1,6 +1,6 @@
 import type { Faced } from '../../lib/moment';
 import {
-  Camera, GeoJSONSource, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
+  Camera, GeoJSONSource, Images, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
@@ -36,7 +36,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
+  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, WALK_HATCH, ROUTE_CAR_WIDTH, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
   LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps, FLAT_NORTH_UP, resendKey, type ReplayMapFrame, FIT_MAX_ZOOM, FIT_PADDING,
 } from './types';
 
@@ -193,6 +193,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const traceHistory = useMemo(() => traceGeoJSON(split.history), [split.historyKey]);
   const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
+  // G5: the route's stretch through car ground, a slate casing over the route's white edge and under its colour.
+  const carRoute = useMemo(() => carRouteGeoJSON(props.carRoute), [props.carRoute]);
   const alternates = useMemo(() => alternatesGeoJSON(props.alternates), [props.alternates]);
   const routeGrades = useMemo(() => routeGradesGeoJSON(props.routeGrades), [props.routeGrades]);
   const foundPins = useMemo(() => pinsGeoJSON(props.foundPins), [props.foundPins]);
@@ -553,7 +555,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {!bordersOver && <BordersSource data={borders} lighter={false} />}
         <VeilSource on={!!props.veil} />
         {bordersOver && <BordersSource data={borders} lighter={!!props.veil} />}
-        {/* The Walkability layer (UF9), under the hotspots, fog and trace: soft tints, no antialiasing so no seams (unverified on a device). */}
+        {/* The Walkability layer (G5), under the hotspots, fog and trace: the car ground as a slate hatch with a firm edge,
+            fading toward the read's edge; the hatch is the web's own pixels (`assets/map/walk-hatch*.png`, unverified on a device). */}
+        <Images images={HATCH_IMAGES} />
         <WalkabilitySource data={walkability} />
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <PocketsSource data={pockets} beforeId={storefrontOrder.lines} />
@@ -566,6 +570,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* The walk planner's graded stretches: a band under the route, wider where the kind is denser (WP16). */}
         <RouteGradesSource data={routeGrades} />
         <RouteSource data={route} />
+        <CarRouteSource data={carRoute} />
         {/* The trace on a white edge, so it reads over fog, walked streets and the base map alike:
             the history (memoized, so it isn't serialized again each render) and the live tail. */}
         {/* Offered stretches across gaps: the trace, see-through (Filling gaps, G6). */}
@@ -750,13 +755,17 @@ const VeilSource = memo(function VeilSource({ on }: { on: boolean }) {
   );
 });
 
+/** The hatch's image by its name (CG10): Metro picks the @2x or @3x file for the screen. */
+const HATCH_IMAGES = { [WALK_HATCH]: require('../../../assets/map/walk-hatch.png') };
+
 const WalkabilitySource = memo(function WalkabilitySource({ data }: { data: FC }) {
+  const look = WALK_STYLE.car;
   return (
     <GeoJSONSource id="walkability" data={data}>
-      {(['foot', 'car'] as const).map((band) => (
-        <Layer key={band} id={`walk-${band}`} type="fill" filter={['==', ['get', 'band'], band]}
-          paint={{ 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false }} />
-      ))}
+      <Layer id="walk-car" type="fill" filter={walkKind('area') as never}
+        paint={{ 'fill-pattern': WALK_HATCH, 'fill-opacity': walkFade('area', 1) as never, 'fill-antialias': false }} />
+      <Layer id="walk-car-edge" type="line" filter={walkKind('edge') as never} layout={ROUND}
+        paint={{ 'line-color': look.color, 'line-width': look.edgeWidthPx, 'line-opacity': walkFade('edge', look.edgeOpacity) as never }} />
     </GeoJSONSource>
   );
 });
@@ -841,6 +850,15 @@ const RouteGradesSource = memo(function RouteGradesSource({ data }: { data: FC }
   return (
     <GeoJSONSource id="route-grades" data={data} {...LINE_SOURCE}>
       <Layer id="route-grades" type="line" layout={ROUND} paint={{ 'line-color': HOTSPOT, 'line-width': ['get', 'width'], 'line-opacity': 0.45 }} />
+    </GeoJSONSource>
+  );
+});
+
+/** G5 (CG6): the casing, placed under the route's own colour (`beforeId`), over its white edge (unverified on a device). */
+const CarRouteSource = memo(function CarRouteSource({ data }: { data: FC }) {
+  return (
+    <GeoJSONSource id="route-car" data={data} {...LINE_SOURCE}>
+      <Layer id="route-car" type="line" beforeId="route" layout={ROUND} paint={{ 'line-color': WALK_STYLE.car.color, 'line-width': ROUTE_CAR_WIDTH }} />
     </GeoJSONSource>
   );
 });

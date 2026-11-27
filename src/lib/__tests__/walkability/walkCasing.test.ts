@@ -41,16 +41,16 @@ const toLine = (p: LngLat, line: readonly LngLat[]) => {
   return best;
 };
 
-test('CG6: a stretch\'s line is the route between its fromM and toM, on the route\'s own points', { todo: 'test first' }, () => {
+test('CG6: a stretch\'s line is the route between its fromM and toM, on the route\'s own points', () => {
   const path = eastward(2, 0, 8);
-  const [line] = stretchLines(path, [{ key: 'a', street: null, fromM: 300, toM: 1300 }]);
+  const [line] = stretchLines(path, [{ fromM: 300, toM: 1300 }]);
   assert.ok(Math.abs(metres(path[0], line[0]) - 300) < 2, 'it begins 300 m along');
   assert.ok(Math.abs(metres(path[0], line[line.length - 1]) - 1300) < 3, 'and ends 1300 m along');
   const inner = path.filter((p) => metres(path[0], p) > 300 && metres(path[0], p) < 1300);
   for (const p of inner) assert.ok(line.some((q) => q[0] === p[0] && q[1] === p[1]), 'the route\'s own points between');
 });
 
-test('CG6: a route through car ground is cased where it crosses the hatch', { todo: 'test first' }, () => {
+test('CG6: a route through car ground is cased where it crosses the hatch', () => {
   const cells = field(14, 6, (di) => (di >= 5 && di < 10 ? 'car' : 'foot'));
   const path = eastward(3, 1, 13);
   const g = carGroundOf(cells);
@@ -60,7 +60,7 @@ test('CG6: a route through car ground is cased where it crosses the hatch', { to
   assert.ok(len > 900 && len < 1300, `about the car ground's width (${len.toFixed(0)} m)`);
 });
 
-test('walkability-car-ground audit 1: only runs of car ground are cased: a fast road on plain ground is not, an area run under a fast road still is', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 1: only runs of car ground are cased: a fast road on plain ground is not, an area run under a fast road still is', () => {
   // A fast road over foot ground is a road stretch the heads-up says, but nothing is cased: no car ground is drawn there.
   const foot = field(14, 6, () => 'foot');
   const path = eastward(3, 1, 13);
@@ -73,7 +73,7 @@ test('walkability-car-ground audit 1: only runs of car ground are cased: a fast 
   assert.equal(casingLines(path, areas, carGroundOf(cells)).length, 1, 'the casing still marks the car ground');
 });
 
-test('walkability-car-ground audit 3: a casing begins and ends within 25 m of the drawn car ground\'s edge', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 3: a casing begins and ends within 25 m of the drawn car ground\'s edge', () => {
   const cells = field(14, 6, (di) => (di >= 5 && di < 10 ? 'car' : 'foot'));
   const path = eastward(3, 1, 13);
   const g = carGroundOf(cells);
@@ -85,7 +85,7 @@ test('walkability-car-ground audit 3: a casing begins and ends within 25 m of th
   }
 });
 
-test('walkability-car-ground audit 3: a crossing of car ground under 300 m is uncased', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 3: a crossing of car ground under 300 m is uncased', () => {
   // One car cell across the route: 250 m of car ground, under AREA_MIN_M.
   const cells = field(14, 6, (di, dj) => (di === 6 && dj === 3 ? 'car' : 'foot'));
   const path = eastward(3, 1, 13);
@@ -94,14 +94,14 @@ test('walkability-car-ground audit 3: a crossing of car ground under 300 m is un
   assert.deepEqual(casingLines(path, areaStretches(path, cells), carGroundOf(cells)), [], 'and nothing is cased');
 });
 
-test('CG8: the casing adds no point the route does not have between its cuts', { todo: 'test first' }, () => {
+test('CG8: the casing adds no point the route does not have between its cuts', () => {
   const cells = field(14, 6, (di) => (di >= 5 && di < 10 ? 'car' : 'foot'));
   const path = eastward(3, 1, 13);
   for (const line of casingLines(path, areaStretches(path, cells), carGroundOf(cells))) for (const p of line) assert.ok(toLine(p, path) < 0.5, 'every point lies on the route');
 });
 
-test('CG11: no stretch, no casing; no drawn ground, no casing', { todo: 'test first' }, () => {
+test('CG11: no stretch, no casing; no drawn ground, no casing', () => {
   const path = eastward(3, 1, 13);
   assert.deepEqual(casingLines(path, [], carGroundOf(field(14, 6, () => 'car'))), []);
-  assert.deepEqual(insideCarGround(stretchLines(path, [{ key: 'a', street: null, fromM: 0, toM: 900 }]), null), []);
+  assert.deepEqual(insideCarGround(stretchLines(path, [{ fromM: 0, toM: 900 }]), null), []);
 });

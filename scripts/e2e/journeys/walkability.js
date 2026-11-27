@@ -1,6 +1,6 @@
 // Walkability (specs/walkability-urban-form UF1-UF19, specs/walkability WK1-WK4, WK18, WK20-WK23): the Walkability layer on the
 // Explore and Navigate maps, switched from the Layers panel (specs/map-layers): ground easy on foot and ground built around
-// cars tinted from Overture's tile, the fallback to Overpass, the legend's icons and tooltips, the area card's line.
+// cars drawn from Overture's tile (only the car ground since G5), the fallback to Overpass, the legend's icons and tooltips, the area card's line.
 // E2E_ONLY=walkability runs it alone.
 
 async function run(h) {
@@ -21,8 +21,8 @@ async function run(h) {
   await pg.click('[data-testid=layer-walkability]');
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
   const first = await drawn(pg);
-  check.todo(/^car:[1-9]\d*\|edges:\d+$/.test(first ?? ''), `CG1: the dense grid around you draws nothing (the plain map) and the sparse arterials east of it are drawn as car ground (${first})`);
-  check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test(first ?? ''), `UF9, UF11: the dense grid around you is tinted easy on foot and the sparse arterials east of it built around cars (${first})`);
+  check(/^car:[1-9]\d*\|edges:\d+$/.test(first ?? ''), `CG1: the dense grid around you draws nothing (the plain map) and the sparse arterials east of it are drawn as car ground (${first})`);
+  check(/^car:[1-9]\d*\|edges:\d+$/.test(first ?? ''), `UF9, UF11: the sparse arterials east of the dense grid are drawn as car ground, the grid as the plain map (${first})`);
   const asked = overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url));
   check(asked.length > 0 && asked.every((q) => q.range && new URL(q.url).search === ''), `WK1: Overture's transportation tiles are read by byte range, with nothing but the tile (${asked.length} requests)`);
   check(overpassAsked.length === 0, 'WK1b: Overpass is not asked while Overture answers');
@@ -34,24 +34,24 @@ async function run(h) {
   await pg.reload();
   await openPanel(pg);
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await drawn(pg)) ?? '') && overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length === before, `WK20, WK2: after a reload the switch is still on and the tiles come from the device (${await drawn(pg)})`);
+  check(/^car:[1-9]\d*\|edges:\d+$/.test((await drawn(pg)) ?? '') && overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length === before, `WK20, WK2: after a reload the switch is still on and the tiles come from the device (${await drawn(pg)})`);
   // One setting for every map: Navigate's map has it on too.
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await openPanel(pg);
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check((await isOn(pg)) && /^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await drawn(pg)) ?? ''), `WK13: Navigate's map has the same switch, on, and draws the same stretches (${await drawn(pg)})`);
+  check((await isOn(pg)) && /^car:[1-9]\d*\|edges:\d+$/.test((await drawn(pg)) ?? ''), `WK13: Navigate's map has the same switch, on, and draws the same stretches (${await drawn(pg)})`);
   await shot(pg, 'walk-navigate');
   // The legend lives in the walk's settings drawer, never over the map.
   await h.drawerTo(pg, 'up');
   await pg.waitForSelector('[data-testid=layers-key]', { timeout: 5000 });
-  check((await pg.locator('[data-testid=walk-badge-car]').count()) === 1 && (await pg.locator('[data-testid=walk-badge-caution]').count()) === 0 && (await pg.locator('[data-testid=layer-swatch-foot]').count()) === 1 && (await pg.locator('[data-testid=layer-swatch-car]').count()) === 1, 'UF10, WK21: the legend shows the pedestrian and the pedestrian with a car badge, each beside its tint, and no caution badge');
+  check((await pg.locator('[data-testid=walk-badge-car]').count()) === 1 && (await pg.locator('[data-testid=walk-badge-caution]').count()) === 0 && (await pg.locator('[data-testid=layer-swatch-foot]').count()) === 0 && (await pg.locator('[data-testid=layer-swatch-car]').count()) === 1, 'UF10, WK21: the legend shows the pedestrian with a car badge beside its hatch, and no caution badge');
   check(/OpenStreetMap and Overture/.test(await pg.locator('[data-testid=layer-note-walkability]').innerText()) && /read differently/.test(await pg.locator('[data-testid=layer-note-walkability]').innerText()), 'WK14, UF10, WK17: the layer credits OpenStreetMap and Overture and says an area can read differently from how it feels');
   {
     // G5: one row, its swatch the hatch (two slate lines, none corner to corner), its icon slate.
     const sw = await pg.locator('[data-testid=layer-swatch-car] line').evaluateAll((ls) => ls.map((l) => ({ stroke: l.getAttribute('stroke'), y1: Number(l.getAttribute('y1')) })));
     const ink = await pg.locator('[data-testid=layer-legend-car] [data-testid=walk-band-car] *').first().evaluate((e) => getComputedStyle(e).color).catch(() => '');
-    check.todo((await pg.locator('[data-testid=layer-legend-foot]').count()) === 0 && sw.length === 2 && sw.every((l) => l.stroke === '#3b4a6b') && ink === 'rgb(59, 74, 107)',
+    check((await pg.locator('[data-testid=layer-legend-foot]').count()) === 0 && sw.length === 2 && sw.every((l) => l.stroke === '#3b4a6b') && ink === 'rgb(59, 74, 107)',
       `CG5: the legend has one row, its swatch the hatch in slate, its icon slate (${JSON.stringify(sw)}, ${ink})`);
   }
   await shot(pg, 'walk-legend-open');
@@ -83,7 +83,9 @@ async function run(h) {
     await pg.mouse.move(5, 300);
     await pg.waitForFunction(() => !document.querySelector('[data-testid=tooltip]'), null, { timeout: 3000 }).catch(() => {});
   };
-  await inside('walk-tip-foot', 'easy on foot');
+  // G5: the legend's one row (the foot row left with its drawing); off the row first, so the hover after the taps is a new one.
+  await pg.mouse.move(5, 300);
+  await pg.waitForTimeout(600);
   await inside('walk-tip-car', 'car');
   await pg.hover('[data-testid=walk-tip-car]');
   await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
@@ -121,7 +123,7 @@ async function run(h) {
   await p2.click('[data-testid=layer-walkability]');
   await p2.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 45000 }).catch(() => {});
   const second = await drawn(p2);
-  check(/^foot:0\|car:[1-9]\d*$/.test(second ?? ''), `WK1b, UF3: with Overture unreadable, Overpass's ways tint the ground (one long secondary road and no junctions is built around cars) (${second})`);
+  check(/^car:[1-9]\d*\|edges:\d+$/.test(second ?? ''), `WK1b, UF3: with Overture unreadable, Overpass's ways draw the ground (one long secondary road and no junctions is built around cars) (${second})`);
   const q = overpassAsked[0];
   check(!!q && q.method === 'POST' && /^data=/.test(q.body ?? '') && /way%5B%22highway%22%5D\(/.test(q.body) && !/key|user|device/i.test(q.body), `WK18: Overpass is asked with the tile's bounds in a form body and nothing else (${q?.body?.slice(0, 80)})`);
   await shot(p2, 'walk-fallback');

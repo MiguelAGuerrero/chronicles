@@ -8,7 +8,7 @@ import { createAheadWatch } from '../../walk/aheadWatch';
 import { chain } from '../../walk/chain';
 import { bandsFor, walkTileKey } from '../../walk/match';
 import { drawNow, routeSegments } from '../../walk/layer';
-import { tintOf } from '../../walk/tint';
+import { carGroundOf } from '../../walk/carGround';
 import { cellBounds, type Cell } from '../../walk/cells';
 import { createWalkReader, OVERPASS_KEEP_MS } from '../../walk/reader';
 import { WALK_CODE } from '../../walk/bands';
@@ -66,7 +66,7 @@ test('walkability audit 4: two overlapping reads in different orders ask each ti
 });
 
 test('walkability audit 5: the previous drawing stays while the new tiles are read', () => {
-  const D = tintOf([]);
+  const D = carGroundOf([]);
   const prev = { key: 'tiles-a', draw: D };
   assert.deepEqual(drawNow(true, prev, 'tiles-b'), { draw: D, status: 'reading' });
   assert.deepEqual(drawNow(true, prev, 'tiles-a'), { draw: D, status: 'ready' });
@@ -171,5 +171,5 @@ test('walkability audit 12: a hung primary is given up on, so the fallback answe
 
 test('walkability audit 13: pictures with equal counts but different ground have different keys', () => {
   const cell = (i: number, j: number): Cell => ({ i, j, ...cellBounds(i, j), band: 'car' });
-  assert.notEqual(tintOf([cell(100, 5000), cell(102, 5000)]).key, tintOf([cell(300, 5000), cell(302, 5000)]).key);
+  assert.notEqual(carGroundOf([cell(100, 5000), cell(102, 5000)]).key, carGroundOf([cell(300, 5000), cell(302, 5000)]).key);
 });

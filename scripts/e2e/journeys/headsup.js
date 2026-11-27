@@ -161,13 +161,13 @@ async function run(h) {
   await p4.waitForTimeout(2000);
   const cased = async () => Number((await p4.locator('[data-route-car]').first().getAttribute('data-route-car').catch(() => '0')) ?? 0);
   const sceneWalk = (await p4.locator('[data-walk]').first().getAttribute('data-walk').catch(() => '')) ?? '';
-  check.todo(/^car:[1-9]\d*\|edges:[1-9]\d*$/.test(sceneWalk), `CG1: on the owner's scene only the car ground is drawn, with its edge (${sceneWalk})`);
-  check.todo((await cased()) >= 1, `CG6: with the layer on, the route's stretch in car ground is cased in slate (${await cased()})`);
+  check(/^car:[1-9]\d*\|edges:[1-9]\d*$/.test(sceneWalk), `CG1: on the owner's scene only the car ground is drawn, with its edge (${sceneWalk})`);
+  check((await cased()) >= 1, `CG6: with the layer on, the route's stretch in car ground is cased in slate (${await cased()})`);
   const iconInk = await p4.locator('[data-testid=walk-ahead] [data-testid=walk-band-car] div[dir], [data-testid=walk-ahead] [data-testid=walk-band-car] *').first()
     .evaluate((e) => getComputedStyle(e).color).catch(() => '');
   const sceneLine = (await p4.locator('[data-testid=walk-ahead]').innerText().catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
-  check.todo(iconInk === 'rgb(59, 74, 107)' && sceneLine === 'Next: an area built around cars', `CG7: the heads-up's icon is slate, not the accent; its words unchanged (${iconInk}, ${JSON.stringify(sceneLine)})`);
-  check.todo((await p4.evaluate(() => (window.__buzz ?? []).length)) === 0, 'CG8, WH8: nothing buzzed on the owner\'s scene');
+  check(iconInk === 'rgb(59, 74, 107)' && sceneLine === 'Next: an area built around cars', `CG7: the heads-up's icon is slate, not the accent; its words unchanged (${iconInk}, ${JSON.stringify(sceneLine)})`);
+  check((await p4.evaluate(() => (window.__buzz ?? []).length)) === 0, 'CG8, WH8: nothing buzzed on the owner\'s scene');
   await shot(p4, 'headsup-scene');
   await p4.setViewportSize({ width: 320, height: 700 });
   await p4.waitForTimeout(1200);
@@ -176,13 +176,13 @@ async function run(h) {
   await p4.waitForTimeout(800);
   await switchLayer(p4, 'walkability', false);
   await p4.waitForTimeout(1500);
-  check.todo((await cased()) === 0, `CG6: with the layer off, no casing (${await cased()})`);
+  check((await cased()) === 0, `CG6: with the layer off, no casing (${await cased()})`);
   await switchLayer(p4, 'walkability');
   await p4.waitForFunction(() => Number(document.querySelector('[data-route-car]')?.getAttribute('data-route-car') ?? 0) > 0, null, { timeout: 30000 }).catch(() => {});
   await p4.click('[data-testid=nav-end]');
   await p4.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
   await p4.waitForTimeout(800);
-  check.todo((await cased()) === 0, `CG11: End takes the casing away (${await cased()})`);
+  check((await cased()) === 0, `CG11: End takes the casing away (${await cased()})`);
   h.edgeWorld.serve = false;
   walkability.mode = 'ok';
   await c4.close();

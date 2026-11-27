@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { BAND_BADGE, bandWords } from '../lib/walk/bandWords';
 import type { Band } from '../lib/walk/types';
 import { Icon } from './icons';
+import { WALK_SLATE } from './map/types';
 import { theme } from './ui';
 
 /**
@@ -10,7 +11,7 @@ import { theme } from './ui';
  * around cars. They differ by shape, so they read without colour. `unknown` draws nothing. The words are
  * its accessible label; the tooltip (`Tooltip`) shows them.
  */
-const TINT: Record<'foot' | 'mixed' | 'car', string> = { foot: theme.ok, mixed: theme.warn, car: theme.accent };
+const TINT: Record<'foot' | 'mixed' | 'car', string> = { foot: theme.ok, mixed: theme.warn, car: WALK_SLATE };
 
 export function WalkBandIcon(props: { band: Band; size?: number; testID?: string }) {
   const { band } = props;

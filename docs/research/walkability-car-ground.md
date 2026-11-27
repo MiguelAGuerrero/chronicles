@@ -1,7 +1,7 @@
 # Walkability on the map: which ground is which (investigation, 2026-11-19)
 
 From: the owner's investigation of Nov 19, from a phone screenshot: "notice the indicator that I have, and it's not apparently clear
-which way it is". Done by hand before `/investigate` existed and written in its form (decision 0231). Queued as G5. Status: queued.
+which way it is". Done by hand before `/investigate` existed and written in its form (decision 0231). Queued as G5. Status: built in walkability-car-ground (decisions 0232, 0271).
 
 ## What the owner saw
 

@@ -97,7 +97,7 @@ import { layerNotes } from '../lib/layers/notes';
 import { useStorefrontsLayer } from '../lib/layers/useStorefrontsLayer';
 import { usePastLines } from '../lib/pastLines/usePastLines';
 import { useWalkLayers } from '../lib/layers/useWalkLayers';
-import { useRouteWarning } from '../lib/walk/useRouteWarning';
+import { useCarRoute, useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
 import { arrivalNotice, exitPlan, screenState, startNotice, walkStripText, walkSummaryLabel } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
@@ -836,6 +836,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     past: past.view,
   });
   const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
+  const carRoute = useCarRoute(navigation.nav?.route.path ?? null, !!layers.on.walkability, wk.draw);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
   // on an exploring walk (E1, E9), and a capture finds a place on any walk.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
@@ -1498,6 +1499,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           pressMap(at, radiusM);
         }}
         route={routeLine}
+        carRoute={navigation.preview ? null : carRoute}
         alternates={alternates}
         // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
         traceOpacity={navigation.nav ? 0 : 1}

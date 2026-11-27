@@ -2,7 +2,8 @@ import type { LineReveal } from '../../lib/ceremony/reveal';
 import type { Hop } from '../../lib/ceremony/types';
 import type { Faced } from '../../lib/moment';
 import type { BorderView } from '../../lib/areas/borders';
-import type { WalkTint } from '../../lib/walk/tint';
+import { GROUND_FADE_STEPS, type CarGround } from '../../lib/walk/carGround';
+import type { HatchLook } from '../../lib/walk/hatch';
 import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
@@ -244,8 +245,10 @@ export interface WalkMapProps {
   ground?: { polygons: LngLat[][][] } | null;
   /** Town borders to draw (TB1-TB5), under the streets; null or absent draws none. */
   borders?: BorderView | null;
-  /** The Walkability layer (UF9): areas easy on foot tinted green and built around cars warm, under the trace and fog; null or absent draws none. */
-  walkability?: WalkTint | null;
+  /** The Walkability layer (G5): ground built around cars as a slate hatch with a firm edge, under the trace and fog; null or absent draws none. */
+  walkability?: CarGround | null;
+  /** G5: the route's stretches through car ground, drawn as a slate casing under the route; null or absent draws none. */
+  carRoute?: LngLat[][] | null;
   /** Where I've been (WB6, WB9): earlier walks' walked lines, one even tone under today's trace; null draws none. */
   past?: PastView | null;
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
@@ -895,20 +898,43 @@ export function bordersGeoJSON(view: BorderView | null | undefined): GeoJSON.Fea
   };
 }
 
-/** The Walkability layer's tints (UF9): soft, so the streets and labels show through. */
-export const WALK_STYLE = {
-  // One cool hue family, told apart by lightness: neither is green or orange, so neither reads as approval or warning, and
-  // neither is the app's accent or the town borders' colour (the vision review, 2026-11-05).
-  foot: { color: '#5b9bd5', opacity: 0.24 },
-  car: { color: '#3b4a6b', opacity: 0.3 },
-} as const;
-
-/** The shapes a map draws (UF9): one polygon per shape with its band only (UF12). */
-export function walkabilityGeoJSON(t: WalkTint | null | undefined): GeoJSON.FeatureCollection {
-  if (!t) return { type: 'FeatureCollection', features: [] };
-  const f = (band: 'foot' | 'car', rings: LngLat[][]): GeoJSON.Feature[] => rings.map((r) => ({ type: 'Feature', properties: { band }, geometry: { type: 'Polygon', coordinates: [r] } }));
-  return { type: 'FeatureCollection', features: [...f('foot', t.foot), ...f('car', t.car)] };
+/** The Walkability layer (G5, decisions 0232, 0271): only ground built around cars, a soft slate hatch with a firm edge. */
+export const WALK_SLATE = '#3b4a6b';
+/** The owner's pick, Nov 27 (decision 0271): "Soft A2 (Recommended)". */
+export const WALK_STYLE: { car: HatchLook } = {
+  car: { run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.6, color: WALK_SLATE },
+};
+/** The hatch's image name on a map. */
+export const WALK_HATCH = 'walk-hatch';
+/** G5: the route's stretches through car ground, as lines. */
+export function carRouteGeoJSON(lines: LngLat[][] | null | undefined): GeoJSON.FeatureCollection {
+  return { type: 'FeatureCollection', features: (lines ?? []).map((l) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l } })) };
 }
+/** The route's stretch through car ground (G5): a slate casing under the route's own colour, this wide. */
+export const ROUTE_CAR_WIDTH = 14;
+
+/** What the map draws (G5): the car areas (`kind` 'area', or 'area-<n>' fading toward the read's edge) and their edges
+ * ('edge', 'edge-<n>'), and nothing else (UF12). */
+export function walkabilityGeoJSON(g: CarGround | null | undefined): GeoJSON.FeatureCollection {
+  if (!g) return { type: 'FeatureCollection', features: [] };
+  const kind = (k: string, fade: number) => (fade ? `${k}-${fade}` : k);
+  return {
+    type: 'FeatureCollection',
+    features: [
+      ...g.areas.map((a): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: kind('area', a.fade) }, geometry: { type: 'Polygon', coordinates: a.shape } })),
+      ...g.edges.map((e): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: kind('edge', e.fade) }, geometry: { type: 'LineString', coordinates: e.shape } })),
+    ],
+  };
+}
+
+/** How strong each fade step is drawn, as a MapLibre expression: whole, then fainter toward the read's edge. */
+export function walkFade(prefix: 'area' | 'edge', whole: number): unknown[] {
+  const steps: unknown[] = [];
+  for (let f = 1; f <= GROUND_FADE_STEPS; f++) steps.push(`${prefix}-${f}`, (whole * (GROUND_FADE_STEPS + 1 - f)) / (GROUND_FADE_STEPS + 1));
+  return ['match', ['get', 'kind'], ...steps, whole];
+}
+/** The filter for one kind's features, faded or not. */
+export const walkKind = (prefix: 'area' | 'edge') => ['==', ['slice', ['get', 'kind'], 0, 4], prefix];
 
 /** A place still to find drawn as a dot (WT14): where it is and its kind's colour, nothing else. */
 export interface WaitingDot {

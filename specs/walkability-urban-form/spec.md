@@ -113,13 +113,13 @@ A cell is then one of: **foot**, **car**, **neither** (drawn as nothing), or **e
 
 ### What shows
 
-9. **UF9 · A tint over areas.** With the Walkability layer on (specs/map-layers), each **foot** cell is tinted a light blue and each **car** cell a darker slate, softly, never green or orange, with the map's
+9. **UF9 · A tint over areas.** *Amended by specs/walkability-car-ground (CG1-CG4, decisions 0232, 0271): only the car cells are drawn, as a soft slate hatch, the foot ground the plain map; the rest of this criterion holds for the car ground.* With the Walkability layer on (specs/map-layers), each **foot** cell is tinted a light blue and each **car** cell a darker slate, softly, never green or orange, with the map's
    streets and labels readable through. **Neither** and **empty** are not drawn. Neighbouring cells of one reading read as one area (no visible
    seams between them). The tint draws beneath the trace, fog and pins.
-10. **UF10 · The legend shows what is drawn.** The Walkability layer's legend, in the Layers panel under its switch, lists two rows, each a swatch of its tint beside its icon and its words ("Easy on
+10. **UF10 · The legend shows what is drawn.** *Amended by specs/walkability-car-ground (CG5): one row, "Built around cars", its swatch the hatch.* The Walkability layer's legend, in the Layers panel under its switch, lists two rows, each a swatch of its tint beside its icon and its words ("Easy on
     foot", "Built around cars"). The pedestrian with a caution badge is no longer drawn on the map or in the legend. Both rows are visible
     whenever the layer is on and the panel is open; the status lines ("Reading…", "Not available now") and the credit stay.
-11. **UF11 · Both ends appear in a real town.** On the Allentown fixture, the layer tints the walkable core light blue and the outer ground slate.
+11. **UF11 · Both ends appear in a real town.** *Amended by specs/walkability-car-ground (decision 0232 retires both ends): the layer draws the car ground and leaves the walkable ground plain; the e2e checks the car ground is drawn and the grid is not.* On the Allentown fixture, the layer tints the walkable core light blue and the outer ground slate.
     The e2e journey checks both tints are drawn.
 12. **UF12 · Nothing is a score.** No number, share, rank or comparison between places is shown or stored for display. The tooltips are the
     band's name and one clause in words (specs/walkability WK22, WK23).

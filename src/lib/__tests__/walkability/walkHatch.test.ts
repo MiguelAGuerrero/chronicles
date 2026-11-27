@@ -23,7 +23,7 @@ function hsl(hex: string) {
   return { h: (h * 60 + 360) % 360, l: (mx + mn) / 2 };
 }
 
-test('CG2: the hatch is the owner\'s look: 45 degrees, 9 px apart, 1.25 px at 40%, one slate, clear between the lines, seamless', { todo: 'test first' }, () => {
+test('CG2: the hatch is the owner\'s look: 45 degrees, 9 px apart, 1.25 px at 40%, one slate, clear between the lines, seamless', () => {
   // The owner, 2026-11-27: "Soft A2 (Recommended)".
   assert.deepEqual(WALK_STYLE.car, { run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.6, color: '#3b4a6b' });
   for (const ratio of [1, 2, 3]) {
@@ -46,7 +46,7 @@ test('CG2: the hatch is the owner\'s look: 45 degrees, 9 px apart, 1.25 px at 40
   }
 });
 
-test('CG2: no red or orange: the layer, its edge and the route\'s casing are the one cool slate', { todo: 'test first' }, () => {
+test('CG2: no red or orange: the layer, its edge and the route\'s casing are the one cool slate', () => {
   const c = hsl(WALK_SLATE);
   assert.ok(c.h >= 190 && c.h <= 260, `a cool hue (${c.h.toFixed(0)})`);
   assert.equal(WALK_STYLE.car.color, WALK_SLATE);
@@ -86,7 +86,7 @@ function decodePng(buf: Uint8Array): { width: number; height: number; data: Uint
   return { width, height, data };
 }
 
-test('CG10: the native map\'s hatch images are the web\'s pixels', { todo: 'test first' }, () => {
+test('CG10: the native map\'s hatch images are the web\'s pixels', () => {
   for (const [ratio, name] of [[1, 'walk-hatch.png'], [2, 'walk-hatch@2x.png'], [3, 'walk-hatch@3x.png']] as const) {
     const file = new Uint8Array(readFileSync(join(ROOT, 'assets', 'map', name)));
     assert.deepEqual(file, hatchPng(WALK_STYLE.car, ratio), `${name} is hatchPng at ${ratio}x: run \`node_modules/.bin/tsx scripts/walk-hatch.ts\` after a change of the look`);
@@ -97,7 +97,7 @@ test('CG10: the native map\'s hatch images are the web\'s pixels', { todo: 'test
   }
 });
 
-test('walkability-car-ground audit 4: the swatch draws two lines, none corner to corner', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 4: the swatch draws two lines, none corner to corner', () => {
   const size = 20 - 2 * WALK_STYLE.car.edgeWidthPx;
   const lines = swatchLines(WALK_STYLE.car, size);
   assert.equal(lines.length, 2, 'two lines in the swatch');

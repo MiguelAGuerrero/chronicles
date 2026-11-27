@@ -106,7 +106,7 @@ what is drawn, off unless wanted, is the quieter map.
 
 ### Walkability's place in it
 
-13. **ML13 · Walkability is the layer's drawing and its legend.** Everything specs/walkability-urban-form says about the tint, its legend rows and its
+13. **ML13 · Walkability is the layer's drawing and its legend.** Everything specs/walkability-urban-form and specs/walkability-car-ground say about the drawing, its legend rows and its
     reads (UF9, UF10, UF17) happens when the Walkability layer is on, and nothing is read for it when off (specs/walkability WK4).
 
 ## Not in this slice

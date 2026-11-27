@@ -248,7 +248,7 @@ const FEATURES = [
     verbs: ['Earn'],
     about: 'how a street treats someone on foot: the bands, the walkability layer and its icons, the area card\'s line, the heads-up',
     rule: 'walkability',
-    source: ['src/lib/walk/**', 'src/components/{Tooltip,WalkBandIcon}.tsx'],
+    source: ['src/lib/walk/**', 'src/components/{Tooltip,WalkBandIcon,HatchSwatch}.tsx'],
     journeys: ['walkability', 'headsup'],
     specs: ['walkability', 'walkability-headsup', 'walkability-urban-form', 'walkability-car-ground'],
   },

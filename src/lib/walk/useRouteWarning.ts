@@ -1,9 +1,10 @@
 // @layer view
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { tilesNear } from '../tileMath';
 import type { LngLat } from '../types';
 import { useStore } from '../useStore';
-import { alongRoute, areaStretches, carStretches, mergeStretches, warningLine } from './ahead';
+import { alongRoute, areaStretches, carStretches, casingLines, mergeStretches, warningLine } from './ahead';
+import type { CarGround } from './carGround';
 import { cellsFor } from './cells';
 import { routeSegments } from './layer';
 import { MAX_TILES } from './limits';
@@ -43,7 +44,7 @@ export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | 
       const places = await walkPlaces(tiles, () => !live);
       if (!live) return;
       const areas = areaStretches(route, cellsFor(read.tiles, read.junctions, places));
-      aheadWatch.stretches(key, mergeStretches(carStretches(route, segments, bands), areas));
+      aheadWatch.stretches(key, mergeStretches(carStretches(route, segments, bands), areas), areas);
     })();
     return () => {
       live = false;
@@ -61,4 +62,18 @@ export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | 
   }, [here, key]);
   const show = useStore(aheadWatch.store, (s) => s.show);
   return key && show ? warningLine(show) : null;
+}
+
+/**
+ * G5: the route's stretches through car ground, as lines for the map's slate casing: the runs of car cells the heads-up
+ * found for this route (300 m or more, `useRouteWarning` reads them), cut to the car ground the map draws, so the casing
+ * begins and ends where the hatch does; only while the Walkability layer is on, null otherwise.
+ */
+export function useCarRoute(route: readonly LngLat[] | null, enabled: boolean, ground: CarGround | null): LngLat[][] | null {
+  const runs = useStore(aheadWatch.store, (s) => s.runs);
+  return useMemo(() => {
+    if (!enabled || !route || !runs.length) return null;
+    const lines = casingLines(route, runs, ground);
+    return lines.length ? lines : null;
+  }, [enabled, route, runs, ground]);
 }

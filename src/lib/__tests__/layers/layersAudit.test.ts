@@ -94,17 +94,11 @@ function hsl(hex: string): { h: number; s: number; l: number } {
 }
 const hueGap = (a: number, b: number) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
 
-test('walkability audit 15: the two tints are one cool hue family, neither green nor orange, apart from the accent and the borders, and differ in lightness', () => {
-  const [foot, car] = [hsl(WALK_STYLE.foot.color), hsl(WALK_STYLE.car.color)];
-  for (const c of [foot, car]) assert.ok(c.h >= 190 && c.h <= 260, `a cool hue (${c.h.toFixed(0)})`);
-  assert.ok(hueGap(foot.h, car.h) <= 30, 'one hue family');
-  assert.ok(Math.abs(foot.l - car.l) >= 0.2, 'told apart by lightness, not by hue alone (colour-blind safe)');
-  const accent = hsl('#c2410c');
-  const border = hsl(BORDER.color);
-  for (const c of [foot, car]) {
-    assert.ok(hueGap(c.h, accent.h) >= 90, 'far from the app\'s accent');
-    assert.ok(hueGap(c.h, border.h) >= 90, 'far from the town borders');
-  }
+test('walkability audit 15: the car ground\'s slate is a cool hue, neither green nor orange, apart from the accent and the borders (G5: one reading drawn)', () => {
+  const car = hsl(WALK_STYLE.car.color);
+  assert.ok(car.h >= 190 && car.h <= 260, `a cool hue (${car.h.toFixed(0)})`);
+  assert.ok(hueGap(car.h, hsl('#c2410c').h) >= 90, 'far from the app\'s accent');
+  assert.ok(hueGap(car.h, hsl(BORDER.color).h) >= 90, 'far from the town borders');
 });
 
 // --- the words (the steward's S4) ---
@@ -119,7 +113,7 @@ test('walkability audit 16: the card says what the ground is, never "most", "mos
   const said = [cellWords(countCells(mk(70, 5, 25))), cellWords(countCells(mk(5, 70, 25))), cellWords(countCells(mk(40, 40, 20)))];
   assert.deepEqual(said, ['Streets close together, with crossings', 'Streets far apart and busy', 'Streets close together and far apart, side by side']);
   assert.equal(cellWords(countCells(mk(20, 20, 60))), null);
-  assert.equal(LAYERS[0].legend[1].tip, 'Streets far apart and busy.', 'the legend\'s tip is the meaning alone: its row already says the name');
+  assert.equal(LAYERS[0].legend.find((r) => r.key === 'car')?.tip, 'Streets far apart and busy.', 'the legend\'s tip is the meaning alone: its row already says the name');
   for (const t of [...said, bandTip('foot'), bandTip('car'), ...LAYERS.flatMap((l) => [l.note ?? '', ...l.legend.map((r) => r.tip ?? '')])])
     assert.ok(!/\bmost(ly)?\b|\bmore\b|\bless\b|likely|short walk|best|worst/i.test(t ?? ''), t ?? '');
 });

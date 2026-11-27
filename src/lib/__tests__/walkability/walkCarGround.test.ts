@@ -39,7 +39,7 @@ const drawn = (g: CarGround, p: LngLat) => g.areas.some((a) => inside(p, a.shape
 const whole = (g: CarGround) => g.areas.filter((a) => a.fade === 0);
 const vertices = (g: CarGround) => g.areas.flatMap((a) => a.shape.flat());
 
-test('CG1: only car cells are drawn: foot, neither and empty cells draw nothing', { todo: 'test first' }, () => {
+test('CG1: only car cells are drawn: foot, neither and empty cells draw nothing', () => {
   for (const band of ['foot', 'neither', 'empty'] as CellBand[]) {
     const g = carGroundOf(field(8, 8, () => band));
     assert.deepEqual([g.areas.length, g.edges.length], [0, 0], `${band} draws nothing`);
@@ -51,13 +51,13 @@ test('CG1: only car cells are drawn: foot, neither and empty cells draw nothing'
   for (const c of cells.filter((x) => x.band === 'foot' && (x.i - I < 2 || x.i - I > 9 || x.j - J < 2 || x.j - J > 9))) assert.ok(!drawn(g, centre(c)), 'foot ground is not');
 });
 
-test('CG3: neighbouring car cells are one area', { todo: 'test first' }, () => {
+test('CG3: neighbouring car cells are one area', () => {
   const g = carGroundOf(field(12, 12, (di, dj) => (di >= 5 && di < 7 && dj >= 5 && dj < 7 ? 'car' : 'foot')));
   assert.equal(whole(g).length, 1, 'four car cells side by side are one shape');
   assert.equal(whole(g)[0].shape.length, 1, 'with no hole');
 });
 
-test('CG3: a stair of cells is drawn as one slope, no 250 m step', { todo: 'test first' }, () => {
+test('CG3: a stair of cells is drawn as one slope, no 250 m step', () => {
   // Car below a diagonal: in row dj, the cells left of 4 + dj. The edge between car and foot is a stair of 250 m steps.
   const cells = field(16, 12, (di, dj) => (di < 2 + dj ? 'car' : 'foot'));
   const g = carGroundOf(cells);
@@ -74,7 +74,7 @@ test('CG3: a stair of cells is drawn as one slope, no 250 m step', { todo: 'test
   assert.ok(worst < 30, `the edge strays at most 30 m east or west of one slope (${worst.toFixed(1)} m)`);
 });
 
-test('CG3: corners round', { todo: 'test first' }, () => {
+test('CG3: corners round', () => {
   const cells = field(12, 12, (di, dj) => (di >= 4 && di < 8 && dj >= 4 && dj < 8 ? 'car' : 'foot'));
   const g = carGroundOf(cells);
   const sw = cellBounds(I + 4, J + 4);
@@ -87,7 +87,7 @@ test('CG3: corners round', { todo: 'test first' }, () => {
   assert.ok(side < 30, `mid-side, within 30 m of the cells' edge (${side.toFixed(1)} m)`);
 });
 
-test('CG3: deterministic: the same cells in any order, or read with more ground around them, draw the same', { todo: 'test first' }, () => {
+test('CG3: deterministic: the same cells in any order, or read with more ground around them, draw the same', () => {
   const cells = field(12, 12, (di, dj) => (di >= 4 && di < 8 && dj >= 4 && dj < 9 ? 'car' : 'foot'));
   const a = carGroundOf(cells);
   const b = carGroundOf([...cells].reverse());
@@ -101,7 +101,7 @@ test('CG3: deterministic: the same cells in any order, or read with more ground 
   nc.forEach((s, k) => s.forEach((ring, r) => ring.forEach((p, v) => assert.ok(metres(p, na[k][r][v]) < 0.01, 'the same point'))));
 });
 
-test('CG3: the cost grows with the cells, not their square', { todo: 'test first' }, () => {
+test('CG3: the cost grows with the cells, not their square', () => {
   const time = (n: number) => {
     const cells = field(n, n, (di, dj) => ((di * 7 + dj * 3) % 5 < 2 ? 'car' : 'foot'));
     const runs: number[] = [];
@@ -118,7 +118,7 @@ test('CG3: the cost grows with the cells, not their square', { todo: 'test first
   assert.ok(large / small < 10, `four times the cells cost ${(large / small).toFixed(1)} times as much`);
 });
 
-test('CG4: the edge is drawn where car ground meets read ground, never along the read\'s edge', { todo: 'test first' }, () => {
+test('CG4: the edge is drawn where car ground meets read ground, never along the read\'s edge', () => {
   // Car in the top rows of what was read: its north side is the read's edge; its south side meets foot ground.
   const cells = field(12, 10, (di, dj) => (dj >= 5 && di >= 2 && di < 10 ? 'car' : 'foot'));
   const g = carGroundOf(cells);
@@ -130,7 +130,7 @@ test('CG4: the edge is drawn where car ground meets read ground, never along the
   assert.ok(pts.some((p) => Math.abs(p[1] - southSide) * M_LAT < 40), 'the edge runs where car ground meets foot ground');
 });
 
-test('walkability-car-ground audit 2: toward the read\'s edge the hatch fades over 100 m in steps, never a straight cut', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 2: toward the read\'s edge the hatch fades over 100 m in steps, never a straight cut', () => {
   const cells = field(12, 10, (di, dj) => (dj >= 3 && di >= 2 && di < 10 ? 'car' : 'foot'));
   const g = carGroundOf(cells);
   const top = cellBounds(I, J + 9).north;
@@ -151,7 +151,7 @@ test('walkability-car-ground audit 2: toward the read\'s edge the hatch fades ov
   for (let k = 1; k < steps.length; k++) assert.ok(meanFrom(steps[k]) < meanFrom(steps[k - 1]), `step ${steps[k]} lies nearer the edge than step ${steps[k - 1]}`);
 });
 
-test('CG11: no car cell draws nothing', { todo: 'test first' }, () => {
+test('CG11: no car cell draws nothing', () => {
   const g = carGroundOf([]);
   assert.deepEqual([g.areas, g.edges], [[], []]);
   assert.equal(g.key, carGroundOf(field(4, 4, () => 'foot')).key, 'one key for nothing drawn');
@@ -172,14 +172,14 @@ const real = (key: string) => {
   return { g: carGroundOf(cellsFor(ways, junctions)), at: p.at };
 };
 
-test('CG1: real places: the Lehigh Valley Mall is drawn as car ground; Zurich\'s old town draws nothing', { todo: 'test first' }, () => {
+test('CG1: real places: the Lehigh Valley Mall is drawn as car ground; Zurich\'s old town draws nothing', () => {
   const mall = real('lvMall');
   assert.ok(drawn(mall.g, mall.at), 'the mall is inside the drawn car ground');
   const zurich = real('zurich');
   assert.deepEqual([zurich.g.areas.length, zurich.g.edges.length], [0, 0]);
 });
 
-test('CG9, UF12: the map is handed areas and edges with a kind and nothing else: no number', { todo: 'test first' }, async () => {
+test('CG9, UF12: the map is handed areas and edges with a kind and nothing else: no number', async () => {
   const { walkabilityGeoJSON } = await import('../../../components/map/types');
   const fc = walkabilityGeoJSON(carGroundOf(field(12, 10, (di, dj) => (dj >= 3 && di >= 2 && di < 10 ? 'car' : 'foot'))));
   assert.ok(fc.features.length > 0);

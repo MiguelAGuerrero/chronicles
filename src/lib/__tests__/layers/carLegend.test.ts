@@ -5,7 +5,7 @@ import { LAYERS } from '../../layers/registry';
 
 // Walkability car ground: the legend (CG5), written from specs/walkability-car-ground/spec.md before the code.
 
-test('CG5: Walkability\'s legend is one row, Built around cars, its swatch the hatch and its icon the car', { todo: 'test first' }, () => {
+test('CG5: Walkability\'s legend is one row, Built around cars, its swatch the hatch and its icon the car', () => {
   const walk = LAYERS.find((l) => l.id === 'walkability')!;
   assert.equal(walk.legend.length, 1, 'one row');
   const [row] = walk.legend;

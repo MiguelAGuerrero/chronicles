@@ -1,6 +1,7 @@
 // @layer core
 import { pointSegmentDist, projector } from '../geo';
 import type { LngLat } from '../types';
+import { insideCarGround, type CarGround } from './carGround';
 import { cellIndexOf, type Cell } from './cells';
 import type { Band } from './types';
 
@@ -200,3 +201,42 @@ export function aheadStep(state: AheadState, stretches: readonly Stretch[], alon
 
 export const warningLine = (s: Pick<Stretch, 'street' | 'kind'>) =>
   s.kind === 'area' ? 'Next: an area built around cars' : s.street ? `Next: a stretch built around cars on ${s.street}` : 'Next: a stretch built around cars';
+
+/**
+ * G5: the parts of a route the stretches cover, as lines (the map's slate casing): each from its `fromM` to its `toM` along
+ * the route, cut where they fall inside a leg. Only the route's own points and those two cuts; nothing else is drawn.
+ */
+export function stretchLines(path: readonly LngLat[], stretches: readonly Pick<Stretch, 'fromM' | 'toM'>[]): LngLat[][] {
+  if (path.length < 2 || !stretches.length) return [];
+  const project = projector(path[0]);
+  const pts = path.map(project);
+  const acc = [0];
+  for (let i = 1; i < pts.length; i++) acc.push(acc[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const pointAt = (m: number): LngLat => {
+    let i = 1;
+    while (i < acc.length - 1 && acc[i] < m) i++;
+    const L = acc[i] - acc[i - 1];
+    const t = L === 0 ? 0 : Math.max(0, Math.min(1, (m - acc[i - 1]) / L));
+    return [path[i - 1][0] + (path[i][0] - path[i - 1][0]) * t, path[i - 1][1] + (path[i][1] - path[i - 1][1]) * t];
+  };
+  const out: LngLat[][] = [];
+  for (const s of stretches) {
+    const from = Math.max(0, s.fromM);
+    const to = Math.min(acc[acc.length - 1], s.toM);
+    if (to <= from) continue;
+    const line: LngLat[] = [pointAt(from)];
+    for (let i = 0; i < path.length; i++) if (acc[i] > from && acc[i] < to) line.push(path[i]);
+    line.push(pointAt(to));
+    out.push(line);
+  }
+  return out;
+}
+
+/**
+ * G5 (CG6): the route's slate casing: its runs of car ground (`areaStretches`, never a fast road on plain ground:
+ * walkability-car-ground audit 1) as lines along the route, cut to the car ground the map draws, so each casing begins and
+ * ends at the hatch's edge (audit 3). A crossing too short to be a run is not cased, as it is not said.
+ */
+export function casingLines(path: readonly LngLat[], runs: readonly Pick<Stretch, 'fromM' | 'toM'>[], ground: CarGround | null): LngLat[][] {
+  return insideCarGround(stretchLines(path, runs), ground);
+}

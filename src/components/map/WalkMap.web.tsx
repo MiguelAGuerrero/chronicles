@@ -1,10 +1,11 @@
 import type { Faced } from '../../lib/moment';
-import { AttributionControl, getVersion, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type GeoJSONFeature, type SymbolLayerSpecification, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
+import { AttributionControl, getVersion, Map as MapLibreMap, Marker, setWorkerUrl, type CircleLayerSpecification, type ExpressionSpecification, type FilterSpecification, type GeoJSONFeature, type SymbolLayerSpecification, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { perfCount, perfMark } from '../../lib/perfCount';
+import { hatchImage } from '../../lib/walk/hatch';
 import { litStreets } from '../../lib/replay';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
@@ -36,7 +37,7 @@ import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import { fitBearing, followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, WALK_HATCH, ROUTE_CAR_WIDTH, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
   FIT_MAX_ZOOM, FIT_PADDING, FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
@@ -74,12 +75,19 @@ function addOverlay(map: MapLibreMap): string | undefined {
     layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity } }, firstSymbol);
   map.addLayer({ id: 'border-firm', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['!=', ['get', 'role'], 'lined'],
     layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity } }, firstSymbol);
-  // The Walkability layer (UF9), under the hotspots, fog and trace: a soft green over ground easy on foot, a warm tint over
-  // ground built around cars. No antialiasing, so shapes of one reading side by side show no seam.
-  map.addSource('walkability', { type: 'geojson', data: empty, tolerance: 0 });
-  for (const band of ['foot', 'car'] as const)
-    map.addLayer({ id: `walk-${band}`, type: 'fill', source: 'walkability', filter: ['==', ['get', 'band'], band],
-      paint: { 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false } }, firstSymbol);
+  // The Walkability layer (G5, decision 0232), under the hotspots, fog and trace: only ground built around cars, a soft slate
+  // hatch with a firm edge, so the streets and their names show through it. The edge is drawn only where car ground meets
+  // ground that was read (`carGroundOf`).
+  const look = WALK_STYLE.car;
+  const ratio = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1)));
+  const hatch = hatchImage(look, ratio);
+  if (!map.hasImage(WALK_HATCH)) map.addImage(WALK_HATCH, { width: hatch.width, height: hatch.height, data: hatch.data }, { pixelRatio: ratio });
+  map.addSource('walkability', { type: 'geojson', data: empty, tolerance: 0.2 });
+  map.addLayer({ id: 'walk-car', type: 'fill', source: 'walkability', filter: walkKind('area') as FilterSpecification,
+    paint: { 'fill-pattern': WALK_HATCH, 'fill-opacity': walkFade('area', 1) as ExpressionSpecification, 'fill-antialias': false } }, firstSymbol);
+  map.addLayer({ id: 'walk-car-edge', type: 'line', source: 'walkability', filter: walkKind('edge') as FilterSpecification,
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': look.color, 'line-width': look.edgeWidthPx, 'line-opacity': walkFade('edge', look.edgeOpacity) as ExpressionSpecification } }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer (`LINE_SOURCE`, NF5).
   const lineSource = { type: 'geojson' as const, data: empty, ...LINE_SOURCE };
   for (const id of LINE_SOURCE_IDS) map.addSource(id, lineSource);
@@ -106,6 +114,9 @@ function addOverlay(map: MapLibreMap): string | undefined {
   map.addLayer({ id: 'route-grades', type: 'line', source: 'route-grades', layout: lineLayout, paint: { 'line-color': HOTSPOT, 'line-width': ['get', 'width'], 'line-opacity': 0.45 } });
   // The route under the trace and walker, so where you walked stays on top (N6).
   map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 12 } });
+  // G5: the route's stretch through car ground, a slate casing over the route's white edge and under its own colour.
+  map.addSource('route-car', { type: 'geojson', data: empty });
+  map.addLayer({ id: 'route-car', type: 'line', source: 'route-car', layout: lineLayout, paint: { 'line-color': look.color, 'line-width': ROUTE_CAR_WIDTH } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
   // Offered stretches across gaps: the trace, see-through, under it where they meet (Filling gaps, G6).
   // A gap with no line: grey dots between its ends, under the faint stretches (GW2).
@@ -1033,6 +1044,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => { if (ready) setData('gap-links', traceGeoJSON(props.gapLinks ?? [])); }, [ready, props.gapLinks]);
   useEffect(() => { if (ready) setData('drawing', traceGeoJSON(props.drawing ? [props.drawing] : [])); }, [ready, props.drawing]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
+  useEffect(() => {
+    if (!ready) return;
+    setData('route-car', carRouteGeoJSON(props.carRoute));
+    container.current?.setAttribute('data-route-car', String(props.carRoute?.length ?? 0));
+  }, [ready, props.carRoute]);
   useEffect(() => { if (ready) setData('route-grades', routeGradesGeoJSON(props.routeGrades)); }, [ready, props.routeGrades]);
   useEffect(() => { if (ready) setData('found-pins', pinsGeoJSON(props.foundPins)); }, [ready, props.foundPins]);
   const hasLanding = !!props.landing;
@@ -1235,7 +1251,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready) return;
     setData('walkability', walkabilityGeoJSON(walkRef.current));
     // The e2e reads what is drawn.
-    container.current?.setAttribute('data-walk', walkRef.current ? `foot:${walkRef.current.foot.length}|car:${walkRef.current.car.length}` : '');
+    container.current?.setAttribute('data-walk', walkRef.current ? `car:${walkRef.current.areas.length}|edges:${walkRef.current.edges.length}` : '');
   }, [ready, walkKey]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));

@@ -408,8 +408,9 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
   trace: the same tone however often a street was walked, with no date and no count. Rides and gaps you didn't keep stay breaks.
   The walk being recorded joins once stopped. Only the Navigate map and Explore's main map draw it; turning it on the first time
   prepares older walks quietly ("Getting your walks ready…"), and the lines appear together.
-- **Walkability** tints the map a light blue where the ground is easy on foot (streets close together, crossings, places along them) and a darker slate where it is
-  built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
+- **Walkability** draws only the ground built around cars (streets far apart and busy): a soft slate hatch with a thin edge, its cells
+  joined into rounded areas, fading out toward the edge of what was read; ground easy on foot is the plain map (decisions 0232, 0271). While
+  navigating, the route's stretch through it wears a slate casing, and the heads-up's icon is the same slate. It is judged from how the ground is built, so a walkable grid with its
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
   OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
 - **Storefronts** (decision 0180; it was "Busy streets", which promised traffic the data can't see) is the graded magenta shading of streets lined with places you walk into, now on request on any walk. Turning it on where nothing is

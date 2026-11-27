@@ -63,13 +63,14 @@ A warning only: the slice builds its own criteria and takes none of those items 
 | `src/components/map/WalkMap.web.tsx` | The hatch image, `walk-car` (fill-pattern, faded by `kind`, no antialiasing) and `walk-car-edge` (line, faded the same) in place of `walk-foot` and `walk-car`; `route-car` between `route-edge` and `route`; `data-walk` reads `car:<areas>|edges:<n>`, `data-route-car` the casing's lines, for the e2e. |
 | `src/components/map/WalkMap.native.tsx` | The same layers: `<Images>` with the committed hatch PNGs, `fillPattern`, the edge line, the `route-car` line (CG10; never run on a device). |
 | `assets/map/walk-hatch.png`, `@2x`, `@3x` (new) | `hatchPng(WALK_STYLE.car, 1..3)`, byte for byte; a unit test fails when the look changes and they do not. |
+| `scripts/walk-hatch.ts` (new) | Writes those three images from the look (`node_modules/.bin/tsx scripts/walk-hatch.ts`). |
 | `src/components/HatchSwatch.tsx` (new, view) | The legend's swatch: the look's lines in SVG at the same angle, spacing, width and strength, centred (CG5). |
 | `src/components/LayersControl.tsx` | The car swatch is the hatch with the edge as its border; the foot swatch goes. |
 | `src/lib/layers/registry.ts` | Walkability's legend: one row, "Built around cars" (CG5); `SwatchKey` loses `foot`. |
 | `src/components/WalkBandIcon.tsx` | The car icon in `WALK_SLATE`, not `theme.accent` (CG7; the foot and mixed icons unchanged). |
 | `src/app/walk.tsx` | `useCarRoute` with the drawn ground, and `carRoute` to the map but on a preview (CG6). |
 
-Fourteen source files and three images. Tests, journeys, the harness and the records are apart.
+Fourteen source files under `src/` (one removed), the images' script and three images. Tests, journeys, the harness and the records are apart.
 
 ## Data
 

@@ -314,17 +314,18 @@ Map layers (ML1-ML13)
   pastLines/core.ts          Where I've been (WB, decision 0222): a walk's walked line from its trace, simplified, its z12 tiles; nearLines, staleIds, prepareOrder
   pastLines/shell.ts         createPastLines: build (Stop), drop (a gap decision), prepare stale lines one walk at a time; index.ts is the app's instance
   pastLines/usePastLines.ts  the layer's lines near a centre for a map, read per area key and when preparing is done; the status words' state
-Walkability (WK1-WK23, UF1-UF20)
+Walkability (WK1-WK23, UF1-UF20, CG1-CG11)
   walk/form.ts               the rule and its one table of thresholds (judge)
   walk/cells.ts              cells on a fixed grid, judged from their 450 m neighbourhood through a spatial index
-  walk/tint.ts               the foot and car cells as shapes the map draws, with a key
+  walk/carGround.ts          the car cells as the areas the map draws (smoothed on a fixed lattice, fading toward the read's edge), their edge, insideCarGround
+  walk/hatch.ts              the car ground's hatch: its pixels (the web's addImage), its PNG (the native images), the legend's lines
   walk/types.ts              Band, WayFacts, TileFacts, WalkSource, WalkTile
   walk/bands.ts              the band table (bandOf), WALK_CODE
   walk/match.ts              bandsFor: ways to street segments by tile, EdgeGrid-style index, 35 degrees
   walk/layer.ts              drawFor, routeSegments, tilesAround
   walk/summary.ts            cellWords and countCells: an area said in words from its cells (the card's line)
   walk/bandWords.ts          each band's words and badge
-  walk/ahead.ts              carStretches, alongRoute, aheadStep, warningLine
+  walk/ahead.ts              carStretches, alongRoute, aheadStep, warningLine; stretchLines and casingLines (the route's slate casing)
   walk/aheadWatch.ts         the heads-up's shell and Store
   walk/overtureSegments.ts   Overture's `segment` schema (the only file that knows it)
   walk/overpass.ts           Overpass's query and answer (the only file that knows it)

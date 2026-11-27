@@ -44,7 +44,7 @@ test('WK15: a new route over the same stretch is not said again; no route says n
 
 const area: Stretch = { key: 'area@1,2', kind: 'area', street: null, fromM: 400, toM: 900 };
 
-test('CG6: the watch keeps the route\'s runs of car ground, and a new route or none clears them', { todo: 'test first' }, () => {
+test('CG6: the watch keeps the route\'s runs of car ground, and a new route or none clears them', () => {
   const w = createAheadWatch(fakePorts());
   w.stretches('a', [area], [area]);
   assert.deepEqual(w.store.get().runs, [area]);
@@ -55,7 +55,7 @@ test('CG6: the watch keeps the route\'s runs of car ground, and a new route or n
   assert.deepEqual(w.store.get().runs, [], 'no route clears them');
 });
 
-test('walkability-car-ground audit 1: the watch\'s runs are the area runs it is given, not the merged stretches', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 1: the watch\'s runs are the area runs it is given, not the merged stretches', () => {
   const w = createAheadWatch(fakePorts());
   w.stretches('a', [s], []);
   assert.deepEqual(w.store.get().runs, [], 'a fast road alone is no run of car ground');
