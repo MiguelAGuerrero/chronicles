@@ -6,7 +6,7 @@ Catasauqua or Coplay. I think it might be easy to just allow the app to always c
 fault or turn it off and repro when a user enters navigation mode so bugs like these don't or less likely to happen but
 we should ensure any location, sensitive journey is updated to the users current position, and if location services
 are off, that should be prompted for a accurate assessment for accuracy". Queued as G17, after fix
-outing-current-position. Status: queued.
+outing-current-position. Status: built in current-position.
 
 ## What exists already
 

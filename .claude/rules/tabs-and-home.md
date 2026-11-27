@@ -20,8 +20,9 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet and the home map's
   all land on Chronicle's Memories. Minimize or the chevron with nothing beneath goes to
   Chronicle (`exitPlan`, `BENEATH_TAB`, HC4). Every way back to Chronicle is `/`, never
   `/chronicle`.
-- **Opening the app reads no location** (HC14): Explore's `launchFix` (`lib/lastFix`)
-  asks its one fix the first time Explore comes to the front in a launch, not at launch.
+- **Opening the app reads no location** (HC14): Explore reads when it comes to the front
+  (specs/current-position YH1), and `launchFix` (`lib/lastFix`) is its one ask a launch
+  where a read could raise the permission prompt.
 - **`/chronicle` still works**: `src/app/chronicle.tsx` calls `router.dismissTo('/')`
   on focus. Not `<Redirect href="/">`: a replace from a screen over the tabs
   stacks a second set of tabs (two tab bars; the e2e counts one).

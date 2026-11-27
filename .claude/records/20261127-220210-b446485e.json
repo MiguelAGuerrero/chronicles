@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, with location allowed \"While using\", open Explore at home; drive a few kilometres with the app in the back; unlock and come back to it; then pull Control Center (iOS) or the notification shade (Android) down and up again; then switch to Chronicle and back to Explore; then leave Explore in front, indoors, for thirty-five minutes. **Expect:** coming back reads one fresh fix (`useAppReturn`, `AppState` `background` then `active`): the town you stand in leads, \"You're here\", the map framed there; the pull-down reads nothing; the tab's focus reads once; no location indicator stays on between reads; after thirty minutes in front the dot and \"You're here\" go with nothing read, and the next front reads again. The cost of a high-accuracy fix of up to 10 s at each front, on battery. (YH1, YH3, YH6)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, with location never asked, open Explore and decline the prompt; switch tabs and come back twice; then turn location off for Chronicles in Settings (iOS \"Never\", Android \"Don't allow\"), come back to the app on Explore, dismiss the notice, switch tabs and come back; force-quit and reopen; then turn location back on in Settings and come back to the app. **Expect:** the system prompt is raised once that launch, never again by a front; refused, the quiet notice \"Location is turned off for Chronicles. Turn it on in Settings to find your position.\" with Open Settings, said by VoiceOver and TalkBack, at each front until dismissed, then not until the app is reopened; no dot and no walk time on any card; with location back on, a fix is read on the return with no tap. (YH1, YH4, YH5)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, with location allowed, open Navigate's ready map, put the app in the back, move a few hundred metres, come back; then with location undecided (a fresh install) do the same. **Expect:** with location allowed the dot moves to where you are on the return (one fresh fix, its watch cleared after); undecided, the return raises no prompt and reads nothing. (YH2, YH3)\n"
+    }
+  ]
+}
