@@ -13,9 +13,10 @@ export function setLastFix(at: LngLat, t = Date.now()) {
 }
 
 /**
- * Explore's one fix per launch (NV16, the owner's call, Nov 3): it opens first
- * (NV2), before Navigate has read a fix, so its first focus asks for one. Never
- * again in that launch, and not at all once a fix is known.
+ * Explore's one ask per launch (NV16, amended by decisions 0273 and 0275): with
+ * location allowed Explore reads at every front, raising no prompt; where a read
+ * could raise the system prompt (undecided), only its first front in a launch
+ * asks. Never again in that launch: Find me and Locate ask after.
  */
 export function createLaunchFix() {
   let had = false;
@@ -29,3 +30,19 @@ export function createLaunchFix() {
 }
 
 export const launchFix = createLaunchFix();
+
+/**
+ * Explore's "location is off" notice, dismissed: it stays dismissed until the
+ * app is next launched (decision 0275, the owner's "Next launch"). In memory only.
+ */
+export function createLaunchFlag() {
+  let on = false;
+  return {
+    get: () => on,
+    set() {
+      on = true;
+    },
+  };
+}
+
+export const offDismissed = createLaunchFlag();

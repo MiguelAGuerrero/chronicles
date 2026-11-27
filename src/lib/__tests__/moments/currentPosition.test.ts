@@ -19,7 +19,7 @@ const MIN = 60_000;
 const here = (at: LngLat, t = NOW - MIN) => ({ state: 'here' as const, at, t });
 const none = { state: 'none' as const, refused: false };
 
-test('YH1: a fresh fix 4 km on is where Explore lists from, a first fix after none frames, one within 100 m keeps the point', { todo: 'test first' }, async () => {
+test('YH1: a fresh fix 4 km on is where Explore lists from, a first fix after none frames, one within 100 m keeps the point', async () => {
   const { exploreRead } = await mod();
   const moved = exploreRead(here(FOX), { at: CRANSTON }, null, NOW);
   assert.deepEqual(moved.pos, { state: 'here', at: CRANSTON, t: NOW });
@@ -35,7 +35,7 @@ test('YH1: a fresh fix 4 km on is where Explore lists from, a first fix after no
   assert.equal(still.pos.state === 'here' && still.pos.at, FOX);
 });
 
-test('YH1: a read 300 m on within the same town keeps the pick and the frame', { todo: 'test first' }, async () => {
+test('YH1: a read 300 m on within the same town keeps the pick and the frame', async () => {
   const { exploreRead, reframes } = await mod();
   const r = exploreRead(here(FOX), { at: FOX_300M }, null, NOW);
   assert.equal(r.moved, true, 'the dot moves');
@@ -45,7 +45,7 @@ test('YH1: a read 300 m on within the same town keeps the pick and the frame', {
   assert.equal(reframes({ first: true, before: 'town:providence', after: 'town:providence' }), true, 'a first fix frames, as the launch did');
 });
 
-test('YH1: permission "prompt", three fronts raise one request', { todo: 'test first' }, async () => {
+test('YH1: permission "prompt", three fronts raise one request', async () => {
   const { frontRead } = await mod();
   const { createLaunchFix } = await import('../../lastFix');
   const launch = createLaunchFix();
@@ -58,7 +58,7 @@ test('YH1: permission "prompt", three fronts raise one request', { todo: 'test f
   assert.equal(frontRead('denied'), 'off', 'blocked: no read, the notice');
 });
 
-test('YH2: the app is back at the front only after it was in the back, never after a passing inactive', { todo: 'test first' }, async () => {
+test('YH2: the app is back at the front only after it was in the back, never after a passing inactive', async () => {
   const { appReturn } = await mod();
   const run = (states: string[]) => {
     let away = false;
@@ -78,7 +78,7 @@ test('YH2: the app is back at the front only after it was in the back, never aft
   assert.equal(run(['background', 'active', 'background', 'active']), 2);
 });
 
-test('YH4: refused, Explore says LOCATION_OFF quietly, Open Settings on a phone; a timeout says nothing; a fix clears it', { todo: 'test first' }, async () => {
+test('YH4: refused, Explore says LOCATION_OFF quietly, Open Settings on a phone; a timeout says nothing; a fix clears it', async () => {
   const { exploreRead, exploreNotice } = await mod();
   const { LOCATION_OFF } = await import('../../locate/notice');
   const refused = exploreRead(here(FOX), { at: null, reason: 'denied' }, { at: FOX, t: NOW - MIN }, NOW);
@@ -90,7 +90,7 @@ test('YH4: refused, Explore says LOCATION_OFF quietly, Open Settings on a phone;
   assert.deepEqual(exploreNotice(exploreRead(none, { at: FOX }, null, NOW).pos, 'web'), { kind: 'clear' });
 });
 
-test('YH5: refused, no area says a walk time or distance', { todo: 'test first' }, async () => {
+test('YH5: refused, no area says a walk time or distance', async () => {
   const { exploreRead, exploreSeen } = await mod();
   const refused = exploreRead(here(FOX), { at: null, reason: 'denied' }, null, NOW);
   assert.deepEqual(exploreSeen(refused.pos), { dot: null, here: false, distances: false });
@@ -100,7 +100,7 @@ test('YH5: refused, no area says a walk time or distance', { todo: 'test first' 
   assert.deepEqual(exploreSeen(here(FOX)), { dot: 'full', here: true, distances: true });
 });
 
-test('YH6: no fresh fix in time, one twenty minutes old stands in, muted and said; thirty-one minutes is no position', { todo: 'test first' }, async () => {
+test('YH6: no fresh fix in time, one twenty minutes old stands in, muted and said; thirty-one minutes is no position', async () => {
   const { exploreRead, exploreNotice, exploreSeen } = await mod();
   const r = exploreRead(here(FOX, NOW - 20 * MIN), { at: null, reason: 'timeout' }, { at: FOX, t: NOW - 20 * MIN }, NOW);
   assert.equal(r.pos.state, 'earlier');
@@ -110,7 +110,7 @@ test('YH6: no fresh fix in time, one twenty minutes old stands in, muted and sai
   assert.deepEqual(exploreSeen(old.pos), { dot: null, here: false, distances: false });
 });
 
-test('YH6: Explore in front 31 minutes after its read: no "You\'re here", no full dot, no read', { todo: 'test first' }, async () => {
+test('YH6: Explore in front 31 minutes after its read: no "You\'re here", no full dot, no read', async () => {
   const { exploreAged, exploreSeen, exploreNotice, POSITION_AGE_TICK_MS } = await mod();
   const read = here(FOX, NOW);
   assert.equal(exploreAged(read, NOW + 10 * MIN), read, 'within thirty minutes nothing changes, nothing re-renders');

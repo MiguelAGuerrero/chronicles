@@ -20,6 +20,9 @@ import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreS
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { getLastFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
+import { watchLocatePermission } from '../../lib/locate/permission';
+import { useAppReturn } from '../../lib/locate/useAppReturn';
+import type { LocatePermission } from '../../lib/atlas/findYou';
 import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
 import { ready } from '../../lib/ready';
@@ -92,6 +95,33 @@ export function useReady(props: {
   const [pinZoom, setPinZoom] = useState(() => (fix ? 16 : WORLD.zoom) >= MOMENT_PIN_ZOOM);
   const momentPins = useMemo(() => (pinZoom ? moments : NONE), [moments, pinZoom]);
 
+  // One fix (NV17), which ends its own watch on a fix, its timeout, or the screen leaving the front; a newer read ends it too.
+  const readCtl = useRef<AbortController | null>(null);
+  const read = () => {
+    readCtl.current?.abort();
+    const c = new AbortController();
+    readCtl.current = c;
+    // A fresh fix (decision 0273): never a cached one from before the app went to the back.
+    locateOnce(undefined, { fresh: true, signal: c.signal }).then((r) => {
+      if (c.signal.aborted || !r.at) return;
+      setLastFix(r.at);
+      setFix(r.at);
+      if (centred.current) return;
+      centred.current = true;
+      const box = boundsOf([r.at], OPEN_FIT_M);
+      if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
+    }, () => {});
+  };
+  const readRef = useRef(read);
+  useEffect(() => {
+    readRef.current = read;
+  });
+  // The app back at the front (specs/current-position YH2, NV17 amended): one more fix, while no walk is open, the ready map
+  // is in front and location reads allowed (a read there raises no prompt; the steward's S2).
+  const [permission, setPermission] = useState<LocatePermission | null>(null);
+  useEffect(() => watchLocatePermission(setPermission), []);
+  useAppReturn(() => readRef.current(), props.active && focused && permission === 'granted');
+
   // Each time the screen comes to the front: the choices, the moments, the first-walk note; and one fix.
   const { active } = props;
   useFocusEffect(
@@ -109,17 +139,11 @@ export function useReady(props: {
         setWebNoteOff(choices.webNoteOff);
       })().catch(() => {});
       // One fix, which ends its own watch (NV17): the first frames the map around you.
-      locateOnce().then((r) => {
-        if (!live || !r.at) return;
-        setLastFix(r.at);
-        setFix(r.at);
-        if (centred.current) return;
-        centred.current = true;
-        const box = boundsOf([r.at], OPEN_FIT_M);
-        if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
-      }, () => {});
+      readRef.current();
       return () => {
         live = false;
+        // The screen leaving the front ends its read's watch at once (specs/current-position YH3).
+        readCtl.current?.abort();
       };
     }, [active]),
   );

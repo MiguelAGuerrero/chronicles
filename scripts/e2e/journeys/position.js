@@ -57,6 +57,17 @@ const KIT = () => {
 const LOCATION_OFF_WEB = 'Location is off for this site. Turn it on in your browser’s or your phone’s settings to see where you are.';
 
 async function run(h) {
+  const { snapWorld } = h;
+  // Cranston, a second town 4 km west of Providence (the snap journey's world).
+  snapWorld.serve = true;
+  try {
+    await journey(h);
+  } finally {
+    snapWorld.serve = false;
+  }
+}
+
+async function journey(h) {
   const { exploreUrl, at, check, shot, freshPage, tabTo } = h;
   const { c, pg } = await freshPage('position');
   await c.addInitScript(KIT);
@@ -69,7 +80,7 @@ async function run(h) {
     const el = [...document.querySelectorAll('[data-walker]')].find((e) => !e.closest('[aria-hidden=true]') && e.getBoundingClientRect().width > 0);
     return el ? { at: el.getAttribute('data-walker') ?? '', muted: el.getAttribute('data-walker-muted') ?? '' } : { at: '', muted: '' };
   });
-  const tiles = () => pg.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().width > 0).map((e) => ({ name: e.dataset.name, selected: e.dataset.selected, text: e.innerText.replace(/\s+/g, ' ').trim() })));
+  const tiles = () => pg.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.filter((e) => !e.closest('[aria-hidden=true]')).map((e) => ({ name: e.dataset.name, selected: e.dataset.selected, text: e.innerText.replace(/\s+/g, ' ').trim() })));
   const banner = async () => ((await pg.locator('[data-testid=banner-dismiss]').locator('..').filter({ visible: true }).first().innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
   const said = async () => ((await pg.locator('[data-testid=atlas-snap-said]').textContent().catch(() => '')) ?? '');
   const open = () => pg.evaluate(() => window.__open.size);
@@ -103,15 +114,15 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   const t1 = await tiles();
   const w1 = await walker();
-  check.todo(near(w1.at, cranston) && t1[0]?.name === 'Cranston' && /You’re here/.test(t1[0]?.text ?? '') && t1[0]?.selected === '1', `YH1: back at the front after a drive, Explore leads with the town you stand in, "You're here", the dot there (${w1.at}; ${JSON.stringify(t1.slice(0, 2))})`);
-  check.todo((await open()) === 0, `YH3: after the return's read on Explore no watch is open (${await open()})`);
+  check(near(w1.at, cranston) && t1[0]?.name === 'Cranston' && /You’re here/.test(t1[0]?.text ?? '') && t1[0]?.selected === '1', `YH1: back at the front after a drive, Explore leads with the town you stand in, "You're here", the dot there (${w1.at}; ${JSON.stringify(t1.slice(0, 2))})`);
+  check((await open()) === 0, `YH3: after the return's read on Explore no watch is open (${await open()})`);
   await shots('yh-moved');
   // ... and Plan an outing plans around it (its own read, fix outing-current-position).
   await pg.click('[data-testid=outing-entry]').catch(() => {});
   await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
   await until(async () => near(await pg.evaluate(() => document.querySelector('[data-testid=outing] [data-walker]')?.getAttribute('data-walker') ?? ''), cranston), 20000);
   const wo = await pg.evaluate(() => document.querySelector('[data-testid=outing] [data-walker]')?.getAttribute('data-walker') ?? '');
-  check.todo(near(wo, cranston), `YH7: the Done when: Plan an outing, opened after the return, plans around Cranston (${wo})`);
+  check(near(wo, cranston), `YH7: the Done when: Plan an outing, opened after the return, plans around Cranston (${wo})`);
   await pg.click('[data-testid=outing-close]').catch(() => {});
   await pg.waitForSelector('[data-testid=outing]', { state: 'detached', timeout: 10000 }).catch(() => {});
 
@@ -122,7 +133,7 @@ async function run(h) {
   await tabTo(pg, 'explore');
   await until(async () => near((await walker()).at, fox) && (await tiles())[0]?.name === 'Providence', 30000);
   const t2 = await tiles();
-  check.todo(near((await walker()).at, fox) && t2[0]?.name === 'Providence' && /You’re here/.test(t2[0]?.text ?? ''), `YH1: the tab's focus reads a fix: back at Fox Point, Explore leads with Providence, "You're here" (${JSON.stringify(t2.slice(0, 2))})`);
+  check(near((await walker()).at, fox) && t2[0]?.name === 'Providence' && /You’re here/.test(t2[0]?.text ?? ''), `YH1: the tab's focus reads a fix: back at Fox Point, Explore leads with Providence, "You're here" (${JSON.stringify(t2.slice(0, 2))})`);
 
   // 3. A pick kept: a neighbouring town picked, then a read 300 m on within the same town.
   await pg.waitForTimeout(1000);
@@ -138,7 +149,7 @@ async function run(h) {
   await pg.waitForTimeout(2500);
   const t3 = await tiles();
   const camAfter = await pg.evaluate(() => [...document.querySelectorAll('[data-center]')].find((e) => !e.closest('[aria-hidden=true]'))?.getAttribute('data-center') ?? '');
-  check.todo(!!other && near((await walker()).at, fox300) && t3.find((t) => t.name === other.name)?.selected === '1' && near(camAfter, camBefore.split(',').map(Number), 2e-4), `YH1: a read 300 m on within the same town keeps the pick and the frame (${other?.name}; ${camBefore} -> ${camAfter}; ${JSON.stringify(t3.slice(0, 3))})`);
+  check(!!other && near((await walker()).at, fox300) && t3.find((t) => t.name === other.name)?.selected === '1' && near(camAfter, camBefore.split(',').map(Number), 2e-4), `YH1: a read 300 m on within the same town keeps the pick and the frame (${other?.name}; ${camBefore} -> ${camAfter}; ${JSON.stringify(t3.slice(0, 3))})`);
 
   // 4. Navigate's ready map reads on the return too.
   await tabTo(pg, 'navigate');
@@ -147,9 +158,9 @@ async function run(h) {
   await c.setGeolocation({ longitude: cranston[0], latitude: cranston[1], accuracy: 6 });
   await pg.evaluate(() => window.__away());
   await until(async () => near((await walker()).at, cranston), 30000);
-  check.todo(near((await walker()).at, cranston), `YH2: Navigate's ready map reads one fix when the app returns to the front (${(await walker()).at})`);
+  check(near((await walker()).at, cranston), `YH2: Navigate's ready map reads one fix when the app returns to the front (${(await walker()).at})`);
   await pg.waitForTimeout(1000);
-  check.todo((await open()) === 0, `YH3: after the return's read on Navigate no watch is open (${await open()})`);
+  check((await open()) === 0, `YH3: after the return's read on Navigate no watch is open (${await open()})`);
 
   // 5. A read that hangs ends at its timeout; a tab left mid-read ends its read.
   await pg.evaluate(() => { window.__geoHang = true; });
@@ -157,13 +168,13 @@ async function run(h) {
   await pg.waitForTimeout(1000);
   const hungOpen = await open();
   await pg.waitForTimeout(11000);
-  check.todo(hungOpen >= 1 && (await open()) === 0, `YH3: a read that finds nothing ends its own watch at its timeout (${hungOpen} open while reading, ${await open()} after)`);
+  check(hungOpen >= 1 && (await open()) === 0, `YH3: a read that finds nothing ends its own watch at its timeout (${hungOpen} open while reading, ${await open()} after)`);
   await tabTo(pg, 'explore');
   await pg.waitForTimeout(800);
   const readingOpen = await open();
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForTimeout(1200);
-  check.todo(readingOpen >= 1 && (await open()) === 0, `YH3: Explore left mid-read ends its read's watch at once (${readingOpen} open while reading, ${await open()} after)`);
+  check(readingOpen >= 1 && (await open()) === 0, `YH3: Explore left mid-read ends its read's watch at once (${readingOpen} open while reading, ${await open()} after)`);
 
   // 6. No fresh fix in time, the clock twenty minutes on: the held fix stands in, muted and said.
   await pg.evaluate(() => { window.__clockShift = 20 * 60_000; });
@@ -173,7 +184,7 @@ async function run(h) {
   const b6 = await banner();
   const w6 = await walker();
   const t6 = await tiles();
-  check.todo(b6.startsWith('From where you were twenty minutes ago.') && w6.muted === '1' && !!w6.at && !t6.some((t) => /You’re here/.test(t.text)), `YH6: no fresh fix in time, a fix twenty minutes old stands in: said, its dot muted, nothing says "You're here" ("${b6}", ${JSON.stringify(w6)})`);
+  check(b6.startsWith('From where you were twenty minutes ago.') && w6.muted === '1' && !!w6.at && !t6.some((t) => /You’re here/.test(t.text)), `YH6: no fresh fix in time, a fix twenty minutes old stands in: said, its dot muted, nothing says "You're here" ("${b6}", ${JSON.stringify(w6)})`);
   await shots('yh-earlier');
 
   // 7. Left in front past thirty minutes: the stand-in ages out with nothing read.
@@ -182,7 +193,7 @@ async function run(h) {
   await until(async () => !(await walker()).at, 25000);
   await pg.waitForTimeout(800);
   const t7 = await tiles();
-  check.todo(!(await walker()).at && !t7.some((t) => /You’re here/.test(t.text)) && walkWords(t7).length === 0 && !/From where you were/.test(await banner()) && (await calls()) === c7, `YH6: Explore in front 31 minutes after its read: no "You're here", no full dot, no read (${JSON.stringify(t7.slice(0, 2))}; ${(await calls()) - c7} reads)`);
+  check(!(await walker()).at && !t7.some((t) => /You’re here/.test(t.text)) && walkWords(t7).length === 0 && !/From where you were/.test(await banner()) && (await calls()) === c7, `YH6: Explore in front 31 minutes after its read: no "You're here", no full dot, no read (${JSON.stringify(t7.slice(0, 2))}; ${(await calls()) - c7} reads)`);
   await shots('yh-aged');
 
   // 7b. A fix read now, then thirty-one minutes in front: the same, with nothing read.
@@ -194,7 +205,7 @@ async function run(h) {
   await pg.evaluate(() => { window.__clockShift = 31 * 60_000; });
   await until(async () => !(await walker()).at, 25000);
   const t7b = await tiles();
-  check.todo(!(await walker()).at && !t7b.some((t) => /You’re here/.test(t.text)) && (await calls()) === c7b, `YH6: a fix read in front, thirty-one minutes on with no read: no dot, no "You're here" (${JSON.stringify(t7b.slice(0, 2))}; ${(await calls()) - c7b} reads)`);
+  check(!(await walker()).at && !t7b.some((t) => /You’re here/.test(t.text)) && (await calls()) === c7b, `YH6: a fix read in front, thirty-one minutes on with no read: no dot, no "You're here" (${JSON.stringify(t7b.slice(0, 2))}; ${(await calls()) - c7b} reads)`);
 
   // 8. Refused (the site blocked), after a reload: the quiet notice, said; no dot; no walk time; the areas where they were.
   await pg.evaluate(() => { window.__geoHang = false; window.__clockShift = 0; localStorage.setItem('e2e-geo-denied', '1'); });
@@ -204,9 +215,9 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   const b8 = await banner();
   const t8 = await tiles();
-  check.todo(b8.startsWith(LOCATION_OFF_WEB) && (await said()).replace(/​/g, '') === LOCATION_OFF_WEB, `YH4: location refused, Explore says so in the quiet notice, with where to turn it on, said to a screen reader ("${b8}"; "${await said()}")`);
-  check.todo(!(await walker()).at && t8.length > 0 && !t8.some((t) => /You’re here/.test(t.text)), `YH5: refused, no walker dot and nothing says "You're here"; the areas stay listed (${JSON.stringify(t8.slice(0, 2))})`);
-  check.todo(t8.length > 0 && walkWords(t8).length === 0, `YH5: refused, no area says a walk time or distance (${JSON.stringify(t8.slice(0, 3))})`);
+  check(b8.startsWith(LOCATION_OFF_WEB) && (await said()).replace(/​/g, '') === LOCATION_OFF_WEB, `YH4: location refused, Explore says so in the quiet notice, with where to turn it on, said to a screen reader ("${b8}"; "${await said()}")`);
+  check(!(await walker()).at && t8.length > 0 && !t8.some((t) => /You’re here/.test(t.text)), `YH5: refused, no walker dot and nothing says "You're here"; the areas stay listed (${JSON.stringify(t8.slice(0, 2))})`);
+  check(t8.length > 0 && walkWords(t8).length === 0, `YH5: refused, no area says a walk time or distance (${JSON.stringify(t8.slice(0, 3))})`);
   await shots('yh-refused');
   // Each time it comes to the front, until dismissed.
   const s8 = await said();
@@ -214,7 +225,7 @@ async function run(h) {
   await pg.waitForTimeout(600);
   await tabTo(pg, 'explore');
   await until(async () => (await said()) !== s8, 10000);
-  check.todo((await banner()).startsWith(LOCATION_OFF_WEB) && (await said()) !== s8, `YH4: each time Explore comes to the front with location refused it says the notice again ("${await banner()}")`);
+  check((await banner()).startsWith(LOCATION_OFF_WEB) && (await said()) !== s8, `YH4: each time Explore comes to the front with location refused it says the notice again ("${await banner()}")`);
   // The outing page open, the app returns: the page says it, Explore waits (one notice said).
   await pg.click('[data-testid=outing-entry]').catch(() => {});
   await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
@@ -223,7 +234,7 @@ async function run(h) {
   await pg.evaluate(() => window.__away());
   await pg.waitForTimeout(2500);
   const outingSaid = ((await pg.locator('[data-testid=outing-position-said]').textContent().catch(() => '')) ?? '').replace(/​/g, '').trim();
-  check.todo((await said()) === s9 && /^Location is off for this site\./.test(outingSaid), `YH4: outing page open, the app returns refused: one notice said (Explore's region unchanged; the page's "${outingSaid}")`);
+  check((await said()) === s9 && /^Location is off for this site\./.test(outingSaid), `YH4: outing page open, the app returns refused: one notice said (Explore's region unchanged; the page's "${outingSaid}")`);
   await pg.click('[data-testid=outing-close]').catch(() => {});
   await pg.waitForSelector('[data-testid=outing]', { state: 'detached', timeout: 10000 }).catch(() => {});
   await pg.waitForTimeout(1500);
@@ -235,13 +246,13 @@ async function run(h) {
   await tabTo(pg, 'explore');
   await pg.waitForTimeout(2500);
   const b10 = await banner();
-  check.todo(!b10.startsWith(LOCATION_OFF_WEB) && !(await walker()).at, `YH4: a dismissed notice stays dismissed until the next launch, and still no dot ("${b10}")`);
+  check(!b10.startsWith(LOCATION_OFF_WEB) && !(await walker()).at, `YH4: a dismissed notice stays dismissed until the next launch, and still no dot ("${b10}")`);
   await shots('yh-refused-dismissed');
   await pg.reload();
   await pg.waitForSelector('[data-testid=atlas-tile]', { timeout: 60000 }).catch(() => {});
   await until(async () => (await banner()).startsWith(LOCATION_OFF_WEB), 20000);
-  check.todo((await banner()).startsWith(LOCATION_OFF_WEB), `YH4: the next launch says it again ("${await banner()}")`);
-  check.todo((await open()) === 0, `YH3: refused, no watch is left open (${await open()})`);
+  check((await banner()).startsWith(LOCATION_OFF_WEB), `YH4: the next launch says it again ("${await banner()}")`);
+  check((await open()) === 0, `YH3: refused, no watch is left open (${await open()})`);
   await pg.evaluate(() => localStorage.removeItem('e2e-geo-denied'));
   await c.close();
 }
