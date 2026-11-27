@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Lease: /tend-orchestrator's lessons, the review's fixes, the README rows (the owner's skill-creator ask, Nov 27) | `skill/orchestrator-lessons` | holds `.claude/skills/tend-orchestrator/SKILL.md`, `.claude/skills/tend-orchestrator/briefs.md`, `.claude/skills/README.md` from 2026-11-27T20:45Z, lease skill-orchestrator-lessons |\n"
+    }
+  ]
+}
