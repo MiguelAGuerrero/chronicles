@@ -186,4 +186,12 @@ YH1-YH7 on the web build at 390 and 320 px.
 
 ## Record
 
-Started 2026-11-27 under `/tend inbox G17 yes`.
+Built 2026-11-27 under `/tend inbox G17 yes`, tests first (`check:test-first`: 7 of 7). YH1-YH6 and the review's fixes in
+`src/lib/__tests__/moments/currentPosition.test.ts` and `currentPositionAudit.test.ts`; YH1-YH7 in the journey `position`
+(30 checks, green on the web build at 390 and 320 px, pictures `yh-moved`, `yh-earlier`, `yh-five-minutes`, `yh-aged`,
+`yh-refused`, `yh-refused-dismissed`, `yh-town-nofix`). Also green on the same build: `launch`, `atlas`, `ready`, `outing`,
+`planner`, `into`. Deferred: Navigate's ready map's old fix and its focus read's prompt (`docs/DEFERRED.md`, "Navigate,
+ready", `[owner]` low); the review's six lows (`docs/DEFERRED.md`, "Explore atlas", `[loop]` low). Native has never run on
+a device (`docs/NATIVE_UNVERIFIED.md`, "Explore atlas" and "Navigate, ready"). The base it leaves (`node scripts/tend.js
+base --here explore navigation tabs`): explore and tabs still read rough for the changes before this slice (db7c6ba,
+e51f4e9, d14f6fa; 0e9a2e0, 1b4d486), navigation settling: left each no rougher.

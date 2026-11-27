@@ -624,7 +624,6 @@ const RENAMED = {
 };
 
 const IN_PROGRESS = {
-  'current-position': { branch: 'tend/inbox-20261127-2124', since: '2026-11-27' },
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },

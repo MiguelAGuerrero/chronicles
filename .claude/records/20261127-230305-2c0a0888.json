@@ -1,0 +1,94 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] (low) Explore after a drive out of every town never reframes, and a first fix keeps the reader's pick: `reframes` (`src/lib/locate/front.ts`) counts a change only when the town you stand in is listed (`fresh.home` is null outside towns), and a first fix frames without selecting your own town. Fix: once the listing settles, a null town after a non-null one is a change; the first fix selects your own town. Test: `current-position audit 5: a read that leaves every town reframes once its listing settles` (the auditor, G17's diff review, Nov 27; deferred by the coordinator).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] (low) Explore's return read deferred under Plan an outing or the walk planner runs whatever closed the page, and a permission changed to allowed while the page is open is dropped: the `over` effect in `src/app/(tabs)/explore.tsx` replays the read on any close; refused, a return under the outing page then its Start says two notices. Fix: replay only on a plain close, and keep a permission change while the page is open. Test: `current-position audit 6: a refused return under the outing page then Start says one notice` (the auditor, G17's diff review, Nov 27; deferred).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] (low) What Explore says to a screen reader can differ from what it shows: blocked with the empty card, a front still says `LOCATION_OFF` (`sayQuiet` in `readHere`, `src/app/(tabs)/explore.tsx`) while the card shows `BLOCKED_LINE` and no banner; on Android after a first Deny (read as undecided) a later front says nothing. Fix: say what is shown (the card's line when it is the card). Test: `current-position audit 8: blocked with the empty card, what is said is the card's line` (the auditor, G17's diff review, Nov 27, scenarios 1 and 3; deferred).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [loop] (low) \"Open in Maps\" wraps to two lines on Explore's area card at 320 px (the card's footer beside Walk there), against `.claude/rules/ui-patterns.md`, \"Nothing wraps on a 320 px phone at the default text size\"; seen in G17's pictures (`yh-earlier-320`, `yh-refused-320`), not this slice's change. Test: `explore ux: the card footer's labels stay on one line at 320` (the ux-reviewer, G17's diff review, Nov 27; deferred).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "(low) Navigate"
+      ],
+      "body": "  Also open (the steward's Silent 3 at G17's diff review, Nov 27): Navigate's focus read (`useReady.tsx`) is not gated on the permission; while it is undecided each visit to the tab may raise the system prompt. Should it follow Explore's one ask a launch?\n",
+      "target": "sha256:04cb9e488487cbd052ad41e2d08dde8e59f5b0388913b69f9595133aa42dff83"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on an iPhone, set Chronicles' location to \"Allow Once\", open Explore and allow it; leave the app until the permission expires (home, then several minutes), come back on Explore; then set it to \"Ask Next Time\" (iOS 26 and later) and do the same; on Android pick \"Only this time\" and do the same; then open Navigate's ready map and come back to the app there. **Expect:** no system prompt on any return (`locateOnce(…, { ask: false })` reads `getForegroundPermissionsAsync` and reads no fix while undecided); Explore says nothing of location being off, its last fix drawn muted with \"From where you were …\", gone after thirty minutes; Find me or Locate asks when tapped. (YH1, current-position audit 1)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, stand within a hundred metres of a town's or a neighborhood's point (its marker on Explore's map), open Explore, then let the fix age past five minutes in front. **Expect:** the walker's dot, full and then muted (stone), draws over the area's point and its label, never hidden under it (the web draws it as a marker above the area points; MapLibre RN's layer and marker order unverified). (YH1, YH6, current-position audit 8)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "drive a few kilometres with the app in the back"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, with location allowed \"While using\", open Explore at home; drive a few kilometres with the app in the back; unlock and come back to it; then pull Control Center (iOS) or the notification shade (Android) down and up again; then switch to Chronicle and back to Explore; then leave Explore in front, indoors, for thirty-five minutes. **Expect:** coming back reads one fresh fix (`useAppReturn`, `AppState` `background` then `active`): the town you stand in leads, \"You're here\", the map framed there; the pull-down reads nothing; the tab's focus reads once; no location indicator stays on between reads; after five minutes in front the dot turns muted and \"From where you were five minutes ago.\" shows, after thirty the dot and the line go, with nothing read, and the next front reads again. The cost of a high-accuracy fix of up to 10 s at each front, on battery. (YH1, YH3, YH6)\n",
+      "target": "sha256:0cd78fdc67b7ef834588803cef5e89691d77ed0135100ba06bc2285dfffe7a22"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Where you are, now (Explore reads one fresh fix each time it comes to the front, its tab or the app back from the back, and Navigate's ready map on the return; nothing watches between; asked once a launch, never on a return; location refused said quietly at each front until dismissed for the launch; no dot, no \"You're here\", no walk time and \"Around <town>\" without a fix; a fix muted and said \"From where you were …\" after five minutes, gone at thirty; a read reframes only when your town changed; YH1-YH7, decisions 0273, 0275; from G17) | built; native unverified | tests first, then the code, 2026-11-27 (`check:test-first` 7 of 7; the journey `position`, 30 checks) | `specs/current-position/spec.md` | the steward's plan review, 2026-11-27: S1-S5 and S7 accepted, S6 deferred, the owner's four answers (decision 0275); the diff review (auditor, ux-reviewer, steward), 2026-11-27: 16 accepted as current-position audit 1-12 (the auditor's 1 high), the owner's four answers, 6 deferred ([loop] low), 0 rejected |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Where you are, now (a fresh fix"
+      ],
+      "target": "sha256:f6e663089bd2ab74601b2a3168f345a5ba9f6040ab635b6fd73f4ef3bd1c0d84"
+    }
+  ]
+}

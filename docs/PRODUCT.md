@@ -80,10 +80,11 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
 - **Where you are, now** (G17, decisions 0273 and 0275; current-position YH1-YH7): Explore reads one fresh fix each time
   it comes to the front, by its tab or when the app comes back from the back, and nothing watches between; back from a
   drive, the town you stand in leads, "You're here". It reads by itself only while location is allowed, asking once a
-  launch otherwise. With location refused it says so in the quiet notice, with where to turn it on, at each front until
-  dismissed for the launch; with no fix it draws no dot and says no "You're here" or walk time; a fix up to thirty
-  minutes old stands in, its dot muted, "From where you were twenty minutes ago."; any fix ages out past thirty
-  minutes. A read reframes only when your town changed. Navigate's ready map reads on the app's return too.
+  launch otherwise and never on a return. With location refused it says so in the quiet notice, with where to turn it on,
+  at each front until dismissed for the launch; with no fix it draws no dot, says no "You're here" or walk time, frames
+  the town the list leads with and calls the page "Around <town>"; a fix says "You're here" for five minutes, then its
+  dot is muted and the notice slot says "From where you were five minutes ago.", counting on, with no ✕; any fix ages out
+  past thirty minutes. A read reframes only when your town changed. Navigate's ready map reads on the app's return too.
 - **Sights and Local life** (decisions 0200, 0201; SG1-SG13): the card lists the kinds under two headings, **Sights**
   (history, art, culture, green, views: what can turn up as a "?", said in a line under the heading) and **Local life**
   (food, shops, nightlife: every place of its kind, never a "?"); a tile keeps one row with the two groups set apart by
