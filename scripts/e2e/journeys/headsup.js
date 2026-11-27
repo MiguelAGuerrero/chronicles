@@ -119,6 +119,73 @@ async function run(h) {
   await p3.click('[data-testid=nav-end]');
   walkability.mode = 'ok';
   await c3.close();
+
+  // G5 (specs/walkability-car-ground, CG1, CG6, CG7, CG11): the owner's scene. Ground easy on foot meets ground built around
+  // cars east of the start (the harness's 'edge'), its streets and a storefront street on the map; Walkability and
+  // Storefronts on; a walk navigated into it until the heads-up shows. Pictured at 390 and 320 for the reviewers.
+  walkability.mode = 'edge';
+  h.edgeWorld.serve = true;
+  const { c: c4, pg: p4 } = await freshPage('headsup-scene', { touch: true });
+  await c4.addInitScript(() => { window.__perf = {}; });
+  await p4.goto(navUrl);
+  await p4.waitForSelector('[data-testid=start]');
+  await switchLayer(p4, 'walkability');
+  await switchLayer(p4, 'storefronts');
+  await p4.click('[data-testid=start]');
+  await p4.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await c4.setGeolocation({ longitude: at(-0.5, -0.5)[0], latitude: at(-0.5, -0.5)[1] + 0.000002, accuracy: 6 });
+  await p4.waitForTimeout(3000);
+  // A little further out, the walker left of the middle, so the route and the ground it enters are both in view.
+  await p4.mouse.move(195, 420);
+  await p4.mouse.wheel(0, 500);
+  await p4.waitForTimeout(1500);
+  await p4.mouse.move(300, 600);
+  await p4.mouse.down();
+  await p4.mouse.move(180, 600, { steps: 10 });
+  await p4.mouse.up();
+  await p4.waitForTimeout(1200);
+  const [dx, dy] = await p4.evaluate((p) => window.__project(p), at(5, 1.5));
+  await p4.mouse.move(dx, dy);
+  await p4.mouse.down();
+  await p4.waitForTimeout(700);
+  await p4.mouse.up();
+  await p4.click('[data-testid=go-here]');
+  await routed(p4, 30000);
+  // Walking north toward it, a fix every 5 m, until the heads-up is due.
+  for (let k = 1; k <= 20; k++) {
+    const p = at(-0.5, -0.5 + k / 20);
+    await c4.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    await p4.waitForTimeout(1000);
+  }
+  await p4.waitForSelector('[data-testid=walk-ahead]', { timeout: 45000 }).catch(() => {});
+  await p4.waitForTimeout(2000);
+  const cased = async () => Number((await p4.locator('[data-route-car]').first().getAttribute('data-route-car').catch(() => '0')) ?? 0);
+  const sceneWalk = (await p4.locator('[data-walk]').first().getAttribute('data-walk').catch(() => '')) ?? '';
+  check.todo(/^car:[1-9]\d*\|edges:[1-9]\d*$/.test(sceneWalk), `CG1: on the owner's scene only the car ground is drawn, with its edge (${sceneWalk})`);
+  check.todo((await cased()) >= 1, `CG6: with the layer on, the route's stretch in car ground is cased in slate (${await cased()})`);
+  const iconInk = await p4.locator('[data-testid=walk-ahead] [data-testid=walk-band-car] div[dir], [data-testid=walk-ahead] [data-testid=walk-band-car] *').first()
+    .evaluate((e) => getComputedStyle(e).color).catch(() => '');
+  const sceneLine = (await p4.locator('[data-testid=walk-ahead]').innerText().catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
+  check.todo(iconInk === 'rgb(59, 74, 107)' && sceneLine === 'Next: an area built around cars', `CG7: the heads-up's icon is slate, not the accent; its words unchanged (${iconInk}, ${JSON.stringify(sceneLine)})`);
+  check.todo((await p4.evaluate(() => (window.__buzz ?? []).length)) === 0, 'CG8, WH8: nothing buzzed on the owner\'s scene');
+  await shot(p4, 'headsup-scene');
+  await p4.setViewportSize({ width: 320, height: 700 });
+  await p4.waitForTimeout(1200);
+  await shot(p4, 'headsup-scene-320');
+  await p4.setViewportSize({ width: 390, height: 844 });
+  await p4.waitForTimeout(800);
+  await switchLayer(p4, 'walkability', false);
+  await p4.waitForTimeout(1500);
+  check.todo((await cased()) === 0, `CG6: with the layer off, no casing (${await cased()})`);
+  await switchLayer(p4, 'walkability');
+  await p4.waitForFunction(() => Number(document.querySelector('[data-route-car]')?.getAttribute('data-route-car') ?? 0) > 0, null, { timeout: 30000 }).catch(() => {});
+  await p4.click('[data-testid=nav-end]');
+  await p4.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
+  await p4.waitForTimeout(800);
+  check.todo((await cased()) === 0, `CG11: End takes the casing away (${await cased()})`);
+  h.edgeWorld.serve = false;
+  walkability.mode = 'ok';
+  await c4.close();
 }
 
 module.exports = {
@@ -127,6 +194,7 @@ module.exports = {
     'src/lib/walk/{ahead,aheadWatch,useRouteWarning,walkApp,reader,layer}.ts',
     'src/components/WalkBandIcon.tsx',
     'src/app/walk.tsx',
+    'src/lib/walk/carGround.ts',
   ],
   run,
 };

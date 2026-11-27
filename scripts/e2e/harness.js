@@ -192,6 +192,46 @@ for (const gx of GRID) wkSeg(`v${gx}`, { class: 'residential', speed_limits: mph
 wkConn('far-w', at(14, -2)); wkConn('far-e', at(26, -2));
 wkSeg('far-a', { class: 'primary', '@name': 'Route 6', speed_limits: mph(55) }, at(14, -2), at(26, -2), ['far-w', 'far-e']);
 wkSeg('far-b', { class: 'primary', '@name': 'Route 7', speed_limits: mph(55) }, at(14, 3), at(26, 3), []);
+// G5's scene ('edge'): ground easy on foot meeting ground built around cars a few hundred metres east of the start, so a
+// route from the start runs out of the one into the other (the owner's scene, docs/research/walkability-car-ground.md). West,
+// a residential grid 100 m apart with a connector at every crossing; east of it, arterial streets at 25 mph with none.
+const edgeFeatures = [];
+{
+  const seg = (id, props, a, b, ids) => edgeFeatures.push({
+    type: 'Feature', properties: { id, subtype: 'road', ...props, connectors: JSON.stringify(ids.map((c, k) => ({ connector_id: c, at: k }))) },
+    geometry: { type: 'LineString', coordinates: [a, b] },
+  });
+  for (let gx = -12; gx <= 0; gx++) for (let gy = -12; gy <= 12; gy++) edgeFeatures.push({ type: 'Feature', properties: { id: `e${gx}_${gy}` }, geometry: { type: 'Point', coordinates: at(gx, gy) } });
+  for (let gy = -12; gy <= 12; gy++) for (let gx = -12; gx < 0; gx++) seg(`eh${gx}_${gy}`, { class: 'residential', speed_limits: mph(25) }, at(gx, gy), at(gx + 1, gy), [`e${gx}_${gy}`, `e${gx + 1}_${gy}`]);
+  for (let gx = -12; gx <= 0; gx++) for (let gy = -12; gy < 12; gy++) seg(`ev${gx}_${gy}`, { class: 'residential', speed_limits: mph(25) }, at(gx, gy), at(gx, gy + 1), [`e${gx}_${gy}`, `e${gx}_${gy + 1}`]);
+  const art = { class: 'primary', speed_limits: mph(25) };
+  // The arterials run on for 4 km east, north and south, past the edge of what a read takes in, so the hatch meets it.
+  const across = [-1.5, -0.5, 0.5, 1.5];
+  for (let y = -39; y <= 39; y += 3) across.push(y);
+  across.forEach((y, k) => { for (let x = 0.5; x < 40; x += 1) seg(`ea${k}_${x}`, { ...art, '@name': names[k] ?? `Arterial ${k}` }, at(x, y), at(Math.min(40, x + 1), y), []); });
+  const up = [1.5, 2.5, 3.5];
+  for (let x = 6; x <= 39; x += 3) up.push(x);
+  up.forEach((x, k) => { for (let y = -40; y < 40; y += 1) seg(`eb${k}_${y}`, art, at(x, y), at(x, y + 1), []); });
+}
+// The same scene's streets on the base map (so a route runs on into the car ground, and the hatch is seen over streets and
+// their names), and a storefront street crossing into it, as in the owner's picture; served only while `edgeWorld.serve`.
+const edgeWorld = { serve: false };
+const edgeBase = [];
+{
+  const line = (props, a, b) => edgeBase.push({ type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: [a, b] } });
+  for (let gy = -12; gy <= 12; gy++) line({ class: 'minor' }, at(-12, gy), at(-2, gy));
+  for (let gx = -12; gx <= -2; gx++) line({ class: 'minor' }, at(gx, -12), at(gx, 12));
+  const across = { '-12': 'Ernest Street', '-9': 'Eddy Street', '-6': 'Point Street', '-3': 'Tockwotton Street', '3': 'Power Street', '6': 'Waterman Street', '9': 'Benefit Street', '12': 'Olney Street' };
+  for (let y = -39; y <= 39; y += 3) line({ class: 'primary', ...(across[String(y)] ? { name: across[String(y)] } : {}) }, at(0.5, y), at(40, y));
+  [-1.5, -0.5, 0.5, 1.5].forEach((y, k) => line({ class: 'primary', name: names[k] }, at(4, y), at(40, y)));
+  const up = { '1.5': 'Hope Street', '2.5': 'Governor Street', '3.5': 'Ives Street', '6': 'Gano Street', '9': 'Seekonk Street' };
+  for (const x of [1.5, 2.5, 3.5]) { line({ class: 'primary', name: up[String(x)] }, at(x, -40), at(x, -2)); line({ class: 'primary', name: up[String(x)] }, at(x, 2), at(x, 40)); }
+  for (let x = 6; x <= 39; x += 3) line({ class: 'primary', ...(up[String(x)] ? { name: up[String(x)] } : {}) }, at(x, -40), at(x, 40));
+  for (let i = 0; i <= 12; i++) {
+    const [cls, sub] = i % 2 ? ['cafe', 'cafe'] : ['shop', 'gift'];
+    edgeBase.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `Williams ${i}` }, geometry: { type: 'Point', coordinates: at(0.6 + i * 0.25, 1.5 + (i % 2 ? 0.15 : -0.15)) } });
+  }
+}
 // The Overpass answer for the same ground, for when Overture can't be read (WK1b).
 const overpassAnswer = { elements: [
   { type: 'way', id: 1, tags: { highway: 'secondary', 'sidewalk:both': 'no', maxspeed: '35 mph', name: 'Route 6' }, geometry: [{ lat: at(0, 3)[1], lon: at(-2, 3)[0] }, { lat: at(0, 3)[1], lon: at(2, 3)[0] }] },
@@ -642,7 +682,7 @@ async function createHarness() {
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : []), ...(denseWorld.serve ? denseFeatures : []), ...(smallWorld.serve ? smallFeatures : [])], z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : []), ...(wholeWorld.serve ? wholeFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : []), ...(denseWorld.serve ? denseFeatures : []), ...(smallWorld.serve ? smallFeatures : []), ...(edgeWorld.serve ? edgeBase : [])], z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -727,6 +767,7 @@ async function createHarness() {
     type: 'Feature', geometry: f.geometry,
     properties: { id: `slow-${i}`, subtype: 'road', class: 'primary', ...(f.properties.name ? { '@name': f.properties.name } : {}), speed_limits: mph(25) },
   })));
+  const edgeArchive = transportArchiveOf(edgeFeatures);
   const overtureAsked = [];
   const overpassAsked = [];
   const overpassRoute = async (r) => {
@@ -747,7 +788,7 @@ async function createHarness() {
       ? (complexWorld.serve ? complexPlacesArchive : overtureArchive)
       : url.pathname === `/tiles/${OVERTURE_RELEASE}/buildings.pmtiles` ? (complexWorld.serve ? buildingsArchive : noBuildings)
       : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (divisions.serve ? (snapWorld.serve ? snapDivisionsArchive : divisionsArchive) : noDivisions)
-        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (walkability.mode === 'ok' ? transportArchive : walkability.mode === 'grid' ? gridTransportArchive : walkability.mode === 'arterial' ? gridSlowArchive : Buffer.alloc(200, 7)) : null;
+        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (walkability.mode === 'ok' ? transportArchive : walkability.mode === 'grid' ? gridTransportArchive : walkability.mode === 'arterial' ? gridSlowArchive : walkability.mode === 'edge' ? edgeArchive : Buffer.alloc(200, 7)) : null;
     if (archive) {
       const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
       const from = m ? Number(m[1]) : 0;
@@ -883,7 +924,7 @@ async function createHarness() {
   });
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, toStop, iconOf, metricRegion, pressedScale, metaOf, drawerTo, openInto, closeInto, intoScrollTo, intoSettled, tabTo, toThreads, toJournal, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, wholeWorld, walkability, edgeWorld, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, complexWorld, bareMapPoint, denseWorld, DENSE_HOODS, smallWorld, SMALL_TOWN, SMALL_HOODS,
   };
 }
 

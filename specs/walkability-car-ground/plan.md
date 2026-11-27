@@ -1,8 +1,9 @@
 # Walkability: only the car ground, hatched, and its stretch on the route: the plan (CG1-CG11)
 
 Built under `/tend inbox G5 yes` (`/slice walkability-car-ground --from=G5`): read by the steward, not held for the owner.
-The look is the owner's pick of 2026-11-27 ("A (Recommended)"), and the icon's reach theirs too ("Everywhere
-(Recommended)"); decision 0271 records both. No migration, no stored field, no new route, no host, no derivation bump:
+The look is the owner's pick of 2026-11-27 ("A (Recommended)", then "Too 'keep out'", then "Soft A2 (Recommended)"),
+the read's edge theirs ("Fade over ~100 m (Recommended)"), and the icon's reach ("Everywhere (Recommended)"); decision
+0271 records them. No migration, no stored field, no new route, no host, no derivation bump:
 the cells, their rule (`walk/form.ts`, `walk/cells.ts`) and `WALK_CODE` are untouched; only their drawing changes, and it
 is computed on read, never stored. No new dependency: `react-native-svg` (the legend's swatch) and `fflate` (the native
 hatch image's PNG) are already in `package.json`.
@@ -26,38 +27,47 @@ A warning only: the slice builds its own criteria and takes none of those items 
   270 m of it, whichever read it came from (UF1's "the same cell reads the same", for the drawing). Rings start at their
   smallest lattice crossing, so the same cells give the same rings.
 - **The edge** (CG4): the outline's runs whose two lattice points were both read; where the outline meets ground nobody
-  read (the edge of the 1.5 km read) it is not lined, and the hatch stops there, at the last point that was read.
+  read (the edge of the 1.5 km read) it is not lined.
+- **The fade** (CG4, the owner's "Fade over ~100 m"): a chamfer distance from every lattice point to the nearest point
+  nobody read; the car ground is cut by it into six pieces that do not overlap, whole beyond 100 m and five steps of 20 m
+  toward the read's edge, each drawn fainter (`kind` 'area-1' to 'area-5', 5/6 down to 1/6 of the hatch's strength), and
+  the edge line the same. The pattern fill draws without antialiasing, so the steps meet with no hairline.
 - **The hatch** (`walk/hatch.ts`, new, core): one tile that repeats with no seam (lines corner to corner of a tile of
   `run` by `rise`), its pixels from the look, four by four samples a pixel for a soft line edge; the web map's
   `addImage` takes it at the screen's pixel ratio (1 to 3). The look is `WALK_STYLE.car` in `components/map/types.ts`:
-  `{ run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.5, lineOpacity: 0.55, edgeWidthPx: 2, edgeOpacity: 0.85, color:
-  '#3b4a6b' }` (CG2). `hatchPng(look, ratio)` (core, `fflate`'s zlib) encodes the same pixels as a PNG for the native map.
-- **The route's casing** (CG6): `aheadWatch`'s store gains `runs`, the route's stretches as found (both kinds: a fast
-  road and an area run, `mergeStretches`), set with them and cleared on a new route, End or the layer off. `stretchLines`
-  (core, `ahead.ts`) cuts the route's own points between each run's `fromM` and `toM`. `useCarRoute` (view, beside
-  `useRouteWarning`) hands the walk's map `carRoute` while the layer is on; a route preview hands none. The map draws it
+  `{ run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.6, color:
+  '#3b4a6b' }` (CG2, Soft A2). MapLibre scales a fill pattern by up to two times between whole zoom levels, so the 9 px
+  is exact at a whole zoom and wider between; the owner's pictures showed it so. `swatchLines(look, size)` places the
+  legend's lines half a step off the diagonal: two lines, none corner to corner (S4). `hatchPng(look, ratio)` (core, `fflate`'s zlib) encodes the same pixels as a PNG for the native map.
+- **The route's casing** (CG6): `aheadWatch`'s store gains `runs`, the route's runs of car ground alone
+  (`areaStretches`, 300 m or more, unmerged: a fast road on plain ground is never cased; the steward's S1), set with the
+  stretches and cleared on a new route, End or the layer off. `stretchLines` (core, `ahead.ts`) cuts the route's own
+  points between each run's `fromM` and `toM`; `insideCarGround` (core, `carGround.ts`) cuts those lines again to the
+  drawn car ground (any fade step), walking them in 5 m steps and finding each crossing by halving, so a casing begins
+  and ends within a metre of the hatch's edge (the steward's S3); `casingLines` composes the two. `useCarRoute` (view,
+  beside `useRouteWarning`) hands the walk's map `carRoute` while the layer is on; a route preview hands none. The map draws it
   as a slate line 14 px wide over the route's white edge (12 px) and under the route (8 px): 3 px of slate each side.
 
 ## Files
 
 | File | Change |
 |---|---|
-| `src/lib/walk/carGround.ts` (new, core) | `carGroundOf(cells)`: the areas, the edges and a key (CG1, CG3, CG4, CG9). |
-| `src/lib/walk/hatch.ts` (new, core) | `HatchLook`, `hatchTile`, `hatchImage` (RGBA), `hatchPng` (CG2, CG10). |
+| `src/lib/walk/carGround.ts` (new, core) | `carGroundOf(cells)`: the areas in their fade steps, the edges and a key (CG1, CG3, CG4, CG9); `insideCarGround(lines, ground)` (CG6). |
+| `src/lib/walk/hatch.ts` (new, core) | `HatchLook`, `hatchTile`, `hatchImage` (RGBA), `hatchPng` (CG2, CG10), `swatchLines` (CG5). |
 | `src/lib/walk/tint.ts` | Removed: `tintOf` (two tints by rows) has no caller left; its tests move to `carGroundOf` (UF9, UF12). |
 | `src/lib/walk/useWalkability.ts` | Draws `carGroundOf(cells)`; `Walkability.draw` is a `CarGround`. |
 | `src/lib/walk/ahead.ts` | `stretchLines(path, stretches)` (CG6, CG8). |
-| `src/lib/walk/aheadWatch.ts` | The store's `runs`, set with the stretches, cleared with them (CG6, CG11). |
-| `src/lib/walk/useRouteWarning.ts` | `useCarRoute(route, enabled)` (CG6). |
+| `src/lib/walk/aheadWatch.ts` | `stretches(route, list, runs)`: the store's `runs`, the area runs alone, set with the stretches, cleared with them (CG6, CG11). |
+| `src/lib/walk/useRouteWarning.ts` | Hands the watch the area runs beside the merged list; `useCarRoute(route, enabled, ground)` (CG6). |
 | `src/components/map/types.ts` | `WALK_SLATE`, `WALK_STYLE.car` (the owner's look), `WALK_HATCH`, `ROUTE_CAR_WIDTH`; `walkabilityGeoJSON` hands areas and edges with a `kind` and nothing else (CG9); `carRouteGeoJSON`; the `carRoute` prop. |
-| `src/components/map/WalkMap.web.tsx` | The hatch image, `walk-car` (fill-pattern) and `walk-car-edge` (line) in place of `walk-foot` and `walk-car`; `route-car` between `route-edge` and `route`; `data-walk` reads `car:<areas>|edges:<n>`, `data-route-car` the casing's lines, for the e2e. |
+| `src/components/map/WalkMap.web.tsx` | The hatch image, `walk-car` (fill-pattern, faded by `kind`, no antialiasing) and `walk-car-edge` (line, faded the same) in place of `walk-foot` and `walk-car`; `route-car` between `route-edge` and `route`; `data-walk` reads `car:<areas>|edges:<n>`, `data-route-car` the casing's lines, for the e2e. |
 | `src/components/map/WalkMap.native.tsx` | The same layers: `<Images>` with the committed hatch PNGs, `fillPattern`, the edge line, the `route-car` line (CG10; never run on a device). |
 | `assets/map/walk-hatch.png`, `@2x`, `@3x` (new) | `hatchPng(WALK_STYLE.car, 1..3)`, byte for byte; a unit test fails when the look changes and they do not. |
 | `src/components/HatchSwatch.tsx` (new, view) | The legend's swatch: the look's lines in SVG at the same angle, spacing, width and strength, centred (CG5). |
 | `src/components/LayersControl.tsx` | The car swatch is the hatch with the edge as its border; the foot swatch goes. |
 | `src/lib/layers/registry.ts` | Walkability's legend: one row, "Built around cars" (CG5); `SwatchKey` loses `foot`. |
 | `src/components/WalkBandIcon.tsx` | The car icon in `WALK_SLATE`, not `theme.accent` (CG7; the foot and mixed icons unchanged). |
-| `src/app/walk.tsx` | `useCarRoute`, and `carRoute` to the map but on a preview (CG6). |
+| `src/app/walk.tsx` | `useCarRoute` with the drawn ground, and `carRoute` to the map but on a preview (CG6). |
 
 Fourteen source files and three images. Tests, journeys, the harness and the records are apart.
 
@@ -74,7 +84,7 @@ Unit tests in `src/lib/__tests__/walkability/` (feature `walkability`) unless na
 | Id | Unit test | Journey check |
 |---|---|---|
 | CG1 | `walkCarGround.test.ts`: "CG1: only car cells are drawn: foot, neither and empty cells draw nothing" | walkability: "CG1: the dense grid around you draws nothing, the sparse arterials east of it are drawn as car ground" (Explore and Navigate); headsup: the owner's scene pictured at 390 and 320 (the steward judges the finding against the owner's words) |
-| CG2 | `walkHatch.test.ts`: "CG2: the hatch is the owner's look: 45 degrees, 9 px apart, 1.5 px at 55%, one slate, clear between the lines, seamless"; "CG2: no red or orange: every colour the layer draws is the slate" | walkability: "CG2: the car ground is a pattern with an edge line, in slate" (the map's paint read back) |
+| CG2 | `walkHatch.test.ts`: "CG2: the hatch is the owner's look: 45 degrees, 9 px apart, 1.5 px at 55%, one slate, clear between the lines, seamless"; "CG2: no red or orange: every colour the layer draws is the slate" | the owner's scene pictured (`headsup-scene`, `headsup-scene-320`) |
 | CG3 | `walkCarGround.test.ts`: "CG3: neighbouring car cells are one area"; "CG3: a stair of cells is drawn as one slope, no 250 m step"; "CG3: corners round"; "CG3: deterministic: the same cells in any order, or read with other tiles around them, draw the same"; "CG3: the cost grows with the cells, not their square" | |
 | CG4 | `walkCarGround.test.ts`: "CG4: the edge is drawn where car ground meets read ground, never along the read's edge" | |
 | CG5 | `src/lib/__tests__/layers/`: "CG5: Walkability's legend is one row, Built around cars, its swatch the hatch" | walkability: "CG5: the legend has one row, its swatch the hatch in slate with its edge, its icon slate" |
@@ -84,15 +94,24 @@ Unit tests in `src/lib/__tests__/walkability/` (feature `walkability`) unless na
 | CG9 | `walkTint.test.ts` (UF12, moved): "CG9, UF12: the map is handed areas and edges with a kind and nothing else: no number" | |
 | CG10 | `walkHatch.test.ts`: "CG10: the native map's hatch images are the web's pixels" (the committed PNGs decode to `hatchImage`); `docs/NATIVE_UNVERIFIED.md` items | `UNTESTED`: `device:` the native drawing |
 | CG11 | `walkCarGround.test.ts`: "CG11: no car cell draws nothing"; `walkCasing.test.ts`: "CG11: no stretch, no casing" | walkability: WK13, ML2 as today (off draws nothing and reads nothing); headsup: "CG11: End takes the casing away" |
+| audit 1 (S1) | `walkCasing.test.ts`: "walkability-car-ground audit 1: only runs of car ground are cased: a fast road on plain ground is not, an area run under a fast road still is"; `walkAheadWatch.test.ts`: "walkability-car-ground audit 1: the watch's runs are the area runs it is given, not the merged stretches" | |
+| audit 2 (S2) | `walkCarGround.test.ts`: "walkability-car-ground audit 2: toward the read's edge the hatch fades over 100 m in steps, never a straight cut" | the owner's scene's pictures |
+| audit 3 (S3) | `walkCasing.test.ts`: "walkability-car-ground audit 3: a casing begins and ends within 25 m of the drawn car ground's edge"; "walkability-car-ground audit 3: a crossing of car ground under 300 m is uncased" | |
+| audit 4 (S4) | `walkHatch.test.ts`: "walkability-car-ground audit 4: the swatch draws two lines, none corner to corner" | walkability: the legend picture |
 | UF9, UF10, UF11 | `walkTint.test.ts` moved to the new drawing (UF9 now "only car ground, one area, no seam"; UF11's Allentown check: the car ground drawn, the foot ground not) | walkability's existing checks rewritten from `foot:N|car:M` to `car:N` |
+
+Existing checks this changes: `layers` (ML5, ML3: `data-walk` read as `foot:N|car:M`), `walkability` (UF9, UF11, WK20,
+WK13, UF10, WK1b: the same and the legend's two rows), `walkAudit.test.ts` (`tintOf`'s key and empty drawing, walkability
+audit 13, moved to `carGroundOf`), `layersAudit.test.ts` (walkability audit 15: two tints of one hue, now the one slate
+apart from the accent and the borders).
 
 The cells' rule and the card's words (CG1): the existing `walkForm`, `walkSummary` and `walkAudit` tests, untouched, and
 a scratchpad differential over the five real fixtures (`walkFixtures.json`, Overture's own tiles): each cell's band and
 each place's card words on `main` and on this branch, every difference printed (none expected), not committed.
 
 **Size of the testing** (`docs/TESTING.md`, "Size the testing to the change"): flow. The journeys `walkability` (about 2
-min) and `headsup` (about 3 min), each once at the end, plus `launch` as the smoke; `layers` holds no check of the
-walkability legend's rows (grep: `layer-swatch-foot` is only in `walkability`), so it is not run. The `headsup` journey
+min), `headsup` (about 3 min) and `layers` (it reads `data-walk`'s old form, ML3 and ML5), each once at the end, plus
+`launch` as the smoke. The `headsup` journey
 gains the owner's scene (the `edge` mode of the harness: a residential grid meeting arterials, a navigated route into
 it, the walker walking toward it until the heads-up shows), pictured at 390 and 320.
 
@@ -143,8 +162,9 @@ read as a line.
 `npm run expectations -- due walkability`: walkability has no line. Drafted for the steward, then for the owner at the
 run's close (provisional in this run):
 
-1. A person who goes out to notice, using the Walkability layer, would reasonably expect to see at a glance, on the map
-   around them, which ground is built around cars, without opening a key. Check: the walkability journey's CG1 check.
+1. A person who goes out to notice, using the Walkability layer, would reasonably expect, on a walk they are navigating,
+   to see at a glance on the map around them which ground is built around cars and where their way enters it, without
+   opening a key (the steward's S5: Explore has no words for the hatch, so the line holds the navigated scene). Check: the walkability journey's CG1 check.
    Grounds: VISION "Who it is for"; adjacent-apps "Mark ground that is hard on foot" (aviation charts, AccessMap;
    unverified). Serves: Earn; upholds "Guidance is structural": the ground is described, not judged.
 2. … would reasonably expect a route that enters ground built around cars to show, on its own line, where it does,
@@ -153,3 +173,20 @@ run's close (provisional in this run):
 3. … would reasonably expect an area's card to say in words how its ground is built, never as a score. Check: the
    walkability journey's "WK11, UF13, UF14" check. Grounds: VISION "Who it is for"; VISION Never, "Scores …"; not yet
    recorded (how adjacent apps describe a neighbourhood's streets). Serves: Earn.
+
+## The steward's plan review (Nov 27)
+
+Aligned with changes; triaged by the run's coordinator, the owner answering three questions in person (spec, Decisions):
+accepted 5, the owner's 3, rejected 0.
+
+- **S1 high, accepted** (audit 1): the casing came from the merged stretches, so a fast road on plain ground would be
+  cased and an area under a fast road dropped. Now the area runs alone.
+- **S2 medium, the owner's**: the hatch stopped in a straight cut at the read's edge. "Fade over ~100 m (Recommended)"
+  (audit 2).
+- **S3 medium, accepted** (audit 3): runs follow 250 m cells and the hatch a smoothed outline, so the casing could start
+  short of the hatch. Now cut to the drawn ground; the 300 m floor said in CG6.
+- **S4 low, accepted** (audit 4): the swatch read as a slashed box. Now two lines, none corner to corner.
+- **S5 low, accepted**: expectation line 1 limited to the navigated scene.
+- **Quiet default, accepted**: Explore pictured at its own zoom over car-heavy ground among the soft candidates.
+- **Silent 1, the owner's**: "Too 'keep out'": the look picked again, "Soft A2 (Recommended)".
+- **Silent 2, the owner's**: "Unread should differ": an `[owner]` entry filed by the run's record; out of this slice.
