@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Lease: /tend's lessons in reference files, traps listed (the owner's skill-creator ask, Nov 27) | `skill/tend-lessons` | holds `.claude/skills/tend/SKILL.md`, `.claude/skills/tend/traps.md`, `.claude/skills/tend/inbox.md`, `.claude/skills/tend/evolve.md`, `.claude/skills/tend/runlog.md`, `.claude/skills/ship.md`, `.claude/skills/investigate/SKILL.md`, `.claude/skills/tend-orchestrator/briefs.md` from 2026-11-27T19:00Z, lease skill-tend-lessons |\n"
+    }
+  ]
+}
