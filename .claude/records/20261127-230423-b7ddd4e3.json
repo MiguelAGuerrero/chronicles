@@ -1,0 +1,81 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "G16"
+      ],
+      "body": "  The owner, in person, 2026-11-27, to \"Which entries do you say yes to?\": \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\"; to \"If you picked several, which is built first?\": \"G17 first (Recommended)\". A yes; waits for the next /tend inbox (G17 built first, one build per run).\n",
+      "target": "sha256:303ca42fd39aafa481700447d5181e3364e5efdae6ee61eba6a723347e32c717"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T67"
+      ],
+      "body": "  The owner, in person, 2026-11-27, to \"Which entries do you say yes to?\": \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\"; to \"If you picked several, which is built first?\": \"G17 first (Recommended)\". A yes; waits for the next /tend inbox (G17 built first, one build per run).\n",
+      "target": "sha256:f2062e55fa6e239bbb2dc8c91e7390035b4d88ff8099b6a47ba9c5ed0eae6ccc"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T68"
+      ],
+      "body": "  The owner, in person, 2026-11-27, to \"Which entries do you say yes to?\": \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\"; to \"If you picked several, which is built first?\": \"G17 first (Recommended)\". A yes; waits for the next /tend inbox (G17 built first, one build per run).\n",
+      "target": "sha256:9eae994e1c21c09a84da9d9da9448ff0db4639d0153258aa5d82109e1cf93f9a"
+    },
+    {
+      "argv": [
+        "inbox",
+        "note",
+        "T69"
+      ],
+      "body": "  The owner, in person, 2026-11-27, to \"Which entries do you say yes to?\": \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\"; to \"If you picked several, which is built first?\": \"G17 first (Recommended)\". A yes; waits for the next /tend inbox (G17 built first, one build per run).\n",
+      "target": "sha256:fe50c52bab96896e76aabeaa1f29f19f7487de5904a56404bff5aecfd6f0671a"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G17",
+        "--reason",
+        "the owner's yes, in person, 2026-11-27, to \"Which entries do you say yes to?\": \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\", and to \"If you picked several, which is built first?\": \"G17 first (Recommended)\"; built as specs/current-position (YH1-YH7, decisions 0273, 0275), with the owner's answers in person at the plan's review, \"No walk time (Recommended)\", \"Age it out (Recommended)\", \"Keep the pick (Recommended)\", \"Next launch (Recommended)\", and at the diff's review, \"After 5 minutes (Recommended)\", \"No ✕ on that line (Recommended)\", \"\\\"Around <town>\\\" (Recommended)\", \"Quiet, old fix ages (Recommended)\""
+      ],
+      "target": "sha256:8e66388b7b2da970fcec3f49492fa5f93bf29ae2409e93ddc10bfb7d90221029"
+    },
+    {
+      "argv": [
+        "open",
+        "add"
+      ],
+      "body": "- **NV16 and NV17 in the concept doc after G17** (Nov 27; decisions 0273, 0275, specs/current-position). The repo's mirror `specs/navigation-and-tabs/spec.md` (last exported Nov 3) now carries both amended, with \"Was:\"; the doc's \"Navigation & tabs (spec draft)\" tab still says the old, and wins a re-export. The wording for the doc: NV16, \"Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it reads one fresh fix each time it comes to the front (its tab's focus, or the app's return to the front), by itself while location is allowed and asking only at its first front in a launch, and lists and frames from it; between reads nothing watches. With no fix read it lists where it last listed, drawing no dot and saying no walk time from you.\" NV17, append to \"re-read each time the tab comes to the front\": \"and when the app returns to the front while location is allowed\". The doc is the owner's to change.\n"
+    },
+    {
+      "argv": [
+        "slice",
+        "row",
+        "set",
+        "Where you are, now (Explore reads one fresh fix"
+      ],
+      "body": "| Where you are, now (Explore reads one fresh fix each time it comes to the front, its tab or the app back from the back, and Navigate's ready map on the return; nothing watches between; asked once a launch, never on a return; location refused said quietly at each front until dismissed for the launch; no dot, no \"You're here\", no walk time and \"Around <town>\" without a fix; a fix muted and said \"From where you were …\" after five minutes, gone at thirty; a read reframes only when your town changed; YH1-YH7, decisions 0273, 0275; from G17) | built; native unverified | tests first, then the code, 2026-11-27 (`check:test-first` 7 of 7; the journey `position`, 30 checks) | `specs/current-position/spec.md` | the steward's plan review, 2026-11-27: S1-S5 and S7 accepted, S6 deferred, the owner's four answers (decision 0275); the diff review (auditor, ux-reviewer, steward), 2026-11-27: 16 accepted as current-position audit 1-12 (the auditor's 1 high), the owner's four answers, 6 deferred ([loop] low), 0 rejected; audit 13, the run's own regression found by the atlas journey |\n",
+      "target": "sha256:86248e9017a2a04851b6ea1e6b117b74974ed5b6d0c14f4210d140bc4ff44214"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 27, `/tend inbox G17 yes`: where you are, now, a fresh fix when Explore or Navigate comes to the front, location off said** (opened from `02a5fd04`; G17, \"Where you are, now: a fresh fix when Explore or Navigate comes to the front, location off said\", the owner's yes in person, Nov 27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\", built first: \"G17 first (Recommended)\"; built as `specs/current-position`, YH1-YH7, decisions 0273, 0275; an inbox run, so lenses 1-7 were not run).\n- Built: Explore reads one fresh fix at each front (its tab, the app back from the back) and Navigate's ready map on the return, nothing watching between, each read ended by its fix, its timeout or the screen leaving; asked once a launch, never on a return (\"Allow Once\" expired reads nothing); refused, the quiet notice at each front until dismissed for the launch; no fix, no dot, no \"You're here\", no walk time, \"Around <town>\" and the leading town framed; a fix muted and said \"From where you were …\" after five minutes, no ✕, gone at thirty; a read reframes only when your town changed; the dot drawn over a town's point (web).\n- The owner's answers in person, Nov 27: at the plan's review \"No walk time (Recommended)\", \"Age it out (Recommended)\", \"Keep the pick (Recommended)\", \"Next launch (Recommended)\"; at the diff's review \"After 5 minutes (Recommended)\", \"No ✕ on that line (Recommended)\", \"\\\"Around <town>\\\" (Recommended)\", \"Quiet, old fix ages (Recommended)\" (decision 0275).\n- Reviews: the steward on the plan, S1-S5 and S7 accepted, S6 deferred; the diff, one round, the auditor, the ux-reviewer and the steward: 16 accepted as current-position audit 1-12 (the auditor's 1 high), 6 deferred, 0 rejected; audit 13, a regression of audit 5 found by the atlas journey, fixed (the line now under \"Looking around…\").\n- Waiting, the owner's yes noted on each for the next `/tend inbox`: G16 (forgotten stop), T67, T68, T69 (walkability). The \"TF27 follow-up\" is no inbox entry: it waits on the owner's manual places build publishing a fixtures pack.\n- Filed: `docs/DEFERRED.md`, \"Navigate, ready\", `[owner]` low (Navigate's ready map draws an old fix as you; its focus read is not gated on the permission); \"Explore atlas\", four `[loop]` low (the auditor's 5, 6, 8, the ux-reviewer's 7); `docs/NATIVE_UNVERIFIED.md`, five device checks; \"Open before the loop\", NV16 and NV17's wording for the concept doc.\n- Checks: typecheck, lint, `npm test`, `check:docs`, `check:test-first` (7 of 7), `check:records`, `commits --loop-only`. Journeys: position, launch, atlas, ready, outing, planner, into. The weekly full pass (due since Nov 23) was not run.\n- Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 27, `/tend inbox G17 yes`: where you are, now, a fresh fix when Explore or Navigate comes to the front, location off said** (opened from `02a5fd04`; G17, \"Where you are, now: a fresh fix when Explore or Navigate comes to the front, location off said\", the owner's yes in person, Nov 27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\", built first: \"G17 first (Recommended)\"; built as `specs/current-position`, YH1-YH7, decisions 0273, 0275; an inbox run, so lenses 1-7 were not run).\n- Built: Explore reads one fresh fix at each front (its tab, the app back from the back) and Navigate's ready map on the return, nothing watching between, each read ended by its fix, its timeout or the screen leaving; asked once a launch, never on a return (\"Allow Once\" expired reads nothing); refused, the quiet notice at each front until dismissed for the launch; no fix, no dot, no \"You're here\", no walk time, \"Around <town>\" and the leading town framed; a fix muted and said \"From where you were …\" after five minutes, no ✕, gone at thirty; a read reframes only when your town changed; the dot drawn over a town's point (web).\n- The owner's answers in person, Nov 27: at the plan's review \"No walk time (Recommended)\", \"Age it out (Recommended)\", \"Keep the pick (Recommended)\", \"Next launch (Recommended)\"; at the diff's review \"After 5 minutes (Recommended)\", \"No ✕ on that line (Recommended)\", \"\\\"Around <town>\\\" (Recommended)\", \"Quiet, old fix ages (Recommended)\" (decision 0275).\n- Reviews: the steward on the plan, S1-S5 and S7 accepted, S6 deferred; the diff, one round, the auditor, the ux-reviewer and the steward: 16 accepted as current-position audit 1-12 (the auditor's 1 high), 6 deferred, 0 rejected; audit 13, the stand-in's line, with no ✕, ranked over a look in progress, now under \"Looking around…\" (made when atlas went red at look-cancel; that red is the known flake, red the same way on main's own export).\n- Waiting, the owner's yes noted on each for the next `/tend inbox`: G16 (forgotten stop), T67, T68, T69 (walkability). The \"TF27 follow-up\" is no inbox entry: it waits on the owner's manual places build publishing a fixtures pack.\n- Filed: `docs/DEFERRED.md`, \"Navigate, ready\", `[owner]` low (Navigate's ready map draws an old fix as you; its focus read is not gated on the permission); \"Explore atlas\", four `[loop]` low (the auditor's 5, 6, 8, the ux-reviewer's 7); `docs/NATIVE_UNVERIFIED.md`, five device checks; \"Open before the loop\", NV16 and NV17's wording for the concept doc.\n- Checks: typecheck, lint, `npm test`, `check:docs`, `check:test-first` (7 of 7), `check:records`, `commits --loop-only`. Journeys: position, launch, atlas, ready, outing, planner, into; launch failed once in a batch (green alone, a known flake); atlas red at look-cancel after the review's fixes, red the same way on main's own export (the known flake). The weekly full pass (due since Nov 23) was not run.\n- Nothing here has run on a phone.\n"
+    }
+  ]
+}
