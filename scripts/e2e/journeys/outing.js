@@ -710,30 +710,46 @@ async function run(h) {
 
 /**
  * fix outing-current-position (decision 0273; OJ10, QC30): the page reads one fresh fix of its own as it opens, never Explore's
- * launch fix. Launched at Curio Row, the phone moves 4 km: the page is where the phone is now. With no fresh fix in time (the
- * browser's watch made to hang) the launch fix stands in while under thirty minutes old, said in a line, and never past that.
- * Refused after a reload: the page says it needs your location, that location is off, and draws no dot.
+ * launch fix. Launched at Curio Row, the phone moves 4 km: the page is where the phone is now, and again where it is when the app
+ * comes back to the front. With no fresh fix in time (the browser's watch made to hang) the launch fix stands in while under
+ * thirty minutes old, said in a line, its dot muted, and never past that, even with the page left open; then the app's timeout
+ * words and Try again. Refused after a reload: the page says it needs your location, that location is off, and draws no dot.
+ * A second launch 1.8 km off: Start routes from the page's own fix.
  */
+const POSITION_KIT = () => {
+  window.__clockShift = 0;
+  window.__geoHang = false;
+  window.__vis = 'visible';
+  const now = Date.now;
+  Date.now = () => now() + window.__clockShift;
+  const g = navigator.geolocation;
+  const watch = g.watchPosition.bind(g);
+  let hung = 1e6;
+  g.watchPosition = (ok, err, o) => (window.__geoHang ? ++hung : watch(ok, err, o));
+  // The app going behind and coming back (react-native-web's AppState reads `visibilityState`).
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => window.__vis });
+  window.__away = () => {
+    window.__vis = 'hidden';
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.__vis = 'visible';
+    document.dispatchEvent(new Event('visibilitychange'));
+  };
+};
+
 async function ownPosition(h) {
   const { exploreUrl, at, check, freshPage, shot } = h;
   const { c, pg } = await freshPage('outing-position');
-  // A clock that can be moved on, and a watch that can be made never to answer, for the fallback's two sides.
-  await c.addInitScript(() => {
-    window.__clockShift = 0;
-    window.__geoHang = false;
-    const now = Date.now;
-    Date.now = () => now() + window.__clockShift;
-    const g = navigator.geolocation;
-    const watch = g.watchPosition.bind(g);
-    let hung = 1e6;
-    g.watchPosition = (ok, err, o) => (window.__geoHang ? ++hung : watch(ok, err, o));
-  });
+  await c.addInitScript(POSITION_KIT);
   const curio = at(-248, 0);
   const moved = at(-208, 0);
+  const TIMEOUT_WORDS = 'Couldn’t find your position. Try again in a moment.';
   const near = (s, p) => !!s && s.split(',').map(Number).every((v, i) => Math.abs(v - p[i]) < 1e-5);
   const walker = () => pg.evaluate(() => document.querySelector('[data-testid=outing] [data-walker]')?.getAttribute('data-walker') ?? null);
+  const muted = () => pg.evaluate(() => document.querySelector('[data-testid=outing] [data-walker]')?.getAttribute('data-walker-muted') ?? null);
   const line = async () => ((await pg.locator('[data-testid=outing-position]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
+  const said = async () => ((await pg.locator('[data-testid=outing-said]').textContent().catch(() => '')) ?? '').replace(/​/g, '').trim();
   const sheet = async () => ((await pg.locator('[data-testid=outing-sheet]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim().slice(0, 240);
+  const journeys = () => pg.locator('[data-testid=outing-journey-0]').count();
   const open = async () => {
     await pg.locator('[data-testid=outing-entry]').waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
     await pg.click('[data-testid=outing-entry]').catch(() => {});
@@ -747,14 +763,14 @@ async function ownPosition(h) {
     for (const end = Date.now() + ms; Date.now() < end; await pg.waitForTimeout(250)) if (await ok()) return true;
     return false;
   };
-  const shots = async (name) => {
-    const vp = pg.viewportSize();
-    await shot(pg, `${name}-390`);
-    await pg.setViewportSize({ width: 320, height: vp.height });
-    await pg.waitForTimeout(900);
-    await shot(pg, `${name}-320`);
-    await pg.setViewportSize(vp);
-    await pg.waitForTimeout(400);
+  const shots = async (name, page = pg) => {
+    const vp = page.viewportSize();
+    await shot(page, `${name}-390`);
+    await page.setViewportSize({ width: 320, height: vp.height });
+    await page.waitForTimeout(900);
+    await shot(page, `${name}-320`);
+    await page.setViewportSize(vp);
+    await page.waitForTimeout(400);
   };
   await c.setGeolocation({ longitude: curio[0], latitude: curio[1], accuracy: 6 });
   await pg.goto(exploreUrl);
@@ -768,26 +784,60 @@ async function ownPosition(h) {
   check(near(w1, moved) && !near(w1, curio), `fix outing-current-position: OJ10, QC30: moved 4 km since Explore's launch fix, the page is where the phone is now, not where Explore read it (${w1}; ${await sheet()})`);
   await pg.waitForTimeout(2500);
   await shots('fix-outing-current-position-moved');
+  // 1b. Back at Curio Row with the page left open, the app goes behind and comes back: the page reads again and plans there.
+  await c.setGeolocation({ longitude: curio[0], latitude: curio[1], accuracy: 6 });
+  await pg.evaluate(() => window.__away());
+  await until(async () => near(await walker(), curio) && (await journeys()) === 1, 30000);
+  const w1b = await walker();
+  check.todo(near(w1b, curio) && (await journeys()) === 1, `fix outing-current-position audit 3: the app back at the front with the page open, it reads once more and plans from where the phone is now (${w1b}; ${await sheet()})`);
   await close();
-  // 2. No fresh fix within the wait, the launch fix twenty minutes old: it stands in, and is said.
+  // 2. No fresh fix within the wait, the launch fix twenty minutes old: it stands in, said, its dot muted.
   await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 20 * 60_000; });
   await open();
+  await pg.waitForTimeout(1200);
+  const finding = await line();
+  await shots('fix-outing-current-position-finding');
+  check(/^Finding you/.test(finding) && (await journeys()) === 0, `fix outing-current-position: while the page reads its fix it says so and proposes nothing ("${finding}")`);
   await until(async () => /^From where you were/.test(await line()), 25000);
   await pg.waitForSelector('[data-testid=outing-journey-0]', { timeout: 60000 }).catch(() => {});
   const l2 = await line();
   const w2 = await walker();
-  check(l2 === 'From where you were twenty minutes ago.' && near(w2, curio) && (await pg.locator('[data-testid=outing-journey-0]').count()) === 1,
+  check(l2 === 'From where you were twenty minutes ago.' && near(w2, curio) && (await journeys()) === 1,
     `fix outing-current-position: with no fresh fix in time, a fix twenty minutes old is used and said ("${l2}", ${w2})`);
+  check.todo((await muted()) === '1', `fix outing-current-position audit 11: the stand-in fix's dot is drawn muted (${await muted()})`);
+  const s2 = await said();
+  check.todo(s2 === l2, `fix outing-current-position audit 9: the settled line is said once, through the page's one live region ("${s2}")`);
   await pg.waitForTimeout(1500);
   await shots('fix-outing-current-position-earlier');
-  await close();
-  // 3. The same, the launch fix over thirty minutes old: no position, nothing proposed.
+  await pg.click('[data-testid=outing-see]').catch(() => {});
+  await pg.waitForSelector('[data-testid=outing-journey-name]', { timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  const l2o = await line();
+  check.todo(l2o === l2 && (await muted()) === '1', `fix outing-current-position audit 7: the journey opened, the line and the muted dot stay ("${l2o}", ${await muted()})`);
+  await shots('fix-outing-current-position-earlier-opened');
+  // 2b. Left open past thirty minutes: the stand-in is dropped, the page says it could not find you and offers Try again.
   await pg.evaluate(() => { window.__clockShift = 31 * 60_000; });
+  await until(async () => (await line()) === TIMEOUT_WORDS, 30000);
+  await pg.waitForTimeout(800);
+  const l2b = await line();
+  const w2b = await walker();
+  check.todo(l2b === TIMEOUT_WORDS && (await journeys()) === 0 && (await pg.locator('[data-testid=outing-start]').count()) === 0 && !w2b,
+    `fix outing-current-position audit 2: left open past thirty minutes, the stand-in fix is dropped: nothing proposed, no Start, no dot ("${l2b}", ${w2b}; ${await sheet()})`);
+  const retry = pg.locator('[data-testid=outing-position-retry]');
+  check.todo((await retry.count()) === 1, `fix outing-current-position audit 8: no fix in time and none fresh enough held: the app's timeout words and Try again ("${l2b}")`);
+  await shots('fix-outing-current-position-timeout');
+  await pg.evaluate(() => { window.__geoHang = false; });
+  await retry.click().catch(() => {});
+  await until(async () => near(await walker(), curio) && (await journeys()) === 1, 30000);
+  check.todo(near(await walker(), curio) && (await journeys()) === 1 && (await line()) === '', `fix outing-current-position audit 8: Try again reads again and plans from the fix (${await walker()}; ${await sheet()})`);
+  await close();
+  // 3. The launch fix over thirty minutes old, the watch hung: no position, nothing proposed.
+  await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 31 * 60_000; });
   await open();
   await until(async () => (await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && !/^Finding/.test(await line()), 25000);
   await pg.waitForTimeout(1500);
   const w3 = await walker();
-  check((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && (await pg.locator('[data-testid=outing-journey-0]').count()) === 0 && !w3 && !/From where you were/.test(await sheet()),
+  check((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && (await journeys()) === 0 && !w3 && !/From where you were/.test(await sheet()),
     `fix outing-current-position: OJ10: a fix over thirty minutes old is never used: the page needs your location and proposes nothing (${w3}; ${await sheet()})`);
   await close();
   // 4. Refused, after a reload (no fix in memory; Explore falls back to the area it last listed).
@@ -800,10 +850,42 @@ async function ownPosition(h) {
   await pg.waitForTimeout(1500);
   const w4 = await walker();
   const l4 = await line();
-  check((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && /^Location is off for this site\./.test(l4) && (await pg.locator('[data-testid=outing-journey-0]').count()) === 0 && !w4,
+  check((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && /^Location is off for this site\./.test(l4) && (await journeys()) === 0 && !w4,
     `fix outing-current-position: OJ10, QC30: location refused, the page says it needs your location and that location is off, proposes nothing and draws no dot ("${l4}", ${w4}; ${await sheet()})`);
+  check.todo((await pg.locator('[data-testid=outing-position-settings]').count()) === 0 && (await retry.count()) === 0, 'fix outing-current-position audit 8: refused on the web, no Open Settings (a page cannot open them) and no Try again');
   await shots('fix-outing-current-position-refused');
   await c.close();
+  // 5. Start routes from the page's own fix: Explore launched 1.8 km west of Curio Row, the phone then at Curio Row.
+  {
+    const f = await freshPage('outing-position-start');
+    await f.c.addInitScript(POSITION_KIT);
+    const launch = at(-266, 0);
+    await f.c.setGeolocation({ longitude: launch[0], latitude: launch[1], accuracy: 6 });
+    await f.pg.goto(exploreUrl);
+    await f.pg.waitForSelector('[data-testid=atlas-tile]', { timeout: 60000 }).catch(() => {});
+    await f.pg.waitForTimeout(2500);
+    await f.c.setGeolocation({ longitude: curio[0], latitude: curio[1], accuracy: 6 });
+    await f.pg.locator('[data-testid=outing-entry]').waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    await f.pg.click('[data-testid=outing-entry]').catch(() => {});
+    await f.pg.waitForSelector('[data-testid=outing-see]', { timeout: 90000 }).catch(() => {});
+    await f.pg.click('[data-testid=outing-see]').catch(() => {});
+    await f.pg.waitForSelector('[data-testid=outing-start]', { timeout: 15000 }).catch(() => {});
+    await f.pg.click('[data-testid=outing-start]').catch(() => {});
+    await f.pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 30000 }).catch(() => {});
+    await f.pg.waitForTimeout(1500);
+    const nav = await f.pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('meta', 'readonly').objectStore('meta').get('nav');
+        g.onsuccess = () => resolve(g.result?.value ?? null);
+        g.onerror = () => resolve(null);
+      };
+    }));
+    const first = (() => { try { return JSON.parse(nav).dest.path[0]; } catch { return null; } })();
+    const d = (p, q) => Math.hypot((p[0] - q[0]) * Math.cos((q[1] * Math.PI) / 180), p[1] - q[1]) * 111320;
+    check.todo(!!first && d(first, curio) < 150 && d(first, launch) > 1000, `fix outing-current-position audit 13: Start routes from the page's own fix, not Explore's launch fix (${JSON.stringify(first)}; ${first ? Math.round(d(first, curio)) : '-'} m from the page's fix)`);
+    await f.c.close();
+  }
 }
 
 module.exports = {

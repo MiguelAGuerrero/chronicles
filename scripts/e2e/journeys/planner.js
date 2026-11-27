@@ -10,6 +10,8 @@ const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|e
 async function run(h) {
   const { url, exploreUrl, at, check, freshPage, shot, openWalk, tabTo, tabBarShown, scriptsDir } = h;
   const { c, pg } = await freshPage('planner');
+  // fix outing-current-position audit 5: a watch that can be made to hang (and a clock that can move on), as `ownPosition`'s.
+  await c.addInitScript(POSITION_KIT);
   const walksCount = (page) => page.evaluate(() => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
     req.onsuccess = () => {
@@ -272,7 +274,15 @@ async function run(h) {
   await pg.locator('[data-testid=atlas-tile][data-name="Green Row"]').click().catch(() => {});
   await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 });
   await pg.waitForTimeout(800);
+  // fix outing-current-position audit 5: the planner's read of its own fix made to hang: the capture stack is there at once all the same.
+  await pg.evaluate(() => { window.__geoHang = true; });
   await pg.click('[data-testid=atlas-kind-walk-parks]');
+  await pg.waitForSelector('[data-testid=plan-capture]', { timeout: 4000 }).catch(() => {});
+  {
+    const pos = ((await pg.locator('[data-testid=plan-position]').innerText().catch(() => '')) ?? '').trim();
+    check.todo(/^Finding you/.test(pos) && (await pg.locator('[data-testid=plan-cap-photo]').count()) === 1, `fix outing-current-position audit 5: with a walk recording, the capture stack is on the planner while it is still finding you ("${pos}")`);
+  }
+  await pg.evaluate(() => { window.__geoHang = false; });
   await pg.waitForSelector('[data-testid=plan-capture]', { timeout: 30000 }).catch(() => {});
   check((await pg.locator('[data-testid=plan-capture]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-photo]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-voice]').count()) === 1 && (await pg.locator('[data-testid=plan-cap-note]').count()) === 1, 'WP23: with a walk recording, the capture stack is on the planner: photo, voice and note, one tap away');
   {
@@ -346,29 +356,43 @@ async function run(h) {
 
 /**
  * fix outing-current-position (decision 0273; WP3): the planner reads one fresh fix of its own as it opens, never Explore's launch
- * fix. Launched at Green Row, the phone moves 4 km: the planner is where the phone is now. With no fresh fix in time (the browser's
- * watch made to hang) the launch fix stands in while under thirty minutes old, said in a line, and never past that. Refused after a
- * reload: it says it needs your position, that location is off, and draws no dot.
+ * fix. Launched at Green Row, the phone moves 4 km: the planner is where the phone is now, and again where it is when the app comes
+ * back to the front. With no fresh fix in time (the browser's watch made to hang) the launch fix stands in while under thirty
+ * minutes old, said in a line, its dot muted, and never past that, even left open; then the timeout words and Try again. Refused
+ * after a reload: it says it needs your location, that location is off, and draws no dot.
  */
+const POSITION_KIT = () => {
+  window.__clockShift = 0;
+  window.__geoHang = false;
+  window.__vis = 'visible';
+  const now = Date.now;
+  Date.now = () => now() + window.__clockShift;
+  const g = navigator.geolocation;
+  const watch = g.watchPosition.bind(g);
+  let hung = 1e6;
+  g.watchPosition = (ok, err, o) => (window.__geoHang ? ++hung : watch(ok, err, o));
+  // The app going behind and coming back (react-native-web's AppState reads `visibilityState`).
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => window.__vis });
+  window.__away = () => {
+    window.__vis = 'hidden';
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.__vis = 'visible';
+    document.dispatchEvent(new Event('visibilitychange'));
+  };
+};
+
 async function ownPosition(h) {
   const { exploreUrl, at, check, freshPage, shot } = h;
   const { c, pg } = await freshPage('planner-position');
-  // A clock that can be moved on, and a watch that can be made never to answer, for the fallback's two sides.
-  await c.addInitScript(() => {
-    window.__clockShift = 0;
-    window.__geoHang = false;
-    const now = Date.now;
-    Date.now = () => now() + window.__clockShift;
-    const g = navigator.geolocation;
-    const watch = g.watchPosition.bind(g);
-    let hung = 1e6;
-    g.watchPosition = (ok, err, o) => (window.__geoHang ? ++hung : watch(ok, err, o));
-  });
+  await c.addInitScript(POSITION_KIT);
   const green = at(-120, 0);
   const moved = at(-80, 0);
+  const TIMEOUT_WORDS = 'Couldn’t find your position. Try again in a moment.';
   const near = (s, p) => !!s && s.split(',').map(Number).every((v, i) => Math.abs(v - p[i]) < 1e-5);
   const walker = () => pg.evaluate(() => document.querySelector('[data-testid=planner] [data-walker]')?.getAttribute('data-walker') ?? null);
+  const muted = () => pg.evaluate(() => document.querySelector('[data-testid=planner] [data-walker]')?.getAttribute('data-walker-muted') ?? null);
   const line = async () => ((await pg.locator('[data-testid=plan-position]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
+  const said = async () => ((await pg.locator('[data-testid=plan-said]').textContent().catch(() => '')) ?? '').replace(/​/g, '').trim();
   const page = async () => ((await pg.locator('[data-testid=planner]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim().slice(0, 240);
   const open = async () => {
     if (!(await pg.locator('[data-testid=atlas-card]').count())) {
@@ -409,10 +433,20 @@ async function ownPosition(h) {
   const w1 = await walker();
   check(near(w1, moved) && !near(w1, green), `fix outing-current-position: WP3: moved 4 km since Explore's launch fix, the planner is where the phone is now, not where Explore read it (${w1}; ${await page()})`);
   await shots('fix-planner-current-position-moved');
+  // 1b. Back at Green Row with the planner left open, the app goes behind and comes back: it reads once more.
+  await c.setGeolocation({ longitude: green[0], latitude: green[1], accuracy: 6 });
+  await pg.evaluate(() => window.__away());
+  await until(async () => near(await walker(), green), 20000);
+  const w1b = await walker();
+  check.todo(near(w1b, green), `fix outing-current-position audit 3: the app back at the front with the planner open, it reads once more and plans from where the phone is now (${w1b})`);
   await close();
-  // 2. No fresh fix within the wait, the launch fix twenty minutes old: it stands in, and is said.
+  // 2. No fresh fix within the wait, the launch fix twenty minutes old: it stands in, said, its dot muted.
   await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 20 * 60_000; });
   await open();
+  await pg.waitForTimeout(1200);
+  const finding = await line();
+  await shots('fix-planner-current-position-finding');
+  check(/^Finding you/.test(finding) && (await pg.locator('[data-testid=plan-row-0]').count()) === 0, `fix outing-current-position: WP3: while the planner reads its fix it says so and plans nothing ("${finding}")`);
   await until(async () => /^From where you were/.test(await line()), 25000);
   await pg.waitForSelector('[data-testid=plan-row-0], [data-testid^=plan-reason-]', { timeout: 60000 }).catch(() => {});
   await pg.waitForTimeout(1500);
@@ -420,10 +454,28 @@ async function ownPosition(h) {
   const w2 = await walker();
   check(l2 === 'From where you were twenty minutes ago.' && near(w2, green) && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 0,
     `fix outing-current-position: WP3: with no fresh fix in time, a fix twenty minutes old is used and said ("${l2}", ${w2}; ${await page()})`);
+  check.todo((await muted()) === '1', `fix outing-current-position audit 11: the planner draws the stand-in fix's dot muted (${await muted()})`);
+  const s2 = await said();
+  check.todo(s2 === l2, `fix outing-current-position audit 9: the planner says its settled line once, through its one live region ("${s2}")`);
   await shots('fix-planner-current-position-earlier');
-  await close();
-  // 3. The same, the launch fix over thirty minutes old: no position, no route.
+  // 2b. Left open past thirty minutes: the stand-in is dropped; the timeout words and Try again.
   await pg.evaluate(() => { window.__clockShift = 31 * 60_000; });
+  await until(async () => (await line()) === TIMEOUT_WORDS, 30000);
+  await pg.waitForTimeout(1500);
+  const l2b = await line();
+  const w2b = await walker();
+  check.todo(l2b === TIMEOUT_WORDS && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 1 && (await pg.locator('[data-testid=plan-row-0]').count()) === 0 && !w2b,
+    `fix outing-current-position audit 2: the planner left open past thirty minutes drops the stand-in fix: no route, no dot ("${l2b}", ${w2b}; ${await page()})`);
+  const retry = pg.locator('[data-testid=plan-position-retry]');
+  check.todo((await retry.count()) === 1, 'fix outing-current-position audit 8: the planner offers Try again with the timeout words');
+  await shots('fix-planner-current-position-timeout');
+  await pg.evaluate(() => { window.__geoHang = false; });
+  await retry.click().catch(() => {});
+  await until(async () => near(await walker(), green), 20000);
+  check.todo(near(await walker(), green) && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 0, `fix outing-current-position audit 8: Try again reads again and the planner plans from the fix (${await walker()}; ${await page()})`);
+  await close();
+  // 3. The launch fix over thirty minutes old, the watch hung: no position, no route.
+  await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 31 * 60_000; });
   await open();
   await until(async () => (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 1 && !/^Finding/.test(await line()), 25000);
   await pg.waitForTimeout(1500);
