@@ -499,6 +499,13 @@ until it is cleared.
 - **Google Maps Timeline**: kept on the device, and it records your day unasked. Source: as read by the same session. **Verified
   there, not re-read here**. A counter-example: nothing here is started for you.
 - **iOS Driving Focus**: silences notifications while driving. Source: from memory. **Unverified**.
+- **Google Maps Timeline** (Android, iOS): "off by default for your Google Account and can only be turned on if you opt in"; once
+  on, it works by "automatically saving your visits and routes", so the drive and the places stopped at along it are kept
+  together. Source: https://support.google.com/maps/answer/6258979 , read Nov 27, 2026 through a fetcher. **Verified**. The model for
+  the drive and its stops kept as one day; the counter-example stays its recording unasked once opted in.
+- **Polarsteps** (Android, iOS): the Travel Tracker is turned on when you create a trip, and the route between places is kept with
+  the trip; it does not start by itself. Source: a search result's summary of support.polarsteps.com (the articles returned 403,
+  Nov 27, 2026), not read. **Unverified**. The model for one start that keeps the travel between stops.
 
 ### Compose a plan from several choices: one page, a filter sheet, or steps (Earn)
 
