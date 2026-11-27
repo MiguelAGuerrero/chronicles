@@ -13,7 +13,7 @@ test('CG5: Walkability\'s legend is one row, Built around cars, its swatch the h
   assert.ok(row.tip && !/\d/.test(row.tip), 'its tip in words');
 });
 
-test('CG5: the car row also shows a short route cased in slate, as the map draws it', { todo: 'test first' }, () => {
+test('CG5: the car row also shows a short route cased in slate, as the map draws it', () => {
   const [row] = LAYERS.find((l) => l.id === 'walkability')!.legend;
   assert.equal((row as { route?: boolean }).route, true, 'the row carries a cased route sample');
 });

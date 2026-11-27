@@ -25,7 +25,7 @@ function hsl(hex: string) {
 
 test('CG2: the hatch is the owner\'s look: 45 degrees, 9 px apart, 1.25 px at 40%, one slate, clear between the lines, seamless', () => {
   // The owner, 2026-11-27: "Soft A2 (Recommended)".
-  assert.deepEqual(WALK_STYLE.car, { run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.6, color: '#3b4a6b' });
+  assert.deepEqual(WALK_STYLE.car, { run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.65, color: '#3b4a6b' });
   for (const ratio of [1, 2, 3]) {
     const im = hatchImage(WALK_STYLE.car, ratio);
     assert.equal(im.width, im.height, '45 degrees: a square tile');
@@ -87,7 +87,7 @@ function decodePng(buf: Uint8Array): { width: number; height: number; data: Uint
 }
 
 test('CG10: the native map\'s hatch images are the web\'s pixels', () => {
-  for (const [ratio, name] of [[1, 'walk-hatch.png'], [2, 'walk-hatch@2x.png'], [3, 'walk-hatch@3x.png']] as const) {
+  for (const [ratio, name] of [[1, 'walk-hatch-0.png'], [2, 'walk-hatch-0@2x.png'], [3, 'walk-hatch-0@3x.png']] as const) {
     const file = new Uint8Array(readFileSync(join(ROOT, 'assets', 'map', name)));
     assert.deepEqual(file, hatchPng(WALK_STYLE.car, ratio), `${name} is hatchPng at ${ratio}x: run \`node_modules/.bin/tsx scripts/walk-hatch.ts\` after a change of the look`);
     const im = hatchImage(WALK_STYLE.car, ratio);
@@ -111,7 +111,7 @@ test('walkability-car-ground audit 4: the swatch draws two lines, none corner to
 
 // The diff review's round (the owner's answers of Nov 27, the coordinator's rulings), written before the code.
 
-test('walkability-car-ground audit 5: the hatch holds 9 to 11.5 px apart and 1.25 to 1.5 px thick at every fractional zoom', { todo: 'test first' }, async () => {
+test('walkability-car-ground audit 5: the hatch holds 9 to 11.5 px apart and 1.25 to 1.5 px thick at every fractional zoom', async () => {
   const { hatchQuarter, hatchLookAt, hatchSpacing } = await import('../../walk/hatch');
   // MapLibre draws a pattern at its size on a whole zoom and 2^fraction larger between (`pattern.ts`, tileZoom): the map
   // shows the quarter's image, drawn smaller by the same factor, so the screen keeps the owner's 9 px and 1.25 px.
@@ -128,7 +128,7 @@ test('walkability-car-ground audit 5: the hatch holds 9 to 11.5 px apart and 1.2
   }
 });
 
-test('walkability-car-ground audit 5: the native map\'s quarter images are the web\'s pixels', { todo: 'test first' }, async () => {
+test('walkability-car-ground audit 5: the native map\'s quarter images are the web\'s pixels', async () => {
   const { hatchLookAt } = await import('../../walk/hatch');
   for (let q = 0; q < 4; q++)
     for (const [ratio, suffix] of [[1, ''], [2, '@2x'], [3, '@3x']] as const) {
@@ -137,7 +137,7 @@ test('walkability-car-ground audit 5: the native map\'s quarter images are the w
     }
 });
 
-test('CG2: the edge is 1 px at 65%, 3:1 or more against Positron\'s land; the lines stay 1.25 px at 40%', { todo: 'test first' }, () => {
+test('CG2: the edge is 1 px at 65%, 3:1 or more against Positron\'s land; the lines stay 1.25 px at 40%', () => {
   // The owner, 2026-11-27: "Edge to 3:1, lines soft (Recommended)".
   assert.deepEqual([WALK_STYLE.car.edgeWidthPx, WALK_STYLE.car.edgeOpacity, WALK_STYLE.car.lineWidthPx, WALK_STYLE.car.lineOpacity], [1, 0.65, 1.25, 0.4]);
   const lin = (c: number) => (c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);

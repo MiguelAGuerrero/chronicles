@@ -135,3 +135,26 @@ export function swatchLines(look: HatchLook, size: number): { x1: number; y1: nu
   for (let c = start - Math.floor(start / step) * step; c < size + drop; c += step) if (c > 0) out.push({ x1: 0, y1: c, x2: size, y2: c - drop });
   return out;
 }
+
+/**
+ * Which of the four images a map shows at a zoom (the owner, "Hold at every zoom"): MapLibre draws a pattern at its own
+ * size on a whole zoom and 2^fraction larger up to the next one, so the map changes image each quarter of a zoom.
+ */
+export function hatchQuarter(zoom: number): number {
+  return Math.min(3, Math.max(0, Math.floor((zoom - Math.floor(zoom)) * 4)));
+}
+
+/** The look of the quarter's image: drawn 2^(q/4) smaller, so on the screen it keeps the look's spacing and weight. */
+export function hatchLookAt(look: HatchLook, q: number): HatchLook {
+  const k = 2 ** (q / 4);
+  return { ...look, spacingPx: look.spacingPx / k, lineWidthPx: look.lineWidthPx / k };
+}
+
+/** The image's spacing between lines, across them, in CSS pixels, once its tile is rounded to whole device pixels. */
+export function hatchSpacing(look: HatchLook, pixelRatio: number): number {
+  const { w, h } = hatchTile(look, pixelRatio);
+  return (w * h) / Math.hypot(w, h) / pixelRatio;
+}
+
+/** The images' names, one a quarter zoom. */
+export const HATCH_QUARTERS = [0, 1, 2, 3] as const;

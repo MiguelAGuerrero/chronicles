@@ -30,7 +30,12 @@ export const GROUND_FADE_M = 100;
 export const GROUND_FADE_STEPS = 5;
 
 export interface CarPiece<T> {
-  /** 0 drawn whole; 1 to GROUND_FADE_STEPS fainter toward the read's edge, the last the faintest. */
+  /**
+   * Areas: the car ground at least (GROUND_FADE_STEPS - fade) steps in from the read's edge, so the pieces nest: `fade`
+   * GROUND_FADE_STEPS is all of it, 0 only what lies GROUND_FADE_M or more in. A map draws each faintly, one over
+   * another (`walkFadeArea`), so the hatch builds up step by step from the read's edge to its whole strength, and two
+   * steps never leave a gap between them. Edges: 0 whole, 1 to GROUND_FADE_STEPS fainter toward the read's edge.
+   */
   fade: number;
   shape: T;
 }
@@ -102,8 +107,7 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
   const val = new Float64Array(R * Q);
   for (let r = 0; r < R; r++) {
     for (let q = 0; q < Q; q++) {
-      // Only read ground has a share; nothing read is outside, so the hatch ends at the read's edge.
-      if (!at[r * Q + q]) continue;
+      // Ground nobody read takes the share of the read ground around it; the hatch is cut at the read's edge by distance.
       let a = 0;
       let b = 0;
       for (let k = -hv; k <= hv; k++) {
@@ -120,19 +124,20 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
   const dist = unreadDistance(at, R, Q, cosOf);
   const step = GROUND_FADE_M / GROUND_FADE_STEPS;
   const fadeOf = (d: number) => (d >= GROUND_FADE_M ? 0 : GROUND_FADE_STEPS - Math.floor(d / step));
-  const V = (r: number, q: number) => (r < 0 || q < 0 || r >= R || q >= Q ? -1 : val[r * Q + q] - LEVEL);
+  // The share above or below a half, in "metres" a thousand to the unit: where it crosses zero is where the share does,
+  // and inside the car ground it is never less than the distance it is cut with, so a step's edge lies where its distance
+  // says (walkability-car-ground audit 7).
+  const V = (r: number, q: number) => (r < 0 || q < 0 || r >= R || q >= Q ? -1000 : (val[r * Q + q] - LEVEL) * 1000);
   const D = (r: number, q: number) => (r < 0 || q < 0 || r >= R || q >= Q ? Infinity : dist[r * Q + q]);
   const known = (r: number, q: number) => r >= 0 && q >= 0 && r < R && q < Q && at[r * Q + q] > 0;
   const toLngLat = (p: [number, number]): LngLat => [(p[1] + q0) * dLon, (p[0] + r0) * dLat];
-  // The areas: one set of polygons per fade step, each the car ground within its band of distance from the read's edge.
+  // The areas: nested, one a step, each the car ground at least its step in from the read's edge. Each is cut by one
+  // distance alone, which the lattice interpolates exactly, so the steps are evenly spaced and meet with no gap (two
+  // bands cut by a lower and an upper distance each lost a few metres a step: walkability-car-ground audit 7).
   const areas: CarPiece<LngLat[][]>[] = [];
   for (let f = 0; f <= GROUND_FADE_STEPS; f++) {
-    const lo = f === 0 ? GROUND_FADE_M : (GROUND_FADE_STEPS - f) * step;
-    const hi = f === 0 ? Infinity : lo + step;
-    const field = (r: number, q: number) => {
-      const d = D(r, q);
-      return clamp(Math.min(V(r, q), d - lo, hi === Infinity ? Infinity : hi - d));
-    };
+    const lo = (GROUND_FADE_STEPS - f) * step;
+    const field = (r: number, q: number) => clamp(Math.min(V(r, q), D(r, q) - lo));
     for (const shape of polygons(contours(field, known, D, R, Q).map((c) => c.pts.map(toLngLat)))) areas.push({ fade: f, shape });
   }
   // The edge: the outline of the car ground alone, in the runs whose ends lie between read ground (criterion 4), each run
@@ -252,7 +257,7 @@ function polygons(rings: LngLat[][]): LngLat[][][] {
   return outers.map((o) => [o.ring, ...o.holes]);
 }
 
-/** Metres from each lattice point to the edge of what was read (Infinity with none in the lattice); two chamfer passes. */
+/** Metres from each lattice point to the edge of what was read, below zero outside it (Infinity with none in the lattice); two chamfer passes. */
 function unreadDistance(at: Uint8Array, R: number, Q: number, cosOf: (r: number) => number): Float64Array {
   const d = new Float64Array(R * Q);
   for (let i = 0; i < R * Q; i++) d[i] = at[i] ? Infinity : 0;
@@ -280,8 +285,8 @@ function unreadDistance(at: Uint8Array, R: number, Q: number, cosOf: (r: number)
   const cols = [...Array(Q).keys()];
   pass(rows, cols, 1);
   pass([...rows].reverse(), [...cols].reverse(), -1);
-  // The read's edge lies halfway between the last point read and the first not: measure from there.
-  for (let i = 0; i < R * Q; i++) if (at[i]) d[i] = Math.max(0, d[i] - GROUND_STEP_M / 2);
+  // The read's edge lies halfway between the last point read and the first not: measure from there, outside below zero.
+  for (let i = 0; i < R * Q; i++) d[i] = at[i] ? d[i] - GROUND_STEP_M / 2 : -GROUND_STEP_M / 2;
   return d;
 }
 

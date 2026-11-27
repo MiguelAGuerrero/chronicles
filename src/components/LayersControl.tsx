@@ -5,7 +5,7 @@ import { cornerPanelBox, panelBox } from '../lib/layers/layout';
 import { layersFor, type LayerMap, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
-import { HatchSwatch } from './HatchSwatch';
+import { CasedRouteSample, HatchSwatch } from './HatchSwatch';
 import { BORDER, COLORS, HOTSPOT, PAST_STYLE, WALK_STYLE } from './map/types';
 import { SwitchRow } from './SwitchRow';
 import { Tooltip } from './Tooltip';
@@ -29,11 +29,10 @@ const BESIDE = BUTTON + 8;
 
 function Swatch(props: { swatch: SwatchKey; testID: string }) {
   if (props.swatch === 'car') {
-    // G5: the hatch as the map draws it, its firm edge as the swatch's border.
-    const look = WALK_STYLE.car;
+    // G5: the hatch as the map draws it, to a square's edges with no box border (the owner, "Square swatch, no box border").
     return (
-      <View testID={props.testID} style={[styles.swatch, look.edgeWidthPx > 0 && { borderColor: look.color, borderWidth: look.edgeWidthPx }]}>
-        <HatchSwatch look={look} size={20 - 2 * (look.edgeWidthPx > 0 ? look.edgeWidthPx : 1)} />
+      <View testID={props.testID} style={styles.hatchSwatch}>
+        <HatchSwatch look={WALK_STYLE.car} size={20} />
       </View>
     );
   }
@@ -50,6 +49,7 @@ function Legend(props: { row: LegendRow }) {
   const content = (
     <>
       <Swatch swatch={row.swatch} testID={`layer-swatch-${row.key}`} />
+      {row.route ? <CasedRouteSample testID={`layer-route-${row.key}`} /> : null}
       {row.band ? <WalkBandIcon band={row.band} size={22} /> : null}
       <Text style={styles.label}>{row.text}</Text>
     </>
@@ -208,6 +208,7 @@ const styles = StyleSheet.create({
   keyTitle: { color: theme.ink, fontSize: 14, fontWeight: '600', paddingHorizontal: 16, paddingTop: 4 },
   plainRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
   swatch: { width: 20, height: 20, borderRadius: 4, overflow: 'hidden', backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.line },
+  hatchSwatch: { width: 20, height: 20, overflow: 'hidden', backgroundColor: theme.bg },
   label: { color: theme.ink, fontSize: 14, flexShrink: 1 },
   note: { color: theme.muted, fontSize: 12, lineHeight: 16 },
 });

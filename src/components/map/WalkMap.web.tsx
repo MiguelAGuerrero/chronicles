@@ -5,7 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { perfCount, perfMark } from '../../lib/perfCount';
-import { hatchImage } from '../../lib/walk/hatch';
+import { HATCH_QUARTERS, hatchImage, hatchLookAt, hatchQuarter } from '../../lib/walk/hatch';
 import { litStreets } from '../../lib/replay';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
@@ -37,7 +37,7 @@ import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import { fitBearing, followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, WALK_HATCH, ROUTE_CAR_WIDTH, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkFadeArea, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
   FIT_MAX_ZOOM, FIT_PADDING, FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
@@ -55,6 +55,17 @@ setWorkerUrl(mapWorkerUrl(process.env.EXPO_BASE_URL ?? '', getVersion()));
 const LINK_MAX_M = 60;
 
 /** The layers the app adds over the base map; returns the base map's first street layer, which the borders' fill goes under. */
+/** Shows the hatch's image for the zoom's quarter (the owner, "Hold at every zoom"), changing it only as a quarter is crossed. */
+function walkHatchQuarter(map: MapLibreMap) {
+  let shown = hatchQuarter(map.getZoom());
+  map.on('zoom', () => {
+    const q = hatchQuarter(map.getZoom());
+    if (q === shown || !map.getLayer('walk-car')) return;
+    shown = q;
+    map.setPaintProperty('walk-car', 'fill-pattern', walkHatchAt(q));
+  });
+}
+
 function addOverlay(map: MapLibreMap): string | undefined {
   const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
   // The veil goes under the first label layer, so names stay readable.
@@ -78,13 +89,18 @@ function addOverlay(map: MapLibreMap): string | undefined {
   // The Walkability layer (G5, decision 0232), under the hotspots, fog and trace: only ground built around cars, a soft slate
   // hatch with a firm edge, so the streets and their names show through it. The edge is drawn only where car ground meets
   // ground that was read (`carGroundOf`).
+  // One image a quarter zoom (the owner, "Hold at every zoom"): MapLibre draws a pattern up to twice its size between
+  // whole zooms, so the map shows the quarter's image, drawn smaller by as much (`hatchQuarter`, `walkHatchQuarter` below).
   const look = WALK_STYLE.car;
   const ratio = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1)));
-  const hatch = hatchImage(look, ratio);
-  if (!map.hasImage(WALK_HATCH)) map.addImage(WALK_HATCH, { width: hatch.width, height: hatch.height, data: hatch.data }, { pixelRatio: ratio });
+  for (const q of HATCH_QUARTERS) {
+    const hatch = hatchImage(hatchLookAt(look, q), ratio);
+    if (!map.hasImage(walkHatchAt(q))) map.addImage(walkHatchAt(q), { width: hatch.width, height: hatch.height, data: hatch.data }, { pixelRatio: ratio });
+  }
   map.addSource('walkability', { type: 'geojson', data: empty, tolerance: 0.2 });
   map.addLayer({ id: 'walk-car', type: 'fill', source: 'walkability', filter: walkKind('area') as FilterSpecification,
-    paint: { 'fill-pattern': WALK_HATCH, 'fill-opacity': walkFade('area', 1) as ExpressionSpecification, 'fill-antialias': false } }, firstSymbol);
+    paint: { 'fill-pattern': walkHatchAt(hatchQuarter(map.getZoom())), 'fill-opacity': walkFadeArea(look.lineOpacity) as ExpressionSpecification, 'fill-antialias': false } }, firstSymbol);
+  walkHatchQuarter(map);
   map.addLayer({ id: 'walk-car-edge', type: 'line', source: 'walkability', filter: walkKind('edge') as FilterSpecification,
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: { 'line-color': look.color, 'line-width': look.edgeWidthPx, 'line-opacity': walkFade('edge', look.edgeOpacity) as ExpressionSpecification } }, firstSymbol);
@@ -116,8 +132,10 @@ function addOverlay(map: MapLibreMap): string | undefined {
   map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 12 } });
   // G5: the route's stretch through car ground, a slate casing over the route's white edge and under its own colour.
   map.addSource('route-car', { type: 'geojson', data: empty });
-  map.addLayer({ id: 'route-car', type: 'line', source: 'route-car', layout: lineLayout, paint: { 'line-color': look.color, 'line-width': ROUTE_CAR_WIDTH } });
+  map.addLayer({ id: 'route-car', type: 'line', source: 'route-car', filter: ['==', ['get', 'kind'], 'line'], layout: ROUTE_CAR_LAYOUT, paint: { 'line-color': look.color, 'line-width': ROUTE_CAR_WIDTH } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
+  // Where the casing starts (CG6, the owner's "Mark where it starts"): a small slate dot on the route.
+  map.addLayer({ id: 'route-car-start', type: 'circle', source: 'route-car', filter: ['==', ['get', 'kind'], 'start'], paint: ROUTE_CAR_START_PAINT });
   // Offered stretches across gaps: the trace, see-through, under it where they meet (Filling gaps, G6).
   // A gap with no line: grey dots between its ends, under the faint stretches (GW2).
   // Under the dots, a white disc for each while a replay is told, so its hop reads over a lit street (replay-ceremony ui 6).
@@ -609,6 +627,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         };
         // A two-finger turn can't be made headless: the e2e turns the newest map in code (CP1-CP5).
         (window as { __turn?: (deg: number) => void }).__turn = (deg) => { map.rotateTo(deg, { duration: 0 }); };
+        // What the map draws in a box of its own pixels: each layer with a feature's kind, `layer:kind` (G5's journeys).
+        (window as { __renderedIn?: (box: [[number, number], [number, number]]) => string[] }).__renderedIn = (box) =>
+          [...new Set(map.queryRenderedFeatures(box).map((f) => `${f.layer.id}:${(f.properties as { kind?: string } | null)?.kind ?? ''}`))];
         // Explore in a dense city (DC5, DC6, DC14, DC15): the e2e moves the newest map in code and asks which storefront names are
         // drawn, where; names the map placed, never the reserved room (DC14).
         const NAMES = ['storefront-names', 'storefront-names-turned'];

@@ -25,6 +25,8 @@ export interface LegendRow {
   swatch: SwatchKey;
   /** A walkability band whose icon (the pedestrian, with its badge) stands beside the swatch. */
   band?: 'foot' | 'car';
+  /** A short route cased as the map cases it, beside the swatch (G5, CG5: the owner's "Add a cased route sample"). */
+  route?: boolean;
 }
 
 export interface LayerDef {
@@ -47,7 +49,7 @@ export const LAYERS: readonly LayerDef[] = [
     icon: 'walk-outline',
     defaultOn: false,
     legend: [
-      { key: 'car', text: 'Built around cars', swatch: 'car', band: 'car', tip: bandWhy('car') ?? undefined },
+      { key: 'car', text: 'Built around cars', swatch: 'car', band: 'car', route: true, tip: bandWhy('car') ?? undefined },
     ],
     note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.",
   },

@@ -900,16 +900,25 @@ export function bordersGeoJSON(view: BorderView | null | undefined): GeoJSON.Fea
 
 /** The Walkability layer (G5, decisions 0232, 0271): only ground built around cars, a soft slate hatch with a firm edge. */
 export const WALK_SLATE = '#3b4a6b';
-/** The owner's pick, Nov 27 (decision 0271): "Soft A2 (Recommended)". */
+/** The owner's pick, Nov 27 (decision 0271): "Soft A2 (Recommended)", its edge raised to 3:1 ("Edge to 3:1, lines soft"). */
 export const WALK_STYLE: { car: HatchLook } = {
-  car: { run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.6, color: WALK_SLATE },
+  car: { run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.65, color: WALK_SLATE },
 };
-/** The hatch's image name on a map. */
-export const WALK_HATCH = 'walk-hatch';
-/** G5: the route's stretches through car ground, as lines. */
+/** The hatch's image names on a map, one a quarter zoom (`hatchQuarter`). */
+export const walkHatchAt = (q: number) => `walk-hatch-${q}`;
+/** G5: the route's stretches through car ground, as lines (`kind` 'line'), and where each starts (`kind` 'start', CG6). */
 export function carRouteGeoJSON(lines: LngLat[][] | null | undefined): GeoJSON.FeatureCollection {
-  return { type: 'FeatureCollection', features: (lines ?? []).map((l) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l } })) };
+  const out: GeoJSON.Feature[] = [];
+  for (const l of lines ?? []) {
+    out.push({ type: 'Feature', properties: { kind: 'line' }, geometry: { type: 'LineString', coordinates: l } });
+    if (l.length) out.push({ type: 'Feature', properties: { kind: 'start' }, geometry: { type: 'Point', coordinates: l[0] } });
+  }
+  return { type: 'FeatureCollection', features: out };
 }
+/** The casing is cut square, so it ends where the hatch does (walkability-car-ground audit 9). */
+export const ROUTE_CAR_LAYOUT = { 'line-cap': 'butt', 'line-join': 'round' } as const;
+/** Where the casing starts (CG6, the owner's "Mark where it starts"): a small slate dot on the route, ringed in white. */
+export const ROUTE_CAR_START_PAINT = { 'circle-radius': 4, 'circle-color': WALK_SLATE, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5 } as const;
 /** The route's stretch through car ground (G5): a slate casing under the route's own colour, this wide. */
 export const ROUTE_CAR_WIDTH = 14;
 
@@ -927,7 +936,22 @@ export function walkabilityGeoJSON(g: CarGround | null | undefined): GeoJSON.Fea
   };
 }
 
-/** How strong each fade step is drawn, as a MapLibre expression: whole, then fainter toward the read's edge. */
+/**
+ * How strong each nested piece of car ground is drawn (`CarPiece.fade`), as a MapLibre expression: one over another, so
+ * a point k steps in from the read's edge shows k / (steps + 1) of the hatch's strength and a point past the fade all of
+ * it. The hatch's lines are `lineOpacity` strong, so each piece adds what takes the stack from k - 1 to k steps' worth.
+ */
+export function walkFadeArea(lineOpacity: number): unknown[] {
+  const n = GROUND_FADE_STEPS + 1;
+  const strength = (k: number) => (lineOpacity * k) / n;
+  const add = (k: number) => (1 - (1 - strength(k)) / (1 - strength(k - 1))) / lineOpacity;
+  const steps: unknown[] = [];
+  // The piece of fade f is in k = n - f of the stack's layers (the faintest, f = steps, is everywhere).
+  for (let f = 1; f <= GROUND_FADE_STEPS; f++) steps.push(`area-${f}`, add(n - f));
+  return ['match', ['get', 'kind'], ...steps, add(n)];
+}
+
+/** How strong each fade step of the edge is drawn, as a MapLibre expression: whole, then fainter toward the read's edge. */
 export function walkFade(prefix: 'area' | 'edge', whole: number): unknown[] {
   const steps: unknown[] = [];
   for (let f = 1; f <= GROUND_FADE_STEPS; f++) steps.push(`${prefix}-${f}`, (whole * (GROUND_FADE_STEPS + 1 - f)) / (GROUND_FADE_STEPS + 1));

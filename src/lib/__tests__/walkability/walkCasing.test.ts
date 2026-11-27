@@ -108,7 +108,7 @@ test('CG11: no stretch, no casing; no drawn ground, no casing', () => {
 
 // The diff review's round (the owner's answers of Nov 27, the coordinator's rulings), written before the code.
 
-test('CG6: a small slate dot marks where each casing starts, and nothing else is said', { todo: 'test first' }, async () => {
+test('CG6: a small slate dot marks where each casing starts, and nothing else is said', async () => {
   const { carRouteGeoJSON } = await import('../../../components/map/types');
   const cells = field(14, 6, (di) => (di >= 5 && di < 10 ? 'car' : 'foot'));
   const path = eastward(3, 1, 13);
@@ -120,7 +120,7 @@ test('CG6: a small slate dot marks where each casing starts, and nothing else is
   for (const f of fc.features) assert.deepEqual(Object.keys(f.properties ?? {}), ['kind'], 'a kind and nothing else: no number, no words');
 });
 
-test('walkability-car-ground audit 9: the casing ends where it ends: no round cap reaches past the hatch\'s edge', { todo: 'test first' }, async () => {
+test('walkability-car-ground audit 9: the casing ends where it ends: no round cap reaches past the hatch\'s edge', async () => {
   const { ROUTE_CAR_LAYOUT } = await import('../../../components/map/types');
   assert.equal(ROUTE_CAR_LAYOUT['line-cap'], 'butt');
 });

@@ -142,13 +142,10 @@ test('walkability-car-ground audit 2: toward the read\'s edge the hatch fades ov
   const faintest = Math.max(...fades);
   const nearEdge = g.areas.filter((a) => a.fade === faintest).flatMap((a) => a.shape[0]);
   assert.ok(nearEdge.some((p) => fromEdge(p) < 15), 'the faintest step reaches the read\'s edge');
-  // Each step is fainter than the one inside it: the step's distance from the edge falls as its fade rises.
-  const meanFrom = (f: number) => {
-    const pts = g.areas.filter((a) => a.fade === f).flatMap((a) => a.shape[0]).map(fromEdge);
-    return pts.reduce((s, x) => s + x, 0) / pts.length;
-  };
-  const steps = [...fades].filter((f) => f > 0).sort();
-  for (let k = 1; k < steps.length; k++) assert.ok(meanFrom(steps[k]) < meanFrom(steps[k - 1]), `step ${steps[k]} lies nearer the edge than step ${steps[k - 1]}`);
+  // Each step reaches nearer the edge than the one before it, 20 m a step (the pieces nest: walkability-car-ground audit 7).
+  const nearest = (f: number) => Math.min(...g.areas.filter((a) => a.fade === f).flatMap((a) => a.shape[0]).map(fromEdge));
+  const steps = [...fades].sort();
+  for (let k = 1; k < steps.length; k++) assert.ok(nearest(steps[k]) < nearest(steps[k - 1]) - 10, `step ${steps[k]} reaches ${nearest(steps[k]).toFixed(0)} m from the edge, nearer than step ${steps[k - 1]}'s ${nearest(steps[k - 1]).toFixed(0)} m`);
 });
 
 test('CG11: no car cell draws nothing', () => {
@@ -190,22 +187,20 @@ test('CG9, UF12: the map is handed areas and edges with a kind and nothing else:
   assert.equal(walkabilityGeoJSON(null).features.length, 0);
 });
 
-test('walkability-car-ground audit 7: the fade\'s pieces tile the car ground: every point in it lies in exactly one piece', { todo: 'test first' }, () => {
+test('walkability-car-ground audit 7: the fade\'s pieces nest, so the hatch builds up from the read\'s edge with no gap and no dashed fragment', () => {
   const cells = field(12, 10, (di, dj) => (dj >= 3 && di >= 2 && di < 10 ? 'car' : 'foot'));
   const g = carGroundOf(cells);
+  const top = cellBounds(I, J + 9).north;
+  // Down the middle of the car ground's top row (the rows are offset from each other, so the middle of that row).
+  const x = (cellBounds(I + 3, J + 9).west + cellBounds(I + 8, J + 9).east) / 2;
   const inPiece = (shape: LngLat[][], p: LngLat) => inside(p, shape[0]) && !shape.slice(1).some((h) => inside(p, h));
-  const [w, e] = [cellBounds(I + 3, J + 5).west, cellBounds(I + 8, J + 5).east];
-  const [s, n] = [cellBounds(I, J + 4).south, cellBounds(I, J + 9).north];
-  let checked = 0;
-  for (let k = 0; k < 400; k++) {
-    const p: LngLat = [w + ((e - w) * ((k * 37) % 400)) / 400, s + ((n - s) * ((k * 91) % 397)) / 397];
-    if ((cellBounds(I, J + 9).north - p[1]) * M_LAT < 2) continue;
-    const hits = g.areas.filter((a) => inPiece(a.shape, p)).length;
-    if (!drawn(g, p)) continue;
-    checked++;
-    assert.equal(hits, 1, `a point of the car ground lies in ${hits} pieces`);
+  let last = Infinity;
+  for (let m = 15; m <= 140; m += 1) {
+    const p: LngLat = [x, top - m / M_LAT];
+    const depth = g.areas.filter((a) => inPiece(a.shape, p)).length;
+    assert.ok(depth >= 1, `drawn ${m} m from the read's edge`);
+    assert.ok(depth >= (last === Infinity ? 0 : last), `the strength never drops going in (${m} m: ${depth} after ${last})`);
+    last = depth;
   }
-  assert.ok(checked > 100, `${checked} points checked`);
-  // The fade's bands meet without a gap: points just either side of each band's inner edge are both drawn.
-  for (let y = n - 120 / M_LAT; y < n - 2 / M_LAT; y += 1 / M_LAT) assert.ok(drawn(g, [(w + e) / 2, y]), `drawn ${((n - y) * M_LAT).toFixed(0)} m from the read's edge`);
+  assert.equal(last, 6, 'past the fade, every piece: the whole strength');
 });
