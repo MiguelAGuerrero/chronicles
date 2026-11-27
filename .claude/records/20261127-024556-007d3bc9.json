@@ -1,0 +1,20 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| Walkability car ground (only the ground built around cars drawn: a soft slate hatch, 45°, 9 px apart, held at every zoom, its 1 px edge at 3:1, the cells joined and rounded into areas, fading over the last 100 m toward the edge of what was read; the route's stretch through it cased in slate with a dot where it starts; one slate car icon; the legend's one row with its hatch and a cased route; CG1-CG11, decisions 0232, 0271; from G5) | built; native unverified | tests first, then the code, 2026-11-27 (`check:test-first` 11 of 11; the cells' rule and the card's words unchanged on the five real fixtures) | `specs/walkability-car-ground/spec.md` | the steward's plan review, 2026-11-27: 5 accepted (walkability-car-ground audit 1-4), 3 the owner's; the diff review (steward, ux-reviewer, auditor), 2026-11-27: every finding accepted as ruled (audit 5-16; the auditor's F1 high, the fade, rebuilt), the owner's four answers, 0 rejected |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Walkability car ground"
+      ],
+      "target": "sha256:2a6bd8d77312538a2d83ab946b3695038e8e1b8568346e1fc987a30efb36a23d"
+    }
+  ]
+}

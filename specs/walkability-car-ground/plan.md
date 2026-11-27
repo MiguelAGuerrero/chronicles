@@ -63,10 +63,10 @@ A warning only: the slice builds its own criteria and takes none of those items 
 | `src/lib/walk/ahead.ts` | `stretchLines(path, stretches)` (CG6, CG8). |
 | `src/lib/walk/aheadWatch.ts` | `stretches(route, list, runs)`: the store's `runs`, the area runs alone, set with the stretches, cleared with them (CG6, CG11). |
 | `src/lib/walk/useRouteWarning.ts` | Hands the watch the area runs beside the merged list; `useCarRoute(route, enabled, ground)` (CG6). |
-| `src/components/map/types.ts` | `WALK_SLATE`, `WALK_STYLE.car` (the owner's look), `WALK_HATCH`, `ROUTE_CAR_WIDTH`; `walkabilityGeoJSON` hands areas and edges with a `kind` and nothing else (CG9); `carRouteGeoJSON`; the `carRoute` prop. |
+| `src/components/map/types.ts` | `WALK_SLATE`, `WALK_STYLE.car` (the owner's look), `walkHatchAt` (the quarter images' names), `WALK_BELOW`, `ROUTE_CAR_WIDTH`, `ROUTE_CAR_LAYOUT`, `ROUTE_CAR_START_PAINT`; `walkabilityGeoJSON` hands areas and edges with a `kind` and nothing else (CG9); `carRouteGeoJSON`; the `carRoute` prop. |
 | `src/components/map/WalkMap.web.tsx` | The hatch image, `walk-car` (fill-pattern, faded by `kind`, no antialiasing) and `walk-car-edge` (line, faded the same) in place of `walk-foot` and `walk-car`; `route-car` between `route-edge` and `route`; `data-walk` reads `car:<areas>|edges:<n>`, `data-route-car` the casing's lines, for the e2e. |
 | `src/components/map/WalkMap.native.tsx` | The same layers: `<Images>` with the committed hatch PNGs, `fillPattern`, the edge line, the `route-car` line (CG10; never run on a device). |
-| `assets/map/walk-hatch.png`, `@2x`, `@3x` (new) | `hatchPng(WALK_STYLE.car, 1..3)`, byte for byte; a unit test fails when the look changes and they do not. |
+| `assets/map/walk-hatch-<q>.png`, `@2x`, `@3x` (new, twelve) | `hatchPng(hatchLookAt(WALK_STYLE.car, q), 1..3)`, one a quarter zoom, byte for byte; a unit test fails when the look changes and they do not. |
 | `scripts/walk-hatch.ts` (new) | Writes those three images from the look (`node_modules/.bin/tsx scripts/walk-hatch.ts`). |
 | `src/components/HatchSwatch.tsx` (new, view) | The legend's swatch: the look's lines in SVG at the same angle, spacing, width and strength, centred (CG5). |
 | `src/components/LayersControl.tsx` | The car swatch is the hatch with the edge as its border; the foot swatch goes. |

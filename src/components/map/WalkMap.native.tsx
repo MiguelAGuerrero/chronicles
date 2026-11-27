@@ -272,6 +272,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const walkKey = props.walkability?.key ?? '';
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const walkability = useMemo(() => walkabilityGeoJSON(props.walkability), [walkKey]);
+  /** The hatch's quarter-zoom image: the settled view's, else the opening zoom's. */
+  const walkQuarter = hatchQ ?? hatchQuarter(props.initialZoom ?? 16);
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
@@ -562,7 +564,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* The Walkability layer (G5), under the hotspots, fog and trace: the car ground as a slate hatch with a firm edge,
             fading toward the read's edge; the hatch is the web's own pixels (`assets/map/walk-hatch*.png`, unverified on a device). */}
         <Images images={HATCH_IMAGES} />
-        <WalkabilitySource data={walkability} quarter={hatchQ ?? hatchQuarter(props.initialZoom ?? 16)} />
+        <WalkabilitySource data={walkability} quarter={walkQuarter} />
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <PocketsSource data={pockets} beforeId={storefrontOrder.lines} />
         <StripsSource data={strips} beforeId={storefrontOrder.lines} />

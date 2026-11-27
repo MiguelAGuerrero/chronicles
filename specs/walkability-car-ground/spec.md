@@ -165,4 +165,21 @@ pictures at 390 and 320.
 
 ## Record
 
-(filled at the end of the slice)
+Built 2026-11-27 under `/tend inbox G5 yes`, test first (`check:test-first` 11 of 11).
+
+- **Shipped:** CG1-CG11, with the owner's answers of Nov 27 (Decisions): the look Soft A2 with its edge at 65%, held at
+  every zoom; the read's edge faded over 100 m in two 50 m steps; the slate dot where the casing starts; the square
+  swatch with a cased route sample. UF9-UF11, WH7 and ML13 amended.
+- **The cells' rule and the card's words** (CG1): an old/new differential over the five real fixtures (Overture's own
+  tiles), 482 cells and 15 card lines compared, no difference.
+- **Reviews:** the steward on the plan (5 accepted, 3 the owner's, 0 rejected: audit 1-4); the diff (one round) by the
+  steward, the ux-reviewer and the auditor (every finding accepted as ruled, the owner's four answers, 0 rejected:
+  audit 5-16; the auditor's F1 high, the fade, rebuilt).
+- **Cost** (measured, Node): `carGroundOf` about 8 to 70 ms on the real fixtures (4 tiles), about 130 ms on a 12-tile
+  mixed read; on a phone several times that, once per new read (`docs/NATIVE_UNVERIFIED.md`).
+- **Left out:** a quiet label inside large car areas; plain ground explained; unread ground drawn apart (the owner's
+  "Unread should differ"): three `[owner]` entries filed by the run's record.
+- **Native:** never run on a device (`docs/NATIVE_UNVERIFIED.md`, "Walkability car ground").
+- **The base it leaves** (`node scripts/tend.js base --here walkability layers walk-screen map`): left walkability and
+  layers no rougher (both unseen, nothing above low open); walk-screen and map read rough as they did at the start, by
+  changes from before this slice (85af994, 264773e, 5212633, 1b4d486, 0cee290; b9fc26b), nothing of it.
