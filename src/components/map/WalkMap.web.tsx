@@ -37,7 +37,7 @@ import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import { fitBearing, followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, poiLabelLayers,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, WALKER_FILL, BASE_VECTOR_SOURCE, poiLabelLayers,
   FIT_MAX_ZOOM, FIT_PADDING, FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
@@ -203,7 +203,8 @@ function addOverlay(map: MapLibreMap): string | undefined {
     paint: { 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 } });
   map.addLayer({ id: 'points', type: 'circle', source: 'points',
     paint: {
-      'circle-color': COLORS.walker,
+      // A fix standing in for a fresh one is drawn in stone (fix outing-current-position audit 11).
+      'circle-color': WALKER_FILL as unknown as string,
       'circle-radius': 7,
       'circle-stroke-color': '#ffffff',
       'circle-stroke-width': 2,
@@ -1290,10 +1291,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.traceOpacity, replayOn]);
   useEffect(() => {
     if (!ready) return;
-    setData('points', walkerGeoJSON(glideOn ? null : props.walker));
+    setData('points', walkerGeoJSON(glideOn ? null : props.walker, !!props.walkerMuted));
     // Where the dot is drawn (QL12), for the e2e; empty with none. A replay's frames say their own (`applyReplay`).
     if (!replayLast.current) container.current?.setAttribute('data-walker', fmt(props.walker));
-  }, [ready, glideOn, props.walker]);
+    container.current?.setAttribute('data-walker-muted', props.walkerMuted ? '1' : '0');
+  }, [ready, glideOn, props.walker, props.walkerMuted]);
   // The credits beside the scale bar (tend map 3), moved with the inset (a sheet's height) and the map's width.
   const scaleBottom = (props.scaleInset ?? DEFAULT_SCALE_INSET).bottom;
   const scaleLeft = (props.scaleInset ?? DEFAULT_SCALE_INSET).left;

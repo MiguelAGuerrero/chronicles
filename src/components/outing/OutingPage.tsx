@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { matches } from '../../lib/outing/candidates';
 import { chipWord } from '../../lib/outing/chips';
@@ -9,7 +9,7 @@ import type { JourneyPlan } from '../../lib/outing/journeyPlan';
 import { ANOTHER_LABEL, BACK_LABEL, CHANGE_LABEL, CHIPS_LINE, DISMISS_LABEL, FOLLOW_LABEL, FURTHER_LABEL, HERE_LABEL, LATER_LABEL, LEAVE_OUT_LABEL, NEW_TOWN_LINE, MAPS_FAILED_LINE, NOWHERE_LABEL, RETRY_LABEL, STRAIGHT_LINE, TOWNS_FAILED_LINE, PEEK_LABEL, READ_FAILED_LINE, REACH_LINE, SEE_LABEL, TOO_FAR_LINE, TOWNS_LINE, UNDO_LABEL, UNFOUND_LINE, UNPEEK_LABEL, WHERE_LABEL, awayLine, cardSummary, chapterLine, laterLine, lookedLine, startLine, nextMoveLine, nothingLine, reachLabel, townLine } from '../../lib/outing/journeyWords';
 import { outingFrame, outingFrameBounds, outingHeld } from '../../lib/outing/map';
 import { useJourney } from '../../lib/outing/useJourney';
-import { positionAt, positionLine } from '../../lib/locate/pagePosition';
+import { OPEN_SETTINGS_LABEL, positionAction, positionAt, positionLine, RETRY_LABEL as FIND_AGAIN_LABEL } from '../../lib/locate/pagePosition';
 import { usePagePosition } from '../../lib/locate/usePagePosition';
 import { CHAINS_LABEL, CLOSE_LABEL, HOURS_LINE, NO_PICK_LINE, READING_LINE, SLOT_HINT, START_LABEL, SWAP_LABEL, TITLE, cardLine, reasonLine, slotLine } from '../../lib/outing/words';
 import { hideTabs, modalsUp } from '../../lib/tabsHidden';
@@ -44,9 +44,13 @@ export function OutingPage(props: {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   // OJ10, QC30 (fix outing-current-position, decision 0273): the page's own fix, read as it opens; never Explore's.
-  const pos = usePagePosition();
+  // Read again when the app comes back to the front, on Try again, and at Start when it has aged or a walk records (audits 1-3).
+  const page = usePagePosition();
+  const pos = page.pos;
   const you: LngLat | null = positionAt(pos);
-  const posLine = positionLine(pos, Platform.OS === 'web' ? 'web' : 'native');
+  const platform = Platform.OS === 'web' ? 'web' : 'native';
+  const posLine = positionLine(pos, platform);
+  const posAction = positionAction(pos, platform);
   const j = useJourney(you);
   const [searching, setSearching] = useState(false);
   const [peek, setPeek] = useState(false);
@@ -164,14 +168,27 @@ export function OutingPage(props: {
     starting.current = true;
     setBusy(true);
     // No try/finally here (the compiler cannot take one): what is asked is read first, then the guard is let go, then it is handed on.
-    const dest = later ? j.later() : null;
-    // Start routes from the page's own fix (decision 0273), the one it planned from.
-    const s = later ? null : j.start(you);
-    starting.current = false;
-    setBusy(false);
-    if (dest) props.onLater(dest);
-    if (s) props.onStart(s.dest, s.plan);
+    void (async () => {
+      const dest = later ? j.later() : null;
+      // Start routes from the page's own fix, read once more when it has aged or a walk records (decision 0273; audit 1). With
+      // none, nothing starts and the page says why.
+      const at = later ? null : await page.startAt(!!j.walkId);
+      const s = at ? j.start(at) : null;
+      starting.current = false;
+      setBusy(false);
+      if (dest) props.onLater(dest);
+      if (s) props.onStart(s.dest, s.plan);
+    })();
   }
+  // The page's line about its position, and what it offers: Try again after a timeout, Open Settings when refused on a phone
+  // (audit 8). Said once as it settles, through `said` (audit 9), so it is no live region of its own.
+  const posBlock = posLine ? (
+    <>
+      <Text style={styles.line} testID="outing-position">{posLine}</Text>
+      {posAction === 'retry' ? <Button testID="outing-position-retry" label={FIND_AGAIN_LABEL} variant="secondary" onPress={page.retry} /> : null}
+      {posAction === 'settings' ? <Button testID="outing-position-settings" label={OPEN_SETTINGS_LABEL} variant="secondary" onPress={() => void Linking.openSettings()} /> : null}
+    </>
+  ) : null;
   const place = j.dest?.name ?? null;
   const reasons = [...new Set(j.reasons)];
   // RE2: by road where the road is known, "away" where it is not.
@@ -184,9 +201,11 @@ export function OutingPage(props: {
   };
   return (
     <View style={[StyleSheet.absoluteFill, styles.over]} testID="outing" accessibilityViewIsModal>
+      {/* audit 9: the page's one live region on the web, there from the first render, says the position's line once as it settles. */}
+      {platform === 'web' ? <Text testID="outing-position-said" accessibilityLiveRegion="polite" style={styles.said}>{page.said.n % 2 ? `${page.said.text}\u200B` : page.said.text}</Text> : null}
       {/* The points of the line handed to the map, for the e2e: a road has more than the towns it joins (RE1). */}
       <View style={StyleSheet.absoluteFill} testID="outing-map" {...({ dataSet: { linkPoints: j.map.link[0]?.length ?? 0 } } as object)}>
-        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={you} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={frameBounds} fitKey={fitN} fitPadding={frame.padding} scaleInset={scaleInset} onUserMove={byHand} onFitSettled={fitSettled} onCameraChange={cameraMoved} hideLabels />
+        <WalkMap trace={NONE} walked={NONE} fog={NONE} captures={NONE} walker={you} walkerMuted={pos.state === 'earlier'} route={j.map.route} alternates={j.map.link} routeGrades={NONE} foundPins={j.map.pins} fitBounds={frameBounds} fitKey={fitN} fitPadding={frame.padding} scaleInset={scaleInset} onUserMove={byHand} onFitSettled={fitSettled} onCameraChange={cameraMoved} hideLabels />
       </View>
       <View style={[styles.top, { top: insets.top + 8 }]}>
         <View style={styles.field}>
@@ -216,14 +235,14 @@ export function OutingPage(props: {
             <Text style={styles.title} accessibilityRole="header" testID="outing-title">{TITLE}</Text>
             {/* While the page reads its fix it waits and says so; with none it needs one, and says location is off when refused. */}
             {pos.state === 'finding' ? null : <Text style={styles.line} testID="outing-reason-noPosition">{reasonLine('noPosition')}</Text>}
-            {posLine ? <Text style={styles.line} testID="outing-position" accessibilityLiveRegion="polite">{posLine}</Text> : null}
+            {posBlock}
             <Button testID="outing-search" label={WHERE_LABEL} onPress={() => setSearching(true)} />
           </View>
         ) : !j.opened ? (
           <>
           <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
             <Text style={styles.title} accessibilityRole="header" testID="outing-title">{place ?? HERE_LABEL}</Text>
-            {posLine ? <Text style={styles.line} testID="outing-position" accessibilityLiveRegion="polite">{posLine}</Text> : null}
+            {posBlock}
             <Text style={styles.label}>{CHIPS_LINE}</Text>
             <View style={styles.chips} accessibilityRole="toolbar">
               {j.chips.map((w) => {
@@ -312,6 +331,8 @@ export function OutingPage(props: {
               <Text style={[styles.jname, styles.grow, styles.jtitle]} accessibilityRole="header" testID="outing-journey-name">{j.journey!.name}</Text>
             </View>
             <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
+              {/* audit 7: the line about the page's position stays with the journey opened. */}
+              {posBlock}
               {chapters.length > 1 ? <Text style={styles.line} testID="outing-summary">{summary(j.journey!)}</Text> : null}
               <Button testID="outing-another" label={ANOTHER_LABEL} variant="secondary" onPress={j.another} />
               {j.undoLine ? (
@@ -405,6 +426,8 @@ export function OutingPage(props: {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const styles = StyleSheet.create({
+  // Read by a screen reader, never seen (audit 9).
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   over: { backgroundColor: theme.bg, zIndex: 50 },
   top: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   field: { flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center' },

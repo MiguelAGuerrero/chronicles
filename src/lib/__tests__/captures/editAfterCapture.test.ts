@@ -348,6 +348,8 @@ test('fix planner-edit audit 4: the planner\'s Start is marked under way for as 
   const js = ts.transpileModule(`(${found})`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const body = js.replace(/^"use strict";\s*/, '').trim().replace(/;$/, '');
   for (const outcome of ['route', 'none', 'throws'] as const) {
+    const OWN = [1.5, 2.5];
+    const asked: unknown[] = [];
     let answer: (v: unknown) => void = () => {};
     let fail: (e: unknown) => void = () => {};
     const starting = { current: false };
@@ -355,14 +357,17 @@ test('fix planner-edit audit 4: the planner\'s Start is marked under way for as 
       starting,
       setBusy: () => {},
       setFailed: () => {},
-      p: { start: () => new Promise((res, rej) => { answer = res; fail = rej; }) },
-      // Start routes from the planner's own fix (fix outing-current-position), a local of the drawer.
-      you: [0, 0],
+      // Start routes from the fix the planner's own hook gives at that moment (fix outing-current-position audit 12).
+      p: { walkId: null, start: (from: unknown) => { asked.push(from); return new Promise((res, rej) => { answer = res; fail = rej; }); } },
+      page: { startAt: async () => OWN },
       props: { onStart: () => {} },
     };
     const start = new Function(...Object.keys(fakes), `"use strict"; return ${body};`)(...Object.values(fakes)) as () => Promise<void>;
     const run = start();
     assert.equal(starting.current, true, `${outcome}: under way while the re-plan is awaited`);
+    await new Promise((r) => setTimeout(r, 0));
+    assert.deepEqual(asked, [OWN], `${outcome}: the re-plan is from the planner's own fix`);
+    assert.equal(starting.current, true, `${outcome}: still under way while the re-plan is awaited`);
     if (outcome === 'throws') fail(new Error('no'));
     else answer(outcome === 'route' ? { at: [0, 0] } : null);
     await run;

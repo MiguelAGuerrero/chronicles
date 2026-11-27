@@ -5,6 +5,7 @@ import { fetchTiles } from '../discovery/tileFetch';
 import { placesArchive } from '../discovery/archive';
 import { placesFromTilePois } from '../discovery/tilePois';
 import { boundsOf } from '../geo';
+import { readTrace } from '../rides';
 import { carStretches } from '../walk/ahead';
 import { routeSegments } from '../walk/layer';
 import { MAX_TILES } from '../walk/limits';
@@ -45,6 +46,20 @@ export const planner = createPlanner({
 /** The open walk's id, or null (WP19, WP23). */
 export async function openWalkId(): Promise<string | null> {
   return (await db.getOpenWalk().catch(() => null))?.id ?? null;
+}
+
+/**
+ * The open walk's last walked fix, or null (fix outing-current-position audit 4): read as every trace is, with its start,
+ * pauses and stills, so a ride or a paused stretch is never where the walker is said to be. A planning page's stand-in when its
+ * own read does not come, beside the fix the app holds; read only then.
+ */
+export async function openWalkLast(): Promise<{ at: [number, number]; t: number } | null> {
+  const walk = await db.getOpenWalk().catch(() => null);
+  if (!walk) return null;
+  const [pauses, stills, points] = await Promise.all([db.getPauses(walk.id), db.getStills(walk.id).catch(() => []), db.getPoints(walk.id)]);
+  const walked = readTrace(points, walk.started_at, pauses, stills).walked;
+  const last = walked[walked.length - 1];
+  return last ? { at: [last.lon, last.lat], t: last.t } : null;
 }
 
 /** Whether the open walk has a destination set, which Start would replace (walk planner audit 16): meta `nav`, as it is held. */

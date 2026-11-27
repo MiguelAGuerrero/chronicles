@@ -1,0 +1,41 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore and discovery"
+      ],
+      "body": "- [loop] low: the walk planner with the walker far from the area or with no position (fix outing-current-position's review, ux U5, Nov 27): \"No loop here that does not go back the way you came. One way may work.\" reads as about the walker's street when the walker is kilometres away, and \"No route goes beyond it.\" stays under the distance stepper when there is no position to plan from (`PlannerDrawer.tsx`, `walkPlanner/words.ts`). Say the area's case in its own words, and leave the stepper's note out with no position.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42"
+      ],
+      "body": "- [owner] low: OJ10 says \"With no position the page says it needs one and proposes nothing\"; with a destination set and no position, Plan an outing proposes at the destination (\"When I get there\" only; `useJourney`'s `request.origin = origin ?? dest?.at`), as it did before fix outing-current-position, which kept it (the auditor's note, Nov 27). Whether that is OJ10's \"proposes nothing\" is the owner's reading.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Plan an outing (QC1-QC42"
+      ],
+      "body": "- [loop] low: Plan an outing with no position shows \"Where to?\" twice, the field over the map and the button under \"Needs your location…\" (`OutingPage.tsx`'s no-position block; pre-existing, met on every refused or timed-out opening since fix outing-current-position; the auditor's note, Nov 27). Keep one.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "go a few kilometres, then open Plan an outing"
+      ],
+      "body": "- [ ] **Do:** with location allowed \"While using\", open Explore, go a few kilometres, then open Plan an outing and an area card's \"Suggest a walk\"; leave one open, lock the phone, move, unlock; then, indoors with no fix, open either within half an hour of Explore's last fix and again after it; with a walk recording, open the planner indoors; then turn location off for Chronicles and open either. **Expect:** each page says \"Finding you…\" (VoiceOver and TalkBack say the line once it settles), then plans around where the phone is now and Start routes from there; back from the lock screen it reads once more and plans from where you are; with no fix in ten seconds, the plan from the earlier fix (or the walk's last walked fix, if newer) with \"From where you were … minutes ago.\" and a stone-grey dot; past half an hour \"Couldn't find your position. Try again in a moment.\" with Try again, nothing proposed; with a walk recording the capture stack shows at once; with location off, \"Location is turned off for Chronicles. Turn it on in Settings to find your position.\" with Open Settings, nothing proposed and no dot (fix outing-current-position, decision 0273; `usePagePosition`, `locate/index.native.ts` with `fresh` and its abort, `AppState`, `walkerMuted`).\n",
+      "target": "sha256:e6156d794b92590c3731276a21931d6407a14466ab2bd7ae4e0d5da301784e20"
+    }
+  ]
+}

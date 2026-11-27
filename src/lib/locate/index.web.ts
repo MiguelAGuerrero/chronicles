@@ -25,8 +25,12 @@ export function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS, opts: LocateOptions = 
       if (timer != null) clearTimeout(timer);
       clearTimeout(cap);
       if (id != null) navigator.geolocation.clearWatch(id);
+      opts.signal?.removeEventListener('abort', stop);
       resolve(r);
     };
+    const stop = () => finish({ at: null, reason: 'unavailable' });
+    if (opts.signal?.aborted) return stop();
+    opts.signal?.addEventListener('abort', stop);
     id = navigator.geolocation.watchPosition(
       (p) => {
         startClock();

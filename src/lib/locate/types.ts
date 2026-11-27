@@ -14,6 +14,8 @@ export interface LocateResult {
 /** `fresh`: refuse a cached position, however recent (a Locate tap asks where you are now). */
 export interface LocateOptions {
   fresh?: boolean;
+  /** Ends the read at once, its watch cleared, answering `unavailable` (a page that closed: fix outing-current-position audit 6). */
+  signal?: AbortSignal;
 }
 
 /** How long a moment waits for its fix. */

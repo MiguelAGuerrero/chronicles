@@ -13,7 +13,7 @@ import { startFrom, type PlannerResult, type PlannerRoute } from './service';
 
 /**
  * The planner page's state (WP1-WP4, WP12, WP13, WP18, WP24): reads once the page is open and its position is in (`active`: the
- * page's own fix has been read, or refused, or not come; fix outing-current-position), and again when a setting changes or
+ * page's own fix has been read, or refused, or not come; fix outing-current-position; only the plan waits on it, audit 5), and again when a setting changes or
  * different routes are asked for; the only memory is the routes on screen (WP13). An empty answer to "different routes" leaves the
  * routes on screen (audit 2); the round starts over with the settings in the same render (audit 10); the ceiling is the step shown (audit 6).
  */
@@ -55,13 +55,13 @@ export function usePlanner(kind: CategoryId, area: { at: LngLat; reachM: number 
     // The inputs are read through the key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, key]);
+  // The open walk is read as the page opens, whatever its position: the capture stack never waits on a fix (audit 5).
   useEffect(() => {
-    if (!active) return;
     void openWalkId().then((id) => {
       setWalkId(id);
       if (id) void navRaw().then((raw) => setReplaces(headingNote(raw, id)));
     });
-  }, [active]);
+  }, []);
   // A setting changed: nothing is remembered and nothing is "nothing different" any more.
   useEffect(() => {
     prev.current = null;

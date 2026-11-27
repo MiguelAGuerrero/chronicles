@@ -15,6 +15,7 @@ export async function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS, opts: LocateOpti
     return { at: null, reason: 'unavailable' };
   }
   const asked = Date.now();
+  if (opts.signal?.aborted) return { at: null, reason: 'unavailable' };
   return new Promise<LocateResult>((resolve) => {
     let sub: Location.LocationSubscription | null = null;
     let settled = false;
@@ -23,8 +24,12 @@ export async function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS, opts: LocateOpti
       settled = true;
       clearTimeout(timer);
       sub?.remove();
+      opts.signal?.removeEventListener('abort', stop);
       resolve(r);
     };
+    // A page that closed ends its read at once (fix outing-current-position audit 6).
+    const stop = () => finish({ at: null, reason: 'unavailable' });
+    opts.signal?.addEventListener('abort', stop);
     const timer = setTimeout(() => finish({ at: null, reason: 'timeout' }), timeoutMs);
     Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 0 }, (p) => {
       const acc = p.coords.accuracy;

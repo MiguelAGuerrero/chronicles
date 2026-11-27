@@ -280,7 +280,7 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=plan-capture]', { timeout: 4000 }).catch(() => {});
   {
     const pos = ((await pg.locator('[data-testid=plan-position]').innerText().catch(() => '')) ?? '').trim();
-    check.todo(/^Finding you/.test(pos) && (await pg.locator('[data-testid=plan-cap-photo]').count()) === 1, `fix outing-current-position audit 5: with a walk recording, the capture stack is on the planner while it is still finding you ("${pos}")`);
+    check(/^Finding you/.test(pos) && (await pg.locator('[data-testid=plan-cap-photo]').count()) === 1, `fix outing-current-position audit 5: with a walk recording, the capture stack is on the planner while it is still finding you ("${pos}")`);
   }
   await pg.evaluate(() => { window.__geoHang = false; });
   await pg.waitForSelector('[data-testid=plan-capture]', { timeout: 30000 }).catch(() => {});
@@ -438,7 +438,7 @@ async function ownPosition(h) {
   await pg.evaluate(() => window.__away());
   await until(async () => near(await walker(), green), 20000);
   const w1b = await walker();
-  check.todo(near(w1b, green), `fix outing-current-position audit 3: the app back at the front with the planner open, it reads once more and plans from where the phone is now (${w1b})`);
+  check(near(w1b, green), `fix outing-current-position audit 3: the app back at the front with the planner open, it reads once more and plans from where the phone is now (${w1b})`);
   await close();
   // 2. No fresh fix within the wait, the launch fix twenty minutes old: it stands in, said, its dot muted.
   await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 20 * 60_000; });
@@ -454,9 +454,9 @@ async function ownPosition(h) {
   const w2 = await walker();
   check(l2 === 'From where you were twenty minutes ago.' && near(w2, green) && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 0,
     `fix outing-current-position: WP3: with no fresh fix in time, a fix twenty minutes old is used and said ("${l2}", ${w2}; ${await page()})`);
-  check.todo((await muted()) === '1', `fix outing-current-position audit 11: the planner draws the stand-in fix's dot muted (${await muted()})`);
+  check((await muted()) === '1', `fix outing-current-position audit 11: the planner draws the stand-in fix's dot muted (${await muted()})`);
   const s2 = await said();
-  check.todo(s2 === l2, `fix outing-current-position audit 9: the planner says its settled line once, through its one live region ("${s2}")`);
+  check(s2 === l2, `fix outing-current-position audit 9: the planner says its settled line once, through its one live region ("${s2}")`);
   await shots('fix-planner-current-position-earlier');
   // 2b. Left open past thirty minutes: the stand-in is dropped; the timeout words and Try again.
   await pg.evaluate(() => { window.__clockShift = 31 * 60_000; });
@@ -464,15 +464,15 @@ async function ownPosition(h) {
   await pg.waitForTimeout(1500);
   const l2b = await line();
   const w2b = await walker();
-  check.todo(l2b === TIMEOUT_WORDS && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 1 && (await pg.locator('[data-testid=plan-row-0]').count()) === 0 && !w2b,
+  check(l2b === TIMEOUT_WORDS && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 1 && (await pg.locator('[data-testid=plan-row-0]').count()) === 0 && !w2b,
     `fix outing-current-position audit 2: the planner left open past thirty minutes drops the stand-in fix: no route, no dot ("${l2b}", ${w2b}; ${await page()})`);
   const retry = pg.locator('[data-testid=plan-position-retry]');
-  check.todo((await retry.count()) === 1, 'fix outing-current-position audit 8: the planner offers Try again with the timeout words');
+  check((await retry.count()) === 1, 'fix outing-current-position audit 8: the planner offers Try again with the timeout words');
   await shots('fix-planner-current-position-timeout');
   await pg.evaluate(() => { window.__geoHang = false; });
   await retry.click().catch(() => {});
   await until(async () => near(await walker(), green), 20000);
-  check.todo(near(await walker(), green) && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 0, `fix outing-current-position audit 8: Try again reads again and the planner plans from the fix (${await walker()}; ${await page()})`);
+  check(near(await walker(), green) && (await pg.locator('[data-testid=plan-reason-noPosition]').count()) === 0, `fix outing-current-position audit 8: Try again reads again and the planner plans from the fix (${await walker()}; ${await page()})`);
   await close();
   // 3. The launch fix over thirty minutes old, the watch hung: no position, no route.
   await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 31 * 60_000; });

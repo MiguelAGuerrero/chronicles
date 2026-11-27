@@ -37,7 +37,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, WALK_BELOW, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
+  alternatesGeoJSON, PAST_STYLE, type PastView, TRACE_EDGE_OPACITY, storefrontLayerOrder, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, bordersGeoJSON, WALK_STYLE, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, WALK_BELOW, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, WALKER_FILL, BASE_VECTOR_SOURCE, POI_SOURCE_LAYER,
   LINE_SOURCE, type CollectedFeatures, type WalkMapHandle, type WalkMapProps, FLAT_NORTH_UP, resendKey, type ReplayMapFrame, FIT_MAX_ZOOM, FIT_PADDING,
 } from './types';
 
@@ -605,7 +605,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* Explore's places still to find where a "?" would crowd (WT12, WT14). */}
         <WaitingDotsSource data={waitingDots} />
         <MarksSource data={marks} />
-        <PointsSource frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} />
+        <PointsSource frames={frames} walker={props.walker} heading={props.walkerHeading} enabled={glideOn} source={props.walkerSource} muted={!!props.walkerMuted} />
         <ReplayDot store={replayShown} />
         {/* The storefront names (DC1-DC6, DC14, DC16), the map's own text. Unverified on a device. */}
         <StorefrontNamesSource data={storefrontNameData} layers={nameLayers} beforeId={namesBelow} />
@@ -1023,13 +1023,14 @@ const ConeSource = memo(function ConeSource({ frames, walker, heading, enabled, 
 });
 
 /** The walker's dot: renders per glide frame, alone. */
-const PointsSource = memo(function PointsSource({ frames, walker, heading, enabled, source }: GlideIn) {
+const PointsSource = memo(function PointsSource({ frames, walker, heading, enabled, source, muted }: GlideIn & { muted: boolean }) {
   const g = useGlideShown(frames, walker, heading, enabled, source);
-  const data = useMemo(() => walkerGeoJSON(g.walker), [g.walker]);
+  const data = useMemo(() => walkerGeoJSON(g.walker, muted), [g.walker, muted]);
   return (
     <GeoJSONSource id="points" data={data}>
       <Layer id="points" type="circle" paint={{
-        'circle-color': COLORS.walker,
+        // A fix standing in for a fresh one is drawn in stone (fix outing-current-position audit 11).
+        'circle-color': WALKER_FILL as unknown as string,
         'circle-radius': 7,
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 2,

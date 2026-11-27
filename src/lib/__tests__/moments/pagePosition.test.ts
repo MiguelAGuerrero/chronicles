@@ -34,10 +34,10 @@ test('fix outing-current-position 2: OJ10, QC30, WP3: refused, the page has no p
   assert.equal(positionAt(p), null);
   assert.equal(positionLine(p, 'web'), LOCATION_OFF.web);
   assert.equal(positionLine(p, 'native'), LOCATION_OFF.native);
-  // No fix and none held (a reload): no position, and nothing claims location is off.
+  // No fix and none held (a reload): no position, and nothing claims location is off: the app's timeout words (audit 8).
   const none = pagePosition({ at: null, reason: 'timeout' }, null, NOW);
   assert.deepEqual(none, { state: 'none', refused: false });
-  assert.equal(positionLine(none, 'web'), null);
+  assert.doesNotMatch(positionLine(none, 'web')!, /Location is/);
 });
 
 test('fix outing-current-position 3: no fresh fix in time, one up to thirty minutes old is used and said; an older one never', async () => {
@@ -83,7 +83,7 @@ test('fix outing-current-position 5: Explore hands the outing page and the plann
   }
 });
 
-test('fix outing-current-position audit 1: Start reads again when the page fix has aged past thirty minutes or a walk records; the line ages too', { todo: 'test first' }, async () => {
+test('fix outing-current-position audit 1: Start reads again when the page fix has aged past thirty minutes or a walk records; the line ages too', async () => {
   const { aged, startFrom } = await mod();
   const here = { state: 'here' as const, at: CRANSTON, t: NOW };
   assert.equal(startFrom(here, NOW + 5 * MIN, false), 'use');
@@ -101,7 +101,7 @@ test('fix outing-current-position audit 1: Start reads again when the page fix h
   assert.equal(aged(here, NOW + 5 * MIN), here, 'unchanged, the same object: nothing re-renders');
 });
 
-test('fix outing-current-position audit 3: a fix read again where the page already is keeps its position; one far off replaces it', { todo: 'test first' }, async () => {
+test('fix outing-current-position audit 3: a fix read again where the page already is keeps its position; one far off replaces it', async () => {
   const { settle, PAGE_MOVE_M } = await mod();
   const was = { state: 'here' as const, at: CRANSTON, t: NOW };
   const near: LngLat = [CRANSTON[0] + 0.0003, CRANSTON[1]];
@@ -113,7 +113,7 @@ test('fix outing-current-position audit 3: a fix read again where the page alrea
   assert.ok(PAGE_MOVE_M >= 50 && PAGE_MOVE_M <= 250);
 });
 
-test('fix outing-current-position audit 4: with a walk recording, the stand-in is the newer of its last walked fix and the fix held', { todo: 'test first' }, async () => {
+test('fix outing-current-position audit 4: with a walk recording, the stand-in is the newer of its last walked fix and the fix held', async () => {
   const { newerFix, pagePosition } = await mod();
   const walked = { at: CRANSTON, t: NOW - 2 * MIN };
   const held = { at: FOX, t: NOW - 25 * MIN };
@@ -125,7 +125,7 @@ test('fix outing-current-position audit 4: with a walk recording, the stand-in i
   assert.deepEqual(pagePosition({ at: null, reason: 'timeout' }, newerFix(held, walked), NOW), { state: 'earlier', at: CRANSTON, t: NOW - 2 * MIN, agoMs: 2 * MIN });
 });
 
-test('fix outing-current-position audit 6: the page closing ends its read: the web watch is cleared at once', { todo: 'test first' }, async () => {
+test('fix outing-current-position audit 6: the page closing ends its read: the web watch is cleared at once', async () => {
   const cleared: number[] = [];
   const g = globalThis as unknown as { navigator?: unknown };
   const had = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
@@ -143,7 +143,7 @@ test('fix outing-current-position audit 6: the page closing ends its read: the w
   }
 });
 
-test('fix outing-current-position audit 8: no fix in time and none held says the app\'s timeout words, with Try again; refused offers Open Settings on a phone', { todo: 'test first' }, async () => {
+test('fix outing-current-position audit 8: no fix in time and none held says the app\'s timeout words, with Try again; refused offers Open Settings on a phone', async () => {
   const { pagePosition, positionLine, positionAction } = await mod();
   const { LOCATE_TIMEOUT } = await import('../../locate/notice');
   const none = pagePosition({ at: null, reason: 'timeout' }, null, NOW);
@@ -157,11 +157,11 @@ test('fix outing-current-position audit 8: no fix in time and none held says the
   assert.equal(positionAction({ state: 'finding' }, 'native'), null);
 });
 
-test('fix outing-current-position audit 10: the planner says location, as the outing page and the off line do', { todo: 'test first' }, async () => {
+test('fix outing-current-position audit 10: the planner says location, as the outing page and the off line do', async () => {
   const { reasonLine } = await import('../../walkPlanner/words');
   assert.equal(reasonLine('noPosition'), 'Needs your location to plan a walk.');
 });
-test('fix outing-current-position audit 12: the whole element Explore draws gives no position, and each page starts from its own hook\'s answer', { todo: 'test first' }, () => {
+test('fix outing-current-position audit 12: the whole element Explore draws gives no position, and each page starts from its own hook\'s answer', () => {
   const explore = readFileSync(join(SRC, 'app', '(tabs)', 'explore.tsx'), 'utf8');
   for (const el of ['OutingPage', 'PlannerDrawer']) {
     const at = explore.indexOf(`<${el}`);

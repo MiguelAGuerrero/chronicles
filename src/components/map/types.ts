@@ -79,6 +79,8 @@ export const COLORS = {
   /** A route being navigated: map-navigation blue, with a white edge (N6). */
   route: '#2563eb',
   walker: '#1d3557',
+  /** A walker's dot from a fix minutes old (fix outing-current-position audit 11): stone, 3:1 on the land, on its white edge. */
+  walkerMuted: '#7b7469',
   /** A photo, and a moment of several pieces: verdigris. */
   photo: '#286766',
   /** Madder: a dark disc, 15 or more from the hotspot magenta (MP8). */
@@ -254,6 +256,11 @@ export interface WalkMapProps {
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
+  /**
+   * The dot is a fix that stands in for a fresh one (fix outing-current-position audit 11, the owner's "Muted dot when old",
+   * Nov 27): drawn in stone (`COLORS.walkerMuted`), not the walker's ink.
+   */
+  walkerMuted?: boolean;
   /** The live dot, fix by fix (the live walk): the glide follows it, and the trace's end joins it. */
   walkerSource?: DotSource | null;
   /** Glide the dot, cone and camera between fixes (the live walk). Off, the dot is placed as given (the replay's clock). */
@@ -555,12 +562,15 @@ export function splitTrace(runs: LngLat[][]): { history: LngLat[][]; tail: LngLa
   return { history, tail, historyKey: `${runs.length}:${cut}:${done.reduce((n, r) => n + r.length, 0)}` };
 }
 
-export function walkerGeoJSON(walker?: LngLat | null): GeoJSON.FeatureCollection {
+export function walkerGeoJSON(walker?: LngLat | null, muted = false): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: walker ? [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: walker } }] : [],
+    features: walker ? [{ type: 'Feature', properties: { muted }, geometry: { type: 'Point', coordinates: walker } }] : [],
   };
 }
+
+/** The dot's fill: the walker's ink, or stone for a fix that stands in for a fresh one (fix outing-current-position audit 11). */
+export const WALKER_FILL = ['case', ['==', ['get', 'muted'], true], COLORS.walkerMuted, COLORS.walker] as const;
 
 export const WORLD_VEIL: GeoJSON.FeatureCollection = {
   type: 'FeatureCollection',

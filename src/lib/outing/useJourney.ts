@@ -66,9 +66,9 @@ export function useJourney(you: LngLat | null) {
   const [pickedIds, setPicked] = useState<string[] | null>(null);
   const [dest, setDestState] = useState<JourneyDest | null>(null);
   const [reachM, setReachState] = useState(0);
-  const [origin, setOrigin] = useState<LngLat | null>(you);
-  // Where you stood when the page had a position first: the reads are made around it, not around every later fix.
-  if (!origin && you) setOrigin(you);
+  // Where the page's own read put you (fix outing-current-position): it changes only when the page reads again (the app back
+  // at the front, Try again, Start) and finds you more than `PAGE_MOVE_M` away, or when the fix ages past use; not at every fix.
+  const origin = you;
   // `walked` is null when the towns of the recorded outings could not be read: then nothing is said to be new (audit 49).
   const [rows, setRows] = useState<{ towns: TownRow[]; walked: TownRow[] | null } | null>(null);
   const [reads, setReads] = useState<Record<string, Session | null>>({});

@@ -1,12 +1,12 @@
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AtlasArea } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { Waypoint } from '../../lib/nav/types';
 import { focusOn, useFocusReturn, useFocusTrap } from '../../lib/focus';
-import { positionAt, positionLine } from '../../lib/locate/pagePosition';
+import { OPEN_SETTINGS_LABEL, positionAction, positionAt, positionLine, RETRY_LABEL } from '../../lib/locate/pagePosition';
 import { usePagePosition } from '../../lib/locate/usePagePosition';
 import { hideTabs, modalsUp } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
@@ -37,9 +37,13 @@ export function PlannerDrawer(props: {
   const insets = useSafeAreaInsets();
   const units = useUnits();
   // WP3 (fix outing-current-position, decision 0273): the planner's own fix, read as it opens; nothing is planned until it is in.
-  const pos = usePagePosition();
+  // Read again when the app comes back to the front, on Try again, and at Start when it has aged or a walk records (audits 1-3).
+  const page = usePagePosition();
+  const pos = page.pos;
   const you: LngLat | null = positionAt(pos);
-  const posLine = positionLine(pos, Platform.OS === 'web' ? 'web' : 'native');
+  const platform = Platform.OS === 'web' ? 'web' : 'native';
+  const posLine = positionLine(pos, platform);
+  const posAction = positionAction(pos, platform);
   const p = usePlanner(props.kind, { at: props.area.at, reachM: props.area.reachM }, you, pos.state !== 'finding');
   const [busy, setBusy] = useState(false);
   // tend explore 27: focus moves into the planner as it opens, at its title, as the card's does at its name, and goes back
@@ -85,7 +89,9 @@ export function PlannerDrawer(props: {
     setFailed(false);
     try {
       // Start routes from the planner's own fix (decision 0273), the one it planned from.
-      const dest = await p.start(you);
+      // Read once more when the fix has aged or a walk records (audit 1); with none, nothing starts and the page says why.
+      const at = await page.startAt(!!p.walkId);
+      const dest = at ? await p.start(at) : null;
       if (dest) props.onStart(dest);
     } catch {
       setFailed(true);
@@ -96,6 +102,8 @@ export function PlannerDrawer(props: {
   }
   return (
     <View ref={rootRef} style={[StyleSheet.absoluteFill, styles.over, { paddingTop: insets.top }]} testID="planner" accessibilityViewIsModal>
+      {/* audit 9: the planner's one live region on the web, there from the first render, says its position's line once as it settles. */}
+      {platform === 'web' ? <Text testID="plan-said" accessibilityLiveRegion="polite" style={styles.said}>{page.said.n % 2 ? `${page.said.text}\u200B` : page.said.text}</Text> : null}
       <View style={styles.head}>
         <Text ref={titleRef} style={styles.title} accessibilityRole="header" testID="plan-title" {...{ tabIndex: -1 }}>{title(props.kind)}</Text>
         <Pressable testID="plan-close" accessibilityRole="button" accessibilityLabel={closeLabel} onPress={props.onClose} style={styles.close}>
@@ -109,6 +117,7 @@ export function PlannerDrawer(props: {
           fog={NONE}
           captures={NONE}
           walker={you}
+          walkerMuted={pos.state === 'earlier'}
           route={map.route}
           alternates={map.alternates}
           routeGrades={map.grades}
@@ -119,14 +128,17 @@ export function PlannerDrawer(props: {
       </View>
       <ScrollView style={styles.body} contentContainerStyle={styles.content}>
         {/* Finding you, or how long ago the fix it plans from was, above the routes; location off under "needs your position". */}
-        {posLine && pos.state !== 'none' ? <Text style={styles.line} testID="plan-position" accessibilityLiveRegion="polite">{posLine}</Text> : null}
+        {posLine && pos.state !== 'none' ? <Text style={styles.line} testID="plan-position">{posLine}</Text> : null}
         {p.reading ? <Text style={styles.line} testID="plan-reading">{readingLine}</Text> : null}
         {p.routes.length > 0 ? (
           <RouteRows routes={p.routes} selected={p.page.selected} kind={props.kind} units={units} ceilingM={p.ceilingM} onSelect={p.choose} />
         ) : null}
         {reasons.map((r) => <Text key={r} style={styles.line} testID={`plan-reason-${r}`}>{reasonLine(r)}</Text>)}
         {p.nothing ? <Text style={styles.line} testID="plan-reason-nothingDifferent">{reasonLine('nothingDifferent')}</Text> : null}
-        {posLine && pos.state === 'none' ? <Text style={styles.line} testID="plan-position" accessibilityLiveRegion="polite">{posLine}</Text> : null}
+        {posLine && pos.state === 'none' ? <Text style={styles.line} testID="plan-position">{posLine}</Text> : null}
+        {/* audit 8: Try again after a timeout; Open Settings when refused, on a phone (a web page cannot open them). */}
+        {posAction === 'retry' ? <Button testID="plan-position-retry" label={RETRY_LABEL} variant="secondary" onPress={page.retry} /> : null}
+        {posAction === 'settings' ? <Button testID="plan-position-settings" label={OPEN_SETTINGS_LABEL} variant="secondary" onPress={() => void Linking.openSettings()} /> : null}
         {failed ? <Text style={styles.line} testID="plan-failed">{reasonLine('noRoute')}</Text> : null}
         {p.walkId && p.replaces ? <Text style={styles.line} testID="plan-replaces">{replacesLine}</Text> : null}
         <View style={styles.actions}>
@@ -141,6 +153,8 @@ export function PlannerDrawer(props: {
 }
 
 const styles = StyleSheet.create({
+  // Read by a screen reader, never seen (audit 9).
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   over: { backgroundColor: theme.bg, zIndex: 50 },
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 6, gap: 8 },
   title: { flex: 1, fontSize: 20, fontWeight: '800', color: theme.ink },

@@ -41,7 +41,8 @@ export const CEILING_NOTE = 'No route goes beyond it.';
 
 export function reasonLine(r: Reason): string {
   switch (r) {
-    case 'noPosition': return 'Needs your position to plan a walk.';
+    // The outing page's word, and the off line's beneath it (fix outing-current-position audit 10).
+    case 'noPosition': return 'Needs your location to plan a walk.';
     case 'far': return 'Too far from here to start on foot.';
     case 'few': return 'Too little of this in one place to make a way.';
     case 'noRoute': return 'No way through it was found on the streets nearby.';

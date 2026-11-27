@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { CircleLayerSpecification } from 'maplibre-gl';
-import { COLORS, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, endsGeoJSON, endsLoopGeoJSON, traceShown } from '../../../components/map/types';
+import { COLORS, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, endsGeoJSON, endsLoopGeoJSON, traceShown, WALKER_FILL } from '../../../components/map/types';
 import { contrast } from './colourSight';
 
 // tend map T16 (the owner's yes, Nov 12): a walk's start and end differed by colour alone, two white discs
@@ -145,9 +145,11 @@ test('tend map T25: the walker\'s dot is unchanged, and differs from the end in 
   const dir = join(__dirname, '../../../components/map');
   const web = readFileSync(join(dir, 'WalkMap.web.tsx'), 'utf8');
   const native = readFileSync(join(dir, 'WalkMap.native.tsx'), 'utf8');
-  // The dot: one navy disc of radius 7 with a 2 px white ring, one layer, on both maps.
-  assert.match(web, /id: 'points', type: 'circle', source: 'points',\s*paint: \{\s*'circle-color': COLORS\.walker,\s*'circle-radius': 7,\s*'circle-stroke-color': '#ffffff',\s*'circle-stroke-width': 2,/);
-  assert.match(native, /<Layer id="points" type="circle" paint=\{\{\s*'circle-color': COLORS\.walker,\s*'circle-radius': 7,\s*'circle-stroke-color': '#ffffff',\s*'circle-stroke-width': 2,/);
+  // The dot: one navy disc of radius 7 with a 2 px white ring, one layer, on both maps; stone only for a fix that stands in for a
+  // fresh one on a planning page (fix outing-current-position audit 11, the owner's "Muted dot when old", Nov 27).
+  assert.deepEqual(WALKER_FILL, ['case', ['==', ['get', 'muted'], true], COLORS.walkerMuted, COLORS.walker]);
+  assert.match(web, /id: 'points', type: 'circle', source: 'points',\s*paint: \{\s*(\/\/.*\s*)?'circle-color': WALKER_FILL as unknown as string,\s*'circle-radius': 7,\s*'circle-stroke-color': '#ffffff',\s*'circle-stroke-width': 2,/);
+  assert.match(native, /<Layer id="points" type="circle" paint=\{\{\s*(\/\/.*\s*)?'circle-color': WALKER_FILL as unknown as string,\s*'circle-radius': 7,\s*'circle-stroke-color': '#ffffff',\s*'circle-stroke-width': 2,/);
   // The end has a ring round its band, which the dot has not.
   assert.ok(num(paintFor(ENDS_RING_PAINT['circle-radius'], 'end')) > num(paintFor(ENDS_PAINT['circle-radius'], 'end')) + num(paintFor(ENDS_PAINT['circle-stroke-width'], 'end')));
 });
