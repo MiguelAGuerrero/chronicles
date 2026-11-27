@@ -561,3 +561,29 @@ is applied left in view.
 What they share: one file, made from settings on a tap, holding the media with the words. Only Day One reads its own
 file back; Apple Journal and Polarsteps export a copy you can keep but not restore. Used by
 `docs/research/app-backup.md` (decision 0241).
+
+### Know where you are when a screen lists or plans from it (Earn)
+
+Looked up Nov 27, 2026, for the owner's `/investigate` of Plan an outing planning from a town left hours before
+(`docs/research/current-position.md`).
+
+- **Apple Maps** (iOS 27): "Tap [the Tracking Off button]. Your position is marked in the middle of the map."; when
+  Maps shows an alert that Location Services or Precise Location is off, "follow the onscreen instructions to turn it
+  on" (the alert's own words are not on the page). Source: https://support.apple.com/en-am/guide/iphone/iph10d7bdf26/ios
+  , read Nov 27. **Verified**.
+- **Google Maps** (computer): "The blue dot shows your location on the map"; "When Google Maps isn't sure about your
+  location, a light blue circle shows around the blue dot"; "If the blue dot isn't visible or is gray, Maps can't find
+  your current location. Maps shows the last location you visited."; with no permission, "In your browser, give Maps
+  location permission." Source: https://support.google.com/maps/answer/2839911?hl=en , read Nov 27 (the Android and
+  iPhone tabs were not read). **Verified**.
+- **Apple Human Interface Guidelines, Privacy**: "Ideally, wait to request permission until people actually use an app
+  feature that requires access"; "Avoid requesting permission at launch unless the data or resource is required for
+  your app to function"; the location button gives "one-time permission to access their location" at the moment a task
+  needs it. A screen before the system alert has one button that opens it, never Allow, and no way to leave it. Source:
+  https://developer.apple.com/design/human-interface-guidelines/privacy (read as its `.md`), Nov 27. **Verified**.
+- **Komoot**: the route planner starts from "Current location", read as the planner opens. Source: from memory,
+  unverified. **Unverified**.
+
+What they share: the position a screen plans from is read when that screen asks for it; a position that is not
+current is marked as such (Google's gray dot), never shown as you; location off is said where it matters, with the
+way to turn it on. None needs tracking between uses to do this.
