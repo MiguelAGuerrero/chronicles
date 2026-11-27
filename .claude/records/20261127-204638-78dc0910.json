@@ -1,0 +1,14 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Lease: /tend-orchestrator's lessons",
+        "--reason",
+        "the holder's release at the run's close (lease skill-orchestrator-lessons, its last commit)"
+      ],
+      "target": "sha256:4ba1bfebd3dd04fb341e80707840ed9f24f471bf5772f8108bf5c9f029f35b38"
+    }
+  ]
+}
