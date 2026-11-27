@@ -152,3 +152,10 @@ test('current-position audit 12: Explore\'s own front asks once per launch; the 
   assert.equal(tick, '() => setPos((p) => exploreFront(p, Date.now()))', `the age tick only ages (${tick})`);
   assert.ok(src.includes('const ask = frontAsk(permissionNow.current?.state ?? null, launchFix);'), 'the view asks through frontAsk');
 });
+
+test('current-position audit 13: the stand-in\'s line never takes the place of "Looking around…" and its Cancel', async () => {
+  const src = readFileSync(join(SRC, 'app', '(tabs)', 'explore.tsx'), 'utf8');
+  const looking = src.indexOf(') : looking ? (');
+  const line = src.indexOf(') : earlierLine ? (');
+  assert.ok(looking > 0 && line > looking, `the overlay's order: a look in progress, then the stand-in's line (${looking}, ${line})`);
+});

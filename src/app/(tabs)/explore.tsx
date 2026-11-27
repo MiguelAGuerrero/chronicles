@@ -871,10 +871,6 @@ export default function Explore() {
     <Banner tone={notice.tone} onDismiss={() => setNotice(null)}>
       {notice.message}
     </Banner>
-  ) : earlierLine ? (
-    <Banner tone="info" live={false}>
-      {earlierLine}
-    </Banner>
   ) : looking ? (
     <View style={styles.scanning} accessibilityLiveRegion="polite">
       <ActivityIndicator color={theme.ink} />
@@ -892,6 +888,11 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
+    // The stand-in's line sits under "Looking around…", whose Cancel it must never take the place of (current-position audit 13).
+  ) : earlierLine ? (
+    <Banner tone="info" live={false}>
+      {earlierLine}
+    </Banner>
   ) : hintShown ? (
     // Not while the map's credits are open: they grow up into the hint's row (tend map audit 1; in `slotTaken`).
     <Text style={styles.hint} testID="atlas-press-hint">Hold the map to look anywhere.</Text>
