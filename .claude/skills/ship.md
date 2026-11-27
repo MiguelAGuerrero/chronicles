@@ -8,7 +8,9 @@ The grant is always the owner's and always narrow: `/fix` covers one issue, `/te
 `/tend inbox G<n> yes` that one slice, `/walked` one walk note, day-dated, published (`HEAD:main` only) by `/walked
 publish` or carried by a `/tend` push in the same session (decisions 0238, 0270; `tend/walks.md`). None covers a force
 push, rewritten history, a skipped or
-loosened test, or a second piece of work found on the way.
+loosened test, or a second piece of work found on the way. A grant covers this repository's `main`; a second
+repository's `main` (`chronicles-data`, for a build that spans it) only when the owner names that repository (the
+owner, Nov 27).
 
 ## Open the worktree
 
@@ -211,10 +213,14 @@ with the checks the calling skill names.
 
 ### A red run
 
+`get_job_logs` answers 404 while the job is still running: read the log once the run has completed.
+
 One fix-forward attempt following `/deploy` section 4, only when the log names a cause this run plainly
 owns. Otherwise, or if that run is also red, or the live site is broken, revert in the worktree, push
 the revert the same way (it is covered by the grant) and confirm its Pages run is green. Never leave
-`main` red, and never revert a commit that is not this run's.
+`main` red, and never revert a commit that is not this run's. A red the worktree cannot reproduce may be the
+checkout's: CI's build job clones 50 commits deep, so a test that reads history passes here and refuses there
+(`.claude/skills/tend/traps.md`, "Tests"); reproduce it in a clone of that depth.
 
 What to revert:
 
@@ -244,7 +250,8 @@ Every run ends here, whatever happened. Remove only the worktree and branches th
    After a publish, while the worktree is there, in the worktree: `npm run book:landed -- <base>..<pushed
    sha> --live https://miguelaguerrero.github.io/chronicles/` (every commit of the run on `main`, and the
    live entry bundle against the worktree's `dist/` when it is a Pages export; it cannot see Pages,
-   which stays with the GitHub tools).
+   which stays with the GitHub tools). An e2e export (built for the root path) is no Pages export, and a records-only
+   run has none: say the bundle was not compared.
 2. Anything unpushed or uncommitted that is worth keeping: save it as a patch
    (`git -C <worktree> diff HEAD > <scratchpad>/<name>.patch`, plus `git format-patch` for commits)
    before removing, and name the patch in the report. Never remove a worktree holding work that is
@@ -263,7 +270,8 @@ Every run ends here, whatever happened. Remove only the worktree and branches th
 | Nothing pushed by choice | delete after the patch is saved | none |
 
    A remote deletion the session's proxy refuses is reported to the owner (the branch and the refusal),
-   never retried.
+   never retried. Since it may be refused, no run, `/tend`, `/fix` or a slice, pushes a branch this table does not
+   call for: a copy kept for safety is a patch in the scratchpad (step 2), not a pushed branch (the owner, Nov 27).
 
 5. `git worktree prune`, then confirm nothing of this run remains. The worktree is gone and the primary
    checkout may predate the script, so read `main`'s scripts into `<main-scripts>` (a scratchpad folder;

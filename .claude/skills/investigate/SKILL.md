@@ -53,13 +53,13 @@ Read the job's section of `docs/research/adjacent-apps.md`. For what it lacks, l
 searches in one turn) and have the `web-fetch` agent read the pages you would cite. Record each new line
 there, in its job's section (add the job if new), in the file's own form: **Verified** only for a page
 read, otherwise "from memory, unverified". Unlike the loop, this run may edit `docs/research/`.
-Precedent informs how, never what (`/tend` section 9).
+Precedent informs how, never what (`.claude/skills/tend/evolve.md`).
 
 ## 4. Shape the options
 
 Two to five shapes, a table: the change, the causes it answers (by number), its vision risk, its rough
 cost (files, native code). One of them is always **leave it**, with what leaving it costs. Then **one recommendation**, which may combine shapes, sized as `/tend`
-section 9 sizes: **S** (about three criteria), **M** (one slice, ten criteria or fewer, no architectural
+sizes (`.claude/skills/tend/evolve.md`): **S** (about three criteria), **M** (one slice, ten criteria or fewer, no architectural
 decision), **L** (never queued whole: its first S or M slice, and what the rest would be). The size names
 its source files and its native paths beside its criteria: ten criteria over three files is not ten over twelve.
 
@@ -121,8 +121,8 @@ From: the owner's /investigate, <date>: "<their words>". Queued as G<n>. Status:
 
 **The entry**, by its size:
 
-- **S or M** (or the first slice of an **L**): a `G` entry under "Next evolutions", in `/tend` section 9's
-  form, with these lines added after the title line:
+- **S or M** (or the first slice of an **L**): a `G` entry under "Next evolutions", in the form of
+  `.claude/skills/tend/evolve.md`, with these lines added after the title line:
   `From: /investigate, the owner's ask (<date>). Brief: docs/research/<slug>.md.`,
   `Calls: <the owner's answers, one clause each; decision NNNN>`, `Done when: <the brief's check>`,
   `Mock-up: <link> (docs/mockups/<id>/), approved "<the owner's words>" (<date>)` when it changes a look, and one

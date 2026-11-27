@@ -75,6 +75,8 @@ and `npm run check:records -- origin/main` passes before you publish: CI replays
 commit's trailers and fails any other change.
 
 Known constraints (do not rediscover them):
+- start from `.claude/skills/tend/traps.md`, the maintained list (read it before your first commit); the lines below
+  are what this brief adds;
 - read FORBIDDEN in scripts/tend.js before editing anything outside src/ and the journeys;
 - check:tend wants a named test for any src/ change, comments included;
 - the bookkeeping commands run in your worktree (cut from origin/main, it holds the script):
