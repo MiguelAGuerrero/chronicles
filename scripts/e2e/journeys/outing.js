@@ -699,8 +699,107 @@ async function run(h) {
     await pg.setViewportSize(vp);
   }
   await c.close();
+  await ownPosition(h);
   places.files = {};
   places.manifest = JSON.stringify({ schema: 1, regions: [] });
+}
+
+/**
+ * fix outing-current-position (decision 0273; OJ10, QC30): the page reads one fresh fix of its own as it opens, never Explore's
+ * launch fix. Launched at Curio Row, the phone moves 4 km: the page is where the phone is now. With no fresh fix in time (the
+ * browser's watch made to hang) the launch fix stands in while under thirty minutes old, said in a line, and never past that.
+ * Refused after a reload: the page says it needs your location, that location is off, and draws no dot.
+ */
+async function ownPosition(h) {
+  const { exploreUrl, at, check, freshPage, shot } = h;
+  const { c, pg } = await freshPage('outing-position');
+  // A clock that can be moved on, and a watch that can be made never to answer, for the fallback's two sides.
+  await c.addInitScript(() => {
+    window.__clockShift = 0;
+    window.__geoHang = false;
+    const now = Date.now;
+    Date.now = () => now() + window.__clockShift;
+    const g = navigator.geolocation;
+    const watch = g.watchPosition.bind(g);
+    let hung = 1e6;
+    g.watchPosition = (ok, err, o) => (window.__geoHang ? ++hung : watch(ok, err, o));
+  });
+  const curio = at(-248, 0);
+  const moved = at(-208, 0);
+  const near = (s, p) => !!s && s.split(',').map(Number).every((v, i) => Math.abs(v - p[i]) < 1e-5);
+  const walker = () => pg.evaluate(() => document.querySelector('[data-testid=outing] [data-walker]')?.getAttribute('data-walker') ?? null);
+  const line = async () => ((await pg.locator('[data-testid=outing-position]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
+  const sheet = async () => ((await pg.locator('[data-testid=outing-sheet]').innerText().catch(() => '')) ?? '').replace(/\s+/g, ' ').trim().slice(0, 240);
+  const open = async () => {
+    await pg.locator('[data-testid=outing-entry]').waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    await pg.click('[data-testid=outing-entry]').catch(() => {});
+    await pg.waitForSelector('[data-testid=outing]', { timeout: 15000 }).catch(() => {});
+  };
+  const close = async () => {
+    await pg.click('[data-testid=outing-close]').catch(() => {});
+    await pg.waitForSelector('[data-testid=outing]', { state: 'detached', timeout: 10000 }).catch(() => {});
+  };
+  const until = async (ok, ms) => {
+    for (const end = Date.now() + ms; Date.now() < end; await pg.waitForTimeout(250)) if (await ok()) return true;
+    return false;
+  };
+  const shots = async (name) => {
+    const vp = pg.viewportSize();
+    await shot(pg, `${name}-390`);
+    await pg.setViewportSize({ width: 320, height: vp.height });
+    await pg.waitForTimeout(900);
+    await shot(pg, `${name}-320`);
+    await pg.setViewportSize(vp);
+    await pg.waitForTimeout(400);
+  };
+  await c.setGeolocation({ longitude: curio[0], latitude: curio[1], accuracy: 6 });
+  await pg.goto(exploreUrl);
+  await pg.waitForSelector('[data-testid=atlas-tile][data-name="Curio Row"]', { timeout: 60000 }).catch(() => {});
+  await pg.waitForTimeout(1500);
+  // 1. Moved 4 km since Explore's launch fix.
+  await c.setGeolocation({ longitude: moved[0], latitude: moved[1], accuracy: 6 });
+  await open();
+  await until(async () => near(await walker(), moved), 15000);
+  const w1 = await walker();
+  check.todo(near(w1, moved) && !near(w1, curio), `fix outing-current-position: OJ10, QC30: moved 4 km since Explore's launch fix, the page is where the phone is now, not where Explore read it (${w1}; ${await sheet()})`);
+  await pg.waitForTimeout(2500);
+  await shots('fix-outing-current-position-moved');
+  await close();
+  // 2. No fresh fix within the wait, the launch fix twenty minutes old: it stands in, and is said.
+  await pg.evaluate(() => { window.__geoHang = true; window.__clockShift = 20 * 60_000; });
+  await open();
+  await until(async () => /^From where you were/.test(await line()), 25000);
+  await pg.waitForSelector('[data-testid=outing-journey-0]', { timeout: 60000 }).catch(() => {});
+  const l2 = await line();
+  const w2 = await walker();
+  check.todo(l2 === 'From where you were twenty minutes ago.' && near(w2, curio) && (await pg.locator('[data-testid=outing-journey-0]').count()) === 1,
+    `fix outing-current-position: with no fresh fix in time, a fix twenty minutes old is used and said ("${l2}", ${w2})`);
+  await pg.waitForTimeout(1500);
+  await shots('fix-outing-current-position-earlier');
+  await close();
+  // 3. The same, the launch fix over thirty minutes old: no position, nothing proposed.
+  await pg.evaluate(() => { window.__clockShift = 31 * 60_000; });
+  await open();
+  await until(async () => (await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && !/^Finding/.test(await line()), 25000);
+  await pg.waitForTimeout(1500);
+  const w3 = await walker();
+  check.todo((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && (await pg.locator('[data-testid=outing-journey-0]').count()) === 0 && !w3 && !/From where you were/.test(await sheet()),
+    `fix outing-current-position: OJ10: a fix over thirty minutes old is never used: the page needs your location and proposes nothing (${w3}; ${await sheet()})`);
+  await close();
+  // 4. Refused, after a reload (no fix in memory; Explore falls back to the area it last listed).
+  await c.clearPermissions();
+  await pg.reload();
+  await pg.waitForSelector('[data-testid=atlas-tile]', { timeout: 60000 }).catch(() => {});
+  await pg.waitForTimeout(2500);
+  await open();
+  await until(async () => (await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && /Location is off/.test(await line()), 20000);
+  await pg.waitForTimeout(1500);
+  const w4 = await walker();
+  const l4 = await line();
+  check.todo((await pg.locator('[data-testid=outing-reason-noPosition]').count()) === 1 && /^Location is off for this site\./.test(l4) && (await pg.locator('[data-testid=outing-journey-0]').count()) === 0 && !w4,
+    `fix outing-current-position: OJ10, QC30: location refused, the page says it needs your location and that location is off, proposes nothing and draws no dot ("${l4}", ${w4}; ${await sheet()})`);
+  await shots('fix-outing-current-position-refused');
+  await c.close();
 }
 
 module.exports = {
