@@ -27,7 +27,7 @@ A warning: the slice builds only YH1-YH7 and takes none of those items on.
 Docs: this spec and plan; decision 0275; NV16, NV17 and AT1 amended in their mirrors; `.claude/rules/explore-atlas.md`
 and `tabs-and-home.md` (the launch-fix lines); `docs/TESTING.md` (the journey's row); `docs/PRODUCT.md`;
 `docs/NATIVE_UNVERIFIED.md` (`native item add`); `docs/DEFERRED.md` (S6); `docs/research/current-position.md`'s
-`Status:`. Tests: `src/lib/__tests__/explore/currentPosition.test.ts` (new), `src/lib/__tests__/tabs/launchRoute.test.ts`
+`Status:`. Tests: `src/lib/__tests__/moments/currentPosition.test.ts` (new), `src/lib/__tests__/tabs/launchRoute.test.ts`
 (NV16's test renamed), `scripts/e2e/journeys/position.js` (new).
 
 ## Data

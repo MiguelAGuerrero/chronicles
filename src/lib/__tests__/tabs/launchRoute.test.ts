@@ -20,7 +20,9 @@ test('NV2: coming back to the launch path from inside the app is not a launch', 
   assert.equal(r.isLaunch('/replay/w1'), false);
 });
 
-test('NV16: Explore asks for one fix per launch, and none once a fix is known', async () => {
+// NV16, amended by decisions 0273 and 0275 (specs/current-position YH1): Explore reads at every front while location is
+// allowed; where reading could raise the system prompt, it asks once per launch, and this is that one ask.
+test('NV16: Explore asks for location once per launch, and not at all once a fix is known', async () => {
   const { createLaunchFix } = await import('../../lastFix');
   const a = createLaunchFix();
   assert.equal(a.take(false), true, 'the first focus with no fix asks');

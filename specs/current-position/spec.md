@@ -157,7 +157,7 @@ Aligned with changes; triaged (the coordinator's rulings, the owner's answers in
 
 ## Tests
 
-Unit, in `src/lib/__tests__/explore/currentPosition.test.ts` (feature `explore`), of the core `locate/front.ts`: YH1
+Unit, in `src/lib/__tests__/moments/currentPosition.test.ts` (feature `moments`, which owns `src/lib/locate/`, beside the outing pages' `pagePosition.test.ts`), of the core `locate/front.ts`: YH1
 (the read's outcome, the town-changed frame, the launch's one ask), YH2 (the return), YH4, YH5, YH6 (the decision after
 a read, and its ageing); NV16 (amended) in `src/lib/__tests__/tabs/launchRoute.test.ts`. The journey `position` (new):
 YH1-YH7 on the web build at 390 and 320 px.
