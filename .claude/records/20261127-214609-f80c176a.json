@@ -1,0 +1,13 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Navigate, ready"
+      ],
+      "body": "- [owner] (low) Navigate's ready map draws the fix the app holds as you, however old: it opens at `getLastFix()` (`src/components/walk/useReady.tsx`, the `fix` state) and keeps the dot there while its own read comes or fails, with no muted dot and no \"From where you were …\" line as Explore and the planning pages have since G17 (specs/current-position, decisions 0273, 0275). G17 named Explore's dot only (the steward's S6 at its plan, Nov 27). Open for the owner: should Navigate's ready map follow Explore's rule for an old fix (muted, said), or keep drawing the fix it holds?\n"
+    }
+  ]
+}

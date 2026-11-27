@@ -38,6 +38,8 @@ Open: none (the four questions answered in person, decision 0273)
   it comes to the front (`LOCATION_OFF`, Open Settings on a phone); with no fix read, no walker dot and no "You're here".
 - **"Up to 30 min, said (Recommended)"**: when a fresh fix does not come in time, a screen that lists or plans from
   where you are may use one up to 30 minutes old (`FRESH_FIX_MS`) and says so in a line; older is no position.
+- **At the plan's review** (the owner, in person, 2026-11-27, decision 0275, amending 0273's "each time"): "No walk time
+  (Recommended)", "Age it out (Recommended)", "Keep the pick (Recommended)", "Next launch (Recommended)" (YH1, YH4-YH6).
 - Kept: **"Card only on Explore"** (the owner, Nov 14, tend walk-screen audit 10): while Explore's empty card says
   location is blocked (`BLOCKED_LINE`), no banner says it again. YH4's notice is that card's line there.
 
@@ -85,26 +87,35 @@ From the code (`grep -rn "locateOnce\|getLastFix()\|walker=" src`):
 
 ## Criteria
 
-G17's seven, in its words, numbered with the slice's prefix; the states they imply are in YH1, YH4 and YH6 (slice step 2).
+G17's seven, in its words, numbered with the slice's prefix; the states they imply, and the owner's four answers at the
+plan's review (decision 0275), are in YH1, YH4, YH5 and YH6 (slice step 2).
 
 1. **YH1** (the owner's task: "ensure any location, sensitive journey is updated to the users current position") Explore
    reads one fresh fix (`lib/locate`) each time it comes to the front, by its tab's focus or the app's return to the
-   front, and lists, frames and says "You're here" from it; no longer once per launch (NV16 amended). A fix within
-   100 m of where the page already has you (`PAGE_MOVE_M`) moves nothing and frames nothing; a farther one, on the page
-   of the areas near you with no look and Move map off, frames you and selects your own town again, as Locate does.
-   **Finding:** someone back from a drive opens Explore and sees the town they stand in lead the row, "You're here" on
-   it, with no tap.
-2. **YH2** Navigate's ready map reads one fix when the app returns to the front, as it does on its focus (NV17).
+   front (from the back, never a passing `inactive`), and lists, frames and says "You're here" from it; no longer once
+   per launch (NV16 amended). It reads by itself only while the location permission reads granted; otherwise it asks (a
+   read that may raise the system prompt) only at its first front in a launch, and Find me and Locate are the way to ask
+   after (Never "Nagging"). A read reframes the map and selects your own town only when the town you stand in differs
+   from the one listed before, on the page of the areas near you with no look and Move map off; otherwise only the dot
+   and `you` move, and the reader's pick and frame stay (the owner, "Keep the pick (Recommended)"). **Finding:** someone
+   back from a drive opens Explore and sees the town they stand in lead the row, "You're here" on it, with no tap.
+2. **YH2** Navigate's ready map reads one fix when the app returns to the front, as it does on its focus (NV17), while the
+   permission reads granted.
 3. **YH3** Between reads nothing watches: each read ends its own watch on a fix, its timeout, or the screen leaving the
    front, and a test holds that no watch outlives a read on either screen (0036).
 4. **YH4** With location refused or off, each time Explore comes to the front it says the quiet notice in `LOCATION_OFF`'s
    words (the empty card's `BLOCKED_LINE` where the card says it, "Card only on Explore"), with Open Settings on a phone,
-   said to a screen reader; a timeout stays quiet (O21), and a fix that comes takes the notice away.
-5. **YH5** With no fix read, no walker dot is drawn on Explore and nothing says "You're here"; the areas stay where it
-   last listed them (AT1), never drawn as you.
+   said to a screen reader; once dismissed it stays dismissed until the next launch (the owner, "Next launch
+   (Recommended)"); a timeout stays quiet (O21), and a fix that comes takes the notice away. While Plan an outing or the
+   walk planner is open over Explore, Explore's return read waits for it to close, so one notice is said.
+5. **YH5** With no fix read, no walker dot is drawn on Explore and nothing says "You're here", and no card, row or tile
+   says a walk time or distance from you (the owner, "No walk time (Recommended)"); the areas stay where it last listed
+   them (AT1), never drawn as you.
 6. **YH6** When a fresh fix does not come in time, a screen that lists or plans from where you are uses one up to 30
    minutes old (`FRESH_FIX_MS`) and says so in one line ("From where you were twenty minutes ago."); on Explore its dot is
-   drawn muted and nothing says "You're here"; an older one is no position (YH5).
+   drawn muted and nothing says "You're here"; an older one is no position (YH5). Explore ages the fix it holds while it
+   stays in front, by a timer that reads nothing (the owner, "Age it out (Recommended)"): the stand-in's line counts on,
+   and past 30 minutes any fix is no position (no dot, no "You're here", no walk time) until the next read.
 7. **YH7** The e2e moves the GPS with the page in the back and brings it to the front (the Done when), and refuses
    location for the notice and the missing dot.
 
@@ -115,25 +126,42 @@ with location refused, Explore says location is off and how to turn it on, and d
 ## Amends
 
 - specs/navigation-and-tabs NV16 ("it reads one fix the first time it comes to the front in a launch and frames it, once
-  per launch"): amended by decision 0273 to YH1; its text says so, and its unit test (`tabs/launchRoute.test.ts`) moves
-  to the new read.
+  per launch … then uses your last fix or the area in view"): amended by decisions 0273 and 0275 to YH1; its text says
+  so, and its unit test (`tabs/launchRoute.test.ts`) now names the launch's one ask.
+- specs/navigation-and-tabs NV17 ("re-read each time the tab comes to the front"): amended to YH2 ("and when the app
+  returns to the front"); its text says so.
 - specs/explore-atlas AT1 ("Explore reads one fix as the app opens"): amended the same; its text says so.
-- The owner's concept doc's "Navigation & tabs (spec draft)" tab holds NV16 (this mirror last exported Nov 3), and AT1
-  was written in the repo first; the doc's wording is the owner's to change ("Open before the loop", this run's record).
+- The owner's concept doc's "Navigation & tabs (spec draft)" tab holds NV16 and NV17 (this mirror last exported Nov 3),
+  and AT1 was written in the repo first; the doc's wording is the owner's to change: "Open before the loop" (this run's
+  record) carries the exact wording.
 
 ## Not in this slice
 
 - Navigate's ready map with no fix, or an old one, still draws its dot at the fix the app holds (G17 names Explore's dot
-  only).
+  only): `docs/DEFERRED.md`, `[owner]` low, with the open question (the steward's S6 and Silent 3).
 - Sharing one read between Explore and a planning page opened within seconds (the brief's engineering unknown): each
   reads its own.
 
+## The plan's review (the steward, 2026-11-27)
+
+Aligned with changes; triaged (the coordinator's rulings, the owner's answers in person, decision 0275):
+
+- S1 (high) accepted, the owner's "No walk time (Recommended)": YH5.
+- S2 (medium) accepted: read by itself only while granted, ask once per launch (YH1, YH2).
+- S3 (medium) accepted, the owner's "Age it out (Recommended)": YH6.
+- S4 (medium) accepted, the owner's "Keep the pick (Recommended)": YH1.
+- S5 (low) accepted: the return read waits under the planning pages (YH4).
+- S6 (low) deferred: `docs/DEFERRED.md`, Navigate's ready map.
+- S7 (low) accepted: the mirrors amended, NV17 added, the open item carries the wording.
+- Silent 2, the owner's "Next launch (Recommended)": YH4.
+
 ## Tests
 
-Unit, in `src/lib/__tests__/explore/currentPosition.test.ts` (feature `explore`): YH1, YH4, YH5, YH6 (the decision after
-a read, `atlas/hereNow.ts`), YH2 and YH3's return (`locate/appReturn.ts`), and NV16 (amended) in
-`src/lib/__tests__/tabs/launchRoute.test.ts`. The journey `position` (new): YH1-YH7 on the web build at 390 and 320 px.
+Unit, in `src/lib/__tests__/explore/currentPosition.test.ts` (feature `explore`), of the core `locate/front.ts`: YH1
+(the read's outcome, the town-changed frame, the launch's one ask), YH2 (the return), YH4, YH5, YH6 (the decision after
+a read, and its ageing); NV16 (amended) in `src/lib/__tests__/tabs/launchRoute.test.ts`. The journey `position` (new):
+YH1-YH7 on the web build at 390 and 320 px.
 
 ## Record
 
-Built 2026-11-27 under `/tend inbox G17 yes`.
+Started 2026-11-27 under `/tend inbox G17 yes`.

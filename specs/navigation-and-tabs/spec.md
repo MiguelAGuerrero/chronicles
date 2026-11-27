@@ -58,11 +58,11 @@ Explore
 
 14. **NV14** Explore shows the remembered busy areas (magenta) and each area's places to find and its finds, with no counts (nothing is a score).
 15. **NV15** A long press from z10 runs **What's good here?**, as the home does today; at z12 or closer the sheet offers Walk here too, a one-tap start (NV12).
-16. **NV16** Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it reads one fix the first time it comes to the front in a launch and frames it, once per launch (the owner's call, Nov 3; amended Nov 9 by HC14, decision 0112: the app opens on Chronicle, which reads none), then uses your last fix or the area in view.
+16. **NV16** (amended by decisions 0273 and 0275, G17, Nov 27; specs/current-position YH1, YH4-YH6) Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it reads one fresh fix each time it comes to the front (its tab's focus, or the app's return to the front), by itself while location is allowed and asking only at its first front in a launch, and lists and frames from it; between reads nothing watches. With no fix read it lists where it last listed, drawing no dot and saying no walk time from you. Was: "it reads one fix the first time it comes to the front in a launch and frames it, once per launch (the owner's call, Nov 3; amended Nov 9 by HC14, decision 0112: the app opens on Chronicle, which reads none), then uses your last fix or the area in view."
 
 Navigate: capture and the pre-start drawer
 
-17. **NV17** Navigate shows a map around where you are, from one fix (`lib/locate`, ≤ 50 m or 10 s), re-read each time the tab comes to the front. Nothing tracks while you stay on the tab (the owner's rule: no tracking outside a walk).
+17. **NV17** Navigate shows a map around where you are, from one fix (`lib/locate`, ≤ 50 m or 10 s), re-read each time the tab comes to the front and (amended by decision 0273, G17, Nov 27; specs/current-position YH2) when the app returns to the front while location is allowed. Nothing tracks while you stay on the tab (the owner's rule: no tracking outside a walk).
 18. **NV18** Navigate has the quick-capture row (camera, mic, pencil), as the home's `MomentBar` today: a moment is kept at once and placed by its one fix, and shows on Chronicle.
 19. **NV19** The drawer peeks with **Start walk**, the mode (Quiet or Explore) and the destination, if any. Start and the capture row are reachable without opening the drawer.
 20. **NV20** At half: the mode (a two-way switch, Quiet | Explore) and the destination (its name and straight-line distance, Clear, and a hint: long-press the map to pick a spot).
