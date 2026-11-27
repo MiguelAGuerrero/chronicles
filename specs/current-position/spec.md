@@ -176,6 +176,8 @@ fixes, `current-position audit 1-12`, 6 deferred to `docs/DEFERRED.md` ([loop] l
 - audit 9 (ux 2): the selected town framed with no position. audit 10 (ux 4): the town page with no fix pictured.
 - audit 11 (auditor 7): Navigate's focus read cached again. audit 12 (auditor 10): the tests on the view's own paths.
 - Deferred: auditor 5, 6, 8 (scenarios 1, 3), ux 7; Silent 3 noted on S6's item.
+- audit 13 (found by the atlas journey after the fixes, a regression of audit 5's change): the stand-in's line, with no ✕,
+  took the overlay's one slot from "Looking around…" and its Cancel; it now ranks under it.
 
 ## Tests
 
