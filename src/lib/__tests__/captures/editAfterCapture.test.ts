@@ -356,7 +356,9 @@ test('fix planner-edit audit 4: the planner\'s Start is marked under way for as 
       setBusy: () => {},
       setFailed: () => {},
       p: { start: () => new Promise((res, rej) => { answer = res; fail = rej; }) },
-      props: { fixNow: () => [0, 0], onStart: () => {} },
+      // Start routes from the planner's own fix (fix outing-current-position), a local of the drawer.
+      you: [0, 0],
+      props: { onStart: () => {} },
     };
     const start = new Function(...Object.keys(fakes), `"use strict"; return ${body};`)(...Object.values(fakes)) as () => Promise<void>;
     const run = start();

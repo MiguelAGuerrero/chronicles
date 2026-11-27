@@ -132,6 +132,10 @@ async function run(h) {
     // brought to the front first: react-native-web measures a layout in an animation frame, which a page behind another
     // never gets, so a sheet that grew while the shot was taken was never measured.
     await pg.bringToFront();
+    // The page reads its own fix as it opens (fix outing-current-position), so the journeys around here come a beat later and
+    // the sheet grows then: read once it has, or the (i) is caught in the half second before the sheet's next measure.
+    await pg.waitForSelector('[data-testid=outing-journey-0], [data-testid^=outing-reason-]', { timeout: 30000 }).catch(() => {});
+    await pg.waitForTimeout(1200);
     await pg.waitForFunction(() => {
       const b = document.querySelector('[data-testid=outing-map] .maplibregl-ctrl-attrib-button')?.getBoundingClientRect();
       const sheet = document.querySelector('[data-testid=outing-sheet]')?.getBoundingClientRect();
