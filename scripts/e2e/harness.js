@@ -367,6 +367,17 @@ const denseFeatures = (() => {
 // The map's text (explore-dense-city DC1): OpenFreeMap's Noto Sans Bold, Latin-1 block, served for every range the map asks.
 const GLYPHS = fs.readFileSync(path.join(__dirname, 'fixtures', 'fonts', 'Noto Sans Bold', '0-255.pbf'));
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
+/**
+ * The style while the G5 scene is served: its streets drawn too (the style's source is the street grid inline, so the
+ * scene's streets join it), and the streets' names, so the hatch is judged over streets and labels.
+ */
+const edgeStyle = () => ({
+  ...style,
+  sources: { openmaptiles: { ...style.sources.openmaptiles, data: { type: 'FeatureCollection', features: [...features, ...edgeBase] } } },
+  layers: [...style.layers, { id: 'road-label', type: 'symbol', source: 'openmaptiles', filter: ['all', ['==', '$type', 'LineString'], ['has', 'name']],
+    layout: { 'symbol-placement': 'line', 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 12 },
+    paint: { 'text-color': '#6f7680', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 } }],
+});
 const OVERTURE_RELEASE = '2026-10-21.0';
 
 const style = {
@@ -690,7 +701,7 @@ async function createHarness() {
       body: JSON.stringify(
         r.request().url().endsWith('/planet')
           ? { tiles: ['https://tiles.openfreemap.org/planet/20261028_001001_pt/{z}/{x}/{y}.pbf'] }
-          : style,
+          : edgeWorld.serve ? edgeStyle() : style,
       ),
     });
   };

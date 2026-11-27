@@ -12,3 +12,8 @@ test('CG5: Walkability\'s legend is one row, Built around cars, its swatch the h
   assert.deepEqual([row.key, row.text, row.swatch, row.band], ['car', 'Built around cars', 'car', 'car']);
   assert.ok(row.tip && !/\d/.test(row.tip), 'its tip in words');
 });
+
+test('CG5: the car row also shows a short route cased in slate, as the map draws it', { todo: 'test first' }, () => {
+  const [row] = LAYERS.find((l) => l.id === 'walkability')!.legend;
+  assert.equal((row as { route?: boolean }).route, true, 'the row carries a cased route sample');
+});

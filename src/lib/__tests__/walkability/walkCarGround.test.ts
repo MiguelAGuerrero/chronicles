@@ -189,3 +189,23 @@ test('CG9, UF12: the map is handed areas and edges with a kind and nothing else:
   }
   assert.equal(walkabilityGeoJSON(null).features.length, 0);
 });
+
+test('walkability-car-ground audit 7: the fade\'s pieces tile the car ground: every point in it lies in exactly one piece', { todo: 'test first' }, () => {
+  const cells = field(12, 10, (di, dj) => (dj >= 3 && di >= 2 && di < 10 ? 'car' : 'foot'));
+  const g = carGroundOf(cells);
+  const inPiece = (shape: LngLat[][], p: LngLat) => inside(p, shape[0]) && !shape.slice(1).some((h) => inside(p, h));
+  const [w, e] = [cellBounds(I + 3, J + 5).west, cellBounds(I + 8, J + 5).east];
+  const [s, n] = [cellBounds(I, J + 4).south, cellBounds(I, J + 9).north];
+  let checked = 0;
+  for (let k = 0; k < 400; k++) {
+    const p: LngLat = [w + ((e - w) * ((k * 37) % 400)) / 400, s + ((n - s) * ((k * 91) % 397)) / 397];
+    if ((cellBounds(I, J + 9).north - p[1]) * M_LAT < 2) continue;
+    const hits = g.areas.filter((a) => inPiece(a.shape, p)).length;
+    if (!drawn(g, p)) continue;
+    checked++;
+    assert.equal(hits, 1, `a point of the car ground lies in ${hits} pieces`);
+  }
+  assert.ok(checked > 100, `${checked} points checked`);
+  // The fade's bands meet without a gap: points just either side of each band's inner edge are both drawn.
+  for (let y = n - 120 / M_LAT; y < n - 2 / M_LAT; y += 1 / M_LAT) assert.ok(drawn(g, [(w + e) / 2, y]), `drawn ${((n - y) * M_LAT).toFixed(0)} m from the read's edge`);
+});

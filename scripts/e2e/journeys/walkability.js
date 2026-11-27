@@ -54,6 +54,13 @@ async function run(h) {
     check((await pg.locator('[data-testid=layer-legend-foot]').count()) === 0 && sw.length === 2 && sw.every((l) => l.stroke === '#3b4a6b') && ink === 'rgb(59, 74, 107)',
       `CG5: the legend has one row, its swatch the hatch in slate, its icon slate (${JSON.stringify(sw)}, ${ink})`);
   }
+  {
+    // The owner, Nov 27: "Square swatch, no box border" and "Add a cased route sample".
+    const sq = await pg.locator('[data-testid=layer-swatch-car]').evaluate((e) => { const c = getComputedStyle(e); return { border: c.borderTopWidth, radius: c.borderTopLeftRadius }; }).catch(() => null);
+    check.todo(!!sq && sq.border === '0px' && sq.radius === '0px', `walkability-car-ground audit 8: the swatch is the hatch in a square, with no box border (${JSON.stringify(sq)})`);
+    const sample = await pg.locator('[data-testid=layer-legend-car] [data-testid=layer-route-car] line').evaluateAll((ls) => ls.map((l) => l.getAttribute('stroke'))).catch(() => []);
+    check.todo(sample.length === 2 && sample[0] === '#3b4a6b', `CG5: the car row shows a short route cased in slate (${JSON.stringify(sample)})`);
+  }
   await shot(pg, 'walk-legend-open');
   await pg.hover('[data-testid=walk-tip-car]');
   await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});

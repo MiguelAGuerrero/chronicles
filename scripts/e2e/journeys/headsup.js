@@ -163,6 +163,20 @@ async function run(h) {
   const sceneWalk = (await p4.locator('[data-walk]').first().getAttribute('data-walk').catch(() => '')) ?? '';
   check(/^car:[1-9]\d*\|edges:[1-9]\d*$/.test(sceneWalk), `CG1: on the owner's scene only the car ground is drawn, with its edge (${sceneWalk})`);
   check((await cased()) >= 1, `CG6: with the layer on, the route's stretch in car ground is cased in slate (${await cased()})`);
+  // What the map draws in a box of its own pixels (`window.__renderedIn`): each layer, with a feature's kind.
+  const rendered = (box) => p4.evaluate((b) => window.__renderedIn(b), box);
+  const boxAt = async (pt, r) => {
+    const [x, y] = await p4.evaluate((p) => window.__project(p), pt);
+    const m = await p4.locator('.maplibregl-map').last().boundingBox();
+    return [[x - m.x - r, y - m.y - r], [x - m.x + r, y - m.y + r]];
+  };
+  {
+    const inCar = await rendered(await boxAt(at(3, -1), 90)).catch(() => []);
+    check.todo(inCar.includes('walk-car:area') && inCar.includes('roads:') && inCar.includes('road-label:'),
+      `walkability-car-ground audit 6: inside the car ground the map draws its streets and their names through the hatch (${inCar.join(', ')})`);
+    const all = await rendered([[0, 0], [390, 844]]).catch(() => []);
+    check.todo(all.includes('route-car-start:start'), `CG6: a small slate dot marks where the casing starts (${all.filter((x) => x.startsWith('route')).join(', ')})`);
+  }
   const iconInk = await p4.locator('[data-testid=walk-ahead] [data-testid=walk-band-car] div[dir], [data-testid=walk-ahead] [data-testid=walk-band-car] *').first()
     .evaluate((e) => getComputedStyle(e).color).catch(() => '');
   const sceneLine = (await p4.locator('[data-testid=walk-ahead]').innerText().catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
@@ -183,9 +197,81 @@ async function run(h) {
   await p4.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
   await p4.waitForTimeout(800);
   check((await cased()) === 0, `CG11: End takes the casing away (${await cased()})`);
+
+  // walkability-car-ground audit 5: on Explore over the scene's car ground, the hatch's lines are 9 to 11.5 px apart at
+  // every fractional zoom, measured on the screen; audit 7: the edge of what was read, the hatch fading toward it, pictured.
+  const { pg: p5, c: c5 } = await freshPage('headsup-zooms', { touch: true });
+  await c5.addInitScript(() => { window.__perf = {}; });
+  await c5.setGeolocation({ longitude: at(5, 0)[0], latitude: at(5, 0)[1], accuracy: 6 });
+  await p5.goto(h.exploreUrl);
+  await switchLayer(p5, 'walkability');
+  await p5.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
+  await p5.waitForTimeout(2000);
+  const spacings = [];
+  for (const z of [15, 15.24, 15.5, 15.74, 15.97]) {
+    await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(7.5, -4.5), z]);
+    await p5.waitForTimeout(1500);
+    const [cx, cy] = await p5.evaluate((p) => window.__project(p), at(7.5, -4.5));
+    const png = await p5.screenshot({ clip: { x: Math.round(cx - 30), y: Math.round(cy), width: 60, height: 1 } });
+    spacings.push([z, hatchSpacing(png)]);
+  }
+  check.todo(spacings.every(([, s]) => s >= 8.5 && s <= 12), `walkability-car-ground audit 5: the hatch's lines are 9 to 11.5 px apart on the screen at every zoom (${spacings.map(([z, s]) => `${z}: ${s.toFixed(1)}`).join(', ')})`);
+  await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, -13), 14.6]);
+  await p5.waitForTimeout(2500);
+  await shot(p5, 'g5-fade-146');
+  const edge = await p5.evaluate(() => window.__renderedIn([[0, 0], [innerWidth, innerHeight]])).catch(() => []);
+  check.todo(edge.some((k) => /^walk-car:area-\d$/.test(k)), `walkability-car-ground audit 7: toward the edge of what was read the hatch fades in steps (${edge.filter((k) => k.startsWith('walk')).join(', ')})`);
+  await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, -6), 13.2]);
+  await p5.waitForTimeout(2500);
+  await shot(p5, 'g5-fade-132');
+  await c5.close();
   h.edgeWorld.serve = false;
   walkability.mode = 'ok';
   await c4.close();
+}
+
+/** The distance between the hatch's lines across them, in CSS px, from a 1 px high screenshot strip: the dark pixels' runs, their starts' median gap, over the square root of two (45 degrees). */
+function hatchSpacing(png) {
+  const zlib = require('zlib');
+  let off = 8;
+  let w = 0;
+  const idat = [];
+  let ctype = 6;
+  while (off < png.length) {
+    const len = png.readUInt32BE(off);
+    const type = png.toString('ascii', off + 4, off + 8);
+    if (type === 'IHDR') { w = png.readUInt32BE(off + 8); ctype = png[off + 17]; }
+    if (type === 'IDAT') idat.push(png.subarray(off + 8, off + 8 + len));
+    off += 12 + len;
+  }
+  const bpp = ctype === 6 ? 4 : 3;
+  const raw = zlib.inflateSync(Buffer.concat(idat));
+  const rows = raw.length / (w * bpp + 1);
+  const lum = new Array(w).fill(0);
+  let prev = Buffer.alloc(w * bpp);
+  for (let y = 0; y < rows; y++) {
+    const f = raw[y * (w * bpp + 1)];
+    const line = Buffer.from(raw.subarray(y * (w * bpp + 1) + 1, (y + 1) * (w * bpp + 1)));
+    for (let i = 0; i < line.length; i++) {
+      const a = i >= bpp ? line[i - bpp] : 0;
+      const b = prev[i];
+      const c = i >= bpp ? prev[i - bpp] : 0;
+      const p = a + b - c;
+      const pr = Math.abs(p - a) <= Math.abs(p - b) && Math.abs(p - a) <= Math.abs(p - c) ? a : Math.abs(p - b) <= Math.abs(p - c) ? b : c;
+      line[i] = (line[i] + [0, a, b, (a + b) >> 1, pr][f]) & 255;
+    }
+    prev = line;
+    if (y === 0) for (let x = 0; x < w; x++) lum[x] = (line[x * bpp] + line[x * bpp + 1] + line[x * bpp + 2]) / 3;
+  }
+  const scale = w / 60;
+  const mx = Math.max(...lum);
+  const mn = Math.min(...lum);
+  const cut = mn + (mx - mn) * 0.5;
+  const starts = [];
+  for (let x = 1; x < w; x++) if (lum[x] < cut && lum[x - 1] >= cut) starts.push(x);
+  const gaps = starts.slice(1).map((x, k) => x - starts[k]).sort((p, q) => p - q);
+  if (!gaps.length) return 0;
+  return gaps[Math.floor(gaps.length / 2)] / scale / Math.SQRT2;
 }
 
 module.exports = {

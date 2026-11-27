@@ -42,6 +42,16 @@ Open: none (the look picked by the owner, 2026-11-27)
 - **The read's edge fades** (the owner, in person, 2026-11-27, on the steward's S2): "Fade over ~100 m (Recommended)":
   toward the edge of what was read the hatch fades out over about 100 m, never a straight cut (0232: never a missing
   tile), and no edge line is drawn along it.
+- **After the diff's review** (the owner, in person, 2026-11-27, on the steward's and the ux-reviewer's findings):
+  - "Mark where it starts (Recommended)": a small slate mark on the route where the casing begins; no number, no words,
+    the heads-up's words unchanged (WH7).
+  - "Edge to 3:1, lines soft (Recommended)": the 1 px edge raised to 65%, 3:1 or more against Positron's land
+    (`#f2f3f0`, 3.3:1; the e2e's base 3.2:1); the lines stay 1.25 px at 40%.
+  - "Square swatch, no box border" and "Add a cased route sample": the legend's swatch is the hatch to a square's edges,
+    with no border, and the same "Built around cars" row shows a short route cased in slate.
+  - "Hold at every zoom (Recommended)": the hatch keeps about 9 px apart and 1.25 px thick on the screen at every
+    fractional zoom, with no snapping (MapLibre draws a pattern up to twice its size between whole zooms; the map shows
+    the quarter zoom's image, drawn smaller by the same factor).
 - **Unread ground and plain ground** (the owner, in person, 2026-11-27, asked by the steward: with foot ground drawn as
   the plain map, plain also means "not read" and "neither"): "Unread should differ". Not built in this slice: filed for
   the owner as its own entry (see "Not in this slice").
@@ -102,20 +112,22 @@ G5's ten, in its words, numbered with the slice's prefix; CG11 is the states the
    cars and where the route's line points, on the owner's scene (a navigated walk into car ground, Walkability and
    Storefronts on, the heads-up showing, 390 px).
 2. **CG2** The car ground is a soft diagonal hatch in slate with a firm edge line (the owner's pick, Soft A2: 45°, lines
-   9 px apart, each 1.25 px at 40%, the edge 1 px at 60%, `#3b4a6b`), the streets and labels readable through it, never red
+   9 px apart, each 1.25 px at 40%, `#3b4a6b`; the edge 1 px at 65%, 3:1 against the base map), held near 9 px apart
+   and 1.25 px thick on the screen at every zoom, the streets and labels readable through it, never red
    or orange, readable without colour.
 3. **CG3** Neighbouring car cells are drawn as one area with rounded edges, no 250 m steps, from a core function of the
    cells (deterministic, never stored, O(n log n)).
 4. **CG4** The edge of what was read never draws an edge of car ground: the firm line is drawn only where car ground
    meets ground that was read; toward the read's edge the hatch (and any edge line reaching it) fades out over about
    100 m, never a straight cut (the owner, "Fade over ~100 m").
-5. **CG5** The legend shows one row, "Built around cars", its swatch the hatch as drawn (its lines, spacing and edge; two
-   lines, none corner to corner) and its icon in the same slate.
+5. **CG5** The legend shows one row, "Built around cars", its swatch the hatch as drawn in a square with no border (two
+   lines, none corner to corner), a short route cased in slate beside it, and its icon in the same slate.
 6. **CG6** While navigating with the layer on, the route's stretch inside car ground is drawn with a slate casing under
    the route's own colour, from the runs the heads-up already finds; with the layer off it is not. Only runs of car
    ground are cased (`areaStretches`, 300 m or more along the route): a fast road on plain ground is not, and a
    crossing of car ground under 300 m is uncased, as it is unsaid. Each casing is cut to the drawn car ground, so it
-   begins and ends within 25 m of the hatch's edge.
+   begins and ends within 25 m of the hatch's edge, with no round cap past it, and a small slate dot marks where it
+   begins (no number, no words).
 7. **CG7** The heads-up's icon is the same slate, not the accent; its words, timing and silence are unchanged (WH7, WH8).
    The same slate car icon wherever it is drawn (the heads-up and the legend; the owner, "Everywhere").
 8. **CG8** Nothing touches the route: no reroute, no "avoid", no sound or haptic (WH13).
@@ -130,7 +142,10 @@ G5's ten, in its words, numbered with the slice's prefix; CG11 is the states the
 
 - **Unread ground drawn differently from plain ground** (the owner, "Unread should differ"): filed as an `[owner]` entry
   in the inbox by this run's record, with the steward's analysis, a recommended shape and an "Otherwise".
-- A quiet label inside large car areas (G5's "After it").
+- A quiet label inside large car areas (G5's "After it"): the steward asks whether a screen that is all hatch, no edge in
+  view, still says "built around cars"; filed as an `[owner]` entry by this run's record.
+- Plain ground explained in the legend until unread ground differs: the steward's second question; filed as an `[owner]`
+  entry by this run's record.
 
 ## Amends
 

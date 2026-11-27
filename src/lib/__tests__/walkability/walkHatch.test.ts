@@ -108,3 +108,46 @@ test('walkability-car-ground audit 4: the swatch draws two lines, none corner to
     assert.equal(l.x2, size);
   }
 });
+
+// The diff review's round (the owner's answers of Nov 27, the coordinator's rulings), written before the code.
+
+test('walkability-car-ground audit 5: the hatch holds 9 to 11.5 px apart and 1.25 to 1.5 px thick at every fractional zoom', { todo: 'test first' }, async () => {
+  const { hatchQuarter, hatchLookAt, hatchSpacing } = await import('../../walk/hatch');
+  // MapLibre draws a pattern at its size on a whole zoom and 2^fraction larger between (`pattern.ts`, tileZoom): the map
+  // shows the quarter's image, drawn smaller by the same factor, so the screen keeps the owner's 9 px and 1.25 px.
+  for (const ratio of [1, 2, 3]) {
+    for (let z = 10; z < 20; z += 0.01) {
+      const q = hatchQuarter(z);
+      const grow = 2 ** (z - Math.floor(z));
+      const look = hatchLookAt(WALK_STYLE.car, q);
+      const across = hatchSpacing(look, ratio) * grow;
+      assert.ok(across >= 8.8 && across <= 11.5, `${across.toFixed(2)} px apart at zoom ${z.toFixed(2)}, ${ratio}x`);
+      const width = look.lineWidthPx * grow;
+      assert.ok(width >= 1.2 && width <= 1.55, `${width.toFixed(2)} px thick at zoom ${z.toFixed(2)}`);
+    }
+  }
+});
+
+test('walkability-car-ground audit 5: the native map\'s quarter images are the web\'s pixels', { todo: 'test first' }, async () => {
+  const { hatchLookAt } = await import('../../walk/hatch');
+  for (let q = 0; q < 4; q++)
+    for (const [ratio, suffix] of [[1, ''], [2, '@2x'], [3, '@3x']] as const) {
+      const file = new Uint8Array(readFileSync(join(ROOT, 'assets', 'map', `walk-hatch-${q}${suffix}.png`)));
+      assert.deepEqual(file, hatchPng(hatchLookAt(WALK_STYLE.car, q), ratio), `walk-hatch-${q}${suffix}.png: run \`node_modules/.bin/tsx scripts/walk-hatch.ts\``);
+    }
+});
+
+test('CG2: the edge is 1 px at 65%, 3:1 or more against Positron\'s land; the lines stay 1.25 px at 40%', { todo: 'test first' }, () => {
+  // The owner, 2026-11-27: "Edge to 3:1, lines soft (Recommended)".
+  assert.deepEqual([WALK_STYLE.car.edgeWidthPx, WALK_STYLE.car.edgeOpacity, WALK_STYLE.car.lineWidthPx, WALK_STYLE.car.lineOpacity], [1, 0.65, 1.25, 0.4]);
+  const lin = (c: number) => (c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+  const lum = ([r, g, b]: number[]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  const slate = [0x3b, 0x4a, 0x6b];
+  // Positron's land, and the e2e's base.
+  for (const base of [[0xf2, 0xf3, 0xf0], [0xee, 0xea, 0xe4]]) {
+    const a = WALK_STYLE.car.edgeOpacity;
+    const mixed = slate.map((s, i) => a * s + (1 - a) * base[i]);
+    const ratio = (lum(base) + 0.05) / (lum(mixed) + 0.05);
+    assert.ok(ratio >= 3, `the edge is ${ratio.toFixed(2)}:1 against ${base.map((x) => x.toString(16)).join('')}`);
+  }
+});

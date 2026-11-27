@@ -23,6 +23,11 @@ the hatch stopped with a straight cut at the edge of what was read.
   colour; the legend's swatch two lines, none corner to corner.
 - **The hatch fades toward the edge of what was read** ("Fade over ~100 m (Recommended)"): over about 100 m, never a
   straight cut, with no edge line along it, so the end of a read never looks like a tile that failed (0232).
+- **After the diff's review** (in person, Nov 27): "Mark where it starts (Recommended)", a small slate dot on the route
+  where the casing begins, no number, no words; "Edge to 3:1, lines soft (Recommended)", the edge at 65% (3.3:1 against
+  Positron's land), the lines still 1.25 px at 40%; "Square swatch, no box border" and "Add a cased route sample" for the
+  legend; "Hold at every zoom (Recommended)", the hatch kept near 9 px apart and 1.25 px thick at every fractional zoom,
+  by the quarter zoom's image, with no snapping.
 - **Unread ground should differ from plain ground** ("Unread should differ"): with foot ground drawn as the plain map,
   plain also means "not read" and "neither". Not built with G5: an `[owner]` entry asks how.
 - **One slate car icon everywhere** ("Everywhere (Recommended)"): the pedestrian with the car badge is slate wherever it

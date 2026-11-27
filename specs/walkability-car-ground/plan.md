@@ -35,8 +35,8 @@ A warning only: the slice builds its own criteria and takes none of those items 
 - **The hatch** (`walk/hatch.ts`, new, core): one tile that repeats with no seam (lines corner to corner of a tile of
   `run` by `rise`), its pixels from the look, four by four samples a pixel for a soft line edge; the web map's
   `addImage` takes it at the screen's pixel ratio (1 to 3). The look is `WALK_STYLE.car` in `components/map/types.ts`:
-  `{ run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.6, color:
-  '#3b4a6b' }` (CG2, Soft A2). MapLibre scales a fill pattern by up to two times between whole zoom levels, so the 9 px
+  `{ run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.65, color:
+  '#3b4a6b' }` (CG2, Soft A2, the edge raised to 3:1 by the owner). MapLibre scales a fill pattern by up to two times between whole zoom levels, so the 9 px
   is exact at a whole zoom and wider between; the owner's pictures showed it so. `swatchLines(look, size)` places the
   legend's lines half a step off the diagonal: two lines, none corner to corner (S4). `hatchPng(look, ratio)` (core, `fflate`'s zlib) encodes the same pixels as a PNG for the native map.
 - **The route's casing** (CG6): `aheadWatch`'s store gains `runs`, the route's runs of car ground alone
@@ -85,7 +85,7 @@ Unit tests in `src/lib/__tests__/walkability/` (feature `walkability`) unless na
 | Id | Unit test | Journey check |
 |---|---|---|
 | CG1 | `walkCarGround.test.ts`: "CG1: only car cells are drawn: foot, neither and empty cells draw nothing" | walkability: "CG1: the dense grid around you draws nothing, the sparse arterials east of it are drawn as car ground" (Explore and Navigate); headsup: the owner's scene pictured at 390 and 320 (the steward judges the finding against the owner's words) |
-| CG2 | `walkHatch.test.ts`: "CG2: the hatch is the owner's look: 45 degrees, 9 px apart, 1.5 px at 55%, one slate, clear between the lines, seamless"; "CG2: no red or orange: every colour the layer draws is the slate" | the owner's scene pictured (`headsup-scene`, `headsup-scene-320`) |
+| CG2 | `walkHatch.test.ts`: "CG2: the hatch is the owner's look: 45 degrees, 9 px apart, 1.25 px at 40%, one slate, clear between the lines, seamless"; "CG2: no red or orange: the layer, its edge and the route's casing are the one cool slate"; "CG2: the edge is 1 px at 65%, 3:1 or more against Positron's land; the lines stay 1.25 px at 40%" | the owner's scene pictured (`headsup-scene`, `headsup-scene-320`) |
 | CG3 | `walkCarGround.test.ts`: "CG3: neighbouring car cells are one area"; "CG3: a stair of cells is drawn as one slope, no 250 m step"; "CG3: corners round"; "CG3: deterministic: the same cells in any order, or read with other tiles around them, draw the same"; "CG3: the cost grows with the cells, not their square" | |
 | CG4 | `walkCarGround.test.ts`: "CG4: the edge is drawn where car ground meets read ground, never along the read's edge" | |
 | CG5 | `src/lib/__tests__/layers/`: "CG5: Walkability's legend is one row, Built around cars, its swatch the hatch" | walkability: "CG5: the legend has one row, its swatch the hatch in slate with its edge, its icon slate" |
@@ -146,7 +146,7 @@ it, the walker walking toward it until the heads-up shows), pictured at 390 and 
 **Where the owner will look first:** at the map around the walker and the line ahead; the hatch is there, and the route's
 casing starts where the hatch begins. No control is new or moved.
 
-**Defaults that make something quieter:** the hatch's line strength (55%) and the casing's width (3 px of slate each
+**Defaults that make something quieter:** the hatch's line strength (40%, Soft A2, `WALK_STYLE.car`) and the casing's width (3 px of slate each
 side) are the owner's pick; the edge is not drawn along the read's edge (CG4), so a hatch cut off by the read reads as
 going on rather than ending.
 
@@ -191,3 +191,30 @@ accepted 5, the owner's 3, rejected 0.
 - **Quiet default, accepted**: Explore pictured at its own zoom over car-heavy ground among the soft candidates.
 - **Silent 1, the owner's**: "Too 'keep out'": the look picked again, "Soft A2 (Recommended)".
 - **Silent 2, the owner's**: "Unread should differ": an `[owner]` entry filed by the run's record; out of this slice.
+
+## The diff's review (Nov 27): one round
+
+The steward (aligned with changes) and the ux-reviewer (not ready as pictured); the auditor's report is to come. The
+owner answered four questions in person (spec, Decisions); the coordinator ruled the rest. The regression tests are
+`walkability-car-ground audit 5-9`, written before their code:
+
+- **audit 5** (steward S1 = ux U2, the owner's "Hold at every zoom"): the walk screen drew the hatch up to twice its
+  spacing. `hatchQuarter(zoom)` picks one of four images, each `hatchLookAt(look, q)` drawn 2^(-q/4) smaller, so the
+  screen keeps 9 to 11.5 px apart and 1.25 to 1.5 px thick; the web map switches `fill-pattern` as the zoom crosses a
+  quarter, the native map from its view's zoom; twelve PNGs (`walk-hatch-<q>[@2x|@3x].png`). Unit test (the model)
+  and a journey check measuring the screen at five zooms.
+- **audit 6** (S2 = U3): the owner's scene drew no streets or names inside the car ground: the e2e style's streets are
+  inline, so the scene's never joined them. The harness's style now carries them, and their names, while the scene is
+  served; a journey check finds a street and a name rendered inside the car ground.
+- **audit 7** (S3 = U7): the fade pictured on Explore at the read's edge, zoom 14.6 and 13.2, Soft A2; a unit test that
+  the fade's pieces tile the car ground (no gap, no overlap: no dashed fragments) and a journey check that the faded
+  steps are drawn.
+- **audit 8** (S4 = U8, the owner's "Square swatch, no box border"): the swatch's border and rounding go; the hatch runs
+  to its edges.
+- **audit 9** (U5): the casing's round cap reached past the hatch's edge by half its width (about 12 m at the walk's
+  zoom); the casing is now cut square (`line-cap: butt`), and the start dot sits on its first point.
+- **CG6** (U1, the owner's "Mark where it starts"): a slate dot, radius 4 with a white ring, at each casing's start.
+- **CG2** (U4, the owner's "Edge to 3:1, lines soft"): the edge at 65%.
+- **CG5** (U6, the owner's "Add a cased route sample"): the row's sample, a short blue line on a slate casing.
+- **S5**: this plan's l.88 and l.149 named A's numbers; now Soft A2's.
+- **Silent 1, 2** (the steward): filed as `[owner]` entries by the run's record, beside "Unread should differ".
