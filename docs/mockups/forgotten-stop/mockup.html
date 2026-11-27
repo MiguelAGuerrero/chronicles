@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forgotten stop mock-up</title>
+<style>
+  :root { --bg: #f4f2ee; --surface: #ffffff; --ink: #1d2430; --muted: #596273; --line: #e3e0da; --accent: #c2410c; --radius: 14px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #d9d6d0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; color: var(--ink); }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .lede { max-width: 1100px; font-size: 14px; line-height: 1.45; margin: 0 0 20px; color: #333; }
+  .row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 36px; }
+  .board { display: flex; flex-direction: column; gap: 8px; }
+  .board h2 { font-size: 14px; margin: 0; }
+  .board .choice { font-size: 12px; color: #444; max-width: 390px; line-height: 1.4; }
+  .phone { position: relative; height: 844px; overflow: hidden; background: var(--bg); box-shadow: 0 2px 12px rgba(0,0,0,.18); }
+  .w390 { width: 390px; } .w320 { width: 320px; }
+  .phone > img { position: absolute; left: 0; top: 0; display: block; }
+  /* The ask: a card in the app's surface, above the strip it came from. */
+  .ask { position: absolute; left: 12px; right: 12px; background: var(--surface); border-radius: 16px; padding: 16px; box-shadow: 0 6px 24px rgba(29,36,48,.18); }
+  .ask p { margin: 0 0 14px; font-size: 17px; font-weight: 600; line-height: 1.3; }
+  .ask .btns { display: flex; gap: 10px; }
+  .ask.stacked .btns { flex-direction: column; }
+  .btn { flex: 1; min-height: 48px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; padding: 0 12px; text-align: center; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.secondary { background: var(--surface); color: var(--ink); border: 1px solid #b9b5ad; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 18px 18px 0 0; padding: 18px 16px 12px; }
+  .sheet h3 { margin: 0 0 12px; font-size: 18px; }
+  .item { background: var(--surface); border-radius: 12px; padding: 10px 14px 10px 48px; position: relative; margin-bottom: 8px; min-height: 56px; }
+  .item b { display: block; font-size: 16px; }
+  .item span { display: block; font-size: 14px; color: var(--muted); line-height: 1.3; }
+  .item svg { position: absolute; left: 14px; top: 14px; }
+  .item.danger b { color: #b42318; }
+  .item.new { outline: 2px dashed #2b6cb0; outline-offset: 2px; }
+  .cancel { text-align: center; font-weight: 600; font-size: 16px; padding: 12px; }
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.38); }
+  .pill { position: absolute; left: 50%; transform: translateX(-50%); top: 16px; background: var(--ink); color: #fff; border-radius: 999px; padding: 6px 6px 6px 14px; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .pill i { font-style: normal; background: rgba(255,255,255,.15); border-radius: 999px; padding: 12px; font-weight: 700; }
+  .cover { position: absolute; background: #fff; }
+  .cardline { position: absolute; left: 16px; right: 16px; font-size: 15px; line-height: 1.45; color: #2c3442; }
+  .legend { max-width: 1100px; background: #fffef6; border: 1px solid #d8d2b8; border-radius: 10px; padding: 14px 18px; font-size: 14px; line-height: 1.5; }
+  .legend li { margin-bottom: 4px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #2b6cb0; color: #fff; margin-left: 6px; vertical-align: 2px; }
+  .tag.alt { background: #777; }
+</style>
+</head>
+<body>
+<h1>Forgotten stop mock-up</h1>
+<p class="lede">The owner's ask (2026-11-27): "sometimes I forget to stop a walk and there go hours and hours of the last activity ... do you wanna trim this walk down so that it's not 20 hours of nothing till the last known point". The befores are the real web build at 390 x 844 (device scale 1): a walk on the e2e's street grid, left running, opened again 20 hours later about 400 m away. The seeded walk itself lasted about a minute, so the trimmed card reads "1 min"; a real one reads its own time. Drawn over the befores where only part of the screen changes.</p>
+
+<div class="row">
+  <div class="board">
+    <h2>Today at 390 px: paused the next day</h2>
+    <div class="phone w390"><img src="before-paused-390.png" width="390" height="844" alt="The walk screen paused, strip reading 20 h 01 min, 294 m, Resume and Stop"></div>
+    <div class="choice">Holding Stop ends the walk now: 20 h 01 min, its end where the phone was the next day.</div>
+  </div>
+  <div class="board">
+    <h2>Recommended at 390 px: Stop held, the ask <span class="tag">recommended</span></h2>
+    <div class="phone w390">
+      <img src="before-paused-390.png" width="390" height="844" alt="">
+      <div class="ask" style="bottom: 82px" role="dialog" aria-label="This walk went quiet">
+        <p>This walk went quiet at 8:35 PM yesterday.</p>
+        <div class="btns"><div class="btn primary">End it at 8:35 PM</div><div class="btn secondary">Keep it all</div></div>
+      </div>
+    </div>
+    <div class="choice">Shown only when the walk's last activity (walking on, a ride, a capture, a Resume) is 30 min or more before the hold; otherwise Stop ends as today. Either button ends the walk and the replay follows. Nothing else changes on the screen.</div>
+  </div>
+  <div class="board">
+    <h2>Recommended at 320 px</h2>
+    <div class="phone w320">
+      <img src="before-paused-320.png" width="320" height="844" alt="">
+      <div class="ask stacked" style="bottom: 82px">
+        <p>This walk went quiet at 8:35 PM yesterday.</p>
+        <div class="btns"><div class="btn primary">End it at 8:35 PM</div><div class="btn secondary">Keep it all</div></div>
+      </div>
+    </div>
+    <div class="choice">The buttons stack where the two do not fit side by side.</div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="board">
+    <h2>Today at 390 px: the recording bar over Chronicle</h2>
+    <div class="phone w390"><img src="before-bar-390.png" width="390" height="844" alt="Chronicle with the recording bar reading 20:01 and its Stop"></div>
+  </div>
+  <div class="board">
+    <h2>Recommended: the bar's held Stop asks the same <span class="tag">recommended</span></h2>
+    <div class="phone w390">
+      <img src="before-bar-390.png" width="390" height="844" alt="">
+      <div class="ask" style="bottom: 130px">
+        <p>This walk went quiet at 8:35 PM yesterday.</p>
+        <div class="btns"><div class="btn primary">End it at 8:35 PM</div><div class="btn secondary">Keep it all</div></div>
+      </div>
+    </div>
+    <div class="choice">The same card and words, above the bar, where the bar's discarded-memo pill sits today. A choice here, not a trip to the walk screen.</div>
+  </div>
+  <div class="board">
+    <h2>After "End it at 8:35 PM": the replay's card</h2>
+    <div class="phone w390">
+      <img src="before-card-390.png" width="390" height="844" alt="">
+      <svg style="position:absolute;left:0;top:0" width="390" height="844" aria-hidden="true">
+        <line x1="174" y1="338" x2="284" y2="273" stroke="#e4e3e2" stroke-width="12"/>
+        <circle cx="287" cy="271" r="12" fill="#e4e3e2"/>
+        <circle cx="168" cy="341" r="9" fill="#fff" stroke="#5b5d9f" stroke-width="3"/>
+        <circle cx="168" cy="341" r="3.5" fill="#5b5d9f"/>
+      </svg>
+      <div class="cover" style="left:12px;right:12px;top:668px;height:48px"></div>
+      <div class="cardline" style="top:669px">294 m · 1 min · one street walked, your first time down Transit Street</div>
+    </div>
+    <div class="choice">The end mark at the corner where it went quiet; the dotted line to the next day's spot is gone; the time stops at 8:35 PM. The same on Chronicle's row ("Nov 26, 2026 · 294 m · 1 min") and in the day. The raw readings stay stored and Share GPS log still holds them.</div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="board">
+    <h2>Today at 390 px: a finished walk's More (⋯)</h2>
+    <div class="phone w390"><img src="before-more-390.png" width="390" height="844" alt="The walk's More menu: Rename, Share GPS log, Delete walk, Cancel"></div>
+  </div>
+  <div class="board">
+    <h2>Recommended: one row for walks already kept <span class="tag">recommended</span></h2>
+    <div class="phone w390">
+      <img src="before-more-390.png" width="390" height="844" alt="">
+      <div class="sheet" style="height: 404px">
+        <h3>Thursday evening in Fox Point</h3>
+        <div class="item"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 17l2-6 8-8 4 4-8 8z" fill="none" stroke="#1d2430" stroke-width="1.6"/></svg><b>Rename</b><span>The title and its one line</span></div>
+        <div class="item new"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="#1d2430" stroke-width="1.8"/><circle cx="10" cy="10" r="2.6" fill="#1d2430"/></svg><b>End it where it went quiet</b><span>At 8:35 PM on Nov 26; the hours after it leave the walk</span></div>
+        <div class="item"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 3v10M6 7l4-4 4 4M4 11v6h12v-6" fill="none" stroke="#1d2430" stroke-width="1.6"/></svg><b>Share GPS log</b><span>Every location reading, to look into a problem</span></div>
+        <div class="item danger"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 6h10l-1 11H6zM3 6h14M8 6V3h4v3" fill="none" stroke="#b42318" stroke-width="1.6"/></svg><b>Delete walk</b><span>Its trace, moments and streets walked</span></div>
+        <div class="cancel">Cancel</div>
+      </div>
+    </div>
+    <div class="choice">The row (dashed outline here only) shows only on a walk with a quiet end of 30 min or more, on the replay card's ⋯ and Chronicle's walk row. A tap asks once more in the same sheet with the Stop's words and buttons ("End it at 8:35 PM", Cancel). After it the row is gone.</div>
+  </div>
+  <div class="board">
+    <h2>The other shape: ended there by itself <span class="tag alt">not recommended</span></h2>
+    <div class="phone w390">
+      <img src="before-card-390.png" width="390" height="844" alt="">
+      <svg style="position:absolute;left:0;top:0" width="390" height="844" aria-hidden="true">
+        <line x1="174" y1="338" x2="284" y2="273" stroke="#e4e3e2" stroke-width="12"/>
+        <circle cx="287" cy="271" r="12" fill="#e4e3e2"/>
+        <circle cx="168" cy="341" r="9" fill="#fff" stroke="#5b5d9f" stroke-width="3"/>
+        <circle cx="168" cy="341" r="3.5" fill="#5b5d9f"/>
+      </svg>
+      <div class="pill" style="top: 72px">Ended at 8:35 PM, when it went quiet <i>Undo</i></div>
+      <div class="cover" style="left:12px;right:12px;top:668px;height:48px"></div>
+      <div class="cardline" style="top:669px">294 m · 1 min · one street walked, your first time down Transit Street</div>
+    </div>
+    <div class="choice">No question: a held Stop on a quiet walk ends it at the quiet point, and the replay opens with an Undo pill (the empty-walk drop's pattern, EW1). One tap fewer, but it decides for the walker, and an Undo missed is a trim kept.</div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>What changed.</b>
+  <ul>
+    <li>A held Stop (the walk screen's, and the recording bar's) on a walk that went quiet 30 min or more before asks once: "This walk went quiet at 8:35 PM yesterday." End it at 8:35 PM, or Keep it all. Quiet means after the last walking on, ride, capture or Resume; a long sit in the middle of a walk is never the end.</li>
+    <li>Ending there moves the walk's end to that time: the replay, its card, Chronicle's row and the day read the walk up to it; the readings after it stay stored (truth) and are left out when the walk is read (Truth vs cache).</li>
+    <li>A walk already kept with a quiet end gets one row in its More (⋯): End it where it went quiet.</li>
+  </ul>
+  <b>What it does not do.</b> No notification and no reminder while the walk runs (Never: "Nagging"; notifications are the owner's, 0157). Nothing ends a walk by itself; the walk stays open until Stop. No count, no number of hours in the words, no accent colour beyond the one filled button. Nothing mid-walk is cut: the lows stay in (0001). The replay's beats and words are untouched.
+  <br><b>Rests on:</b> VISION.md Never "All-day tracking" (0036), "Editing out the lows", "Nagging"; Always "Moments and the trace are truth", "Restraint"; decisions 0220 (Pause, then Resume or Stop), 0048 (the bar's held Stop), 0071 (a break over 30 min is not a gap). Precedent: Apple Watch's End Workout Reminder (verified); Strava's Crop, AllTrails' crop of a recording's end, Garmin Connect's Trim Activity (unverified).
+</div>
+</body>
+</html>

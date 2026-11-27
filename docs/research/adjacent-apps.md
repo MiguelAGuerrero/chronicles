@@ -200,6 +200,30 @@ source.
 - **Organic Maps**: a track recorder kept as a track among bookmarks, offline, without an account. Source: from
   memory, unverified (organicmaps.app unreachable, Nov 17). **Unverified**.
 
+### End a recording left running; trim its end (Honour, Return)
+
+- **Apple Watch Workout** (watchOS 8 guide): "End Workout Reminder" "will also remind you to end your workout, in case
+  you get distracted when you're cooling down"; with Start Workout Reminder it is changed in the watch's Settings ›
+  Workout, or the iPhone's Watch app › My Watch › Workout, and the reminders are on by default. The page does not say
+  what an ignored reminder does. Source: https://support.apple.com/en-kz/guide/watch/apde0be691be/8.0 , read Nov 27,
+  2026. **Verified**.
+- **Strava**: Crop, from an activity's ellipsis menu on the web and in the app, trims the start or the end of a GPS
+  activity (resting time, a motor-assisted part, GPS errors); a middle part needs a split first, and a crop cannot be
+  undone. Source: from memory and a search summary, unverified (support.strava.com unreachable from cloud sessions,
+  Nov 27). **Unverified**.
+- **AllTrails**: "How do I crop the length of my recording": for a Navigate session left running ("driven off by
+  accident"), the activity's end point is dragged back on the map, on the web the end only, in the app the start or
+  the end. Source: from memory and a search summary, unverified (support.alltrails.com unreachable, Nov 27).
+  **Unverified**.
+- **Garmin Connect**: an activity's Edit › Trim Activity cuts its start or end by time or distance and recalculates
+  its stats, for some activity types only. Source: from memory and a search summary, unverified (garmin.com
+  unreachable, Nov 27). **Unverified**.
+- **Gaia GPS** (Android): crop the start or the finish of a recorded track. Source: from memory and a search summary,
+  unverified (help.gaiagps.com unreachable, Nov 27). **Unverified**.
+
+None of them ends a recording by itself: the watch asks while it runs, the others trim afterwards by hand from a
+menu, and none offers the cut point it infers (an inference from the pages and summaries, not their words).
+
 ### Suggest a way on foot (Earn)
 
 - **Apple Maps** (iOS 27): "Touch and hold anywhere on the map or enter an address in the search field, then tap the
