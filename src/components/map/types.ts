@@ -914,6 +914,16 @@ export const WALK_SLATE = '#3b4a6b';
 export const WALK_STYLE: { car: HatchLook } = {
   car: { run: 1, rise: 1, spacingPx: 9, lineWidthPx: 1.25, lineOpacity: 0.4, edgeWidthPx: 1, edgeOpacity: 0.65, color: WALK_SLATE },
 };
+/**
+ * The edge of what was read (T67, the owner's yes, 2026-11-27): a thin dashed line in the grey the map draws its quiet
+ * lines in (`BORDER.lined`, 3:1 on the land), as thin as the hatch's lines, its dash and gap one hatch spacing (in line
+ * widths). No fill, no number.
+ */
+export const WALK_READ = {
+  color: BORDER.lined,
+  widthPx: WALK_STYLE.car.lineWidthPx,
+  dash: [(WALK_STYLE.car.spacingPx * 2) / 3 / WALK_STYLE.car.lineWidthPx, WALK_STYLE.car.spacingPx / 3 / WALK_STYLE.car.lineWidthPx],
+} as const;
 /** The hatch and its edge sit under the base map's labels (walkability-car-ground audit 14); the web map finds its first symbol layer. */
 export const WALK_BELOW = BASE_FIRST_LABEL;
 /** The hatch's image names on a map, one a quarter zoom (`hatchQuarter`). */
@@ -935,7 +945,7 @@ export const ROUTE_CAR_START_PAINT = { 'circle-radius': 4, 'circle-color': WALK_
 export const ROUTE_CAR_WIDTH = 14;
 
 /** What the map draws (G5): the car areas (`kind` 'area', or 'area-<n>' fading toward the read's edge) and their edges
- * ('edge', 'edge-<n>'), and nothing else (UF12). */
+ * ('edge', 'edge-<n>'), the edge of what was read ('read', T67), and nothing else (UF12). */
 export function walkabilityGeoJSON(g: CarGround | null | undefined): GeoJSON.FeatureCollection {
   if (!g) return { type: 'FeatureCollection', features: [] };
   const kind = (k: string, fade: number) => (fade ? `${k}-${fade}` : k);
@@ -944,6 +954,7 @@ export function walkabilityGeoJSON(g: CarGround | null | undefined): GeoJSON.Fea
     features: [
       ...g.areas.map((a): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: kind('area', a.fade) }, geometry: { type: 'Polygon', coordinates: a.shape } })),
       ...g.edges.map((e): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: kind('edge', e.fade) }, geometry: { type: 'LineString', coordinates: e.shape } })),
+      ...(g.read ?? []).map((l): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: 'read' }, geometry: { type: 'LineString', coordinates: l } })),
     ],
   };
 }
@@ -955,7 +966,7 @@ export function walkFade(prefix: 'area' | 'edge', whole: number): unknown[] {
   return ['match', ['get', 'kind'], ...steps, whole];
 }
 /** The filter for one kind's features, faded or not. */
-export const walkKind = (prefix: 'area' | 'edge') => ['==', ['slice', ['get', 'kind'], 0, 4], prefix];
+export const walkKind = (prefix: 'area' | 'edge' | 'read') => ['==', ['slice', ['get', 'kind'], 0, 4], prefix];
 
 /** A place still to find drawn as a dot (WT14): where it is and its kind's colour, nothing else. */
 export interface WaitingDot {

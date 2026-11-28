@@ -51,7 +51,7 @@ export const LAYERS: readonly LayerDef[] = [
     legend: [
       { key: 'car', text: 'Built around cars', swatch: 'car', band: 'car', route: true, tip: bandWhy('car') ?? undefined },
     ],
-    note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.",
+    note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels; the dashed line is as far as it has read.",
   },
   {
     id: 'storefronts',

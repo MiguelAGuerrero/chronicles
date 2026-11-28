@@ -43,15 +43,23 @@ export interface CarGround {
   areas: CarPiece<LngLat[][]>[];
   /** The firm edge: where car ground meets ground that was read; never along the edge of the read itself. */
   edges: CarPiece<LngLat[]>[];
+  /**
+   * The edge of what was read, as closed lines (T67): where the read ends and round a tile that could not be read, so
+   * ground nobody read is told from plain ground. Set by `walkDrawingOf`, never by `carGroundOf`.
+   */
+  read?: LngLat[][];
   /** Changes only when the picture does, so a map sends its data again only then. */
   key: string;
 }
 
 const NONE: CarGround = { areas: [], edges: [], key: `${WALK_CODE}|g|0` };
 
-/** FNV-1a over the cells, sorted: the same cells in any order give one key, different ones another (audit 15). */
-function cellsKey(cells: readonly Cell[]): string {
-  const ids = cells.map((c) => `${c.i},${c.j},${c.band}`).sort();
+/**
+ * FNV-1a over the cells, sorted: the same cells in any order give one key, different ones another (audit 15); without
+ * their bands, over where they are only (the read's edge).
+ */
+function cellsKey(cells: readonly Cell[], bands = true): string {
+  const ids = cells.map((c) => (bands ? `${c.i},${c.j},${c.band}` : `${c.i},${c.j}`)).sort();
   let h = 0x811c9dc5;
   for (const id of ids) {
     for (let k = 0; k < id.length; k++) {
@@ -64,20 +72,20 @@ function cellsKey(cells: readonly Cell[]): string {
   return h.toString(36);
 }
 
-/** Car ground as areas and edges, from the judged cells (car cells drawn; every judged cell is ground that was read). */
-export function carGroundOf(cells: readonly Cell[]): CarGround {
-  const car = cells.filter((c) => c.band === 'car');
-  if (!car.length) return NONE;
-  // Longitudes are taken next to the first car cell, so a read across the antimeridian is one stretch of ground, not the
-  // whole world (walkability-car-ground audit 12); what is drawn is put back on the world's own copy.
-  const ref = (car[0].west + car[0].east) / 2;
+/**
+ * The global lattice around `focus` (the cells it must hold, `margin` metres past them), and what each of its points lies
+ * in: 0 nothing read, 1 read ground, 2 car ground. Longitudes are taken next to the first focus cell, so a read across the
+ * antimeridian is one stretch of ground, not the whole world (walkability-car-ground audit 12); what is drawn is put back
+ * on the world's own copy (`home`).
+ */
+function latticeOf(cells: readonly Cell[], focus: readonly Cell[], margin: number) {
+  const ref = (focus[0].west + focus[0].east) / 2;
   const shiftOf = (c: Cell) => (c.west - ref > 180 ? -360 : c.east - ref < -180 ? 360 : 0);
   let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
-  for (const c of car) {
+  for (const c of focus) {
     const sh = shiftOf(c);
     [w, s, e, n] = [Math.min(w, c.west + sh), Math.min(s, c.south), Math.max(e, c.east + sh), Math.max(n, c.north)];
   }
-  const margin = GROUND_SIGMA_M * REACH + 2 * GROUND_STEP_M;
   const maxCos = Math.cos((Math.max(Math.abs(s), Math.abs(n)) * Math.PI) / 180);
   const r0 = Math.floor((s - margin / M_PER_DEG_LAT) / dLat);
   const r1 = Math.ceil((n + margin / M_PER_DEG_LAT) / dLat);
@@ -85,7 +93,6 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
   const q1 = Math.ceil((e + margin / (M_PER_DEG_LON * maxCos)) / dLon);
   const R = r1 - r0 + 1;
   const Q = q1 - q0 + 1;
-  // What each lattice point lies in: 0 nothing read, 1 read ground, 2 car ground.
   const at = new Uint8Array(R * Q);
   for (const c of cells) {
     const sh = shiftOf(c);
@@ -98,6 +105,26 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
     for (let r = ra; r <= rb; r++) for (let q = qa; q <= qb; q++) at[(r - r0) * Q + (q - q0)] = v;
   }
   const cosOf = (r: number) => Math.cos((((r + r0) * dLat) * Math.PI) / 180);
+  const toLngLat = (p: [number, number]): LngLat => [(p[1] + q0) * dLon, (p[0] + r0) * dLat];
+  // Lattice positions to metres (rows north, columns east at the middle row's scale), for simplifying the outlines.
+  const ewM = GROUND_STEP_M * cosOf(R / 2);
+  const thin = <P extends [number, number]>(pts: P[], closed: boolean) => simplify(pts, closed, GROUND_SIMPLIFY_M / GROUND_STEP_M, ewM / GROUND_STEP_M);
+  /** A shape wholly off the world's own copy is moved back onto it. */
+  const home = <T extends LngLat[] | LngLat[][]>(shape: T): T => {
+    const pts = (Array.isArray(shape[0][0]) ? (shape as LngLat[][]).flat() : (shape as LngLat[])) as LngLat[];
+    const k = pts.every((p) => p[0] > 180) ? -360 : pts.every((p) => p[0] < -180) ? 360 : 0;
+    if (!k) return shape;
+    const move = (r: LngLat[]) => r.map((p) => [p[0] + k, p[1]] as LngLat);
+    return (Array.isArray(shape[0][0]) ? (shape as LngLat[][]).map(move) : move(shape as LngLat[])) as T;
+  };
+  return { at, R, Q, cosOf, toLngLat, thin, home };
+}
+
+/** Car ground as areas and edges, from the judged cells (car cells drawn; every judged cell is ground that was read). */
+export function carGroundOf(cells: readonly Cell[]): CarGround {
+  const car = cells.filter((c) => c.band === 'car');
+  if (!car.length) return NONE;
+  const { at, R, Q, cosOf, toLngLat, thin, home } = latticeOf(cells, car, GROUND_SIGMA_M * REACH + 2 * GROUND_STEP_M);
   // Smooth the car share among read ground, row by row (each row's own east-west scale), then column by column.
   const kv = kernel(GROUND_SIGMA_M / GROUND_STEP_M);
   const hc = new Float64Array(R * Q);
@@ -144,18 +171,6 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
   const D = unreadDistance(at, R, Q, cosOf);
   const step = GROUND_FADE_M / GROUND_FADE_STEPS;
   const fadeOf = (d: number) => (d >= GROUND_FADE_M ? 0 : GROUND_FADE_STEPS - Math.floor(Math.max(0, d) / step));
-  const toLngLat = (p: [number, number]): LngLat => [(p[1] + q0) * dLon, (p[0] + r0) * dLat];
-  // Lattice positions to metres (rows north, columns east at the middle row's scale), for simplifying the outlines.
-  const ewM = GROUND_STEP_M * cosOf(R / 2);
-  const thin = (pts: [number, number][], closed: boolean) => simplify(pts, closed, GROUND_SIMPLIFY_M / GROUND_STEP_M, ewM / GROUND_STEP_M);
-  /** A shape wholly off the world's own copy is moved back onto it. */
-  const home = <T extends LngLat[] | LngLat[][]>(shape: T): T => {
-    const pts = (Array.isArray(shape[0][0]) ? (shape as LngLat[][]).flat() : (shape as LngLat[])) as LngLat[];
-    const k = pts.every((p) => p[0] > 180) ? -360 : pts.every((p) => p[0] < -180) ? 360 : 0;
-    if (!k) return shape;
-    const move = (r: LngLat[]) => r.map((p) => [p[0] + k, p[1]] as LngLat);
-    return (Array.isArray(shape[0][0]) ? (shape as LngLat[][]).map(move) : move(shape as LngLat[])) as T;
-  };
   // The areas: the whole hatch past GROUND_FADE_M, and each fade step the car ground between two distances from the
   // read's edge, so the steps never overlap and meet where their distances say.
   const areas: CarPiece<LngLat[][]>[] = [];
@@ -200,6 +215,31 @@ export function carGroundOf(cells: readonly Cell[]): CarGround {
     if (cur >= 0 && run.length >= 2) edges.push({ fade: cur, shape: home(run) });
   }
   return { areas, edges, key: `${WALK_CODE}|g|${cellsKey(cells)}` };
+}
+
+/**
+ * T67 (the owner's yes, 2026-11-27): the edge of what was read, as closed lines, so ground nobody read is told from plain
+ * ground: where the read ends and round a tile that could not be read, with or without car ground. It is the outline the
+ * hatch's fade is cut at (the same lattice and distance, at zero), so the hatch keeps its fade inside it. Pure, never stored.
+ */
+export function readEdgeOf(cells: readonly Cell[]): { lines: LngLat[][]; key: string } {
+  if (!cells.length) return { lines: [], key: 'r0' };
+  const { at, R, Q, cosOf, toLngLat, thin, home } = latticeOf(cells, cells, 2 * GROUND_STEP_M);
+  const D = unreadDistance(at, R, Q, cosOf);
+  const field = new Float64Array(R * Q);
+  for (let i = 0; i < R * Q; i++) field[i] = clamp(D[i]);
+  const lines = contours(field, at, D, R, Q).map((c) => {
+    const ring = thin(c.pts, true).map(toLngLat);
+    return home([...ring, ring[0]]);
+  });
+  return { lines, key: `r${cellsKey(cells, false)}` };
+}
+
+/** What the Walkability layer draws: the car ground (`carGroundOf`, unchanged) and the read's edge beside it, keyed on both. */
+export function walkDrawingOf(cells: readonly Cell[]): CarGround {
+  const ground = carGroundOf(cells);
+  const read = readEdgeOf(cells);
+  return { ...ground, read: read.lines, key: `${ground.key}|${read.key}` };
 }
 
 /** A piece of a route inside the drawn car ground, and how far along the route it begins and ends, in metres. */

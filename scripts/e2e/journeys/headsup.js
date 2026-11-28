@@ -221,10 +221,98 @@ async function run(h) {
   await shot(p5, 'g5-fade-146');
   const edge = await p5.evaluate(() => window.__renderedIn([[0, 0], [innerWidth, innerHeight]])).catch(() => []);
   check(edge.some((k) => /^walk-car:area-\d$/.test(k)), `walkability-car-ground audit 7: toward the edge of what was read the hatch fades in steps (${edge.filter((k) => k.startsWith('walk')).join(', ')})`);
+  // tend walkability T67: the edge of what was read is a thin dashed grey line, the hatch's fade inside it.
+  check(edge.includes('walk-read:read'), `tend walkability T67: where the edge of what was read crosses the screen, at a fractional zoom, a dashed line is drawn along it (${edge.filter((k) => k.startsWith('walk')).join(', ')})`);
   await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, -6), 13.2]);
   await p5.waitForTimeout(2500);
   await shot(p5, 'g5-fade-132');
+  await p5.setViewportSize({ width: 320, height: 700 });
+  await p5.waitForTimeout(1500);
+  await shot(p5, 't67-edge-132-320');
+  await p5.setViewportSize({ width: 390, height: 844 });
+  await p5.waitForTimeout(1200);
+  const readIn = async (pg, pt, r) => {
+    const [x, y] = await pg.evaluate((p) => window.__project(p), pt);
+    const m = await pg.locator('.maplibregl-map').last().boundingBox();
+    return pg.evaluate((b) => window.__renderedIn(b), [[x - m.x - r, y - m.y - r], [x - m.x + r, y - m.y + r]]).catch(() => []);
+  };
+  // Where the hole below is, with every tile read: no line through the read's middle.
+  await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(0, -2), 13.4]);
+  await p5.waitForTimeout(2500);
+  const middle = await readIn(p5, at(0, -4), 40);
+  check(!middle.includes('walk-read:read'), `tend walkability T67: with every tile read, no line runs through the middle of the read (${middle.filter((k) => k.startsWith('walk')).join(', ')})`);
+  await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, 0), 16]);
+  await p5.waitForTimeout(2500);
+  const near = await p5.evaluate(() => window.__renderedIn([[0, 0], [innerWidth, innerHeight]])).catch(() => []);
+  check(near.includes('walk-car:area') && !near.includes('walk-read:read'), `tend walkability T67: at walking zoom, the edge of what was read wholly off the screen, no line is drawn (${near.filter((k) => k.startsWith('walk')).join(', ')})`);
+  await shot(p5, 't67-offscreen');
+  await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, -6), 13.2]);
+  await p5.waitForTimeout(1500);
+  await switchLayer(p5, 'walkability', false);
+  await p5.waitForTimeout(2000);
+  const off = await p5.evaluate(() => window.__renderedIn([[0, 0], [innerWidth, innerHeight]])).catch(() => []);
+  check(!off.some((k) => k.startsWith('walk-')), `tend walkability T67: with the layer off, no line and no hatch (${off.filter((k) => k.startsWith('walk')).join(', ')})`);
+  await shot(p5, 't67-layer-off');
   await c5.close();
+
+  // tend walkability T67: a tile that could not be read is ringed by the line too. The scene's archive with the tile north
+  // of the start made unreadable (bytes that are not a tile) and Overpass busy for it, so nothing reads that tile.
+  {
+    const { Buffer } = require('node:buffer');
+    const { pg: p6, c: c6 } = await freshPage('t67-hole', { touch: true });
+    await c6.addInitScript(() => { window.__perf = {}; });
+    await c6.setGeolocation({ longitude: at(5, 0)[0], latitude: at(5, 0)[1], accuracy: 6 });
+    await p6.goto(h.exploreUrl);
+    await p6.waitForSelector('[data-testid=layers]', { timeout: 30000 });
+    const src = `https://${h.OVERTURE_HOST}/tiles/${h.OVERTURE_RELEASE}/transportation.pmtiles`;
+    const bytes = Buffer.from(await p6.evaluate(async (u) => {
+      const b = new Uint8Array(await (await fetch(u)).arrayBuffer());
+      let s = '';
+      for (const x of b) s += String.fromCharCode(x);
+      return btoa(s);
+    }, src), 'base64');
+    // The archive's one root directory (scripts/pmtiles-encode.mjs writes it uncompressed): ids, run lengths, lengths, offsets.
+    const u64 = (o) => Number(bytes.readBigUInt64LE(o));
+    const dataAt = u64(56);
+    let pos = u64(8);
+    const varint = () => { let n = 0; let m = 1; let b; do { b = bytes[pos++]; n += (b & 0x7f) * m; m *= 128; } while (b & 0x80); return n; };
+    const count = varint();
+    const ids = [];
+    let last = 0;
+    for (let i = 0; i < count; i++) ids.push((last += varint()));
+    for (let i = 0; i < count; i++) varint();
+    const lens = [];
+    for (let i = 0; i < count; i++) lens.push(varint());
+    const offs = [];
+    for (let i = 0; i < count; i++) { const v = varint(); offs.push(v === 0 && i > 0 ? offs[i - 1] + lens[i - 1] : v - 1); }
+    const [lon, lat] = at(0, 9);
+    const tx = Math.floor(((lon + 180) / 360) * 2 ** 14);
+    const ty = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** 14);
+    const { zxyToTileId } = await import('pmtiles');
+    const k = ids.indexOf(zxyToTileId(14, tx, ty));
+    const holed = Buffer.from(bytes);
+    if (k >= 0) holed.fill(7, dataAt + offs[k], dataAt + offs[k] + lens[k]);
+    const cors = { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'ETag, Content-Length, Content-Range, Accept-Ranges' };
+    await c6.route((u) => u.host === h.OVERTURE_HOST && u.pathname.endsWith('/transportation.pmtiles'), (r) => {
+      const m = /bytes=(\d+)-(\d+)/.exec(r.request().headers().range ?? '');
+      const from = m ? Number(m[1]) : 0;
+      const to = Math.min(m ? Number(m[2]) : holed.length - 1, holed.length - 1);
+      return r.fulfill({ status: 206, headers: { ...cors, 'content-range': `bytes ${from}-${to}/${holed.length}`, etag: '"e2e"' }, contentType: 'application/octet-stream', body: holed.subarray(from, to + 1) });
+    });
+    await c6.route(`https://${OVERPASS_HOST}/**`, (r) => r.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify({ remark: 'runtime error: Query timed out', elements: [] }) }));
+    await switchLayer(p6, 'walkability');
+    await p6.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 45000 }).catch(() => {});
+    await p6.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(0, -2), 13.4]);
+    await p6.waitForTimeout(2500);
+    await shot(p6, 't67-hole');
+    const ring = await readIn(p6, at(0, -4), 40);
+    check(k >= 0 && ring.includes('walk-read:read'), `tend walkability T67: a tile that could not be read inside the read is ringed by the dashed line (${k >= 0 ? ring.filter((x) => x.startsWith('walk')).join(', ') : 'no such tile in the scene'})`);
+    await p6.setViewportSize({ width: 320, height: 700 });
+    await p6.waitForTimeout(1500);
+    await shot(p6, 't67-hole-320');
+    hosts.delete(OVERPASS_HOST);
+    await c6.close();
+  }
   h.edgeWorld.serve = false;
   walkability.mode = 'ok';
   await c4.close();

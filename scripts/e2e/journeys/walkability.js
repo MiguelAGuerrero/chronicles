@@ -62,6 +62,18 @@ async function run(h) {
     check(sample.length === 2 && sample[0] === '#3b4a6b', `CG5: the car row shows a short route cased in slate (${JSON.stringify(sample)})`);
   }
   await shot(pg, 'walk-legend-open');
+  const note = await pg.locator('[data-testid=layer-note-walkability]').innerText().catch(() => '');
+  check(/the dashed line is as far as it has read\.$/.test(note.trim()) && !/\d/.test(note), `tend walkability T67: the layer's note says the dashed line is as far as it has read, with no number (${JSON.stringify(note)})`);
+  await pg.locator('[data-testid=layer-note-walkability]').scrollIntoViewIfNeeded().catch(() => {});
+  await pg.waitForTimeout(400);
+  await shot(pg, 't67-legend-390');
+  await pg.setViewportSize({ width: 320, height: 700 });
+  await pg.waitForTimeout(800);
+  await pg.locator('[data-testid=layer-note-walkability]').scrollIntoViewIfNeeded().catch(() => {});
+  await pg.waitForTimeout(400);
+  await shot(pg, 't67-legend-320');
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.waitForTimeout(800);
   await pg.hover('[data-testid=walk-tip-car]');
   await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
   const tip = await pg.locator('[data-testid=tooltip]').innerText().catch(() => '');

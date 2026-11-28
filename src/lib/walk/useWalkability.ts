@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { LngLat } from '../types';
 import { cellsFor } from './cells';
 import { drawNow, tilesAround, type WalkStatus } from './layer';
-import { carGroundOf, type CarGround } from './carGround';
+import { walkDrawingOf, type CarGround } from './carGround';
 import { walkBuild, walkPlaces, walkReader } from './walkApp';
 
 /** How far around the centre the layer reads (WK4): enough tiles that a cell's whole neighbourhood is inside them (UF1). */
@@ -13,7 +13,7 @@ export type { WalkStatus };
 
 export interface Walkability {
   status: WalkStatus;
-  /** What the map draws; null when off, still reading or nothing could be read. */
+  /** What the map draws, the car ground and the read's edge (T67); null when off, still reading or nothing could be read. */
   draw: CarGround | null;
 }
 
@@ -37,7 +37,7 @@ export function useWalkability(centre: LngLat | null, on: boolean): Walkability 
       if (!live) return;
       if (!read.tiles.size) return setResult({ key: tilesKey, draw: null });
       const places = await walkPlaces(tiles, () => !live);
-      if (live) setResult({ key: tilesKey, draw: carGroundOf(cellsFor(read.tiles, read.junctions, places)) });
+      if (live) setResult({ key: tilesKey, draw: walkDrawingOf(cellsFor(read.tiles, read.junctions, places)) });
     })();
     return () => {
       live = false;
