@@ -14,11 +14,11 @@ steward, not held for the owner (slice `--from`).
 
 A warning: the slice builds only QE1-QE10 and takes none of those items on.
 
-## Files (source: 15, in three commits of at most 8)
+## Files (source: 18, in three commits of at most 8)
 
 | File | Change |
 |---|---|
-| `src/lib/quietEnd/core.ts` (new, core) | `QUIET_MS` (30 min, 0272). `quietPoint({ tr, captures, pauses, startedAt })`: the latest of the last walking on, the last ride's end, the last capture (a piece's own time) and the last Resume (a closed pause's end); null when the walk holds none. Walking on: per run of walked fixes between breaks (a pause, a ride, a gap over a minute, `isBreak`), the arrival at the run's final spot, the first fix after the last three in a row beyond its reach (`STILL_REACH_M` 50 m, or three times the spot's accuracy, as `holdStill` reads a leave); a run that never leaves its own spot (the standing fixes after the web's long break, a phone's day at one spot) is no walking on. `quietEndAt(input, now)`: the point when `now` is 30 min or more after it, else null. `untilEnd(points, endedAt)`: the fixes up to a walk's end. The words: `quietLine(at, now)` "This walk went quiet at 8:35 pm[ yesterday \| on Thu, Nov 26].", `endItLabel(at)` "End it at 8:35 pm", `KEEP_IT_ALL`, `QUIET_ROW` "End it where it went quiet", `quietRowHint(at, now)` "At 8:35 pm on Thu, Nov 26; the hours after it leave the walk". The clock and the day are `clockOf` (`lib/moment.ts`) and `dayLabel` (`lib/days.ts`): no new reading of the device's clock in core. |
+| `src/lib/quietEnd/core.ts` (new, core) | `QUIET_MS` (30 min, 0272). `quietPoint({ tr, captures, pauses, startedAt })`: the latest of the last walking on, the last ride's end, the last capture (a piece's own time) and the last Resume (a closed pause's end); null when the walk holds none. Walking on: per run of walked fixes between breaks (a pause, a ride, a gap over a minute, `isBreak`), the arrival at the run's final spot, the first fix after the last three in a row beyond its reach (`STILL_REACH_M` 50 m, or three times the spot's accuracy, as `holdStill` reads a leave); a run that never leaves its own spot (the standing fixes after the web's long break, a phone's day at one spot) is no walking on. `quietEndAt(input, now)`: the point when `now` is 30 min or more after it, else null. `untilEnd(points, endedAt)`: the fixes up to a walk's end. The words: `quietLine(at, now)` "This walk went quiet at 8:35 pm[ yesterday \| on Thu, Nov 26].", `endItLabel(at)` "End it at 8:35 pm", `KEEP_IT_ALL`, `QUIET_ROW` "End it where it went quiet", `quietRowHint(at, now)` "At 8:35 pm yesterday; what came after it leaves the walk". The clock and the day are `clockOf` (`lib/moment.ts`) and `dayLabel` (`lib/days.ts`): no new reading of the device's clock in core. |
 | `src/lib/quietEnd/shell.ts` (new) | `createQuietEnd(p: Pick<Ports, 'db' \| 'clock'>, deps)`: `at(walkId)` reads the walk, its points (up to its end when it has one), pauses, stills and moments, `readTrace` with all of them, and returns `quietEndAt(…, end)`, `end` the walk's own end when it has one (a kept walk: quiet 30 min or more before its end), else `clock.now()` (a Stop); `endAt(walkId, at)` moves a kept walk's end (`db.updateWalk({ ended_at: at })`, only back, only to the walk's own quiet point read again), then snaps it again (`deps.snap`, as Keep or Not this way does), builds its Where I've been line again (`deps.rebuildLine`) and says the walk changed (`deps.changed`). |
 | `src/lib/quietEnd/index.ts` (new, instance) | The app's instance: `ports`, `snapWalk` with `tileCollector()`, `pastLines.build`, `notifyWalkChanged`. |
 | `src/lib/session.ts` | `stopWalk(walkId, endAt?)` and `endWalk(walkId, { leaves, endAt })`: the end written is `endAt` when given (End it), else the hold's time; an open pause still ends at the hold's time (`pausedMs` clips it at the end). |
@@ -34,6 +34,9 @@ A warning: the slice builds only QE1-QE10 and takes none of those items on.
 | `src/components/WalkActions.tsx` | Reads `quietEnd.at` with the plan; with a point, the row "End it where it went quiet" with its hint, between Rename and Share GPS log, as drawn; a tap shows `QuietEndAsk` in the same sheet ("End it at <time>", Cancel); End it moves the end (`quietEnd.endAt`) and closes the sheet; `onEnded` tells the host. |
 | `src/app/replay/[id].tsx` | `onEnded`: `loadReplay` again (the snap already ran), so the card, the map and the end mark follow. |
 | `src/app/(tabs)/index.tsx` | `onEnded`: the walk rows read again (if `notifyWalkChanged` does not already reach them; read at the code). |
+| `src/lib/outing/app.ts` | Plan an outing's "visited on foot" (OJ47) reads a finished walk up to its end (steward 1). |
+| `src/lib/emptyWalk/shell.ts` | The empty-walk drop reads the walk up to its end. |
+| `src/lib/split/shell.ts` | A piece split out of its moment is placed on the walk up to its end. |
 | `scripts/features.js` | `IN_PROGRESS` entry; `src/lib/quietEnd/**` under `recording`; the spec under `walk-screen`; the journey `quietend` under `walk-screen`. |
 
 Docs: this spec and plan; AGENTS.md's "Truth vs cache" line, "(deletes and a moved end aside)" (0272's consequences;
@@ -130,3 +133,15 @@ Strava's Crop deletes the readings, this keeps them (Always, truth).
 6. **Lens 0** (walk-screen's lines are all proposed, awaiting the owner: tested provisionally, none drafted or amended):
    E-walk-screen-4 ("ending a walk to take a deliberate hold … and to bring the walk straight back as its replay") meets
    a question between the hold and the replay on a quiet walk only; judged still met (either answer opens the replay).
+
+## The review's rulings (Nov 28)
+
+Steward 1-5 accepted (the spec's "The plan's review"); the proxy's calls under 0157, 2026-11-28, there too. The
+shapes: steward 1, `untilEnd` at every finished walk's reader (summary, finish, pastLines, outing, emptyWalk, split),
+held by a test that enumerates every `getPoints(` call outside the stores and classifies it (up to the end; whole:
+shareLog, export bundle, backup; the open walk: useLiveTrace, useNavigation, walkPlanner); steward 2, the card's right
+edge clear of the capture stack, each capture handler closing the card first, and on the bar the card in the page's flow
+above the bar (as the discarded-memo pill, BC9), covering no control; steward 4, Resume drawn unfilled while the card
+shows, a transparent backdrop under the card (and under the capture stack) closing it on any other tap, Back and Escape
+closing only the card; steward 3 and 5, the words. Silent 2 filed `[owner]` low in `docs/DEFERRED.md`, walk-screen. The
+whole run's source count: about 18 (the proxy accepted near 17).

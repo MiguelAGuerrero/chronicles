@@ -133,7 +133,7 @@ const FEATURES = [
       'src/components/{Ticking,MomentBar,ConfirmCard,QuietEndAsk,StartSettings,ui}.tsx',
       'src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion,captureBus}.ts',
     ],
-    journeys: ['ready', 'walk'],
+    journeys: ['ready', 'walk', 'quietend'],
     specs: ['navigate-ready', 'forgotten-stop'],
   },
   {

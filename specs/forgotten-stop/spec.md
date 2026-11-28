@@ -81,9 +81,12 @@ From the code (`grep -rn "stopEnd\|<WalkActions\|readTrace(" src`):
   `lib/pastLines/shell.ts`), the day's replay (`app/day/[key].tsx`, through `loadReplay`).
 - **What keeps every reading** (QE8): Share GPS log (`lib/shareLog`), the walk's export bundle and the backup read
   `db.getPoints` whole, unchanged.
-- **Not here:** the open walk's readers (`useLiveTrace`, navigation, the outing and the planner) read a walk still
-  recording, which has no end to move; the empty-walk drop (`emptyWalk`) reads the walk as stored, and a walk with a
-  quiet point holds something before it.
+- **Every other reader of a finished walk's trace** (steward 1): Plan an outing's "visited on foot" (OJ47,
+  `lib/outing/app.ts`), the empty-walk drop (`lib/emptyWalk/shell.ts`) and a piece split out of its moment
+  (`lib/split/shell.ts`) read it up to its end too.
+- **Not here:** the open walk's readers (`useLiveTrace`, navigation's `useNavigation`, the planner's `openWalkLast`) read
+  only a walk still recording, which has no end to move. A test enumerates every `getPoints(` outside the stores and
+  names each reader's class (up to the end, whole, or the open walk), so a new reader cannot be missed.
 
 ## Criteria
 
@@ -98,10 +101,14 @@ G16's ten, in its words, numbered with the slice's prefix; the states they imply
    more shows the card as drawn, "This walk went quiet at <time of day>[ yesterday]." with "End it at <time>" (the one
    filled button) and "Keep it all"; quiet less than 30 min, Stop ends as today with no card. **Finding:** the walker
    holding Stop the next morning sees the card above the strip before anything ends, with the time it went quiet in
-   its words.
+   its words. While the card shows, End it is the screen's only filled accent (Resume beneath it is not filled); a tap
+   on the strip, outside the card or Back closes the card and ends nothing (steward 4). The capture stack stays one tap:
+   a tap on the camera, the mic or the note closes the card and captures in that same tap (steward 2).
 4. **QE4** The recording bar's held Stop asks the same, with the same words, above the bar.
 5. **QE5** End it writes the quiet time as the walk's end: the replay, its card, Chronicle's row, the day, the end mark,
-   the areas and the streets read the walk up to it, and the dotted hop to the next day's spot is gone.
+   the areas and the streets read the walk up to it, and the dotted hop to the next day's spot is gone. Every reader of
+   a finished walk's trace reads it up to `ended_at`; only Share GPS log, the export bundle and the backup read it whole
+   (steward 1).
 6. **QE6** Keep it all is today's Stop exactly.
 7. **QE7** A finished walk quiet 30 min or more at its end has "End it where it went quiet" in its More (⋯) (the replay
    card and Chronicle's row), which asks with the same words and buttons ("End it at <time>", Cancel); after it the row
@@ -110,13 +117,37 @@ G16's ten, in its words, numbered with the slice's prefix; the states they imply
 8. **QE8** No reading is deleted: Share GPS log still holds the tail; `SNAP_RULES` is bumped so kept walks are read
    again.
 9. **QE9** Nothing ends or trims a walk without the walker's tap, nothing is notified, and the words say a time of day,
-   never a count or a number of hours (`check:vision`).
+   never a count or a number of hours (`check:vision`): the clock's and the date's digits only; "yesterday" in lower
+   case; no word for today; a day further back reads "on <day>" (`dayLabel`'s words) (steward 5). The More row's hint
+   names no unit of time: "At 8:35 pm yesterday; what came after it leaves the walk" (steward 3).
 10. **QE10** The paused strip's Resume and Stop stay whole at 320 px beside a day-long time (today "Resu…").
 
 Done when (G16): on the web build at 390 x 844, a walk left running and opened 20 hours later, its Stop held: the walk
 screen asks whether to end it where it went quiet, and with End it the replay's card, Chronicle's row and the day say
 the walk's own time, its end mark sits where the walking stopped, and no dotted line runs to where the phone was the next
 day.
+
+## The plan's review (the steward, Nov 28)
+
+Steward 1-5 accepted into QE3, QE5 and QE9 above, with their tests (`forgotten-stop steward N: …`). The proxy's calls
+under 0157, 2026-11-28 (the owner said "Proceed autonomously", Nov 28):
+
+- **Steward 2:** the approved drawing's look is kept; a tap on a capture button while the ask is up closes the card and
+  captures in the same tap (VISION Always, "Capture is one tap away").
+- **The clock and the day** (the plan's judgment calls 1 and 2): "8:35 pm", as every clock time in the app (`clockOf`),
+  where the drawing wrote "8:35 PM"; a day further back than yesterday, "on <day>".
+- **Share GPS log, the export and the backup** keep every reading, unmarked (QE8 as approved; the trace is truth).
+- **A linger** within 50 m for 30 min or more at the end reads as quiet: nothing ends without the walker's tap, and Keep
+  it all is one tap.
+
+## Open questions
+
+- A walk stopped by choice after a long sit (a café, 30 min or more) is asked at Stop, and keeps the row in its More
+  after Keep it all; walks kept before this slice gain the row too. Remembering Keep it all would be a stored field (a
+  data-model change, the owner's): filed `[owner]` low in `docs/DEFERRED.md`, walk-screen.
+- A slow linger within 50 m (a market, a gallery) for 30 min or more at the end reads as quiet (the proxy's call above).
+- E-walk-screen-4 ("… to bring the walk straight back as its replay") meets one question on a quiet walk: an amendment
+  is the owner's (decision 0236), left as it is and named in the run's report.
 
 ## Amends
 
