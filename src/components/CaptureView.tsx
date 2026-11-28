@@ -340,10 +340,19 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
         </MediaArea>
         {props.bare ? null : (
         <View style={[styles.strip, props.dock !== undefined && styles.stripOver, { paddingBottom: (props.dock ? props.dock : 0) + insets.bottom + 10 }]}>
-          <View style={styles.stripInner}>
-            <Text style={styles.stripMeta} numberOfLines={props.responses ? 3 : 2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(true)}</Text>
-            {actions(true)}
-          </View>
+          {props.pieces || props.nav ? (
+            // With step buttons the info line has its own full-width row above them, never cut: it is the moment's
+            // place, time and walk (MG8; tend gallery 2).
+            <View style={[styles.stripInner, styles.stripStacked]}>
+              <Text style={styles.stripMetaRow} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(true)}</Text>
+              <View style={styles.stripActions}>{actions(true)}</View>
+            </View>
+          ) : (
+            <View style={styles.stripInner}>
+              <Text style={styles.stripMeta} numberOfLines={props.responses ? 3 : 2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}{responsesLink(true)}</Text>
+              {actions(true)}
+            </View>
+          )}
           <ReactionMarks set={reacted} inverse style={styles.stripReactions} onOpen={props.onLens} />
         </View>
         )}
@@ -1222,6 +1231,9 @@ const styles = StyleSheet.create({
   strip: { backgroundColor: '#14181f', paddingTop: 10, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.15)' },
   stripInner: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center', minHeight: 48 },
   stripMeta: { flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: 14 },
+  stripStacked: { flexDirection: 'column', alignItems: 'stretch', gap: 4 },
+  stripMetaRow: { color: 'rgba(255,255,255,0.85)', fontSize: 14, flexShrink: 0 },
+  stripActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 12, minHeight: 48 },
   responsesLink: { color: theme.ink, textDecorationLine: 'underline', fontWeight: '600' },
   responsesLinkDark: { color: '#ffffff' },
   navBtnDark: { borderColor: 'rgba(255,255,255,0.5)' },

@@ -79,6 +79,17 @@ async function run(h) {
     }
     return out.join('\n');
   });
+  // tend gallery 2: the viewer's info line, read by its layout (a clamped line keeps its whole text in innerText): cut
+  // when it scrolls inside its box, and whether it sits on its own row above the step buttons.
+  const metaWhole = () => pg.evaluate(() => {
+    const shown = (e) => e.getClientRects().length > 0 && !e.closest('[aria-hidden=true]');
+    const m = [...document.querySelectorAll('[data-testid=capture-meta]')].find(shown);
+    if (!m) return { found: false };
+    const r = m.getBoundingClientRect();
+    const btn = [...document.querySelectorAll('[data-testid=piece-next], [aria-label="Next moment"]')].find(shown);
+    const ellipsis = getComputedStyle(m).textOverflow === 'ellipsis' && m.scrollWidth > m.clientWidth + 1;
+    return { found: true, text: m.innerText.replace(/\s+/g, ' '), cut: m.scrollHeight > m.clientHeight + 1 || ellipsis, above: !!btn && r.bottom <= btn.getBoundingClientRect().top + 1 };
+  });
   // The only digits: dates, years, times of day and lengths.
   const tally = (text) => {
     const rest = text
@@ -177,6 +188,8 @@ async function run(h) {
   const shown = await pg.locator('[data-testid=piece-shown]').first().getAttribute('data-piece').catch(() => null);
   const meta = (await pg.locator('[data-testid=capture-meta]').first().innerText().catch(() => '')).replace(/\s+/g, ' ');
   await shot(pg, '97-gallery-viewer');
+  const meta390 = await metaWhole();
+  check(meta390.found && !meta390.cut && meta390.above && /Alfama/.test(meta390.text), `tend gallery 2: the viewer's info line shows the moment's place and walk uncut, on its own row above the step buttons (${JSON.stringify(meta390)})`);
   check(shown === 'stack.1', `MG8: the tile opens its moment at its own piece (${shown})`);
   check(/Alfama/.test(meta) && !/ of \d/.test(meta), `MG8, MG7: the info line carries the moment's place and walk and no "i of n" (${meta})`);
   const pieceButtons = await has('[data-testid=piece-next]');
@@ -340,6 +353,15 @@ async function run(h) {
   await pg.waitForTimeout(600);
   await shot(pg, '99-gallery-photos-320');
   await pg.click('[data-testid=gallery-show-all]');
+  await pg.waitForTimeout(500);
+  await pg.locator('[data-testid=gallery-tile][data-piece="stack.1"]').click();
+  await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
+  await pg.waitForTimeout(900);
+  await shot(pg, '99-gallery-viewer-320');
+  const meta320 = await metaWhole();
+  check(meta320.found && !meta320.cut && meta320.above && /Alfama/.test(meta320.text), `tend gallery 2: at 320 px the viewer's info line shows the moment's place and walk uncut above the step buttons (${JSON.stringify(meta320)})`);
+  await pg.click('[data-testid=viewer-close]');
+  await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 5000 }).catch(() => {});
   await pg.click('[data-testid=gallery-zoom-months]');
   await pg.waitForSelector('[data-testid=gallery-block]', { timeout: 5000 });
   await pg.waitForTimeout(600);
