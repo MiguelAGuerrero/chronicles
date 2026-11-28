@@ -1803,16 +1803,25 @@ async function run(h) {
           findMe: await pg4.locator('[data-testid=atlas-locate]').filter({ visible: true }).count(),
           edge: await pg4.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').count(),
         });
-        const waysBefore = screen === 'Explore' ? await ways() : null;
-        if (waysBefore) {
-          check(waysBefore.findMe === 1 && waysBefore.edge === 0,
-            `tend explore 8: Explore at ${w}, with no fix, one way to find you: Find me in the card and no Locate at the map's edge (${JSON.stringify(waysBefore)})`);
+        if (screen === 'Explore') {
+          // tend explore T76 (G17's YH1 and YH4, decisions 0273, 0275; tend explore 8, audits 8, 9; decision 0172, O6, O20):
+          // Explore asks at its first front in a launch, and this browser refuses every ask, so the refusal is the front's own,
+          // with no tap. The permission then reads "denied": location is blocked, the empty card says where to turn it on, and
+          // neither Find me nor the edge Locate is offered, since a tap could only be refused again. Find me is the one way
+          // back once the permission changes (tend explore audit 10, below).
+          const atFront = { ...(await ways()), card: await pg4.locator('[data-testid=atlas-empty]', { hasText: BLOCKED_WORDS }).filter({ visible: true }).count() };
+          check(atFront.findMe === 0 && atFront.edge === 0 && atFront.card === 1,
+            `tend explore T76: Explore at ${w}, location refused at the front with no fix: the card says where to turn it on, with no Find me and no Locate at the map's edge (${JSON.stringify(atFront)})`);
+          // tend map audit 12 on Explore since YH4: the front's refusal is said by the polite live region kept on screen, no tap.
+          check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && saidBefore[0].text === T17_WORDS,
+            `tend map audit 12, tend explore T76: Explore at ${w}, the polite live region on screen says the front's refusal, with no tap (${JSON.stringify(saidBefore)})`);
+        } else {
+          await pg4.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
+          await pg4.waitForTimeout(2500);
+          const saidAfter = await said();
+          check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && !saidBefore[0].text.includes(T17_WORDS) && saidAfter.length === 1 && saidAfter[0].text === T17_WORDS,
+            `tend map audit 12: ${screen} at ${w}, a polite live region on screen before the tap says the refusal after it (before ${JSON.stringify(saidBefore)}, after ${JSON.stringify(saidAfter)})`);
         }
-        await pg4.locator(screen === 'Explore' ? '[data-testid=atlas-locate]' : 'xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
-        await pg4.waitForTimeout(2500);
-        const saidAfter = await said();
-        check(saidBefore.length === 1 && saidBefore[0].live === 'polite' && !saidBefore[0].text.includes(T17_WORDS) && saidAfter.length === 1 && saidAfter[0].text === T17_WORDS,
-          `tend map audit 12: ${screen} at ${w}, a polite live region on screen before the tap says the refusal after it (before ${JSON.stringify(saidBefore)}, after ${JSON.stringify(saidAfter)})`);
         await shot(pg4, `qol-14-${screen.toLowerCase()}-locate-denied-${w}`);
         if (screen === 'Explore') {
           // tend walk-screen audit 10 (the review's ux 3; the owner, in person, Nov 14: "Card only on Explore"): while the card
@@ -1823,8 +1832,8 @@ async function run(h) {
             `tend walk-screen audit 10: Explore at ${w}, refused while the card says location is blocked, no banner says it again, and no scale bar over the blank world (${JSON.stringify({ ...seen, banners })})`);
         } else await deniedNotice(pg4, `${screen} at ${w}`, { blank: true });
         if (screen === 'Explore') {
-          // tend explore 8 (O20): after the refusal Find me waits, the card saying where to turn location on; the edge
-          // Locate is the one way meanwhile. Once the permission changes (the site allowed), Find me is back, the edge's gone.
+          // tend explore 8 (O20): after the refusal Find me waits, the card saying where to turn location on. Once the
+          // permission changes (the site allowed), Explore reads the fix itself (G17, YH1; tend explore T76).
           const refused = await ways();
           // tend explore audit 8: while the permission reads "denied" the edge Locate could only be refused again, so it goes too.
           check(refused.findMe === 0 && refused.edge === 0,
@@ -1861,11 +1870,13 @@ async function run(h) {
             `tend explore audit 15: Explore at ${w}, with no edge Locate the compass hands the focus to Move map, on screen (${JSON.stringify(handed)})`);
           await c4.grantPermissions(['geolocation']);
           await pg4.waitForTimeout(1500);
-          const allowed = await ways();
-          // tend explore audit 10: the refusal's notice goes with the refusal: "Location is off" no longer stands over Find me.
+          const allowed = { ...(await ways()), blockedCard: await pg4.locator('[data-testid=atlas-empty]', { hasText: BLOCKED_WORDS }).filter({ visible: true }).count() };
+          // tend explore audit 10: the refusal's notice goes with the refusal: "Location is off" no longer stands over the card.
           const stale = (await readNotice(pg4, T17_WORDS)).banner != null;
-          check(allowed.findMe === 1 && allowed.edge === 0 && !stale,
-            `tend explore 8, tend explore audit 10: Explore at ${w}, once the permission changes Find me comes back, the edge Locate steps aside and the refusal's notice goes (${JSON.stringify({ ...allowed, stale })})`);
+          // tend explore T76: since G17 (YH1) location allowed again while Explore is in front is read at once, with no tap, so
+          // the card lists from the fix and offers no Find me; the edge Locate is the one way back to you.
+          check(allowed.findMe === 0 && allowed.edge === 1 && allowed.blockedCard === 0 && !stale,
+            `tend explore T76, tend explore audit 10: Explore at ${w}, once the permission changes the fix is read with no tap, the blocked card and the refusal's notice go, and the edge Locate is the one way to find you (${JSON.stringify({ ...allowed, stale })})`);
           await shot(pg4, `qol-14-explore-allowed-${w}`);
         }
         await c4.close();
