@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/{geo,liveDot,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,gpsLog,session,lastFix,traceEnds,rides}.ts"
+  - "src/lib/quietEnd/**"
   - "src/lib/motionSource/**"
   - "src/lib/recorder/**"
   - "src/lib/__tests__/recording/**"
@@ -149,6 +150,22 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   (see Rides), then `FixFilter` per walked stretch (speed over 7 m/s, and re-anchoring
   when the first accepted fix was the outlier). Always pass the walk's `started_at`
   and pauses. `filterFixes` is the walking filter alone, kept for its tests.
+- **A finished walk is read up to its end** (decision 0272, forgotten-stop QE5,
+  QE8, `SNAP_RULES` 10): every reader of a finished walk's points passes them
+  through `untilEnd(points, walk.ended_at)` (`lib/quietEnd/core.ts`) first;
+  only Share GPS log, the export bundle and the backup read them whole.
+  `quietEndShell.test.ts` names every `getPoints(` by class (up to the end,
+  whole, or the open walk): a new reader is classed there.
+- **A walk left running is offered its quiet end** (G16, decision 0272):
+  `quietPoint` is the latest of the last walking on (per run between breaks,
+  the arrival at the spot it ends on after three fixes in a row beyond 50 m or
+  3x accuracy, then the first fix within 10 m or the spot's accuracy), the last
+  ride's end, the last capture's piece and the last Resume; a run that never
+  leaves its spot is no walking on. Both held Stops ask through `stopEnd` when
+  it is 30 min or more back (`QUIET_MS`); End it writes it as `ended_at`, Keep
+  it all stops as before; a kept walk's More (⋯) moves its end back
+  (`quietEnd.endAt`, snapped again, its line rebuilt). Nothing ends a walk by
+  itself and nothing is notified. Not run on a phone.
 - **A web walk refused mid-way follows the permission** (decision 0172, O22; `tend walk-screen 3`). In
   Chromium, location taken back mid-walk reaches the open watch as `PERMISSION_DENIED`, and that watch delivers
   nothing after it. The web recorder then follows `watchLocatePermission` (`recorder/followPermission.ts`) and resumes

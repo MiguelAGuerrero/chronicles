@@ -548,6 +548,13 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
   an empty line and a Navigate button; with a walk open, "This walk is marked
   here when it ends" and no button, the recording bar's › being the way back
   (decision 0148).
+- **A walk left running ends where it went quiet, if you say so** (G16, decision 0272; forgotten-stop QE1-QE10): holding
+  Stop, on the walk screen or the recording bar, on a walk quiet 30 min or more since its last walking, ride, capture or
+  Resume asks once, "This walk went quiet at 8:35 pm yesterday.", with End it at 8:35 pm (the walk's end moves back there:
+  the replay, its card, Chronicle's row, the day, the areas and the streets read the walk up to it, and no dotted hop runs
+  to where the phone was next) or Keep it all (as before). A kept walk with a quiet end has "End it where it went quiet"
+  in its More (⋯). Its readings all stay stored (Share GPS log still holds them); nothing ends a walk by itself and
+  nothing is notified. Native unverified.
 - **A walk with nothing in it is dropped** (decision 0187): stopping a walk with no moment, pause (the one still open at Stop aside, decision 0220), still or gap and no movement past 15 m skips the replay and says "Walk not kept." with Undo; a killed app restores it.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
   the path, the card, then naming. The path has a rhythm (decision 0085): the

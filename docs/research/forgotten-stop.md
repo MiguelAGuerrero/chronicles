@@ -2,7 +2,7 @@
 
 From: the owner's /investigate, 2026-11-27: "I noticed sometimes I forget to stop a walk and there go hours and hours
 of the last activity so that needs to be a smart way to infer like do you wanna trim this walk down so that it's not
-20 hours of nothing till the last known point". Queued as G16. Status: queued.
+20 hours of nothing till the last known point". Queued as G16. Status: built in forgotten-stop (specs/forgotten-stop, QE1-QE10).
 
 ## What exists already
 

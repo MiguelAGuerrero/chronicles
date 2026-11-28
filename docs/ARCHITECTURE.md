@@ -171,6 +171,7 @@ Recording and traces
   session.ts                 the walk lifecycle: startWalk, stopWalk, pauseWalk, resumeWalk, reconcileOpenWalk; one open walk, re-entry guards
   geo.ts                     distances, projector, FixFilter and filterFixes (accuracy, staleness, speed), isBreak, splitAtGaps, settleJitter, dwellsOf / smoothDwells
   rides.ts                   readTrace: gates, rides, walked vs kept fixes; liveRuns, rideRuns, traceDistances, ridingAt
+  quietEnd/                  a walk left running (decision 0272): core.ts the quiet point, untilEnd, the ask's words; shell.ts reads the point, moves a kept walk's end back
   liveDot.ts                 the dot's Kalman filter (LiveDot), DotStore, motion hints
   glide.ts                   the dot's glide between fixes, on a given clock
   steps.ts                   StepDetector: walking vs still from acceleration
@@ -438,7 +439,7 @@ Layers (functional core, imperative shell)
 ## Invariants and boundaries
 
 - **Truth vs. cache.** Walk, TracePoint and Capture are truth, append-only
-  apart from the walk's own fields, a capture's placement at stop, and the
+  apart from the walk's own fields (its end moved back by the walker, 0272), a capture's placement at stop, and the
   deletes in `deletion/`. Pause and Still are kept truth beside them.
   StreetSegment, VisitedSegment, WalkSummary, Area and WalkArea are a cache,
   tagged with the tile build, and can be dropped and rebuilt. Recompute from
@@ -447,7 +448,10 @@ Layers (functional core, imperative shell)
   gates at read time: accuracy over 50 m, staleness before the walk began,
   rides, then `FixFilter` per walked stretch (speed over 7 m/s, re-anchoring
   when the first accepted fix was the outlier), then jitter and still spells.
-  Always pass the walk's `started_at`, pauses and stills. Walked-only
+  Always pass the walk's `started_at`, pauses and stills, and read a finished
+  walk's points up to its `ended_at` (`untilEnd`, decision 0272: readings after
+  a walk ended where it went quiet stay stored; only Share GPS log, the export
+  bundle and the backup read them whole). Walked-only
   consumers (snapping, walk me back, the solid line) use `tr.walked` with
   `tr.breaks`; walked-and-ridden consumers (places, placing captures, the
   replay's dot) use `smoothKept(tr)` with the pauses only.
@@ -457,7 +461,8 @@ Layers (functional core, imperative shell)
   `types.ts` next to them.
 - **Lifecycle lives in `session.ts`:** one open walk, re-entry guards, and a
   launch-time reconcile called from `app/_layout.tsx`. Stop writes `ended_at`
-  and `open: false` first, then stops the recorder, then opens the replay.
+  (the hold's time, or where the walk went quiet when the walker chose End it,
+  `stopEnd`'s ask, decision 0272) and `open: false` first, then stops the recorder, then opens the replay.
   Streets are derived later, behind the replay's first beat (`snapWalk`).
 - **The background location task is defined when the bundle loads**, from
   `index.js`, before `expo-router/entry`. Never move it into a route.

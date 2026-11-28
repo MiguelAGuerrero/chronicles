@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [owner] Keep it all is not remembered (forgotten-stop, decision 0276, the proxy's call under 0157, 2026-11-28; the plan review's silent question 2): a walk stopped by choice after a long sit at the end (a café, 30 min or more) is asked at Stop, and after Keep it all keeps \"End it where it went quiet\" in its More (⋯); walks kept before the slice gain the row too. Remembering the answer would be a stored field on the walk, a data-model change, the owner's (low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [owner] A walk's end moved back where it went quiet cannot be moved forward again in the app (forgotten-stop, decision 0272): the readings after it stay stored (Share GPS log holds them), but no control undoes End it; none was drawn. A later slice could offer it in the walk's More (⋯) (low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** start a walk, walk ten minutes to a corner, then go home without stopping it and leave the phone recording a few hours; the next morning open the app, Pause on the walk screen and hold Stop. **Expect:** the phone's shape of a forgotten walk (a fix a second at one spot for hours, in the background) reads quiet from the last corner (`quietEnd/core.ts`): the card \"This walk went quiet at <time> yesterday.\" above the strip with End it and Keep it all, after a short wait while a day of readings is read once; End it opens the replay with the walk's own time and its end mark at the corner (forgotten-stop QE1, QE3, QE5; decision 0272).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** on a walk left running for an hour or more, minimize it, and hold the recording bar's Stop over Chronicle; then on another, press Android's Back with the ask up, and with VoiceOver or TalkBack on, move through the card. **Expect:** the same card above the bar, the page's capture row still one tap above it; Back closes only the card and ends nothing; the screen reader lands on \"This walk went quiet at …\" and then End it and Keep it all; a kept walk's More (⋯) on the replay card and on Chronicle's row offers \"End it where it went quiet\" with the same ask (forgotten-stop QE4, QE7, steward 4; decision 0272).\n"
+    }
+  ]
+}
