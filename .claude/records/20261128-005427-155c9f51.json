@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inflight",
+        "add"
+      ],
+      "body": "| Lease: AGENTS.md's \"Truth vs cache\" and \"Raw fixes\" lines (decision 0272's consequences, G16 forgotten stop) | `tend/inbox-20261128-0003` | holds `AGENTS.md` from 2026-11-28T00:54Z, lease tend-inbox-20261128-0003 |\n"
+    }
+  ]
+}
