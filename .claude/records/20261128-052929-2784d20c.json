@@ -1,0 +1,74 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T68",
+        "--reason",
+        "the owner's yes in person, 2026-11-27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\", built in tend walkability T68 as one name per area (tend walkability audit 2, the proxy's ruling under 0157, 2026-11-28)"
+      ],
+      "target": "sha256:b3914750ce1716e5886a2febfa8df6a9162417474ee44662e29306107e98aa1e"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Walkability: one name per car area leaves a screen elsewhere in a large area unnamed** (2026-11-28)\n  Area: walkability. Seen: `tend walkability T68` built your \"one per area\" (the proxy's ruling under decision 0157, 2026-11-28): the name sits once, at the area's deepest point (`carTextOf`, `src/lib/walk/carGround.ts`), so a screen inside a large car area away from its heart shows the hatch and no name (the `headsup` journey's owner's scene at walking zoom: \"one name per area: a screen inside the owner's car ground, far from its heart, shows the hatch and no name\"); an arm or lobe of a named area, two cells wide and kilometres long, is never named (the auditor's 2); and on Explore at 320 px the map above the sheet is about 320 by 335 px, so even a name a screen apart is in view about two times in three (the auditor's 3). The build's first shape, a name about once a screen on a 400 px grid fixed in metres, showed several names on one screen at zoom 15 to 15.5 (the ux-reviewer's ux 1) and moved every name when a second area came into the read (the auditor's 1): it was not built. Rests on: T68's own aim, a screen wholly inside car ground with no edge to say what the hatch is; Nielsen Norman Group H6, \"Recognition rather than recall\" (docs/research/ui-references.md).\n  Recommended: the name about once a screen, bounded in screen pixels at every zoom where it shows (a coarse set every 800 px at zoom 16 shown from zoom 15, the 400 px set only from zoom 16, so no two names closer than a screen's width at any zoom), on a grid fixed globally row by row (each row's spacing from its own global position, never the read's middle latitude), and the room's farthest point from every placed name added while it lies more than the spacing away, so arms and lobes are named. Still the legend's words, in slate at the map's label size, clear of the controls and the map's edge, never a number. /vision: aligned if quiet (earn; Always, \"Restraint in motion, colour and copy\": at most about one name a screen; Never, tallies: no count).\n  Precedent: a map repeats a long feature's name along it every so many pixels rather than once (Positron's street names are line labels, `symbol-placement` line, which MapLibre repeats along a street at its `symbol-spacing`: read from the base style's source, github.com/hyperknot/openfreemap-styles, Nov 28); aviation charts name restricted airspace inside its hatched boundary (search summary, unverified; docs/research/adjacent-apps.md, \"Mark ground that is hard on foot\"); a large park's name repeated across it in Google Maps (unverified; not yet recorded).\n  Otherwise: keep one per area, as built; the legend, the heads-up and the area's edge say the rest.\n",
+      "number": "T72"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [loop] Above about 53° N the car ground's name can sit in the hatch's faded rim: its room, 140 px at zoom 16, is less than the 100 m fade there (tend walkability T68, the auditor's 5; low). Not built: the room from the read's edge at least `GROUND_FADE_M` plus a lattice step, whatever the latitude (`carTextOf`), tested at 60° N with a car area cut by the read's edge, its name in the whole hatch.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [loop] The eight-neighbour chamfer that measures the name's room overstates a depth by up to 8% beside a hole of foot ground, so an area whose inscribed circle is just under the 390 px screen can be named, its name about 129 px from the car ground's edge (tend walkability T68, the auditor's 6; low). Not built: a 5 by 5 chamfer or an exact distance transform in `unreadDistance` for `carTextOf`, tested with a car square round a one-cell foot hole.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [loop] The car ground's name has never been seen in its own face: the e2e serves one bold glyph file for every font stack, so every picture shows it bold, not Positron's italic, and it sits a line above the walker's street when it moves aside (`text-radial-offset` 0.8), where it may read as a street's name (tend walkability T68, the ux-reviewer's ux 4; low, opinion). Not built: a look on the deployed site at walking zoom inside a large car area; if it reads as a street's name, drop the radial offset.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [loop] Moved aside to its left or right (tend walkability T68 ux 2), the car ground's name runs about 120 px from its point at 13 px, while an area just large enough to be named has 97 px of car ground round its point at zoom 15: there a name moved sideways can reach past the hatch's edge by some 20 px, between zoom 15 and about 15.3 (tend walkability T68, found by the run; low). Not built: `text-variable-anchor` left and right only from zoom 15.5, or a deeper point needed before a sideways move; a unit test of the room against the words' width per anchor.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Walkability car ground (CG1-CG11"
+      ],
+      "body": "- [ ] **Do:** turn Walkability on and stand (or start a walk) inside a large car area (a mall's car parks, an industrial park) at walking zoom, near its heart, then pinch between zoom 15 and 18; look at a car area no wider than the screen, and at a large one away from its heart. **Expect:** the words \"Built around cars\" once in the large area, at its heart, in slate italic (`walk-text`: a symbol layer from the `walkability` source, `Noto Sans Italic` from the base style's glyphs, 13 px, white halo, `text-variable-anchor` centre, top, bottom, left and right, `beforeId={WALK_BELOW}`, `minzoom` 15), inside the hatch, never over its edge or past the read's dashed line, giving way to the streets' names and never overlapping one; none below zoom 15, none on the area no wider than the screen, none away from the heart (one per area), none with the layer off; the glyphs load (no blank or boxes). Native keeps no room for the map's controls (the web's `walk-room`), as for the storefront names: a name may sit under a control. (tend walkability T68, tend walkability audit 2)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 28, `/tend inbox T68 yes`: one quiet \"Built around cars\" inside each car area larger than the screen** (opened from `b40b7657`; T68, \"Walkability: a screen wholly inside car ground has no edge to say what the hatch is\", the owner's yes in person, Nov 27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\"; an inbox run, so lenses 1-7 were not run).\n- `tend walkability T68`: the Walkability layer writes the legend's words, \"Built around cars\", inside each car area larger than the screen at walking zoom (a circle as wide as a 390 px screen fits in it at zoom 16, measured in pixels so it follows the latitude), in the hatch's slate at the map's own label size (13 px), Positron's italic with a white halo, under the base map's labels so it gives way to them, from zoom 15, on both maps, only while the layer is on (`carTextOf`, `WALK_TEXT`). None on a small area, never a number. Built first as a name about once a screen.\n- `tend walkability audit 2`: one name per area, as the owner said yes to, at the area's deepest point, the same place from any read (the auditor's 1); with the review's one fix, the ux-reviewer's ux 2: on the web the name keeps the room the storefront names keep from Explore's controls and the map's edge (`walk-room`), moves aside or is left out, never shown cut.\n- The proxy's calls under 0157, 2026-11-28 (the owner said \"Proceed autonomously\"): \"about once a screen\" is a reshape of the owner's \"one per area\", not built here (five mediums against its grid, one review fix in the budget), filed as T72; \"larger than the screen\" as a 390 px circle at zoom 16, the 140 px room from zoom 15, the italic, giving way to the base labels and sitting under the route, kept; ux 2 the one review fix.\n- Review, one round, the auditor and the ux-reviewer: 1 accepted (ux 2, with the auditor's 7, the journey's own checks), 3 deferred `[loop]` low (the auditor's 5 and 6, the ux-reviewer's 4), 0 rejected; the reshape to the owner as T72 (ux 1 and the auditor's 1-3 its evidence); the auditor's 4 and ux 3 settled by the rework and the room. One `[loop]` low the run found (a name moved sideways at zoom 15 can reach past a just-large area's edge).\n- Filed: T72 \"Walkability: one name per car area leaves a screen elsewhere in a large area unnamed\"; four `[loop]` lows in DEFERRED's walkability section; the name on MapLibre RN in `docs/NATIVE_UNVERIFIED.md`. Nothing here has run on a phone.\n- Waiting, the owner's yes noted on it for the next `/tend inbox`: T69 (walkability). T70 and T71 unanswered. The \"TF27 follow-up\" waits on the owner's manual places build.\n- Journeys: headsup, walkability, launch (launch red once, the known Layers-click flake, green on its rerun). The weekly full pass is due (`tend.js e2e-due`) and was not run here.\n"
+    }
+  ]
+}
