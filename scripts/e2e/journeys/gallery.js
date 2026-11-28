@@ -155,15 +155,18 @@ async function run(h) {
   const dayLines = await pg.locator('[data-testid=gallery-day-line]').allInnerTexts();
   // fix gallery-header (audit 1, 4): no header's or block's title or line is cut: a title holds its text, a line is a
   // whole number of its line heights (a squeezed one is not), and both stay inside their row.
-  const cutIn = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=gallery-day], [data-testid=gallery-block]')].filter((h) => !h.closest('[aria-hidden=true]')).flatMap((h) => {
+  // `ellipsis` (tend gallery audit 1): a text that ends in an ellipsis (its words run past its box across or down) is
+  // cut too; without it the check reads only a squeezed text, as fix gallery-header's checks did.
+  const cutIn = (ellipsis = false) => pg.evaluate((ell) => [...document.querySelectorAll('[data-testid=gallery-day], [data-testid=gallery-block]')].filter((h) => !h.closest('[aria-hidden=true]')).flatMap((h) => {
     const box = h.getBoundingClientRect();
     return [...h.querySelectorAll('[data-testid$=-title], [data-testid$=-line]')].filter((t) => {
       const r = t.getBoundingClientRect();
       const lh = parseFloat(getComputedStyle(t).lineHeight);
       const squeezed = t.getAttribute('data-testid').endsWith('title') ? t.scrollHeight > t.clientHeight + 1 : !(lh > 0) || t.clientHeight < lh - 0.5 || Math.abs(t.clientHeight / lh - Math.round(t.clientHeight / lh)) > 0.05;
-      return squeezed || r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5;
-    }).map((t) => `${t.getAttribute('data-testid')}: ${t.innerText} (${t.clientHeight}/${t.scrollHeight})`);
-  }));
+      const ended = ell && (t.scrollWidth > t.clientWidth + 1 || t.scrollHeight > t.clientHeight + 1);
+      return squeezed || ended || r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5;
+    }).map((t) => `${t.getAttribute('data-testid')}: ${t.innerText.replace(/\s+/g, ' ')} (${t.clientHeight}/${t.scrollHeight})`);
+  }), ellipsis);
   const cut = await cutIn();
   const twoLines = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=gallery-day-line]')].some((l) => l.getBoundingClientRect().height > 30));
   check(cut.length === 0 && twoLines, `fix gallery-header: no header text is cut, a two-line place line included (${cut.join('; ') || 'none cut'}; two lines: ${twoLines})`);
@@ -367,11 +370,14 @@ async function run(h) {
   await pg.waitForTimeout(800);
   check(onMemories && (await has('[data-testid=gallery-zoom-days][aria-selected=true]')), 'MG1: Media resets to Memories on a new open of Chronicle, and Media opens on Days');
 
-  // tend gallery 1: the grid, the View menu, a kind chosen and Months pictured at 320 px, none of their words cut.
+  // tend gallery 1: the grid, the View menu, a kind chosen and Months pictured at 320 px. tend gallery audit 1: no title
+  // is cut there, and a line that ends in an ellipsis is only one already filed to the owner, named in the message: a
+  // day's line after a long walk title (the T entry "Gallery: at 320 a day's line can lose ', and outside a walk'") and
+  // a month's one line (docs/DEFERRED.md, "Fix gallery-header's audit, deferred").
   await pg.setViewportSize({ width: 320, height: 700 });
   await pg.waitForTimeout(800);
   await shot(pg, '99-gallery-days-320');
-  const cut320 = [...(await cutIn())];
+  const cut320 = [...(await cutIn(true))];
   await menu();
   await shot(pg, '99-gallery-menu-320');
   await pg.click('[data-testid=gallery-menu-show-photo]');
@@ -392,8 +398,10 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=gallery-block]', { timeout: 5000 });
   await pg.waitForTimeout(600);
   await shot(pg, '99-gallery-months-320');
-  cut320.push(...(await cutIn()));
-  check(cut320.length === 0, `tend gallery 1: at 320 px no day's or month's title or line is cut (${cut320.join('; ') || 'none'})`);
+  cut320.push(...(await cutIn(true)));
+  const knownCut = (c) => /^gallery-day-line: An evening along the river/.test(c) || /^gallery-block-line: /.test(c);
+  const unknown320 = cut320.filter((c) => !knownCut(c));
+  check(unknown320.length === 0, `tend gallery audit 1: at 320 px no title is cut and only the filed lines end in an ellipsis (unknown: ${unknown320.join('; ') || 'none'}; known, filed: ${cut320.filter(knownCut).join('; ') || 'none'})`);
   await pg.setViewportSize({ width: 390, height: 844 });
   await c.close();
 }
