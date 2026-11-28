@@ -1,6 +1,7 @@
 // @layer shell
 import type { Ports } from '../ports/types';
-import { readTrace } from '../rides';
+import { fillsOf, gapsOf, stretchesFor } from '../gaps/infer';
+import { readTrace, withFilled } from '../rides';
 import type { Walk } from '../types';
 import { quietEndAt, untilEnd, type QuietInput } from './core';
 
@@ -20,13 +21,16 @@ export interface QuietEndDeps {
  */
 export function createQuietEnd(p: Pick<Ports, 'db' | 'clock'>, deps: QuietEndDeps) {
   async function input(walk: Walk): Promise<QuietInput> {
-    const [points, pauses, stills, moments] = await Promise.all([
+    const [points, pauses, stills, moments, decisions] = await Promise.all([
       p.db.getPoints(walk.id),
       p.db.getPauses(walk.id),
       p.db.getStills(walk.id).catch(() => []),
       p.db.getMoments(walk.id),
+      p.db.getGapDecisions(walk.id).catch(() => []),
     ]);
-    const tr = readTrace(untilEnd(points, walk.ended_at), walk.started_at, pauses, stills);
+    const plain = readTrace(untilEnd(points, walk.ended_at), walk.started_at, pauses, stills);
+    // The gaps the walker kept are walked (G11), read from the device alone, never the network (forgotten-stop audit 2).
+    const tr = withFilled(plain, fillsOf(stretchesFor(gapsOf(plain), [], decisions)));
     return { tr, pauses, captures: moments.flatMap((m) => m.pieces.map((x) => x.t)) };
   }
   async function at(walkId: string): Promise<number | null> {

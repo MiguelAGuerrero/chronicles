@@ -88,8 +88,11 @@ export function stopWalk(walkId: string, endAt?: number): Promise<void> {
  * store the drop (EW8). A walk that could not be read stays and plays its replay (EW10).
  */
 export async function endWalk(walkId: string, o: { leaves: boolean; endAt?: number }): Promise<{ dropped: boolean }> {
+  // The hold, before the walk's end is written: a pause closed by this Stop is not counted, one before it is, wherever
+  // End it moved the end (EW5; forgotten-stop audit 6).
+  const heldAt = Date.now();
   await stopWalk(walkId, o.endAt);
-  const dropped = await dropEmpty(walkId);
+  const dropped = await dropEmpty(walkId, { heldAt });
   if (dropped && o.leaves) deletions.holdNextFlush();
   return { dropped };
 }

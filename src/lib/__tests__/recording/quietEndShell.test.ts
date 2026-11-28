@@ -168,7 +168,7 @@ test('QE5: the replay and the snap read a walk up to its end', () => {
   assert.match(src('finish.ts'), /withoutPauses\(untilEnd\(await db\.getPoints\(walk\.id\), walk\.ended_at\), pauses\)/);
 });
 
-test('forgotten-stop audit 6: a walk ended at its Resume keeps its pause and is never dropped', { todo: 'test first' }, async () => {
+test('forgotten-stop audit 6: a walk ended at its Resume keeps its pause and is never dropped', async () => {
   const p = fakePorts();
   // Standing a minute, paused, resumed, left: the quiet point is the Resume, and End it ends the walk there.
   const stood = Array.from({ length: 13 }, (_, i) => fix(T0 + i * 5000, (i % 2) * 0.5));
@@ -182,7 +182,7 @@ test('forgotten-stop audit 6: a walk ended at its Resume keeps its pause and is 
   assert.equal(await drop('w', { heldAt: resume + 20 * HOUR }), false, 'a pause before the hold is kept: the walk stays');
 });
 
-test('forgotten-stop audit 2: the quiet read takes the walk\'s kept gaps as walked', { todo: 'test first' }, () => {
+test('forgotten-stop audit 2: the quiet read takes the walk\'s kept gaps as walked', () => {
   const src = readFileSync(join(__dirname, '..', '..', 'quietEnd', 'shell.ts'), 'utf8');
   assert.match(src, /getGapDecisions\(/, 'reads the gaps the walker kept, never the network');
   assert.match(src, /withFilled\(/);

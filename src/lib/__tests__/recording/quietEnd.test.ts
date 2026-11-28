@@ -155,7 +155,7 @@ test('forgotten-stop steward 3: a 35-minute quiet end\'s hint names no unit of t
 });
 
 // The diff review (Nov 28): the auditor's findings on the quiet point, each a regression test before its fix.
-test('forgotten-stop audit 2: a 25-minute break crossing 2 km, then standing, is walking on, not quiet', { todo: 'test first' }, async () => {
+test('forgotten-stop audit 2: a 25-minute break crossing 2 km, then standing, is walking on, not quiet', async () => {
   const { quietPoint, quietEndAt } = await mod();
   // The page frozen with the phone locked on the walk home: 25 min with no reading, then ten minutes standing 2 km on.
   const homeT = corner.t + 25 * MIN;
@@ -166,7 +166,7 @@ test('forgotten-stop audit 2: a 25-minute break crossing 2 km, then standing, is
   assert.equal(quietEndAt({ tr, captures: [], pauses: [] }, lastOf(home).t + 5000), null, 'ten minutes standing: not quiet');
 });
 
-test('forgotten-stop audit 4: hours of 60 m indoor drift at the last corner read quiet from the corner', { todo: 'test first' }, async () => {
+test('forgotten-stop audit 4: hours of 60 m indoor drift at the last corner read quiet from the corner', async () => {
   const { quietPoint, quietEndAt } = await mod();
   const ce = (corner.lon - LON0) / M_LON;
   const cn = (corner.lat - LAT0) / M_LAT;
@@ -190,7 +190,7 @@ test('forgotten-stop audit 4: hours of 60 m indoor drift at the last corner read
   assert.ok(quietEndAt({ tr, captures: [], pauses: [] }, lastOf(drift).t + 5000) != null, 'the hold asks');
 });
 
-test('forgotten-stop audit 7: a pause closed at the walk\'s end is no Resume', { todo: 'test first' }, async () => {
+test('forgotten-stop audit 7: a pause closed at the walk\'s end is no Resume', async () => {
   const { quietEndAt } = await mod();
   const tr = read(walk);
   const hold = corner.t + 20 * HOUR;
@@ -200,7 +200,7 @@ test('forgotten-stop audit 7: a pause closed at the walk\'s end is no Resume', {
   assert.ok(at != null && Math.abs(at - corner.t) <= 15_000, 'still quiet from the corner');
 });
 
-test('forgotten-stop audit 9: readings in the minute after a walk\'s end are its own (the write before the recorder stops; a phone\'s clock ahead)', { todo: 'test first' }, async () => {
+test('forgotten-stop audit 9: readings in the minute after a walk\'s end are its own (the write before the recorder stops; a phone\'s clock ahead)', async () => {
   const { untilEnd } = await mod();
   const end = corner.t;
   const late = [fix(end + 2000, 400, 400), fix(end + 30_000, 401, 400)];
@@ -208,7 +208,7 @@ test('forgotten-stop audit 9: readings in the minute after a walk\'s end are its
   assert.deepEqual(untilEnd([...walk, ...late, next], end), [...walk, ...late], 'within the trace\'s own break (60 s), kept; after it, cut');
 });
 
-test('forgotten-stop audit 1: below 360 px a time in hours draws the time over the distance; the strip\'s first line is still walkStripText\'s', { todo: 'test first' }, async () => {
+test('forgotten-stop audit 1: below 360 px a time in hours draws the time over the distance; the strip\'s first line is still walkStripText\'s', async () => {
   const { walkStripLines, walkStripText } = (await import('../../readyNav')) as unknown as {
     walkStripLines(o: { elapsedMs: number; distanceM: number; units: 'km'; narrow: boolean }): string;
     walkStripText(o: { elapsedMs: number; distanceM: number; units: 'km' }): string;

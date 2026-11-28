@@ -146,7 +146,7 @@ test('QE9: a point that cannot be read asks nothing: the Stop goes on as today',
   assert.ok('dropped' in (await stopEnd('w', { leaves: false, warned: [] })));
 });
 
-test('forgotten-stop audit 3: a save failing during the quiet read keeps the walk from the empty drop', { todo: 'test first' }, async () => {
+test('forgotten-stop audit 3: a save failing during the quiet read keeps the walk from the empty drop', async () => {
   const { gate, unsaved, dropEmpty, p } = await world();
   let fail!: () => void;
   const save = new Promise<void>((_, rej) => (fail = () => rej(new Error('disk full')))).catch((e) => {
@@ -170,7 +170,7 @@ test('forgotten-stop audit 3: a save failing during the quiet read keeps the wal
   assert.deepEqual(await stopEnd('w', { leaves: false, warned: [] }), { dropped: false }, 'pinned before the read: the walk is kept');
 });
 
-test('forgotten-stop audit 5: End it at a Stop reads the point again and asks again when the walk moved on', { todo: 'test first' }, async () => {
+test('forgotten-stop audit 5: End it at a Stop reads the point again and asks again when the walk moved on', async () => {
   let point: number | null = T0 + 30_000;
   const { p, gate, unsaved, dropEmpty } = await world();
   const ends: (number | undefined)[] = [];

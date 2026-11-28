@@ -20,7 +20,7 @@ export interface DropEmptyDeps {
  * app's own drop (volatile: a kill restores it, EW9). Any failure to read keeps the walk, and the replay plays.
  */
 export function createDropEmpty(p: Pick<Ports, 'db'>, deps: DropEmptyDeps) {
-  return async function dropEmpty(walkId: string): Promise<boolean> {
+  return async function dropEmpty(walkId: string, o: { heldAt?: number } = {}): Promise<boolean> {
     // Asked before the reads and again after them, so a save that ends or begins meanwhile is never missed (T35).
     if (deps.underWay?.()) return false;
     try {
@@ -35,8 +35,9 @@ export function createDropEmpty(p: Pick<Ports, 'db'>, deps: DropEmptyDeps) {
       ]);
       // Up to its end (QE5, decision 0272).
       const trace = readTrace(untilEnd(points, walk.ended_at), walk.started_at, pauses, stills);
-      // A closed walk has its end; a pause open at Stop is not counted (EW5, decision 0220).
-      const kept = pausesKept(pauses, walk.ended_at ?? Number.POSITIVE_INFINITY);
+      // A closed walk has its end; a pause open at Stop is not counted (EW5, decision 0220). Against the hold, not an end
+      // moved back by End it: a walk ended at its Resume keeps its pause (forgotten-stop audit 6).
+      const kept = pausesKept(pauses, o.heldAt ?? walk.ended_at ?? Number.POSITIVE_INFINITY);
       if (!isEmptyWalk({ moments: moments.length, pauses: kept, stills: stills.length, fills: gaps.length, trace })) return false;
       if (deps.underWay?.()) return false;
       deps.schedule({ kind: 'walk', ids: [walkId], spec: { type: 'walk', walkId }, volatile: true });

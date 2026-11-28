@@ -66,8 +66,8 @@ test('tend walk-screen audit 12: the strip\'s spoken name holds the text it draw
   assert.equal(walkSummaryLabel({ elapsedMs: 754_000, distanceM: 1234, rideM: 0, units: 'km' }), '13 min · 1.2\u00a0km');
   assert.equal(walkSummaryLabel({ elapsedMs: 600_000, distanceM: 452, rideM: 1800, units: 'km' }), '10 min · 452\u00a0m, + 1.8\u00a0km ride');
   assert.equal(walkSummaryLabel({ elapsedMs: 120_000, distanceM: 100, rideM: 0, units: 'mi' }), '2:00 · 328\u00a0ft');
-  // The strip draws the same text: WalkStats' first line is walkStripText.
-  assert.match(read('app/walk.tsx'), /text=\{\(now\) => `\$\{walkStripText\(\{/);
+  // The strip draws the same text: WalkStats' first line is walkStripText's (walkStripLines, forgotten-stop audit 1).
+  assert.match(read('app/walk.tsx'), /text=\{\(now\) => `\$\{walkStripLines\(\{/);
   // It ticks with the strip: the bar takes the name as a function of the clock (ReadyBar's own one-second tick).
   assert.match(read('components/walk/ReadyBar.tsx'), /summaryLabel: string \| \(\(now: number\) => string\)/);
 });

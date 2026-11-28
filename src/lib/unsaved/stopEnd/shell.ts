@@ -28,15 +28,22 @@ export function createStopEnd(d: StopEndDeps) {
   ): Promise<{ warn: Unsaved[] } | { quiet: number } | { dropped: boolean }> {
     const held = d.unsaved.heldFor(walkId);
     if (stopWarns(held.map((x) => x.id), o.warned)) return { warn: held };
-    // A walk gone quiet asks once, before anything ends (QE3, QE4); a point that cannot be read asks nothing, so a Stop
-    // is never trapped by it. Answered, the Stop goes on: Keep it all as today (QE6), End it at the point.
-    if (o.quiet == null && d.quietAt) {
-      const at = await d.quietAt(walkId).catch(() => null);
-      if (at != null) return { quiet: at };
-    }
-    const endAt = typeof o.quiet === 'number' ? o.quiet : undefined;
-    // Nothing awaited between the read and the pin: a save ending meanwhile cannot slip the walk into the drop.
+    // Nothing awaited between the read and the pin: a save ending meanwhile, the quiet read's wait included, cannot slip
+    // the walk into the drop (forgotten-stop audit 3).
     const release = d.gate.underWay() ? d.gate.pin() : null;
+    // A walk gone quiet asks once, before anything ends (QE3, QE4); a point that cannot be read asks nothing, so a Stop
+    // is never trapped by it. Answered, the Stop goes on: Keep it all as today (QE6); End it reads the point again, and a
+    // capture or walking since the ask asks again with the new point, or, no longer quiet, stops as Keep it all
+    // (forgotten-stop audit 5).
+    let endAt: number | undefined;
+    if (d.quietAt && o.quiet !== 'keep') {
+      const at = await d.quietAt(walkId).catch(() => null);
+      if (at != null && at !== o.quiet) {
+        release?.();
+        return { quiet: at };
+      }
+      if (at != null) endAt = at;
+    }
     o.going?.();
     const { dropped } = await d.endWalk(walkId, endAt == null ? { leaves: o.leaves } : { leaves: o.leaves, endAt }).finally(() => release?.());
     // Only once the walk has ended (unsaved-captures audit 4).

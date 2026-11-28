@@ -102,7 +102,7 @@ import { usePastLines } from '../lib/pastLines/usePastLines';
 import { useWalkLayers } from '../lib/layers/useWalkLayers';
 import { useCarRoute, useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
-import { arrivalNotice, exitPlan, screenState, startNotice, walkStripText, walkSummaryLabel } from '../lib/readyNav';
+import { arrivalNotice, exitPlan, screenState, startNotice, walkStripLines, walkSummaryLabel } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { useStopArrival } from '../lib/outing/useArrival';
@@ -147,9 +147,6 @@ const SLOW_TICK_MS = 5000;
 /** Stop waits this long at most for a capture still being kept, and a Retry under way (as the bar's Stop does). */
 const STOP_WAIT_MS = 5000;
 
-/** The strip's numbers on two lines, the time over the distance, when a time in hours would cut the buttons' words (QE10). */
-const stripLines = (text: string, narrow: boolean) => (narrow && / h \d/.test(text) ? text.replace(' · ', '\n') : text);
-
 /** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
 function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number; units: Units; narrow: boolean }) {
   const { startedAt, pauses, distanceM, rideM, units, narrow } = props;
@@ -161,9 +158,9 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
       testID="walk-stats"
       style={styles.stats}
       numberOfLines={ride ? 3 : 2}
-      // The same words the strip's spoken name holds (tend walk-screen audit 12); below 360 px a time in hours ("20 h 01
-      // min", a walk left running) puts the distance on a second line, so Resume's and Stop's words stay whole (QE10).
-      text={(now) => `${stripLines(walkStripText({ elapsedMs: elapsed(now), distanceM, units }), narrow)}${ride}`}
+      // The same words the strip's spoken name holds (tend walk-screen audit 12), the distance under a time in hours below
+      // 360 px (QE10).
+      text={(now) => `${walkStripLines({ elapsedMs: elapsed(now), distanceM, units, narrow })}${ride}`}
       label={(now) => `${formatDistance(distanceM)} walked in ${formatDuration(elapsed(now))}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
     />
   );

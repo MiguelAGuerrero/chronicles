@@ -79,6 +79,15 @@ export function walkStripText(o: { elapsedMs: number; distanceM: number; units: 
 }
 
 /**
+ * The strip's numbers as drawn: below 360 px a time in hours ("20 h 01 min", a walk left running) puts the distance on a
+ * second line, so Resume's and Stop's words stay whole (forgotten-stop QE10, audit 1); its first line is still the time.
+ */
+export function walkStripLines(o: { elapsedMs: number; distanceM: number; units: Units; narrow: boolean }): string {
+  const text = walkStripText(o);
+  return o.narrow && / h \d/.test(text) ? text.replace(' · ', '\n') : text;
+}
+
+/**
  * What a screen reader hears for the walk's strip of numbers, its one button: what the strip draws, word for word, as the
  * ready bar's twin is named "0:00 · 0 m" (navigate-ready audit 6; tend walk-screen 12, audit 12), the ride's line after it
  * (R6). " Walk settings" follows. (It said ", exploring" on an exploring walk until the mode went, decision 0234.)

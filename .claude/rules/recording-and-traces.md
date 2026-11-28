@@ -152,16 +152,23 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   and pauses. `filterFixes` is the walking filter alone, kept for its tests.
 - **A finished walk is read up to its end** (decision 0272, forgotten-stop QE5,
   QE8, `SNAP_RULES` 10): every reader of a finished walk's points passes them
-  through `untilEnd(points, walk.ended_at)` (`lib/quietEnd/core.ts`) first;
+  through `untilEnd(points, walk.ended_at)` (`lib/quietEnd/core.ts`) first,
+  which keeps the minute after the end (`END_GRACE_MS`: a Stop writes the end
+  before the recorder stops; a phone's clock runs ahead; forgotten-stop audit 9);
   only Share GPS log, the export bundle and the backup read them whole.
   `quietEndShell.test.ts` names every `getPoints(` by class (up to the end,
   whole, or the open walk): a new reader is classed there.
 - **A walk left running is offered its quiet end** (G16, decision 0272):
   `quietPoint` is the latest of the last walking on (per run between breaks,
-  the arrival at the spot it ends on after three fixes in a row beyond 50 m or
-  3x accuracy, then the first fix within 10 m or the spot's accuracy), the last
-  ride's end, the last capture's piece and the last Resume; a run that never
-  leaves its spot is no walking on. Both held Stops ask through `stopEnd` when
+  net travel: three fixes in a row beyond twice the spot's reach, 100 m at
+  least, so indoor drift of 40-60 m never counts; then the first fix after
+  which the next minute moves under 20 m; or a break of 30 min or less whose
+  ends lie beyond that, walked with the GPS off), the last ride's end, the
+  last capture's piece and the last Resume (a pause closed at the walk's end is
+  none); a run that never travels from its spot is no walking on. The quiet
+  read takes the walk's kept gaps, never the network. `stopEnd` pins against
+  the empty drop before the read, and End it reads the point again: moved, it
+  asks again; gone, it stops as Keep it all (forgotten-stop audit 2-7). Both held Stops ask through `stopEnd` when
   it is 30 min or more back (`QUIET_MS`); End it writes it as `ended_at`, Keep
   it all stops as before; a kept walk's More (⋯) moves its end back
   (`quietEnd.endAt`, snapped again, its line rebuilt). Nothing ends a walk by

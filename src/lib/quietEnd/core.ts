@@ -23,15 +23,22 @@ const SPOT_ACCURACY_TIMES = 3;
 const LEAVE_FIXES = 3;
 /** The spot is the middle of the run's last fixes. */
 const SPOT_FIXES = 5;
-/** Once inside the reach, the walk stopped at the first fix this close to the spot (m), or within its own accuracy. */
-const STOPPED_M = 10;
+/**
+ * Walking on is net travel away from the spot: three fixes in a row beyond twice its reach (100 m at least). Indoor drift
+ * creeps or sways 40-60 m from where the phone lies and never goes that far (forgotten-stop audit 4).
+ */
+const LEAVE_TIMES = 2;
+/** The walk stopped at the first fix near the spot after which the next minute moves it this little (m). */
+const STILL_NET_M = 20;
+/** The minute a stop is judged over, as the trace's own break (`RIDE_RULES.gapMs`). */
+const STILL_SPAN_MS = 60_000;
 
 export interface QuietInput {
-  /** The walk read as every trace is (`readTrace`, with its start, pauses and stills). */
+  /** The walk read as every trace is (`readTrace`, with its start, pauses, stills and kept gaps). */
   tr: Pick<ReadTrace, 'walked' | 'rides' | 'breaks'>;
   /** Every capture's own time (a moment's pieces each count). */
   captures: readonly number[];
-  /** The walk's pauses: a closed one's end is a Resume. */
+  /** The walk's pauses: a closed one's end is a Resume, unless it closed at the walk's end (a Stop while paused). */
   pauses: readonly PauseSpan[];
 }
 
@@ -55,26 +62,36 @@ const median = (xs: number[]) => {
   const s = xs.slice().sort((a, b) => a - b);
   return s[Math.floor(s.length / 2)];
 };
+const pos = (p: TracePoint): [number, number] => [p.lon, p.lat];
+
+/** A run's spot and reach: the middle of its last fixes, and 50 m or three times their accuracy. */
+function spotOf(run: readonly TracePoint[]): { spot: [number, number]; reach: number } {
+  const tail = run.slice(-SPOT_FIXES);
+  const acc = median(tail.map((p) => p.accuracy_m ?? 0));
+  return { spot: [median(tail.map((p) => p.lon)), median(tail.map((p) => p.lat))], reach: Math.max(SPOT_REACH_M, acc * SPOT_ACCURACY_TIMES) };
+}
 
 /**
- * When the run arrived at the spot it ends on: after the last few fixes in a row beyond the spot's reach, the first fix
- * close to the spot (within its accuracy, 10 m at least), so the last steps into it count as walked; else the first
- * within the reach. A run that never leaves its own spot (the standing fixes after a web page's long break, a phone's day
- * at one spot) has no walking on: null.
+ * When the run arrived at the spot it ends on: after its last net travel away (three fixes in a row beyond twice the
+ * spot's reach), the first fix within that distance after which the next minute moves the walker less than 20 m: the
+ * stop itself, not the edge of the reach. A run that never travels from its own spot (the standing fixes after a web
+ * page's long break, a phone's day at one spot, hours of indoor drift) has no walking on: null.
  */
 function arrivalOf(run: readonly TracePoint[]): number | null {
-  const tail = run.slice(-SPOT_FIXES);
-  const spot: [number, number] = [median(tail.map((p) => p.lon)), median(tail.map((p) => p.lat))];
-  const acc = median(tail.map((p) => p.accuracy_m ?? 0));
-  const reach = Math.max(SPOT_REACH_M, acc * SPOT_ACCURACY_TIMES);
+  const { spot, reach } = spotOf(run);
+  const leave = reach * LEAVE_TIMES;
   let far = 0;
   for (let i = run.length - 1; i >= 0; i--) {
-    if (distanceM(spot, [run[i].lon, run[i].lat]) > reach) {
+    if (distanceM(spot, pos(run[i])) > leave) {
       far++;
       if (far >= LEAVE_FIXES) {
-        const inside = run.slice(i + LEAVE_FIXES);
-        const close = Math.max(STOPPED_M, acc);
-        return (inside.find((p) => distanceM(spot, [p.lon, p.lat]) <= close) ?? inside[0]).t;
+        for (let k = i + LEAVE_FIXES; k < run.length; k++) {
+          if (distanceM(spot, pos(run[k])) > leave) continue;
+          let still = true;
+          for (let j = k + 1; j < run.length && run[j].t - run[k].t <= STILL_SPAN_MS && still; j++) still = distanceM(pos(run[k]), pos(run[j])) <= STILL_NET_M;
+          if (still) return run[k].t;
+        }
+        return run[i + LEAVE_FIXES]?.t ?? null;
       }
     } else far = 0;
   }
@@ -82,35 +99,52 @@ function arrivalOf(run: readonly TracePoint[]): number | null {
 }
 
 /**
- * A walk's quiet point (QE1, QE2): the latest of its last walking on (the read trace leaving its spot, then arriving
- * where it stayed), the end of its last ride, its last capture and its last Resume. A sit mid-walk followed by any of
- * them is never the point. Null when the walk holds none of them.
+ * A walk's quiet point (QE1, QE2): the latest of its last walking on (the read trace travelling from its spot, then
+ * arriving where it stayed, or a break of 30 min or less, the longest the app fills (0071), whose two ends lie beyond the
+ * reach: walked with the GPS off, as a locked page walking home), the end of its last ride, its last capture and its last
+ * Resume (a pause closed at `end`, by a Stop while paused, is none). A sit mid-walk followed by any of them is never the
+ * point. Null when the walk holds none of them.
  */
-export function quietPoint(i: QuietInput): number | null {
+export function quietPoint(i: QuietInput, end: number = Infinity): number | null {
   const times: number[] = [];
   const runs = runsOf(i.tr.walked, i.tr.breaks);
   for (let r = runs.length - 1; r >= 0; r--) {
-    const at = arrivalOf(runs[r]);
-    if (at != null) {
-      times.push(at);
+    const arrived = arrivalOf(runs[r]);
+    if (arrived != null) {
+      times.push(arrived);
       break;
+    }
+    const prev = runs[r - 1];
+    if (prev) {
+      const a = prev[prev.length - 1];
+      const b = runs[r][0];
+      if (b.t - a.t <= QUIET_MS && distanceM(pos(a), pos(b)) > spotOf(runs[r]).reach * LEAVE_TIMES) {
+        times.push(b.t);
+        break;
+      }
     }
   }
   for (const ride of i.tr.rides) times.push(ride.t1);
   times.push(...i.captures);
-  for (const p of i.pauses) if (p.ended_at != null) times.push(p.ended_at);
+  for (const p of i.pauses) if (p.ended_at != null && p.ended_at < end) times.push(p.ended_at);
   return times.length ? Math.max(...times) : null;
 }
 
 /** The quiet point, when the walk has been quiet 30 min or more at `end` (a Stop's hold, or a kept walk's own end). */
 export function quietEndAt(i: QuietInput, end: number): number | null {
-  const at = quietPoint(i);
-  return at != null && end - at >= QUIET_MS ? at : null;
+  const point = quietPoint(i, end);
+  return point != null && end - point >= QUIET_MS ? point : null;
 }
 
-/** The fixes of a walk up to its end, the end's own included; all of them while it has none (QE5). */
+/**
+ * Readings within a minute after a walk's end are its own: a Stop writes the end before the recorder stops, and a phone's
+ * clock can run a few seconds ahead (forgotten-stop audit 9). The trace's own break: what comes later is not walked.
+ */
+export const END_GRACE_MS = 60_000;
+
+/** The fixes of a walk up to its end and the minute after it; all of them while it has none (QE5). */
 export function untilEnd<T extends { t: number }>(points: T[], endedAt: number | null | undefined): T[] {
-  return endedAt == null ? points : points.filter((p) => p.t <= endedAt);
+  return endedAt == null ? points : points.filter((p) => p.t <= endedAt + END_GRACE_MS);
 }
 
 /** "at 8:35 pm", "at 8:35 pm yesterday", "at 8:35 pm on Thu, Nov 26" (QE9, steward 5): a time of day, never hours. */
