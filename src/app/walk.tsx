@@ -1167,11 +1167,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   async function stop(answer?: QuietAnswer) {
     if (!walk || stopping) return;
-    // With the ask up, a hold on the strip closes it and ends nothing (forgotten-stop steward 4).
-    if (quiet && answer == null) {
-      setQuiet(null);
-      return;
-    }
     setStopping(true);
     stoppingNow.current = true;
     // A photo's editor waiting on the memo opens no more: the replay comes (decision 0240's audits 3, 6; audit 20).
@@ -1260,11 +1255,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   async function togglePause() {
     if (!walk || pausing) return;
-    // With the ask up, a tap on the strip closes it and does nothing else (forgotten-stop steward 4).
-    if (quiet) {
-      setQuiet(null);
-      return;
-    }
     setPausing(true);
     const failedWith = (e: unknown) => {
       const fail = startErrorFrom(e);
@@ -1997,7 +1987,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
               accessibilityRole="button"
               accessibilityLabel={paused ? 'Resume the walk' : 'Pause the walk'}
               accessibilityHint={paused ? undefined : 'Stops recording until you resume. Stop is offered while paused'}
-              onPress={togglePause}
+              // With the quiet ask up, a tap on the strip closes it and does nothing else (forgotten-stop steward 4).
+              onPress={() => (quiet ? setQuiet(null) : void togglePause())}
               disabled={pausing || stopping || !walk}
               style={({ pressed }) => [styles.barBtn, narrow && styles.barBtnNarrow, paused && !quiet && styles.resumeBtn, pressed && styles.pressed]}
             >
@@ -2016,7 +2007,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 // The spinner alone while stopping: "Stopping…" does not fit a half on most phones, and stays the spoken
                 // name (fix walk-strip-buttons audits 2, 5).
                 quietWhilePending
-                onHold={stop}
+                // With the quiet ask up, a hold closes it and ends nothing (forgotten-stop steward 4).
+                onHold={() => (quiet ? setQuiet(null) : void stop())}
                 onTap={() => (quiet ? setQuiet(null) : setToast('Hold to stop the walk'))}
                 busy={stopping}
                 disabled={!walk || pausing}

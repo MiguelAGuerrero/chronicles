@@ -48,7 +48,7 @@ export function WalkActions(props: {
   // A kept walk gone quiet 30 min or more at its end (QE7, decision 0272): its point, read when the sheet opens, and the ask.
   const [quiet, setQuiet] = useState<{ at: number; now: number } | null>(null);
   const [quietAsking, setQuietAsking] = useState(false);
-  const [quietBusy, setQuietBusy] = useState(false);
+  const [quietEnding, setQuietEnding] = useState(false);
   const [quietError, setQuietError] = useState(false);
   const { walkId } = props;
 
@@ -71,7 +71,7 @@ export function WalkActions(props: {
     return () => {
       setQuiet(null);
       setQuietAsking(false);
-      setQuietBusy(false);
+      setQuietEnding(false);
       setQuietError(false);
       live = false;
       setPlan(null);
@@ -103,7 +103,7 @@ export function WalkActions(props: {
   // decision 0172, O17). Cancel is a choice already made: it leaves at once.
   const close = () => {
     if (quietAsking) {
-      if (!quietBusy) setQuietAsking(false);
+      if (!quietEnding) setQuietAsking(false);
     } else if (asking) setAsking(null);
     else if (renaming) {
       if (saving) return;
@@ -164,13 +164,13 @@ export function WalkActions(props: {
   }, [walkId]);
   // End it: the walk's end moved back to where it went quiet, then the screen reads it again (QE7).
   const endQuiet = async () => {
-    if (!walkId || !quiet || quietBusy) return;
-    setQuietBusy(true);
+    if (!walkId || !quiet || quietEnding) return;
+    setQuietEnding(true);
     setQuietError(false);
     try {
       await quietEnd.endAt(walkId, quiet.at);
     } catch {
-      setQuietBusy(false);
+      setQuietEnding(false);
       setQuietError(true);
       return;
     }
@@ -330,7 +330,7 @@ export function WalkActions(props: {
         {quietAsking && quiet && (
           // The Stop's words and buttons, in the same sheet: End it, or Cancel (QE7).
           <View style={styles.sheet} testID="quiet-sheet" accessibilityViewIsModal>
-            <QuietEndAsk at={quiet.at} now={quiet.now} other="Cancel" busy={quietBusy} style={styles.quietAsk} onEnd={() => void endQuiet()} onOther={() => setQuietAsking(false)} />
+            <QuietEndAsk at={quiet.at} now={quiet.now} other="Cancel" busy={quietEnding} style={styles.quietAsk} onEnd={() => void endQuiet()} onOther={() => setQuietAsking(false)} />
             {quietError ? <Text style={styles.error} accessibilityRole="alert">Couldn’t change it. Try again.</Text> : null}
           </View>
         )}

@@ -302,7 +302,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   useEffect(() => {
     if (!asking) return;
     const close = () => setQuiet(null);
-    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+    const hardware = BackHandler.addEventListener('hardwareBackPress', () => {
       close();
       return true;
     });
@@ -313,7 +313,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     };
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey, true);
     return () => {
-      back.remove();
+      hardware.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey, true);
     };
   }, [asking]);
@@ -365,11 +365,6 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   };
 
   const stop = async () => {
-    // With the ask up, a hold on Stop closes it and ends nothing, as on the walk screen (forgotten-stop steward 4).
-    if (asking && answerRef.current === undefined) {
-      setQuiet(null);
-      return;
-    }
     if (barStopping(barStop.get(), walk.id, Date.now())) return;
     const mine = { walkId: walk.id, since: Date.now() };
     barStop.set(mine);
@@ -538,7 +533,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           busyLabel="Stopping…"
           // Its 44 px circle holds the spinner alone; "Stopping…" stays its spoken name (fix walk-strip-buttons audit 6).
           quietWhilePending
-          onHold={stop}
+          // With the quiet ask up, a hold closes it and ends nothing, as on the walk screen (forgotten-stop steward 4).
+          onHold={() => (asking ? setQuiet(null) : void stop())}
           onTap={() => (asking ? setQuiet(null) : setSaid({ text: 'Hold to stop' }))}
           busy={stopping}
           disabled={stopping}

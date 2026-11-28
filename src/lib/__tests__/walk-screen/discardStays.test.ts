@@ -172,7 +172,7 @@ test('tend walk-screen audit 33: Stop lets the walk\'s set-aside memo go and hid
   // tend walk-screen audit 33: the pill's own condition, and Stop's first steps.
   const walk = read('app/walk.tsx');
   assert.match(walk, /\{cap\.discarded && !stopping && /, 'no discard pill while stopping');
-  const stop = body(walk, '  async function stop() {', 'const couldNotStop');
+  const stop = body(walk, '  async function stop(', 'const couldNotStop');
   assert.match(stop, /void cap\.closeDiscard\(\);/, 'Stop lets the memo set aside go as it begins');
   assert.ok(stop.indexOf('cap.closeDiscard()') > stop.indexOf('setStopping(true)'), 'once the stop is under way');
 });
