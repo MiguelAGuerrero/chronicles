@@ -96,9 +96,14 @@ async function run(h) {
     // A walk with the pocket alert on and Places off: the "?" places are never shown, so nothing buzzes (PA3, MD7).
     await pg.goto(navUrl);
     await pg.reload();
+    // tend motion T75: the layers are one setting every map shares (decision 0260), Places on by default and on since the
+    // walk above, so Places is switched off on the ready map before Start, as the walk starts with what it shows.
+    await pg.waitForSelector('[data-testid=start]');
+    await switchLayer(pg, 'places', false);
     const before = (await buzzes()).length;
     await startWalk(false);
-    await walkPast();
+    const quietMark = await walkPast();
+    check(quietMark === null, `tend motion T75: with Places off on the ready map, the walk past the places draws no "?" (${quietMark === null ? 'none shown' : `${quietMark} buzzes when one showed`})`);
     const quiet = (await buzzes()).slice(before);
     check(quiet.length === 0, `PA3, MD7: a walk with the pocket alert on and Places off never buzzes (${JSON.stringify(quiet)})`);
     await holdStop();
