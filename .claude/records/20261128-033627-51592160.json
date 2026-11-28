@@ -1,0 +1,73 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T67",
+        "--reason",
+        "the owner's yes in person, 2026-11-27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\", built in tend walkability T67"
+      ],
+      "target": "sha256:7bc75290e3b56290dbc2145998f298a36c59853a7f4ca2d01486b9491ca9cdb5"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Walkability: a walker in ground that could not be read sees plain ground and no word** (2026-11-28)\n  Area: walkability. Seen: the ux-reviewer's ux 3 of tend walkability T67 (Severity: medium): with the tile around the walker unreadable, at walking zoom the whole map is plain and the dashed line of the read's edge is off the screen; the panel's status slot (`src/lib/layers/notes.ts`, `layerNotes`) has \"Reading…\", \"Not available now\" and \"Waiting for your position\", none for a tile that failed. And the auditor's 3: a read whose tiles judge no cell (one row of tiles at high latitude, the rest failed) shows as ready, with no line and no word (`src/lib/walk/useWalkability.ts`, `walkDrawingOf` of no cell is not null). Rests on: the owner, in person, 2026-11-27, \"Unread should differ\"; Nielsen Norman Group heuristic 1, visibility of system status (docs/research/ui-references.md).\n  Recommended: in the Walkability layer's existing status slot, inline and polite, \"Some ground here couldn't be read\" while any tile within the read failed, and \"Not available now\" for a read that judges no cell; words only, no number, nothing on the map. /vision: aligned (earn: says what the map knows; Always, \"Restraint in motion, colour and copy\"; Never, tallies: no count of tiles).\n  Precedent: weather radar apps say \"Radar data unavailable\" in a line over the map where coverage is missing (RainViewer, MyRadar; from memory, unverified; not yet recorded); Organic Maps asks to download an area whose map it does not hold (from memory, unverified; not yet recorded).\n  Otherwise: leave it to the dashed line and the note.\n",
+      "number": "T70"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Walkability: the read's edge has no side and no swatch** (2026-11-28)\n  Area: walkability. Seen: the ux-reviewer's ux 2 (Severity: medium) and ux 4 (low) of tend walkability T67: nothing on the dashed line says which side was read (plain grid on both sides where no hatch is near), and the line is named only at the end of the layer's 12 px note, with no sample of it in the legend (`src/lib/layers/registry.ts`, the Walkability entry; `src/components/LayersControl.tsx`, the legend rows). Rests on: Nielsen Norman Group heuristic 6, recognition rather than recall (docs/research/ui-references.md); the owner, in person, 2026-11-27, \"Unread should differ\".\n  Recommended: a short dashed sample drawn from `WALK_READ` in the Walkability legend, beside the note's clause \"the dashed line is as far as it has read\" (a sample, not a new row; no number). T69 (the legend's sentence on plain ground) touches the same legend: build it with this or after it. /vision: aligned (earn; Always, \"Restraint in motion, colour and copy\").\n  Precedent: OpenStreetMap's map key draws each line style beside its words (openstreetmap.org, \"Map Key\"; from memory, unverified; not yet recorded); AccessMap's legend shows its line samples (the ux-reviewer's citation, unverified).\n  Otherwise: a one-sided mark on the line, ticks on the unread side (opinion, no source), or leave it to the note.\n",
+      "number": "T71"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [loop] The e2e's hole scene fails a tile on the read's outer row, so it proves the read's edge moved, not a tile ringed inside the read (tend walkability T67, the auditor's 1; low). The unit test (\"a tile that could not be read inside the read is ringed too\") holds the ring. Not built: centre the scene mid-tile in the row south of the start, so the read is three tiles by three, fail the middle one, and check the line north and south of it with judged ground beyond (`headsup` journey, `t67-hole`).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [loop] The hole scene drops the Overpass host from the journey's host list unchecked, so an Overpass contact made earlier in the flow would be hidden from the nothing-leaves check (tend walkability T67, the auditor's 2; low). Not built: drop it only if it was absent before the scene, or record the scene's request bodies and assert them as the `walkability` journey does (UF20).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [loop] CG9 and CG11 (specs/walkability-car-ground) still describe and test `carGroundOf`, which no map receives since T67: the map is handed the read's edge beside the car ground, and with no car cell it draws that line (tend walkability T67, the auditor's 4; low). The amendment of CG9's and CG11's words is the owner's wording, never the loop's. Not built: CG9's kind check on `walkabilityGeoJSON(walkDrawingOf(...))` allowing `read`, and a test that a read with no car cell hands the map the read's edge alone.\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Walkability car ground (CG1-CG11"
+      ],
+      "body": "- [ ] **Do:** turn Walkability on and zoom out until the edge of what was read shows, then again where a tile could not be read (a read begun with the phone offline after part of it was kept). **Expect:** a thin grey line of short even dashes (`walk-read`: `line-dasharray` 2 and 2 line widths at 1.25 px, `line-cap` butt) runs along the edge of what was read and round the tile that failed, over the hatch and under the base map's labels (`beforeId={WALK_BELOW}`), the hatch fading out inside it, the dashes steady through fractional zooms; none at walking zoom with the edge off the screen, none with the layer off. (tend walkability T67, tend walkability audit 1)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 28, `/tend inbox T67 yes`: the edge of what was read is a thin dashed grey line** (opened from `3bf10daa`; T67, \"Walkability: ground nobody read looks the same as plain ground\", the owner's yes in person, Nov 27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\"; an inbox run, so lenses 1-7 were not run).\n- `tend walkability T67`: the Walkability layer draws the edge of what was read, where the 1.5 km read ends and round a tile that could not be read, as a thin dashed line in the map's quiet grey (`BORDER.lined`), on both maps, only while the layer is on; the hatch keeps its fade inside it (`readEdgeOf`, the zero of the distance the fade is cut by; `carGroundOf` unchanged). The layer's note: \"…; the dashed line is as far as it has read\". No fill, no number.\n- `tend walkability audit 1`: its dashes short and even (2.5 px on and off), so it is not taken for a town's border (the ux-reviewer's ux 1).\n- The proxy's calls under 0157, 2026-11-28 (the owner said \"Proceed autonomously\"): the look ruled conforming to T67's shape; the grey `BORDER.lined`, the line along the judged cells (a staircase about 450 m inside the tiles fetched), no legend swatch, no line when nothing is read; ux 1 the one review fix.\n- Review, one round, the auditor and the ux-reviewer: 1 accepted (audit 1), 3 deferred `[loop]` low (the auditor's 1, 2 and 4: the e2e's hole scene, its Overpass host, CG9 and CG11's words, the owner's), 0 rejected; 3 to the owner as T70 (the ux-reviewer's 3, with the auditor's 3) and T71 (the ux-reviewer's 2 and 4).\n- Filed: T70 \"Walkability: a walker in ground that could not be read sees plain ground and no word\", T71 \"Walkability: the read's edge has no side and no swatch\"; the line's dash on MapLibre RN in `docs/NATIVE_UNVERIFIED.md`. Nothing here has run on a phone.\n- Waiting, the owner's yes noted on each for the next `/tend inbox`: T68, T69 (walkability; T69's sentence rests on this line, and T71's legend sample with or before it). The \"TF27 follow-up\" waits on the owner's manual places build.\n- Journeys: headsup, walkability, launch.\n"
+    }
+  ]
+}
