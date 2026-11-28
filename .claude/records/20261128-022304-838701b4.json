@@ -1,0 +1,29 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 28, `/tend inbox G16 yes`: a walk left running, Stop offers to end it where it went quiet** (opened from `61003e70`; G16, \"A walk left running: Stop offers to end it where it went quiet\", the owner's yes in person, Nov 27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\", G17 built first; built as `specs/forgotten-stop`, QE1-QE10, decisions 0272, 0276; an inbox run, so lenses 1-7 were not run).\n- Built: both held Stops (the walk screen's, the recording bar's) ask on a walk quiet 30 min or more since its last walking on, ride, capture or Resume, \"This walk went quiet at 8:35 pm yesterday.\", End it at 8:35 pm or Keep it all (today's Stop); a kept walk's More (⋯) offers \"End it where it went quiet\"; End it moves the walk's end back; every finished walk is read up to its end and the minute after it (`untilEnd`), the readings kept (Share GPS log, the export and the backup read them whole); `SNAP_RULES` 10; nothing ends a walk by itself, nothing is notified; the paused strip at 320 puts the distance under a time in hours.\n- The proxy's calls under 0157, 2026-11-28 (the owner said \"Proceed autonomously\"), in decision 0276: at the plan's review, the drawing kept with a capture tap closing the ask, \"8:35 pm\" and \"on <day>\", the readings unmarked, a linger read as quiet, Keep it all not remembered; at the diff's review, the minute after a walk's end kept, the Stop's ask as drawn, the drawing's departures kept; the look ruled conforming.\n- Reviews: the steward on the plan, steward 1-5 accepted; the diff, one round, the auditor, the ux-reviewer and the steward: 18 accepted as forgotten-stop audit 1-14 (the auditor's 2 high; `npm test` was red at 1129a7b0, sweep.test.ts, fixed as audit 1), 4 deferred, 0 rejected; the look checked at 390 and 320 against the mock-up.\n- AGENTS.md: the \"Truth vs cache\" and \"Raw fixes\" lines, under a lease taken and released in this run (pushed with it).\n- Waiting, the owner's yes noted on each for the next `/tend inbox`: T67, T68, T69 (walkability). The \"TF27 follow-up\" waits on the owner's manual places build. E-walk-screen-4 meets one question on a quiet walk: an amendment is the owner's (0236).\n- Filed: `docs/DEFERRED.md`, \"Map, walk screen and motion polish\": Keep it all not remembered, End it not undone, the bar's \"20:00\" beside a clock time, the Stop's ask in the HIG's order (`[owner]` low each), the More row arriving late (`[loop]` low); `docs/NATIVE_UNVERIFIED.md`, three device checks.\n- Checks: typecheck, lint, `npm test`, `check:docs`, `check:test-first` (10 of 10), `check:records`, `commits --loop-only`. Journeys: quietend, walk, tabs, launch (green at the slice's head; launch once red in an earlier batch, green alone, the known flake). The weekly full pass (due) was not run.\n- Nothing here has run on a phone.\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "G16",
+        "--reason",
+        "the owner's yes, in person, 2026-11-27, to \"Which entries do you say yes to?\": \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\" (G17 built first, Nov 27); built as specs/forgotten-stop (QE1-QE10, decisions 0272, 0276), with the proxy's calls under 0157, 2026-11-28 at the plan's and the diff's review and the look"
+      ],
+      "target": "sha256:e1736bfb7efb010e6cdb76e6564b13db600f0081053099eea902f6f5ed749629"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "Lease: AGENTS.md's \"Truth vs cache\""
+      ],
+      "target": "sha256:86eff7ffc656b887bb389007dd78b92c5f57eda6c4bc2464110fca9210cebc4f"
+    }
+  ]
+}
