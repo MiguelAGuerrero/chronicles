@@ -327,6 +327,26 @@ async function run(h) {
   await pg.click('[data-testid=section-media]');
   await pg.waitForTimeout(800);
   check(onMemories && (await has('[data-testid=gallery-zoom-days][aria-selected=true]')), 'MG1: Media resets to Memories on a new open of Chronicle, and Media opens on Days');
+
+  // tend gallery 1: the grid, the View menu, a kind chosen and Months pictured at 320 px, none of their words cut.
+  await pg.setViewportSize({ width: 320, height: 700 });
+  await pg.waitForTimeout(800);
+  await shot(pg, '99-gallery-days-320');
+  const cut320 = [...(await cutIn())];
+  await menu();
+  await shot(pg, '99-gallery-menu-320');
+  await pg.click('[data-testid=gallery-menu-show-photo]');
+  await done();
+  await pg.waitForTimeout(600);
+  await shot(pg, '99-gallery-photos-320');
+  await pg.click('[data-testid=gallery-show-all]');
+  await pg.click('[data-testid=gallery-zoom-months]');
+  await pg.waitForSelector('[data-testid=gallery-block]', { timeout: 5000 });
+  await pg.waitForTimeout(600);
+  await shot(pg, '99-gallery-months-320');
+  cut320.push(...(await cutIn()));
+  check(cut320.length === 0, `tend gallery 1: at 320 px no day's or month's title or line is cut (${cut320.join('; ') || 'none'})`);
+  await pg.setViewportSize({ width: 390, height: 844 });
   await c.close();
 }
 
