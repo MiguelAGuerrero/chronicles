@@ -204,6 +204,32 @@ async function run(h) {
   const after = await scrollOf();
   check(Math.abs(after - before) <= 2 && (await has('[data-testid=section-media][aria-selected=true]')), `MG8, MG1: Close returns to the gallery where it was, still on Media (${before} -> ${after})`);
 
+  // tend gallery 5: a View item that is already chosen, tapped again, leaves no scroll waiting: a later read (Close
+  // reads the library again) keeps the list where it was.
+  await menu();
+  await pg.click('[data-testid=gallery-menu-order-newest]');
+  await done();
+  await pg.locator(scroller).evaluate((el) => {
+    const s = [el, ...el.querySelectorAll('div')].find((d) => d.scrollHeight > d.clientHeight + 10);
+    if (s) s.scrollTop = 600;
+  });
+  await pg.waitForTimeout(600);
+  const kept0 = await scrollOf();
+  const midPiece = await pg.evaluate(() => {
+    const ts = [...document.querySelectorAll('[data-testid=gallery-tile]')].filter((e) => !e.closest('[aria-hidden=true]'));
+    const mid = window.innerHeight / 2;
+    const t = ts.find((e) => { const r = e.getBoundingClientRect(); return r.top < mid && r.bottom > mid; });
+    return t ? t.dataset.piece : null;
+  });
+  await pg.locator(`[data-testid=gallery-tile][data-piece="${midPiece}"]`).click();
+  await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
+  await pg.waitForTimeout(700);
+  await pg.click('[data-testid=viewer-close]');
+  await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 5000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  const kept1 = await scrollOf();
+  check(kept0 > 300 && Math.abs(kept1 - kept0) <= 2, `tend gallery 5: a View item chosen again leaves the list where it was after the viewer closes (${kept0} -> ${kept1}, ${midPiece})`);
+
   // MG16: the day's header stays pinned while its tiles scroll.
   await pg.locator(scroller).evaluate((el) => {
     const s = [el, ...el.querySelectorAll('div')].find((d) => d.scrollHeight > d.clientHeight + 10);

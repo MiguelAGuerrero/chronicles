@@ -247,11 +247,15 @@ export function MediaScreen() {
         show={st.show}
         sizable={st.zoom === 'days'}
         onClose={() => setMenu(false)}
+        // A choice already made changes nothing and asks for no scroll: one left waiting would throw the list to the
+        // top at the next read (tend gallery 5).
         onOrder={(order) => {
+          if (order === st.view.order) return;
           pending.current = 0;
           void gallery.setView({ order });
         }}
         onShow={(s) => {
+          if (s === st.show) return;
           pending.current = 0;
           gallery.setShow(s);
         }}
