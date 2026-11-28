@@ -1,0 +1,76 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T75",
+        "--reason",
+        "the proxy's yes under 0157, 2026-11-28, built in tend motion T75; nudge did not run in the Nov 24 pass (killed at the 2 h limit before it); red since 62bdecf8, Nov 22"
+      ],
+      "target": "sha256:686fa1905a1cc4bcab7f5efa857d50c74dce826fc9ae2d49e62a2edbb7326112"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Motion: since 0260 the pocket alert buzzes on every walk by default** (2026-11-28)\n  Area: motion. Seen: the diff review of `tend motion T75` (the auditor's (b), Nov 28). Until Nov 22 every walk started with its layers off (decision 0234, MD3; decision 0031 before it), so a walker with the pocket alert on got taps only on a walk where they had switched the \"?\" places on. Since decision 0260 (`62bdecf8`, Nov 22) Places is one setting every map shares, on by default, so a walker with the alert on who never touched Places gets a double-tap on every walk where a place they have not found comes into range. 0260's consequences name the \"?\" marks, not the pocket alert. One-time case: a walk open across the update draws the shared setting from then on, so it gains its \"?\" places and their taps at the relaunch (0260's accepted trade-off). Rests on: `specs/pocket-alert-nudge/spec.md` PA2 and PA3, `specs/modes-to-layers/spec.md` MD7 (\"needs Places on\", which still holds), and the alert's note \"Two soft taps when a “?” comes into range. Needs Places on.\" (`src/lib/explore/explore.ts` l.608).\n  Recommended: keep it as built. The pocket alert has its own opt-in switch (off by default, `explore_haptic`) and its note says it needs Places on, so a walker who switched it on asked for the taps wherever the \"?\" places show. /vision: aligned. It is not the Never row \"Nagging\" (an alert you did not ask for), since switching it on is the asking.\n  Precedent: none found (`docs/research/adjacent-apps.md` records no haptic alert).\n  Otherwise: the alert taps only on a walk where Places was switched on during that walk, as before Nov 22 (that needs the walk to remember the switch, a data-model question), or leave it.\n",
+      "number": "T77"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "the `placeoffer` journey fails \"PO5: with Places off"
+      ],
+      "body": "  Nov 28 (`tend motion T75`'s diff review, auditor 2; from reading, not run): the likely cause is the one T75 had. `placeoffer-two` taps Start without touching the layers (`scripts/e2e/journeys/placeoffer.js` l.145-158). Since decision 0260 (`62bdecf8`, Nov 22) the walk starts with Places on, so \"Places off: nothing is asked (PO5)\" walks with Places on, and the later `switchLayer(pg, 'places')` changes nothing. Fix: `switchLayer(pg, 'places', false)` on the ready map before Start, and `src/lib/layers/**` in the journey's covers. Test: the PO5 checks.\n",
+      "target": "sha256:527b92002fdc575a680c2dc801bdd25734669eb628f82bec137cfe46ee11e533"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The weekly full pass on `d595ae95`"
+      ],
+      "body": "  Nov 28 (`tend motion T75`): nudge did not run in the Nov 24 pass. The pass was killed at its two-hour limit before it, and that pass's logs hold no nudge log. Its \"PA3, MD7\" check has been red since `62bdecf8` (fix walk-layers-remembered, decision 0260, Nov 22): the journey's second walk started with Places on. So the Nov 28 note's \"new since Nov 24\" for T75 means unseen until Nov 28, not landed since. Fixed in the journey (`tend motion T75`).\n",
+      "target": "sha256:ced1f2f86bab9780e3b8b0bbd9ddfbebb36a895275e3b0176999ad91c5c272a5"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] (medium) The nudge journey's covers leave out the walk's layers, which decide whether the pocket alert can buzz (MD7). `scripts/e2e/journeys/nudge.js` lists haptics, motion and explore, but not `src/lib/layers/**` or `src/app/walk.tsx`, so `62bdecf8` (decision 0260) never named nudge in `check:affected` or `check:e2e`, and its \"PA3, MD7\" check sat red, unseen, for six days (`tend motion T75`'s diff review, auditor 1, Nov 28). The run had the fix ready: both paths in its covers, as the modes journey has them. It was over the run's review budget, since `check:tend` counts no entry shipped by a T build whose commit changes only a journey. Fix: those two covers. Test: `tend motion audit N: a change under src/lib/layers names the nudge journey` (an arch test, `// @tree-wide`, calling `e2eFor` in `scripts/affected.js`).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] (low) A full pass killed at its time limit lists nothing as not run: `scripts/e2e-all.js` prints its summary only at its end. The Nov 24 pass was stopped at two hours before nudge ran, and later records read nudge as green there (`tend motion T75`'s diff review, auditor 3, Nov 28). Fix: write each journey's outcome as it ends, and on a stop the journeys not reached. The file is under `scripts/`, which the loop may not edit, so this is a `/fix`. Test: `tend motion audit N: a pass stopped before a journey lists it as not run`.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] (low) A cold open of the walk reads Places on until the saved layers load. `placesOn = !!layers.on.places` (`src/app/walk.tsx` l.854) ignores `layers.loaded`, and the layers store starts at `layerDefaults()`, Places on (`src/lib/layers/shell.ts` l.23). So a walker with Places off who reopens the walk cold may get one double-tap, and its places are then marked alerted (`tend motion T75`'s diff review, auditor 4, Nov 28; from reading, not reproduced). Fix: `placesOn = layers.loaded && !!layers.on.places`. Test: `tend motion audit N: the walk reads Places off until the shared layers are loaded`.\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 28, `/tend inbox T75 yes` `--deploy=main`, one build** (opened from `f0a209c1`; the proxy's yes under 0157, 2026-11-28, the owner having said \"Proceed autonomously\"; an inbox run: lens 0 ran, lenses 1-7 belong to a sweep and were not run).\n- T75, \"Motion: a walk with the pocket alert on and Places off buzzes\", built as `tend motion T75`. The app was right and the journey stale. Since `62bdecf8` (fix walk-layers-remembered, decision 0260, Nov 22) Places is one shared setting, on by default, so the nudge journey's second walk started with Places on and buzzed as PA2 says it should. The journey now switches Places off on the ready map before Start, as modes, walk and memories already did, and checks that no \"?\" shows. The red at rest, the journey alone on each commit's own export: `62bdecf8` red 2 of 2, its parent `c30050ce` green in 2 runs, `d595ae95`, `13a11a2c` and `f0a209c1` red. The window's \"green\" end was red: nudge did not run in the Nov 24 pass, which was killed at its two-hour limit before reaching it.\n- Review: auditor and steward, one round: 0 fixed, 4 deferred, 0 rejected, and 1 to the owner. The auditor's medium (nudge's covers leave out the walk's layers) was accepted, but `check:tend` gives a T build whose commit changes only a journey no review fix, so it is filed `[loop]` medium with its fix and test. The other three: placeoffer PO5's likely cause, noted on its item, and two `[loop]` lows in \"Map, walk screen and motion polish\" (a killed full pass lists nothing as not run; a cold open of the walk reads Places on until the layers load).\n- Filed: T77 `[owner]` (since 0260 the pocket alert buzzes on every walk by default; recommended: keep it as built); three `[loop]` items in DEFERRED's \"Map, walk screen and motion polish\" (one medium, two low) and two notes there (PO5, and the Nov 24 full pass's item corrected). Lens 0: E-motion-1 to 3 drafted with the steward's rewrites, proposed, each met provisionally.\n- Not run: lenses 1-7, the balance (an inbox run), the full pass. Nothing here has run on a phone, and no native code changed.\n"
+    }
+  ]
+}
