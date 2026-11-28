@@ -1896,28 +1896,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {walk && !recordingVoice && !spot && !openMark && !options && !memory && <SpaceLine />}
       </View>
       {quiet && (
-        <>
-          {/* A tap anywhere else (the map, the strip) closes the ask and ends nothing; the capture stack stays above it,
-              one tap (forgotten-stop steward 2, 4). */}
-          <Pressable testID="quiet-backdrop" style={StyleSheet.absoluteFill} onPress={() => setQuiet(null)} accessible={false} />
-          <QuietEndAsk
-            at={quiet.at}
-            now={quiet.now}
-            other={KEEP_IT_ALL}
-            busy={stopping}
-            // Above the strip, clear of the capture column (QE3, as drawn).
-            style={[styles.quietAsk, { left: at.sideInset, right: at.right + CAP + STACK_GAP, bottom: at.barTop + STACK_GAP }]}
-            onEnd={() => {
-              const point = quiet.at;
-              setQuiet(null);
-              void stop(point);
-            }}
-            onOther={() => {
-              setQuiet(null);
-              void stop('keep');
-            }}
-          />
-        </>
+        // A tap anywhere else (the map, the strip) closes the ask and ends nothing; the capture stack stays above it, one
+        // tap (forgotten-stop steward 2, 4). The card itself is drawn after the Layers button, over it.
+        <Pressable testID="quiet-backdrop" style={StyleSheet.absoluteFill} onPress={() => setQuiet(null)} accessible={false} />
       )}
       {/* The capture stack at the right edge (NR9): where it was on the ready screen. While recording,
           Save takes the mic's own place, so tapping the mic again saves; the camera keeps its own, and
@@ -2107,6 +2088,25 @@ function WalkScreen(props: { onMinimize: () => void }) {
       />
       {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
       <LayersControl map="walk" layers={layers} notes={layerNotes({ walkability: wk.status, storefrontsReading: storefronts.reading, storefrontsFailed: storefronts.failed, past: past.status, placesRange: formatRange(settings.rangeM) })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={walkClearTop(at.insets.top, navigation.nav ? navBarH || NAV_BAR_H : null)} />
+      {quiet && (
+        <QuietEndAsk
+          at={quiet.at}
+          now={quiet.now}
+          other={KEEP_IT_ALL}
+          busy={stopping}
+          // Above the strip, clear of the capture column (QE3, as drawn).
+          style={[styles.quietAsk, { left: at.sideInset, right: at.right + CAP + STACK_GAP, bottom: at.barTop + STACK_GAP }]}
+          onEnd={() => {
+            const point = quiet.at;
+            setQuiet(null);
+            void stop(point);
+          }}
+          onOther={() => {
+            setQuiet(null);
+            void stop('keep');
+          }}
+        />
+      )}
 
       {awayFromStart && wayBack && !navigation.nav && (
         // Walk me back: the way back to where this walk began, where the last ride ended, or the spot chosen (N1, N11, DW6-DW8).
@@ -2582,8 +2582,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,
   },
-  // The quiet ask above the strip (QE3): placed by the stack's geometry, over the map.
-  quietAsk: { position: 'absolute', maxWidth: 560 },
+  // The quiet ask above the strip (QE3): placed by the stack's geometry, over the map and the Layers button (its zIndex 3).
+  quietAsk: { position: 'absolute', maxWidth: 560, zIndex: 5 },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },
