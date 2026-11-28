@@ -2,7 +2,8 @@ import type { LineReveal } from '../../lib/ceremony/reveal';
 import type { Hop } from '../../lib/ceremony/types';
 import type { Faced } from '../../lib/moment';
 import type { BorderView } from '../../lib/areas/borders';
-import { GROUND_FADE_STEPS, type CarGround } from '../../lib/walk/carGround';
+import { CAR_LABEL, GROUND_FADE_STEPS, type CarGround } from '../../lib/walk/carGround';
+import { bandWords } from '../../lib/walk/bandWords';
 import type { HatchLook } from '../../lib/walk/hatch';
 import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
@@ -733,8 +734,13 @@ export function roomCells(rect: { x: number; y: number; w: number; h: number }):
   return out;
 }
 
+/**
+ * The map's own label size: the base style's street names from zoom 14 (Positron's `highway-name-*`, 13 px), which the
+ * labels the app adds take (T68).
+ */
+export const MAP_LABEL_SIZE = 13;
 /** The storefront names' size, the same for every name whatever its street's grade (DC4). */
-const STOREFRONT_NAME_SIZE = 13;
+const STOREFRONT_NAME_SIZE = MAP_LABEL_SIZE;
 /** A name turned less than this runs level enough to slide along its street (audit 1). */
 const LEVEL_DEG = 15;
 /** How far a name slides along its street off a point it can't sit on (DC17): 34 px at 13 px, past a pin's half width. */
@@ -925,6 +931,30 @@ export const WALK_READ = {
   widthPx: WALK_STYLE.car.lineWidthPx,
   dash: DRAWING_DASH.map((d) => d * 2) as readonly number[],
 } as const;
+/**
+ * T68 (the owner's yes, 2026-11-27): one quiet name inside each car area larger than the screen at walking zoom, so a
+ * screen wholly inside car ground still says what the hatch is: the legend's words, "Built around cars", in the hatch's
+ * slate at the map's own label size, in the base style's face for named ground (Positron's italic, as its water and
+ * neighbourhood names), haloed white as the storefront names are, about once a screen at the points the core gives
+ * (`CarGround.text`, each with room round it), giving way to every other label; from a zoom below walking zoom, where the
+ * room still holds the words. Never a number.
+ */
+export const WALK_TEXT = {
+  minzoom: CAR_LABEL.zoom - 1,
+  layout: {
+    'symbol-placement': 'point',
+    'text-field': bandWords('car') ?? '',
+    'text-font': ['Noto Sans Italic'],
+    'text-size': MAP_LABEL_SIZE,
+    'text-max-width': 20,
+    'text-variable-anchor': ['center', 'top', 'bottom'],
+    'text-radial-offset': 0.8,
+    'text-padding': 2,
+    'text-allow-overlap': false,
+    'text-ignore-placement': false,
+  },
+  paint: { 'text-color': WALK_SLATE, 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 },
+} as const;
 /** The hatch and its edge sit under the base map's labels (walkability-car-ground audit 14); the web map finds its first symbol layer. */
 export const WALK_BELOW = BASE_FIRST_LABEL;
 /** The hatch's image names on a map, one a quarter zoom (`hatchQuarter`). */
@@ -946,7 +976,8 @@ export const ROUTE_CAR_START_PAINT = { 'circle-radius': 4, 'circle-color': WALK_
 export const ROUTE_CAR_WIDTH = 14;
 
 /** What the map draws (G5): the car areas (`kind` 'area', or 'area-<n>' fading toward the read's edge) and their edges
- * ('edge', 'edge-<n>'), the edge of what was read ('read', T67), and nothing else (UF12). */
+ * ('edge', 'edge-<n>'), the edge of what was read ('read', T67), where a large area's name is written ('text', T68), and
+ * nothing else (UF12). */
 export function walkabilityGeoJSON(g: CarGround | null | undefined): GeoJSON.FeatureCollection {
   if (!g) return { type: 'FeatureCollection', features: [] };
   const kind = (k: string, fade: number) => (fade ? `${k}-${fade}` : k);
@@ -956,6 +987,7 @@ export function walkabilityGeoJSON(g: CarGround | null | undefined): GeoJSON.Fea
       ...g.areas.map((a): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: kind('area', a.fade) }, geometry: { type: 'Polygon', coordinates: a.shape } })),
       ...g.edges.map((e): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: kind('edge', e.fade) }, geometry: { type: 'LineString', coordinates: e.shape } })),
       ...(g.read ?? []).map((l): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: 'read' }, geometry: { type: 'LineString', coordinates: l } })),
+      ...(g.text ?? []).map((p): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: 'text' }, geometry: { type: 'Point', coordinates: p } })),
     ],
   };
 }
@@ -967,7 +999,7 @@ export function walkFade(prefix: 'area' | 'edge', whole: number): unknown[] {
   return ['match', ['get', 'kind'], ...steps, whole];
 }
 /** The filter for one kind's features, faded or not. */
-export const walkKind = (prefix: 'area' | 'edge' | 'read') => ['==', ['slice', ['get', 'kind'], 0, 4], prefix];
+export const walkKind = (prefix: 'area' | 'edge' | 'read' | 'text') => ['==', ['slice', ['get', 'kind'], 0, 4], prefix];
 
 /** A place still to find drawn as a dot (WT14): where it is and its kind's colour, nothing else. */
 export interface WaitingDot {

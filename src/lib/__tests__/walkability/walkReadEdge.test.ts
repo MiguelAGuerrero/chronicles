@@ -172,7 +172,8 @@ test('tend walkability T67: the map is handed the read\'s edge as lines of kind 
     assert.equal(f.geometry.type, 'LineString');
     assert.deepEqual(Object.keys(f.properties!), ['kind'], 'a kind and nothing else: no number');
   }
-  assert.equal(fc.features.length, g.areas.length + g.edges.length + read.length, 'the car ground\'s features as before');
+  // T68: and the room for a large area's name (kind 'text'), which this car ground has.
+  assert.equal(fc.features.length, g.areas.length + g.edges.length + read.length + (g.text?.length ?? 0), 'the car ground\'s features as before');
   assert.deepEqual(walkKind('read'), ['==', ['slice', ['get', 'kind'], 0, 4], 'read']);
 });
 

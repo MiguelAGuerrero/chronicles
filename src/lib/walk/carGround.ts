@@ -1,5 +1,6 @@
 // @layer core
 import { projector } from '../geo';
+import { metersPerPixel } from '../pins';
 import type { LngLat } from '../types';
 import { WALK_CODE } from './bands';
 import type { Cell } from './cells';
@@ -48,6 +49,11 @@ export interface CarGround {
    * ground nobody read is told from plain ground. Set by `walkDrawingOf`, never by `carGroundOf`.
    */
   read?: LngLat[][];
+  /**
+   * Where the car ground's name is written (T68): in each car area larger than the screen at walking zoom, about once a
+   * screen, each at least `CAR_LABEL.roomPx` from its edge (`carTextOf`). Set by `walkDrawingOf`, never by `carGroundOf`.
+   */
+  text?: LngLat[];
   /** Changes only when the picture does, so a map sends its data again only then. */
   key: string;
 }
@@ -117,7 +123,7 @@ function latticeOf(cells: readonly Cell[], focus: readonly Cell[], margin: numbe
     const move = (r: LngLat[]) => r.map((p) => [p[0] + k, p[1]] as LngLat);
     return (Array.isArray(shape[0][0]) ? (shape as LngLat[][]).map(move) : move(shape as LngLat[])) as T;
   };
-  return { at, R, Q, cosOf, toLngLat, thin, home };
+  return { at, R, Q, r0, q0, cosOf, toLngLat, thin, home };
 }
 
 /** Car ground as areas and edges, from the judged cells (car cells drawn; every judged cell is ground that was read). */
@@ -235,11 +241,79 @@ export function readEdgeOf(cells: readonly Cell[]): { lines: LngLat[][]; key: st
   return { lines, key: `r${cellsKey(cells, false)}` };
 }
 
-/** What the Walkability layer draws: the car ground (`carGroundOf`, unchanged) and the read's edge beside it, keyed on both. */
+/**
+ * T68 (the owner's yes, 2026-11-27): the rule for the car ground's one quiet name, in pixels at walking zoom (the walk and
+ * Navigate open at 16). An area is named when a circle as wide as a phone held upright (390 px, the reference phone) fits
+ * inside it, which a screen wholly inside it needs; the name sits where it has `roomPx` of car ground round it, so the words
+ * stay inside the hatch from a zoom below walking zoom (`WALK_TEXT.minzoom`). Never a number on the map.
+ */
+export const CAR_LABEL = { screenPx: 390, zoom: 16, roomPx: 140, everyPx: 400 } as const;
+/** Pixels at zoom 16 a lattice column spans (a fixed step in degrees east-west), and a row at the equator (over the cosine elsewhere). */
+const COLUMN_PX = (GROUND_STEP_M / M_PER_DEG_LON) * ((512 * 2 ** CAR_LABEL.zoom) / 360);
+const ROW_PX = (GROUND_STEP_M / M_PER_DEG_LAT) * ((512 * 2 ** CAR_LABEL.zoom) / 360);
+
+/**
+ * T68: where the name of each car area larger than the screen at walking zoom is written (`CarGround.text`). The room is the
+ * car ground at least `CAR_LABEL.roomPx` from anything not car ground (read ground of another reading, or ground nobody
+ * read), in the pieces whose deepest point is half the screen's width in, so a small area is never named. In it the name is
+ * written about once a screen, as a street's name repeats along it: at the points of a staggered grid `CAR_LABEL.everyPx`
+ * apart at walking zoom, fixed on the cells' global lattice so a read elsewhere puts them in the same places; a piece no
+ * grid point falls in is named once, at its deepest point. Never stored. Pure.
+ */
+export function carTextOf(cells: readonly Cell[]): LngLat[] {
+  const car = cells.filter((c) => c.band === 'car');
+  if (!car.length) return [];
+  const { at, R, Q, r0, q0, cosOf, toLngLat, home } = latticeOf(cells, car, 2 * GROUND_STEP_M);
+  const isCar = new Uint8Array(R * Q);
+  for (let i = 0; i < R * Q; i++) isCar[i] = at[i] === 2 ? 1 : 0;
+  // Metres from each point to the nearest that is not car ground (the same chamfer the read's edge is measured by).
+  const depth = unreadDistance(isCar, R, Q, cosOf);
+  const cos = cosOf(R / 2);
+  const px = metersPerPixel(CAR_LABEL.zoom, toLngLat([R / 2, 0])[1]);
+  const room = CAR_LABEL.roomPx * px;
+  const large = (CAR_LABEL.screenPx / 2) * px;
+  // The grid, in lattice steps: rows a fixed number of pixels apart need more of them toward the poles (Mercator).
+  const kr = Math.max(1, Math.round((CAR_LABEL.everyPx * cos) / ROW_PX));
+  const kq = Math.max(2, Math.round(CAR_LABEL.everyPx / COLUMN_PX));
+  const mod = (a: number, b: number) => ((a % b) + b) % b;
+  const onGrid = (r: number, q: number) => {
+    const gr = r + r0;
+    return mod(gr, kr) === 0 && mod(q + q0 - (mod(Math.floor(gr / kr), 2) ? Math.floor(kq / 2) : 0), kq) === 0;
+  };
+  const out: LngLat[] = [];
+  const seen = new Uint8Array(R * Q);
+  for (let s = 0; s < R * Q; s++) {
+    if (seen[s] || depth[s] < room) continue;
+    // Each piece of room (four-way neighbours), with its deepest point and its grid points.
+    const piece = [s];
+    seen[s] = 1;
+    let deepest = s;
+    const marks: number[] = [];
+    for (let k = 0; k < piece.length; k++) {
+      const i = piece[k];
+      const [r, q] = [Math.floor(i / Q), i % Q];
+      if (depth[i] > depth[deepest]) deepest = i;
+      if (onGrid(r, q)) marks.push(i);
+      for (const n of [r > 0 ? i - Q : -1, r < R - 1 ? i + Q : -1, q > 0 ? i - 1 : -1, q < Q - 1 ? i + 1 : -1]) {
+        if (n < 0 || seen[n] || depth[n] < room) continue;
+        seen[n] = 1;
+        piece.push(n);
+      }
+    }
+    if (depth[deepest] < large) continue;
+    for (const i of marks.length ? marks : [deepest]) out.push(home([toLngLat([Math.floor(i / Q), i % Q])])[0]);
+  }
+  return out;
+}
+
+/**
+ * What the Walkability layer draws: the car ground (`carGroundOf`, unchanged), the read's edge beside it, and the room for
+ * each large area's name (T68), keyed on the car ground and the read (the room follows from the same cells).
+ */
 export function walkDrawingOf(cells: readonly Cell[]): CarGround {
   const ground = carGroundOf(cells);
   const read = readEdgeOf(cells);
-  return { ...ground, read: read.lines, key: `${ground.key}|${read.key}` };
+  return { ...ground, read: read.lines, text: carTextOf(cells), key: `${ground.key}|${read.key}` };
 }
 
 /** A piece of a route inside the drawn car ground, and how far along the route it begins and ends, in metres. */

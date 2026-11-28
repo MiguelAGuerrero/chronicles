@@ -37,7 +37,7 @@ import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import { fitBearing, followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, WALK_READ, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, WALKER_FILL, BASE_VECTOR_SOURCE, poiLabelLayers,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, WALK_READ, WALK_TEXT, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, WALKER_FILL, BASE_VECTOR_SOURCE, poiLabelLayers,
   FIT_MAX_ZOOM, FIT_PADDING, FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
@@ -108,6 +108,10 @@ function addOverlay(map: MapLibreMap): string | undefined {
   map.addLayer({ id: 'walk-read', type: 'line', source: 'walkability', filter: walkKind('read') as FilterSpecification,
     layout: { 'line-join': 'round', 'line-cap': 'butt' },
     paint: { 'line-color': WALK_READ.color, 'line-width': WALK_READ.widthPx, 'line-dasharray': [...WALK_READ.dash] } }, firstSymbol);
+  // T68: the quiet name inside each car area larger than the screen, about once a screen at the core's points, under the
+  // base map's labels, so it gives way to every street's name.
+  map.addLayer({ id: 'walk-text', type: 'symbol', source: 'walkability', minzoom: WALK_TEXT.minzoom, filter: walkKind('text') as FilterSpecification,
+    layout: WALK_TEXT.layout as unknown as SymbolLayerSpecification['layout'], paint: WALK_TEXT.paint }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer (`LINE_SOURCE`, NF5).
   const lineSource = { type: 'geojson' as const, data: empty, ...LINE_SOURCE };
   for (const id of LINE_SOURCE_IDS) map.addSource(id, lineSource);

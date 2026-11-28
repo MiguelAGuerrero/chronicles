@@ -246,6 +246,25 @@ async function run(h) {
   const near = await p5.evaluate(() => window.__renderedIn([[0, 0], [innerWidth, innerHeight]])).catch(() => []);
   check(near.includes('walk-car:area') && !near.includes('walk-read:read'), `tend walkability T67: at walking zoom, the edge of what was read wholly off the screen, no line is drawn (${near.filter((k) => k.startsWith('walk')).join(', ')})`);
   await shot(p5, 't67-offscreen');
+  // tend walkability T68: the same screen, wholly inside the owner's car ground at walking zoom, names it, quietly: in the
+  // map that shows, above Explore's sheet (`seenBox`), not under it.
+  const seen = await p5.evaluate((b) => window.__renderedIn(b), await seenBox(p5)).catch(() => []);
+  check(seen.includes('walk-text:text'), `tend walkability T68: a screen wholly inside car ground at walking zoom says what the hatch is ("Built around cars") (${near.filter((k) => k.startsWith('walk')).join(', ')})`);
+  await shot(p5, 't68-inside');
+  await p5.setViewportSize({ width: 320, height: 700 });
+  await p5.waitForTimeout(1500);
+  await shot(p5, 't68-inside-320');
+  await p5.setViewportSize({ width: 390, height: 844 });
+  await p5.waitForTimeout(1200);
+  // Near the read's dashed edge, from a zoom between whole levels: the name keeps its room from the edge.
+  await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, -11), 15.4]);
+  await p5.waitForTimeout(2500);
+  await shot(p5, 't68-read-edge-154');
+  await p5.setViewportSize({ width: 320, height: 700 });
+  await p5.waitForTimeout(1500);
+  await shot(p5, 't68-read-edge-154-320');
+  await p5.setViewportSize({ width: 390, height: 844 });
+  await p5.waitForTimeout(1200);
   await p5.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(5, -6), 13.2]);
   await p5.waitForTimeout(1500);
   await switchLayer(p5, 'walkability', false);
@@ -340,6 +359,109 @@ async function run(h) {
   h.edgeWorld.serve = false;
   walkability.mode = 'ok';
   await c4.close();
+
+  // tend walkability T68: a scene of its own, served on each page's own context (the harness is not the loop's): a street
+  // grid 100 m apart, with holes where the streets are arterials 300 m apart (ground built around cars): one 1.2 km square
+  // east of the start (an area larger than the screen), one 500 m wide west of it (one car cell: smaller than the screen),
+  // and two 1 km areas one above the other far east (two large areas side by side). The base map keeps its own streets.
+  {
+    const { Buffer } = require('node:buffer');
+    const { encodeTile } = await import('../../mvt-encode.mjs');
+    const { encodeArchive } = await import('../../pmtiles-encode.mjs');
+    const holes = [[2, 14, -6, 6], [-14, -9, -4, 4], [40, 50, -12, -3], [40, 50, 1, 10]];
+    const inHole = (x, y) => holes.some(([a, b, c0, d]) => x >= a && x <= b && y >= c0 && y <= d);
+    const mph = (v) => JSON.stringify([{ max_speed: { unit: 'mph', value: v }, between: [0, 1] }]);
+    const feats = [];
+    const seg = (id, props, a, b, ids) => feats.push({ type: 'Feature', properties: { id, subtype: 'road', ...props, connectors: JSON.stringify(ids.map((k, n) => ({ connector_id: k, at: n }))) }, geometry: { type: 'LineString', coordinates: [a, b] } });
+    for (let x = -30; x <= 70; x++) for (let y = -30; y <= 30; y++) if (!inHole(x, y)) feats.push({ type: 'Feature', properties: { id: `t${x}_${y}` }, geometry: { type: 'Point', coordinates: at(x, y) } });
+    for (let y = -30; y <= 30; y++) for (let x = -30; x < 70; x++) if (!inHole(x, y) && !inHole(x + 1, y)) seg(`th${x}_${y}`, { class: 'residential', speed_limits: mph(25) }, at(x, y), at(x + 1, y), [`t${x}_${y}`, `t${x + 1}_${y}`]);
+    for (let x = -30; x <= 70; x++) for (let y = -30; y < 30; y++) if (!inHole(x, y) && !inHole(x, y + 1)) seg(`tv${x}_${y}`, { class: 'residential', speed_limits: mph(25) }, at(x, y), at(x, y + 1), [`t${x}_${y}`, `t${x}_${y + 1}`]);
+    holes.forEach(([a, b, c0, d], k) => {
+      for (let y = c0; y <= d; y += 3) for (let x = a; x < b; x++) seg(`ta${k}_${x}_${y}`, { class: 'primary', speed_limits: mph(25) }, at(x, y), at(x + 1, y), []);
+      for (let x = a; x <= b; x += 3) for (let y = c0; y < d; y++) seg(`tb${k}_${x}_${y}`, { class: 'primary', speed_limits: mph(25) }, at(x, y), at(x, y + 1), []);
+    });
+    const tileOf = ([lon, lat]) => [Math.floor(((lon + 180) / 360) * 2 ** 14), Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** 14)];
+    const [x0, y0] = tileOf(at(-30, 30));
+    const [x1, y1] = tileOf(at(70, -30));
+    const tiles = [];
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) tiles.push({ z: 14, x, y, data: encodeTile(feats, 14, x, y, (f) => (f.geometry.type === 'Point' ? ['connector'] : ['segment'])) });
+    const archive = Buffer.from(encodeArchive(tiles));
+    const cors = { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'ETag, Content-Length, Content-Range, Accept-Ranges' };
+    const scene = async (label, where) => {
+      const { pg: p, c: cx } = await freshPage(label, { touch: true });
+      await cx.addInitScript(() => { window.__perf = {}; });
+      await cx.setGeolocation({ longitude: at(...where)[0], latitude: at(...where)[1], accuracy: 6 });
+      await cx.route((u) => u.host === h.OVERTURE_HOST && u.pathname.endsWith('/transportation.pmtiles'), (r) => {
+        const m = /bytes=(\d+)-(\d+)/.exec(r.request().headers().range ?? '');
+        const from = m ? Number(m[1]) : 0;
+        const to = Math.min(m ? Number(m[2]) : archive.length - 1, archive.length - 1);
+        return r.fulfill({ status: 206, headers: { ...cors, 'content-range': `bytes ${from}-${to}/${archive.length}`, etag: '"t68"' }, contentType: 'application/octet-stream', body: archive.subarray(from, to + 1) });
+      });
+      await p.goto(h.exploreUrl);
+      await p.waitForSelector('[data-testid=layers]', { timeout: 30000 });
+      await switchLayer(p, 'walkability');
+      await p.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 45000 }).catch(() => {});
+      return { p, cx };
+    };
+    const look = async (p, centre, z) => {
+      await p.evaluate(([cc, zz]) => window.__zoomTo(cc, zz), [centre, z]);
+      await p.waitForTimeout(2500);
+      return (await p.evaluate((b) => window.__renderedIn(b), await seenBox(p)).catch(() => [])).filter((k) => k.startsWith('walk'));
+    };
+    {
+      const { p, cx } = await scene('t68-scene', [0, 0]);
+      const inside = await look(p, at(8, -0.5), 16);
+      check(inside.includes('walk-car:area') && !inside.includes('walk-car-edge:edge') && inside.includes('walk-text:text'), `tend walkability T68: a screen wholly inside a car area larger than it, at walking zoom, is named (${inside.join(', ')})`);
+      await shot(p, 't68-large-16');
+      const between = await look(p, at(8, -0.5), 15.5);
+      check(between.includes('walk-text:text'), `tend walkability T68: between whole zooms it is still named (${between.join(', ')})`);
+      await shot(p, 't68-large-155');
+      const out = await look(p, at(8, -0.5), 14.6);
+      check(out.includes('walk-car:area') && !out.includes('walk-text:text'), `tend walkability T68: below a zoom under walking zoom, where the words would outgrow it, no name (${out.join(', ')})`);
+      const small = await look(p, at(-10.7, 0.9), 16);
+      check(small.includes('walk-car:area') && !small.includes('walk-text:text'), `tend walkability T68: a car area smaller than the screen is not named (${small.join(', ')})`);
+      await shot(p, 't68-small-16');
+      await p.setViewportSize({ width: 320, height: 700 });
+      await look(p, at(-10.7, 0.9), 16);
+      await shot(p, 't68-small-16-320');
+      await look(p, at(8, -0.5), 16);
+      await shot(p, 't68-large-16-320');
+      await p.setViewportSize({ width: 390, height: 844 });
+      await switchLayer(p, 'walkability', false);
+      await p.waitForTimeout(2000);
+      const off = await look(p, at(8, -0.5), 16);
+      check(!off.length, `tend walkability T68: with the layer off, no name and no hatch (${off.join(', ')})`);
+      await shot(p, 't68-layer-off');
+      await cx.close();
+    }
+    {
+      const { p, cx } = await scene('t68-pair', [45, -1]);
+      // Each named, looked at in turn from a zoom that holds the whole of its room; then both in one picture between them,
+      // their facing edges in view.
+      const south = await look(p, at(45, -6.7), 15.3);
+      await shot(p, 't68-pair-south-153');
+      const north = await look(p, at(45, 5.9), 15.3);
+      await shot(p, 't68-pair-north-153');
+      check(south.includes('walk-text:text') && north.includes('walk-text:text'), `tend walkability T68: two large areas side by side are each named (${south.join(', ')}; ${north.join(', ')})`);
+      await look(p, at(45, -0.5), 15.2);
+      await shot(p, 't68-pair-15');
+      await cx.close();
+    }
+  }
+}
+
+/**
+ * The part of the map a person sees (tend walkability T68): from the top down to where something other than the map's canvas
+ * covers its middle (Explore's sheet), in the map's own pixels, for `window.__renderedIn`.
+ */
+async function seenBox(pg) {
+  const m = await pg.locator('.maplibregl-map').last().boundingBox();
+  const bottom = await pg.evaluate(([top, h]) => {
+    let y = top + h - 2;
+    while (y > top && document.elementFromPoint(innerWidth / 2, y)?.tagName !== 'CANVAS') y -= 4;
+    return y;
+  }, [m.y, m.height]);
+  return [[0, 0], [m.width, bottom - m.y]];
 }
 
 /** The distance between the hatch's lines across them, in CSS px, from a 1 px high screenshot strip: the dark pixels' runs, their starts' median gap, over the square root of two (45 degrees). */

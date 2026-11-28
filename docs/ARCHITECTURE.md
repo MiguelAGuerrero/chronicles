@@ -318,7 +318,7 @@ Map layers (ML1-ML13)
 Walkability (WK1-WK23, UF1-UF20, CG1-CG11)
   walk/form.ts               the rule and its one table of thresholds (judge)
   walk/cells.ts              cells on a fixed grid, judged from their 450 m neighbourhood through a spatial index
-  walk/carGround.ts          the car cells as the areas the map draws (smoothed on a fixed lattice, fading toward the read's edge), their edge, insideCarGround; the read's edge as dashed lines (readEdgeOf, walkDrawingOf: T67)
+  walk/carGround.ts          the car cells as the areas the map draws (smoothed on a fixed lattice, fading toward the read's edge), their edge, insideCarGround; the read's edge as dashed lines (readEdgeOf, walkDrawingOf: T67); where a large area's name is written (carTextOf: T68)
   walk/hatch.ts              the car ground's hatch: its pixels (the web's addImage), its PNG (the native images), the legend's lines
   walk/types.ts              Band, WayFacts, TileFacts, WalkSource, WalkTile
   walk/bands.ts              the band table (bandOf), WALK_CODE
