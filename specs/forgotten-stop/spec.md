@@ -169,6 +169,22 @@ QE9 (the words); the shells in `src/lib/__tests__/tabs/stopEnd.test.ts` (QE3, QE
 `src/lib/__tests__/recording/quietEndShell.test.ts` (QE5, QE7: a kept walk's end moved, read again). The journey
 `quietend` (new): QE3-QE7 and QE10 on the web build at 390 and 320 px, a walk left running 20 hours.
 
+## The diff review (Nov 28)
+
+One round: the auditor, the ux-reviewer and the steward over 61003e70..1129a7b0. 18 findings accepted, merged into 14
+fixes, each behind its regression test (`forgotten-stop audit 1-14`; audit 8 is AGENTS.md's wording, no test): the
+strip's two lines in the core (1, high: `npm test` red at 1129a7b0); a break crossing the reach read as walking on and the
+kept gaps read (2, high); the pin before the quiet read (3); drift not walking on (4); End it reading the point again and
+the bar's ask closing on a capture from the page (5, with steward 6); a walk ended at its Resume never dropped (6); a pause
+closed at the end no Resume (7); AGENTS.md's "Raw fixes" line (8, with steward 8); the minute after a walk's end its own
+(9: an ordinary Stop loses no reading; the SNAP_RULES differential rewritten so it can fail); the More's ask in the
+sheet's confirm order (10); the replay framed after End it from the More (11); the row's glyph (12); the card not modal
+(13); the bar's ask closing on another tab or a page click (14). Deferred 4: auditor 9 (`[loop]` low), the steward's
+silent 1 and 2 and ux 4 (`[owner]` low), in `docs/DEFERRED.md`, walk-screen. Rejected 0. The proxy's calls, and ux 5-8's
+departures from the drawing kept, are in decision 0276. Two tests stay source-text: the replay's and the snap's read of
+`untilEnd` (`summary.ts`, `finish.ts`) and `SNAP_RULES` 10 (`tiles.ts`), whose modules load React Native through the
+app's db and cannot run under `npm test`.
+
 ## Record
 
 Built 2026-11-28 under `/tend inbox G16 yes`.

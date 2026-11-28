@@ -1,0 +1,50 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "set",
+        "A walk's end moved back where it went quiet cannot be moved forward again"
+      ],
+      "body": "- [owner] A walk's end moved back where it went quiet cannot be moved forward again in the app (forgotten-stop, decision 0272): the readings after it stay stored (Share GPS log holds them), but no control undoes End it; none was drawn. The diff review's steward (silent 1, Nov 28): a moved end has no Undo while a delete has one (0041, D5); should End it, a correction of truth \"like a delete\", be undoable while its readings are still stored? A later slice could offer it in the walk's More (⋯) (low)\n",
+      "target": "sha256:ac153f93f69df4b129d4e2ecbec5d7802e8d1047f228a2fe2d110d47a67c5d1b"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [owner] The recording bar reads \"20:00\" for a walk running twenty hours, just under \"This walk went quiet at 5:19 am yesterday.\" (forgotten-stop's diff review, the steward's silent 2, Nov 28; `barTime`, h:mm): beside a clock time it reads as one. Should the bar say a time in hours in words past an hour, as the strip does (\"20 h 01 min\")? (low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [owner] The Stop's quiet ask puts End it, the default, leading in a row, as the approved drawing does (forgotten-stop, decision 0276; the diff review's ux 4, Nov 28); the HIG and Material put the default action trailing, Cancel leading, as the More's ask and the Delete confirm now do. Mirror the Stop's ask to match? (low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish"
+      ],
+      "body": "- [loop] The More (⋯) row \"End it where it went quiet\" arrives after its own read, between Rename and Share GPS log, so a tap aimed at Share GPS log can land on it; and a tap on the backdrop closes the sheet while End it is under way, so a later failure is never shown (`WalkActions.tsx`; forgotten-stop's diff review, auditor 9, Nov 28): show the rows once both reads answer, and ignore the backdrop while ending (low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Recording and the background task"
+      ],
+      "body": "- [ ] **Do:** with VoiceOver (iOS) or TalkBack (Android) on, hold Stop on a walk gone quiet on the walk screen, then swipe on past the card; then with the recording bar's ask up on Chronicle, switch tabs and tap the page. **Expect:** the card is not modal: focus lands on \"This walk went quiet at …\", then End it and Keep it all, and swiping on reaches the camera, the mic and the note beside it; on a phone the bar's ask closes on another tab, Back or a capture kept into the walk (a tap on the page closes it on the web only), ending nothing (forgotten-stop audit 13, 14).\n"
+    }
+  ]
+}
