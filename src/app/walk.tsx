@@ -147,9 +147,12 @@ const SLOW_TICK_MS = 5000;
 /** Stop waits this long at most for a capture still being kept, and a Retry under way (as the bar's Stop does). */
 const STOP_WAIT_MS = 5000;
 
+/** The strip's numbers on two lines, the time over the distance, when a time in hours would cut the buttons' words (QE10). */
+const stripLines = (text: string, narrow: boolean) => (narrow && / h \d/.test(text) ? text.replace(' · ', '\n') : text);
+
 /** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
-function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number; units: Units }) {
-  const { startedAt, pauses, distanceM, rideM, units } = props;
+function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number; units: Units; narrow: boolean }) {
+  const { startedAt, pauses, distanceM, rideM, units, narrow } = props;
   const elapsed = (now: number) => (startedAt == null ? 0 : now - startedAt - pausedMs(pauses, startedAt, now));
   // The ride on a second, smaller line, so the strip keeps its width at 390 px (rides audit, UI).
   const ride = rideM >= 1 ? `\n+ ${formatDistance(rideM)} ride` : '';
@@ -157,10 +160,10 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
     <Ticking
       testID="walk-stats"
       style={styles.stats}
-      // Two lines when a day-long time needs them, so Resume's and Stop's words stay whole at 320 (QE10).
       numberOfLines={ride ? 3 : 2}
-      // The same words the strip's spoken name holds (tend walk-screen audit 12).
-      text={(now) => `${walkStripText({ elapsedMs: elapsed(now), distanceM, units })}${ride}`}
+      // The same words the strip's spoken name holds (tend walk-screen audit 12); below 360 px a time in hours ("20 h 01
+      // min", a walk left running) puts the distance on a second line, so Resume's and Stop's words stay whole (QE10).
+      text={(now) => `${stripLines(walkStripText({ elapsedMs: elapsed(now), distanceM, units }), narrow)}${ride}`}
       label={(now) => `${formatDistance(distanceM)} walked in ${formatDuration(elapsed(now))}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
     />
   );
@@ -1959,7 +1962,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // Named with what it draws, word for word, as the ready bar's twin is (tend walk-screen 12, audit 12): read each second
         // by the bar's own summary, never a live region.
         summaryLabel={(t) => walkSummaryLabel({ elapsedMs: walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0, distanceM: live.distanceM, rideM: live.rideM, units })}
-        summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} units={units} />}
+        summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} units={units} narrow={narrow} />}
         actions={
           // Pause alone while walking; Resume and a held Stop once paused, as AllTrails does (decision 0220). The owner's
           // AllTrails look (Nov 18): the buttons fill what the numbers leave. Walking: … (the walk's settings) and a wide
@@ -2558,7 +2561,7 @@ const styles = StyleSheet.create({
   barBtnTextNarrow: { fontSize: 14 },
   // Below 360, Pause's icon closer to its word and no side padding (the words are centred, so it shows only when tight), so
   // an hour-long walk's numbers leave every word whole (fix walk-strip-buttons audits 1, 7).
-  barBtnNarrow: { gap: 4, paddingHorizontal: 0, minWidth: 72 },
+  barBtnNarrow: { gap: 4, paddingHorizontal: 0 },
   // Resume, the one primary action while paused: solid accent, white word.
   resumeBtn: { backgroundColor: theme.accent },
   resumeText: { color: theme.accentInk },

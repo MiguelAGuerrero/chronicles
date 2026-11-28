@@ -127,9 +127,13 @@ async function run(h) {
         const t = el && [...el.querySelectorAll('div')].find((d) => /^(Resume|Stop)$/.test((d.textContent || '').trim()) && !d.querySelector('div'));
         return t ? { text: t.textContent.trim(), whole: t.scrollWidth <= t.clientWidth + 1 } : null;
       };
-      return { stats: (document.querySelector('[data-testid=walk-stats]')?.textContent || '').trim(), resume: word('resume-walk'), stop: word('stop') };
+      const stats = document.querySelector('[data-testid=walk-stats]');
+      const r = (sel) => document.querySelector(sel)?.getBoundingClientRect();
+      // The numbers end before Resume begins: never drawn under it.
+      const clear = stats && r('[data-testid=resume-walk]') ? Math.round(r('[data-testid=resume-walk]').left - stats.getBoundingClientRect().right) : null;
+      return { stats: (stats?.textContent || '').trim(), resume: word('resume-walk'), stop: word('stop'), clear };
     });
-    check(dayLong(strip.stats) && strip.resume?.whole && strip.stop?.whole && strip.resume.text === 'Resume',
+    check(dayLong(strip.stats) && strip.resume?.whole && strip.stop?.whole && strip.resume.text === 'Resume' && strip.clear >= 0,
       `QE10: the paused strip's Resume and Stop stay whole at 320 px beside a day-long time (${JSON.stringify(strip)})`);
     await shot(pg, 'qe-paused-320');
     await pg.setViewportSize({ width: 390, height: 844 });
