@@ -1,0 +1,32 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T80",
+        "--reason",
+        "the proxy's yes under 0157, 2026-11-28, closed by tend map as a check race, not a regression: qol on main's own export (4b19aec3), alone and at rest, is green 2 runs of 2 (237 ok each; tend map audits 25, 26 and 34 green at 390 and 320 both times); T76's two reds came from runs that overlapped a second qol run; no app change, the race filed [loop] low in DEFERRED's map section"
+      ],
+      "target": "sha256:1af9df5cb1f085d9694bfaed280a15881c92ab63e7e7010ebbf1745980f3c695"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Map, walk screen and motion polish",
+        "--after",
+        "(low) A loop's one mark can flicker"
+      ],
+      "body": "- [loop] (low) `qol` loses its loop walk's replay checks, and can stop the run, only when a second journey shares the machine (T80, answered by a `/tend map` inbox run, Nov 28): under load, `tend map audit 34`'s 30 s wait for the dot to leave the end lapses while the loop's path beat plays through to the card, so the tap misses Pause, `tend map audit 26` reads no end and no dot, and the closing `pg9.click('[data-testid=hold]')` times out (`tend map audit 25: the loop walk: page.click: Timeout 30000ms exceeded`); the holdStop helper's `pg.waitForURL(/replay/, { timeout: 30000 })` after the held Stop (`scripts/e2e/journeys/qol.js`, the credits block) is outside any `step()`, so under load it ends the whole run (T76's fourth run, `EXIT 1` after \"tend map audit 2\" at 320). At rest on `main`'s own export (`4b19aec3`) all three are green, 2 runs of 2, 237 ok each; T76's two reds came from runs that overlapped another run. To try: wait for Pause by the replay's own beat (`data-beat` or the hold's presence) rather than a fixed 30 s from the clock's arrival, read the card's absence before the tap, and wrap the credits block's held Stop in a `step()` so a lapse fails its checks, not the run (the proxy's ruling under 0157, 2026-11-28, closing T80 as a check race)\n"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 28, `/tend inbox T80 yes` `--deploy=main`, no build** (opened from `4b19aec3`; the proxy's yes under 0157, 2026-11-28, the owner having said \"Proceed autonomously\"; an inbox run: lens 0 ran, lenses 1-7 belong to a sweep and were not run).\n- T80, \"Map: qol's loop walk finds no Pause on its replay (tend map audits 25, 26, 34)\", closed as a check race, not a regression. `qol` on `main`'s own export (`4b19aec3`), alone and at rest, with `E2E_SOFT`: green 2 runs of 2, 237 ok each, tend map audits 25, 26 and 34 and T50 green at 390 and 320 both times. T76's two reds came from runs that overlapped a second `qol` run (whose own run stopped at the credits block's `waitForURL`). Not red at rest, so no bisect and no app change; the forgotten stop's `untilEnd` is not its cause (the loop walk's fixes all lie before its end, and the trace draws).\n- The replay journey's ceremony reds (RC25, RC26, ui checks) do not share it: they were red in the Nov 24 pass on `d595ae95`, where `qol` was green; not rerun.\n- Filed: one `[loop]` low in DEFERRED's \"Map, walk screen and motion polish\": the loop walk's waits lapse under load, and the credits block's held Stop is outside any `step()`.\n- Not run: lenses 1-7, the balance (an inbox run), the full pass, the review (records only). Nothing here has run on a phone, and no native code changed.\n"
+    }
+  ]
+}
