@@ -246,10 +246,10 @@ async function run(h) {
   const near = await p5.evaluate(() => window.__renderedIn([[0, 0], [innerWidth, innerHeight]])).catch(() => []);
   check(near.includes('walk-car:area') && !near.includes('walk-read:read'), `tend walkability T67: at walking zoom, the edge of what was read wholly off the screen, no line is drawn (${near.filter((k) => k.startsWith('walk')).join(', ')})`);
   await shot(p5, 't67-offscreen');
-  // tend walkability T68: the same screen, wholly inside the owner's car ground at walking zoom, names it, quietly: in the
-  // map that shows, above Explore's sheet (`seenBox`), not under it.
+  // tend walkability T68, audit 2: one name per area (the owner's shape). The owner's car ground runs on for 4 km, its heart
+  // far from this screen, so this screen, wholly inside it, shows none: the shape's known limit, put to the owner as a T entry.
   const seen = await p5.evaluate((b) => window.__renderedIn(b), await seenBox(p5)).catch(() => []);
-  check(seen.includes('walk-text:text'), `tend walkability T68: a screen wholly inside car ground at walking zoom says what the hatch is ("Built around cars") (${near.filter((k) => k.startsWith('walk')).join(', ')})`);
+  check(seen.includes('walk-car:area') && !seen.includes('walk-text:text'), `tend walkability audit 2: one name per area: a screen inside the owner's car ground, far from its heart, shows the hatch and no name (${seen.filter((k) => k.startsWith('walk')).join(', ')})`);
   await shot(p5, 't68-inside');
   await p5.setViewportSize({ width: 320, height: 700 });
   await p5.waitForTimeout(1500);
@@ -403,16 +403,37 @@ async function run(h) {
       await p.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 45000 }).catch(() => {});
       return { p, cx };
     };
+    const everything = async (p) => p.evaluate((b) => window.__renderedIn(b), await seenBox(p)).catch(() => []);
     const look = async (p, centre, z) => {
       await p.evaluate(([cc, zz]) => window.__zoomTo(cc, zz), [centre, z]);
       await p.waitForTimeout(2500);
-      return (await p.evaluate((b) => window.__renderedIn(b), await seenBox(p)).catch(() => [])).filter((k) => k.startsWith('walk'));
+      return (await everything(p)).filter((k) => k.startsWith('walk'));
+    };
+    // tend walkability T68 ux 2: where the name is drawn (its slate letters on the screen), and Explore's controls over the map.
+    const nameBox = async (p) => slateBox(await p.screenshot());
+    const CLEAR_OF = ['atlas-title-card', 'atlas-search', 'outing-entry', 'layers', 'atlas-move-map', 'atlas-show-here', 'compass', 'locate', 'atlas-back-pill'];
+    const controls = (p) => p.evaluate((ids) => ids.flatMap((id) => [...document.querySelectorAll(`[data-testid="${id}"]`)]
+      .map((e) => e.getBoundingClientRect()).filter((r) => r.width).map((r) => ({ id, x0: r.left, y0: r.top, x1: r.right, y1: r.bottom }))), CLEAR_OF);
+    // The camera moved so that the name's point would fall at `to` (page pixels): under a control, or at the screen's edge.
+    const nameTo = async (p, name, to, z) => {
+      await p.evaluate(([cc, zz]) => window.__zoomTo(cc, zz), [name, z]);
+      await p.waitForTimeout(800);
+      const [x, y] = await p.evaluate((n) => window.__project(n), name);
+      const m = await p.locator('.maplibregl-map').last().boundingBox();
+      const [a, b] = await p.evaluate(([u, v]) => [window.__unproject(u), window.__unproject(v)], [[x - m.x, y - m.y], [to[0] - m.x, to[1] - m.y]]);
+      const c = await p.evaluate(() => window.__unproject([document.querySelector('.maplibregl-map').clientWidth / 2, document.querySelector('.maplibregl-map').clientHeight / 2]));
+      return look(p, [c[0] + a[0] - b[0], c[1] + a[1] - b[1]], z);
     };
     {
       const { p, cx } = await scene('t68-scene', [0, 0]);
       const inside = await look(p, at(8, -0.5), 16);
-      check(inside.includes('walk-car:area') && !inside.includes('walk-car-edge:edge') && inside.includes('walk-text:text'), `tend walkability T68: a screen wholly inside a car area larger than it, at walking zoom, is named (${inside.join(', ')})`);
+      check(inside.includes('walk-car:area') && !inside.includes('walk-car-edge:edge') && inside.includes('walk-text:text'), `tend walkability T68: a screen wholly inside a car area larger than it, at walking zoom, at its heart, is named (${inside.join(', ')})`);
       await shot(p, 't68-large-16');
+      // Where the name lies, read back from its letters.
+      const box0 = await nameBox(p);
+      const m0 = await p.locator('.maplibregl-map').last().boundingBox();
+      const name = box0 ? await p.evaluate((xy) => window.__unproject(xy), [(box0.x0 + box0.x1) / 2 - m0.x, (box0.y0 + box0.y1) / 2 - m0.y]) : at(8, -0.5);
+      check(!!box0, `tend walkability audit 2: the one name is drawn where the map was told (${JSON.stringify(box0)})`);
       const between = await look(p, at(8, -0.5), 15.5);
       check(between.includes('walk-text:text'), `tend walkability T68: between whole zooms it is still named (${between.join(', ')})`);
       await shot(p, 't68-large-155');
@@ -421,16 +442,51 @@ async function run(h) {
       const small = await look(p, at(-10.7, 0.9), 16);
       check(small.includes('walk-car:area') && !small.includes('walk-text:text'), `tend walkability T68: a car area smaller than the screen is not named (${small.join(', ')})`);
       await shot(p, 't68-small-16');
-      await p.setViewportSize({ width: 320, height: 700 });
-      await look(p, at(-10.7, 0.9), 16);
-      await shot(p, 't68-small-16-320');
-      await look(p, at(8, -0.5), 16);
-      await shot(p, 't68-large-16-320');
+      // tend walkability T68 ux 2: the name never shows under a control or cut at the map's edge: moved so its point falls
+      // under each, it moves aside or is left out. At 390 and 320, at walking zoom and between whole zooms.
+      const meets = [];
+      for (const [w, hh] of [[390, 844], [320, 700]]) {
+        await p.setViewportSize({ width: w, height: hh });
+        await p.waitForTimeout(1200);
+        const mm = await p.locator('.maplibregl-map').last().boundingBox();
+        const bottom = (await seenBox(p))[1][1] + mm.y;
+        const ctl = await controls(p);
+        const spots = [
+          ...ctl.filter((r) => ['outing-entry', 'atlas-title-card', 'locate', 'layers'].includes(r.id)).map((r) => [r.id, [(r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2]]),
+          ['the right edge', [mm.x + mm.width - 6, mm.y + mm.height / 3]], ['the left edge', [mm.x + 6, mm.y + mm.height / 3]], ['the sheet', [mm.x + mm.width / 2, bottom - 4]],
+        ];
+        for (const z of [16, 15.5]) {
+          for (const [what, to] of spots) {
+            await nameTo(p, name, to, z);
+            const b = await nameBox(p);
+            // Under a control: its letters meet the control's box. Cut (by the edge, the sheet or a control): fewer letters
+            // shown than the whole name's box at its heart.
+            const cut = b && box0 && (b.x1 - b.x0 < box0.x1 - box0.x0 - 2 || b.y1 - b.y0 < box0.y1 - box0.y0 - 1);
+            const hit = b && (cut || ctl.some((r) => b.x0 < r.x1 + 3 && b.x1 > r.x0 - 3 && b.y0 < r.y1 + 3 && b.y1 > r.y0 - 3) || b.x0 < mm.x || b.x1 > mm.x + mm.width || b.y1 > bottom);
+            if (hit) meets.push(`${w} z${z} ${what}: ${JSON.stringify(b)}`);
+            if (z === 16 && (what === 'outing-entry' || what === 'the right edge')) await shot(p, `t68-ux2-${what === 'outing-entry' ? 'control' : 'edge'}-${w}`);
+          }
+        }
+        // The camera a little north of the area's heart, so its name falls clear of "Plan an outing" at 320 too (with its
+        // point beside that control, the name is left out: the room at work).
+        await look(p, at(8, 0.2), 16);
+        const whole = await nameBox(p);
+        if (!whole || (box0 && (whole.x1 - whole.x0 < box0.x1 - box0.x0 - 2))) meets.push(`${w}: no whole name clear of the controls (${JSON.stringify(whole)})`);
+        await shot(p, `t68-large-16-${w}`);
+        await look(p, at(8, 0.2), 15.5);
+        await shot(p, `t68-large-155-${w}`);
+        await look(p, at(-10.7, 0.9), 16);
+        await shot(p, `t68-small-16-${w}`);
+      }
+      check(!meets.length, `tend walkability T68 ux 2: no name shows under Explore's controls or cut at the map's edge or the sheet, and clear of them it shows whole, at 390 and 320 (${meets.join('; ') || 'none met'})`);
       await p.setViewportSize({ width: 390, height: 844 });
+      await p.waitForTimeout(1200);
       await switchLayer(p, 'walkability', false);
       await p.waitForTimeout(2000);
-      const off = await look(p, at(8, -0.5), 16);
-      check(!off.length, `tend walkability T68: with the layer off, no name and no hatch (${off.join(', ')})`);
+      // tend walkability T68, auditor 7: the base map is seen, and no walk layer is.
+      await look(p, at(0, 0), 16);
+      const off = await everything(p);
+      check(off.some((k) => !k.startsWith('walk')) && !off.some((k) => k.startsWith('walk')), `tend walkability T68: with the layer off, the base map and no name and no hatch (${off.join(', ')})`);
       await shot(p, 't68-layer-off');
       await cx.close();
     }
@@ -445,9 +501,57 @@ async function run(h) {
       check(south.includes('walk-text:text') && north.includes('walk-text:text'), `tend walkability T68: two large areas side by side are each named (${south.join(', ')}; ${north.join(', ')})`);
       await look(p, at(45, -0.5), 15.2);
       await shot(p, 't68-pair-15');
+      await p.setViewportSize({ width: 320, height: 700 });
+      await look(p, at(45, -6.7), 15.3);
+      await shot(p, 't68-pair-south-153-320');
+      await look(p, at(45, 5.9), 15.3);
+      await shot(p, 't68-pair-north-153-320');
       await cx.close();
     }
   }
+}
+
+/**
+ * tend walkability T68 ux 2: the box of the car ground's name on a screenshot, from its letters in the hatch's solid slate
+ * (#3b4a6b; the hatch's own lines are slate at 0.4 and its edge at 0.65, far lighter), or null when none is drawn.
+ */
+function slateBox(png) {
+  const zlib = require('zlib');
+  let off = 8;
+  let w = 0;
+  let ht = 0;
+  const idat = [];
+  let ctype = 6;
+  while (off < png.length) {
+    const len = png.readUInt32BE(off);
+    const type = png.toString('ascii', off + 4, off + 8);
+    if (type === 'IHDR') { w = png.readUInt32BE(off + 8); ht = png.readUInt32BE(off + 12); ctype = png[off + 17]; }
+    if (type === 'IDAT') idat.push(png.subarray(off + 8, off + 8 + len));
+    off += 12 + len;
+  }
+  const bpp = ctype === 6 ? 4 : 3;
+  const raw = zlib.inflateSync(Buffer.concat(idat));
+  let prev = Buffer.alloc(w * bpp);
+  let box = null;
+  for (let y = 0; y < ht; y++) {
+    const f = raw[y * (w * bpp + 1)];
+    const line = Buffer.from(raw.subarray(y * (w * bpp + 1) + 1, (y + 1) * (w * bpp + 1)));
+    for (let i = 0; i < line.length; i++) {
+      const a = i >= bpp ? line[i - bpp] : 0;
+      const b = prev[i];
+      const c = i >= bpp ? prev[i - bpp] : 0;
+      const pp = a + b - c;
+      const pr = Math.abs(pp - a) <= Math.abs(pp - b) && Math.abs(pp - a) <= Math.abs(pp - c) ? a : Math.abs(pp - b) <= Math.abs(pp - c) ? b : c;
+      line[i] = (line[i] + [0, a, b, (a + b) >> 1, pr][f]) & 255;
+    }
+    prev = line;
+    for (let x = 0; x < w; x++) {
+      const d = Math.abs(line[x * bpp] - 59) + Math.abs(line[x * bpp + 1] - 74) + Math.abs(line[x * bpp + 2] - 107);
+      if (d > 30) continue;
+      box = box ? { x0: Math.min(box.x0, x), y0: Math.min(box.y0, y), x1: Math.max(box.x1, x), y1: Math.max(box.y1, y) } : { x0: x, y0: y, x1: x, y1: y };
+    }
+  }
+  return box;
 }
 
 /**

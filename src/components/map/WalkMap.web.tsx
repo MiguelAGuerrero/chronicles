@@ -37,7 +37,7 @@ import { MOTION, REPLAY_ENGINE } from '../../lib/motionTokens';
 import { fitBearing, followMoves } from '../../lib/compass';
 import { groundGeoJSON, groundStyle } from '../../lib/areas/groundDraw';
 import {
-  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, WALK_READ, WALK_TEXT, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, WALKER_FILL, BASE_VECTOR_SOURCE, poiLabelLayers,
+  alternatesGeoJSON, TRACE_EDGE_OPACITY, storefrontNameLayers, storefrontNameRotate, storefrontNamesGeoJSON, roomCells, routeGradesGeoJSON, pinsGeoJSON, BORDER, borderFillOpacity, borderMoves, bordersGeoJSON, WALK_STYLE, WALK_READ, WALK_TEXT, WALK_ROOM, walkRoomGeoJSON, walkHatchAt, ROUTE_CAR_WIDTH, ROUTE_CAR_LAYOUT, ROUTE_CAR_START_PAINT, carRouteGeoJSON, walkabilityGeoJSON, walkFade, walkKind, COLORS, coneGeoJSON, OVERTURE_CREDIT, GAZETTEER_CREDIT, DERIVE_ZOOM, endsGeoJSON, endsLoopGeoJSON, ENDS_LOOP_PAINT, ENDS_PAINT, ENDS_RING_PAINT, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, waitingDotsGeoJSON, WAITING_DOT_PAINT, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, GAP_LINK_WIDTH, HOP_EDGE, hopEdgeOpacity, traceShown, DRAWING_DASH, useZoomPins, walkerGeoJSON, WALKER_FILL, BASE_VECTOR_SOURCE, poiLabelLayers,
   FIT_MAX_ZOOM, FIT_PADDING, FLAT_NORTH_UP, LINE_SOURCE, LINE_SOURCE_IDS, PAST_STYLE, REPLAY_LINES, resendKey, revealGradient, revealStop, type CollectedFeatures, mapWorkerUrl, type ReplayMapFrame, type WalkMapHandle, type WalkMapProps,
 } from './types';
 import { nextSend, type Sent } from './sent';
@@ -108,10 +108,15 @@ function addOverlay(map: MapLibreMap): string | undefined {
   map.addLayer({ id: 'walk-read', type: 'line', source: 'walkability', filter: walkKind('read') as FilterSpecification,
     layout: { 'line-join': 'round', 'line-cap': 'butt' },
     paint: { 'line-color': WALK_READ.color, 'line-width': WALK_READ.widthPx, 'line-dasharray': [...WALK_READ.dash] } }, firstSymbol);
-  // T68: the quiet name inside each car area larger than the screen, about once a screen at the core's points, under the
-  // base map's labels, so it gives way to every street's name.
+  // T68: the quiet name inside each car area larger than the screen, once per area at the core's point, under the base
+  // map's labels, so it gives way to every street's name.
   map.addLayer({ id: 'walk-text', type: 'symbol', source: 'walkability', minzoom: WALK_TEXT.minzoom, filter: walkKind('text') as FilterSpecification,
     layout: WALK_TEXT.layout as unknown as SymbolLayerSpecification['layout'], paint: WALK_TEXT.paint }, firstSymbol);
+  // T68 ux 2: the room of the map's controls and its edge, kept from the name: above it, so placed first; under the base
+  // labels, so they keep theirs.
+  map.addSource('walk-room', { type: 'geojson', data: empty });
+  map.addLayer({ id: 'walk-room', type: 'symbol', source: 'walk-room', minzoom: WALK_TEXT.minzoom,
+    layout: WALK_ROOM.layout as unknown as SymbolLayerSpecification['layout'], paint: WALK_ROOM.paint }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer (`LINE_SOURCE`, NF5).
   const lineSource = { type: 'geojson' as const, data: empty, ...LINE_SOURCE };
   for (const id of LINE_SOURCE_IDS) map.addSource(id, lineSource);
@@ -1134,7 +1139,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     landingRef.current = props.landing;
   });
   // audit 11: the screen's controls over the map, and the map's edge, as room cells where the map now stands. Read from
-  // the page each time the map settles (a control never moves with the map); none while the Storefronts layer is off.
+  // the page each time the map settles (a control never moves with the map); none while the Storefronts layer is off. The
+  // car ground's name keeps the same room while Walkability draws one (tend walkability T68 ux 2).
   const roomOnScreen = (map: MapLibreMap): LngLat[] => {
     const canvas = map.getCanvas().getBoundingClientRect();
     const rects: { x: number; y: number; w: number; h: number }[] = [
@@ -1282,6 +1288,23 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     setData('walkability', walkabilityGeoJSON(walkRef.current));
     // The e2e reads what is drawn.
     container.current?.setAttribute('data-walk', walkRef.current ? `car:${walkRef.current.areas.length}|edges:${walkRef.current.edges.length}` : '');
+  }, [ready, walkKey]);
+  // T68 ux 2: the controls' and the edge's room, kept from the car ground's name, only while the map draws one: sent with
+  // a new picture, and again each time the map settles or changes size (a control never moves with the map).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const send = () => {
+      if (fit.current.refitting || !map.getSource('walk-room')) return;
+      setData('walk-room', walkRoomGeoJSON(walkRef.current?.text?.length ? roomOnScreen(map) : []));
+    };
+    send();
+    map.on('moveend', send);
+    map.on('resize', send);
+    return () => {
+      map.off('moveend', send);
+      map.off('resize', send);
+    };
   }, [ready, walkKey]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));

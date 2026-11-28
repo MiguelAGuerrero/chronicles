@@ -935,9 +935,10 @@ export const WALK_READ = {
  * T68 (the owner's yes, 2026-11-27): one quiet name inside each car area larger than the screen at walking zoom, so a
  * screen wholly inside car ground still says what the hatch is: the legend's words, "Built around cars", in the hatch's
  * slate at the map's own label size, in the base style's face for named ground (Positron's italic, as its water and
- * neighbourhood names), haloed white as the storefront names are, about once a screen at the points the core gives
- * (`CarGround.text`, each with room round it), giving way to every other label; from a zoom below walking zoom, where the
- * room still holds the words. Never a number.
+ * neighbourhood names), haloed white as the storefront names are, once per area at the point the core gives
+ * (`CarGround.text`, its deepest, with room round it), giving way to every other label and moving aside, or else left out,
+ * to keep clear of the map's controls and its edge (`WALK_ROOM`, tend walkability T68 ux 2); from a zoom below walking
+ * zoom, where the room still holds the words. Never a number.
  */
 export const WALK_TEXT = {
   minzoom: CAR_LABEL.zoom - 1,
@@ -947,7 +948,7 @@ export const WALK_TEXT = {
     'text-font': ['Noto Sans Italic'],
     'text-size': MAP_LABEL_SIZE,
     'text-max-width': 20,
-    'text-variable-anchor': ['center', 'top', 'bottom'],
+    'text-variable-anchor': ['center', 'top', 'bottom', 'left', 'right'],
     'text-radial-offset': 0.8,
     'text-padding': 2,
     'text-allow-overlap': false,
@@ -955,6 +956,28 @@ export const WALK_TEXT = {
   },
   paint: { 'text-color': WALK_SLATE, 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 },
 } as const;
+/**
+ * tend walkability T68 ux 2: the room the car ground's name keeps from the map's controls and its edge, the storefront
+ * names' own (audit 11: `roomCells` over each control and the edge, as invisible boxes always placed, so nothing placed
+ * after them overlaps them). Its layer sits just above the name's, under the base labels, so it holds back only the name.
+ */
+export const WALK_ROOM = {
+  layout: {
+    'symbol-placement': 'point',
+    'text-field': PIN_ROOM_TEXT,
+    'text-font': STOREFRONT_NAME_FONT,
+    'text-size': PIN_ROOM.size,
+    'text-padding': PIN_ROOM.padding,
+    'text-anchor': 'center',
+    'text-allow-overlap': true,
+    'text-ignore-placement': false,
+  },
+  paint: { 'text-opacity': 0 },
+} as const;
+/** The room's cells as map points (kind 'room'), nothing else. */
+export function walkRoomGeoJSON(cells: readonly LngLat[]): GeoJSON.FeatureCollection {
+  return { type: 'FeatureCollection', features: cells.map((c): GeoJSON.Feature => ({ type: 'Feature', properties: { kind: 'room' }, geometry: { type: 'Point', coordinates: c } })) };
+}
 /** The hatch and its edge sit under the base map's labels (walkability-car-ground audit 14); the web map finds its first symbol layer. */
 export const WALK_BELOW = BASE_FIRST_LABEL;
 /** The hatch's image names on a map, one a quarter zoom (`hatchQuarter`). */

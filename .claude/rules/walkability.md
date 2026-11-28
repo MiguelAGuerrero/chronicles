@@ -85,19 +85,25 @@ How an area treats someone on foot, judged from how the ground is built and show
   and Overpass answering a runtime error, both routed on the journey's own context (the harness is not the loop's to edit):
   the `headsup` journey's `t67-hole`.
 - **Native, unverified:** the `walk-read` line's `line-dasharray` on MapLibre RN.
-- **The car ground's name** (tend walkability T68, the owner's yes, 2026-11-27): "Built around cars" (`bandWords('car')`, the
-  legend's words) inside each car area larger than the screen at walking zoom, so a screen wholly inside car ground still says
-  what the hatch is. `carTextOf` (core) gives the points: on the cells' lattice, the room is the car ground at least
-  `CAR_LABEL.roomPx` (140 px at zoom 16) from anything not car ground, the read's edge included, in the pieces whose deepest
-  point is half the reference phone's width in (195 px at zoom 16: a circle as wide as a 390 px screen fits), measured in
-  pixels at walking zoom, so it follows the latitude. In it a name every `CAR_LABEL.everyPx` (400 px at zoom 16) on a
-  staggered grid fixed on the global lattice (a piece the grid misses is named once, at its deepest point), so about once a
-  screen, as a street's name repeats. `walkDrawingOf` hands them as `text`; the map draws `kind` 'text' with the `walk-text`
-  symbol layer (`WALK_TEXT`: slate, `MAP_LABEL_SIZE`, Positron's italic, white halo, under the base labels so it gives way to
-  them, from zoom 15, where the room still holds the words).
+- **The car ground's name** (tend walkability T68, the owner's yes, 2026-11-27, "one per area"; tend walkability audit 2):
+  "Built around cars" (`bandWords('car')`, the legend's words), once inside each car area larger than the screen at walking
+  zoom. `carTextOf` (core): on the cells' lattice, the room is the car ground at least `CAR_LABEL.roomPx` (140 px at zoom
+  16) from anything not car ground, the read's edge included; each four-way piece of it whose deepest point is half the
+  reference phone's width in (195 px at zoom 16: a circle as wide as a 390 px screen fits) is named once, at that point.
+  Pixels at each row's own latitude; of a ridge of equal deepest points, the one nearest their middle, ties to the lowest
+  global row and column: the same ground is named in the same place from any read (auditor 1, 2026-11-28). `walkDrawingOf`
+  hands the points as `text`; the map draws `kind` 'text' with the `walk-text` symbol layer (`WALK_TEXT`: slate,
+  `MAP_LABEL_SIZE`, Positron's italic, white halo, under the base labels so it gives way to them, from zoom 15).
+- **The name keeps the controls' room** (tend walkability T68 ux 2): on the web, `walk-room` (`WALK_ROOM`, `walkRoomGeoJSON`)
+  carries the storefront names' room cells (`roomCells` over Explore's controls and the map's edge, `roomOnScreen`) while
+  the map draws a name, just above `walk-text` and under the base labels, so only the name gives way; the name may move
+  aside (`text-variable-anchor` with left and right) or is left out, never shown cut. Native keeps no such room, as for the
+  storefront names.
+- **The shape's known limit** (the owner's T entry, 2026-11-28): one name per area leaves a screen elsewhere inside a large
+  area unnamed (the `headsup` journey's owner's scene shows the hatch and no name at walking zoom).
 - **Trap: MapLibre names a polygon once per tile piece,** at the pole of inaccessibility of what the tile clipped
   (`symbol_layout`): a room handed as polygons was named three times on one screen at zoom 16, two of them cut at the
-  screen's edge, at a tile's sliver. Points from the core keep the count to the grid's.
+  screen's edge. Points from the core keep the count to the core's.
 - **Trap: a test field of cells built by index** (`cell(I + di, J + dj)`) is skewed: a cell's longitudes scale with its row,
   so far from 0° a column of the same `i` drifts sideways row by row (about 200 m a row near Providence). A test that measures widths
   builds its cells from points 250 m apart (`cellIndexOf`), as `carText.test.ts` does.

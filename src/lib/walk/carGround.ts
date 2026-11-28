@@ -50,8 +50,8 @@ export interface CarGround {
    */
   read?: LngLat[][];
   /**
-   * Where the car ground's name is written (T68): in each car area larger than the screen at walking zoom, about once a
-   * screen, each at least `CAR_LABEL.roomPx` from its edge (`carTextOf`). Set by `walkDrawingOf`, never by `carGroundOf`.
+   * Where the car ground's name is written (T68): once in each car area larger than the screen at walking zoom, at least
+   * `CAR_LABEL.roomPx` from its edge (`carTextOf`). Set by `walkDrawingOf`, never by `carGroundOf`.
    */
   text?: LngLat[];
   /** Changes only when the picture does, so a map sends its data again only then. */
@@ -247,18 +247,15 @@ export function readEdgeOf(cells: readonly Cell[]): { lines: LngLat[][]; key: st
  * inside it, which a screen wholly inside it needs; the name sits where it has `roomPx` of car ground round it, so the words
  * stay inside the hatch from a zoom below walking zoom (`WALK_TEXT.minzoom`). Never a number on the map.
  */
-export const CAR_LABEL = { screenPx: 390, zoom: 16, roomPx: 140, everyPx: 400 } as const;
-/** Pixels at zoom 16 a lattice column spans (a fixed step in degrees east-west), and a row at the equator (over the cosine elsewhere). */
-const COLUMN_PX = (GROUND_STEP_M / M_PER_DEG_LON) * ((512 * 2 ** CAR_LABEL.zoom) / 360);
-const ROW_PX = (GROUND_STEP_M / M_PER_DEG_LAT) * ((512 * 2 ** CAR_LABEL.zoom) / 360);
+export const CAR_LABEL = { screenPx: 390, zoom: 16, roomPx: 140 } as const;
 
 /**
- * T68: where the name of each car area larger than the screen at walking zoom is written (`CarGround.text`). The room is the
- * car ground at least `CAR_LABEL.roomPx` from anything not car ground (read ground of another reading, or ground nobody
- * read), in the pieces whose deepest point is half the screen's width in, so a small area is never named. In it the name is
- * written about once a screen, as a street's name repeats along it: at the points of a staggered grid `CAR_LABEL.everyPx`
- * apart at walking zoom, fixed on the cells' global lattice so a read elsewhere puts them in the same places; a piece no
- * grid point falls in is named once, at its deepest point. Never stored. Pure.
+ * T68: where the name of each car area larger than the screen at walking zoom is written (`CarGround.text`), once per area
+ * (the owner's "one per area"; tend walkability audit 2). The room is the car ground at least `CAR_LABEL.roomPx` from
+ * anything not car ground (read ground of another reading, or ground nobody read); each of its four-way pieces whose deepest
+ * point is half the screen's width in is named once, at that point, so a small area is never named. Pixels are taken at
+ * each row's own latitude, and of the deepest points the one nearest their middle is kept, ties going to the lowest global
+ * row and column, so the same ground is named in the same place from any read. Never stored. Pure.
  */
 export function carTextOf(cells: readonly Cell[]): LngLat[] {
   const car = cells.filter((c) => c.band === 'car');
@@ -268,40 +265,41 @@ export function carTextOf(cells: readonly Cell[]): LngLat[] {
   for (let i = 0; i < R * Q; i++) isCar[i] = at[i] === 2 ? 1 : 0;
   // Metres from each point to the nearest that is not car ground (the same chamfer the read's edge is measured by).
   const depth = unreadDistance(isCar, R, Q, cosOf);
-  const cos = cosOf(R / 2);
-  const px = metersPerPixel(CAR_LABEL.zoom, toLngLat([R / 2, 0])[1]);
-  const room = CAR_LABEL.roomPx * px;
-  const large = (CAR_LABEL.screenPx / 2) * px;
-  // The grid, in lattice steps: rows a fixed number of pixels apart need more of them toward the poles (Mercator).
-  const kr = Math.max(1, Math.round((CAR_LABEL.everyPx * cos) / ROW_PX));
-  const kq = Math.max(2, Math.round(CAR_LABEL.everyPx / COLUMN_PX));
-  const mod = (a: number, b: number) => ((a % b) + b) % b;
-  const onGrid = (r: number, q: number) => {
-    const gr = r + r0;
-    return mod(gr, kr) === 0 && mod(q + q0 - (mod(Math.floor(gr / kr), 2) ? Math.floor(kq / 2) : 0), kq) === 0;
-  };
+  // A pixel at walking zoom, in metres, row by row.
+  const px = Float64Array.from({ length: R }, (_, r) => metersPerPixel(CAR_LABEL.zoom, toLngLat([r, 0])[1]));
+  const roomy = (i: number) => depth[i] >= CAR_LABEL.roomPx * px[Math.floor(i / Q)];
   const out: LngLat[] = [];
   const seen = new Uint8Array(R * Q);
   for (let s = 0; s < R * Q; s++) {
-    if (seen[s] || depth[s] < room) continue;
-    // Each piece of room (four-way neighbours), with its deepest point and its grid points.
+    if (seen[s] || !roomy(s)) continue;
+    // Each piece of room (four-way neighbours), and its deepest points.
     const piece = [s];
     seen[s] = 1;
-    let deepest = s;
-    const marks: number[] = [];
+    let most = -Infinity;
     for (let k = 0; k < piece.length; k++) {
       const i = piece[k];
       const [r, q] = [Math.floor(i / Q), i % Q];
-      if (depth[i] > depth[deepest]) deepest = i;
-      if (onGrid(r, q)) marks.push(i);
+      if (depth[i] > most) most = depth[i];
       for (const n of [r > 0 ? i - Q : -1, r < R - 1 ? i + Q : -1, q > 0 ? i - 1 : -1, q < Q - 1 ? i + 1 : -1]) {
-        if (n < 0 || seen[n] || depth[n] < room) continue;
+        if (n < 0 || seen[n] || !roomy(n)) continue;
         seen[n] = 1;
         piece.push(n);
       }
     }
-    if (depth[deepest] < large) continue;
-    for (const i of marks.length ? marks : [deepest]) out.push(home([toLngLat([Math.floor(i / Q), i % Q])])[0]);
+    const deepest = piece.filter((i) => depth[i] >= most - 1e-6);
+    // The deepest point nearest the middle of them all (a ridge's middle, not its end); ties to the lowest row, then column.
+    const mr = deepest.reduce((a, i) => a + Math.floor(i / Q), 0) / deepest.length;
+    const mq = deepest.reduce((a, i) => a + (i % Q), 0) / deepest.length;
+    let best = deepest[0];
+    let bestD = Infinity;
+    for (const i of deepest) {
+      const d = (Math.floor(i / Q) - mr) ** 2 + ((i % Q) - mq) ** 2;
+      const [gr, gq, br, bq] = [Math.floor(i / Q) + r0, (i % Q) + q0, Math.floor(best / Q) + r0, (best % Q) + q0];
+      if (d < bestD - 1e-9 || (Math.abs(d - bestD) <= 1e-9 && (gr < br || (gr === br && gq < bq)))) [best, bestD] = [i, d];
+    }
+    // Named only when it is half the screen's width in: a circle as wide as the screen fits.
+    if (depth[best] < (CAR_LABEL.screenPx / 2) * px[Math.floor(best / Q)]) continue;
+    out.push(home([toLngLat([Math.floor(best / Q), best % Q])])[0]);
   }
   return out;
 }

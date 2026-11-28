@@ -13,7 +13,7 @@ import type { WayFacts } from '../../walk/types';
 import { bandWords } from '../../walk/bandWords';
 import { metersPerPixel } from '../../pins';
 import { LAYERS } from '../../layers/registry';
-import { MAP_LABEL_SIZE, WALK_SLATE, WALK_STYLE, WALK_TEXT, walkabilityGeoJSON, walkKind } from '../../../components/map/types';
+import { MAP_LABEL_SIZE, WALK_ROOM, WALK_SLATE, WALK_STYLE, WALK_TEXT, walkabilityGeoJSON, walkKind, walkRoomGeoJSON } from '../../../components/map/types';
 
 // T68 (the owner's yes, in person, 2026-11-27: "T67-T69 walkability"): a screen wholly inside car ground had no edge in
 // view to say what the hatch is. One quiet name, the legend's "Built around cars", in slate at the map's own label size,
@@ -79,7 +79,7 @@ test('tend walkability T68: a car area larger than the screen at walking zoom is
   const cells = field(16, 16, (di, dj) => (di >= 4 && di < 12 && dj >= 4 && dj < 12 ? 'car' : 'foot'));
   const g = walkDrawingOf(cells);
   const text = g.text ?? [];
-  assert.ok(text.length >= 1, 'named');
+  assert.equal(text.length, 1, 'named once');
   const room = roomM(cells);
   for (const p of text) {
     assert.ok(inWhole(g, p), 'each name lies in the whole hatch');
@@ -87,26 +87,43 @@ test('tend walkability T68: a car area larger than the screen at walking zoom is
   }
 });
 
-test('tend walkability T68: about once a screen: names a grid\'s step apart at walking zoom, and no room a screen from one', () => {
+/** The middle of the car cells' bounds. */
+const midOf = (cells: readonly Cell[]): LngLat => {
+  const car = cells.filter((c) => c.band === 'car');
+  const [w, s, e, n] = [Math.min(...car.map((c) => c.west)), Math.min(...car.map((c) => c.south)), Math.max(...car.map((c) => c.east)), Math.max(...car.map((c) => c.north))];
+  return [(w + e) / 2, (s + n) / 2];
+};
+
+test('tend walkability audit 2: one name per car area larger than the screen, at its deepest room point, the same from any read', () => {
+  // The proxy's ruling (decision 0157, 2026-11-28): the owner said yes to "one per area"; "about once a screen" (a grid of
+  // names) is a reshape, filed for the owner, not built.
   const cells = field(16, 16, (di, dj) => (di >= 4 && di < 12 && dj >= 4 && dj < 12 ? 'car' : 'foot'));
   const text = carTextOf(cells);
-  // 2 km of car ground, about 1.6 km across with the room at its edges taken off: some 4 or 5 names a side (a screen is
-  // about 350 m wide here), not one for each of its 64 cells and not one for the whole.
-  assert.ok(text.length >= 9 && text.length <= 36, `${text.length} names`);
-  for (let a = 0; a < text.length; a++) for (let b = a + 1; b < text.length; b++) {
-    assert.ok(pxApart(text[a], text[b]) >= CAR_LABEL.everyPx * 0.85, `${pxApart(text[a], text[b]).toFixed(0)} px apart`);
-  }
-  // Any point of the area with the words' room round it has a name within a screen's width.
-  const room = roomM(cells);
-  for (let y = 4; y < 12; y += 0.5) for (let x = 4; x < 12; x += 0.5) {
-    const p = at(x, y);
-    if (!roomRound(cells, p, room)) continue;
-    assert.ok(text.some((t) => pxApart(p, t) <= CAR_LABEL.screenPx), `a name within a screen of ${x}, ${y}`);
-  }
-  // Fixed on the global lattice: a wider read around the same ground writes the same names where it reaches as far.
+  assert.equal(text.length, 1, `one name, not ${text.length}`);
+  // At its heart: the middle of its car cells, within less than half a cell (the rows of cells sit a little apart east-west).
+  const heart = midOf(cells);
+  assert.ok(pxApart(text[0], heart) < 100, `${pxApart(text[0], heart).toFixed(0)} px from the area's middle`);
+  // The same ground in a wider read writes it in the same place.
   const wider = field(20, 20, (di, dj) => (di >= 6 && di < 14 && dj >= 6 && dj < 14 ? 'car' : 'foot'), offset(ORIGIN, -500, -500));
-  const again = carTextOf(wider);
-  for (const p of text) assert.ok(again.some((q) => pxApart(p, q) < 1), 'the same places');
+  assert.deepEqual(carTextOf(wider), text, 'a wider read, the same place');
+  // A long area: its deepest points are a ridge; the name sits at the ridge's middle, not at an end.
+  const long = field(26, 10, (di, dj) => (di >= 3 && di < 23 && dj >= 3 && dj < 7 ? 'car' : 'foot'));
+  const [one, ...more] = carTextOf(long);
+  assert.equal(more.length, 0, 'one name on the long area');
+  const middle = midOf(long);
+  assert.ok(pxApart(one, middle) < 120, `${pxApart(one, middle).toFixed(0)} px from the long area's middle`);
+});
+
+test('tend walkability audit 2 (auditor 1): at 35.2° N, a car area read alone and with a second one 3 km north is named in the same place', () => {
+  // The read's middle latitude moves when the second area comes in; the name's place may not.
+  const at35: LngLat = [-80.84, 35.2];
+  const alone = field(14, 14, (di, dj) => (di >= 3 && di < 11 && dj >= 3 && dj < 11 ? 'car' : 'foot'), at35);
+  const both = field(14, 30, (di, dj) => (di >= 3 && di < 11 && ((dj >= 3 && dj < 11) || (dj >= 19 && dj < 27)) ? 'car' : 'foot'), at35);
+  const a = carTextOf(alone);
+  const b = carTextOf(both);
+  assert.equal(a.length, 1);
+  assert.equal(b.length, 2);
+  assert.ok(b.some((p) => p[0] === a[0][0] && p[1] === a[0][1]), 'the first area\'s name has not moved');
 });
 
 test('tend walkability T68: no name on a car area smaller than the screen, whatever its length', () => {
@@ -118,7 +135,7 @@ test('tend walkability T68: no name on a car area smaller than the screen, whate
   assert.deepEqual(carTextOf(strip), [], 'a long narrow strip is not named');
   // Two cells wide (500 m, about 560 px here) is wider than the screen: named.
   const wide = field(10, 12, (di, dj) => (di >= 4 && di < 6 && dj >= 2 && dj < 10 ? 'car' : 'foot'));
-  assert.ok(carTextOf(wide).length >= 1, 'two cells wide is named');
+  assert.equal(carTextOf(wide).length, 1, 'two cells wide is named, once');
 });
 
 test('tend walkability T68: "larger than the screen" is measured in the screen\'s pixels at walking zoom, so it follows the latitude', () => {
@@ -139,6 +156,7 @@ test('tend walkability T68: two large areas side by side are each named', () => 
   // Two car areas 1 km square, a column of foot ground 250 m wide between them.
   const cells = field(14, 8, (di, dj) => (dj >= 2 && dj < 6 && ((di >= 1 && di < 6) || (di >= 7 && di < 12)) ? 'car' : 'foot'));
   const text = carTextOf(cells);
+  assert.equal(text.length, 2, 'one name each');
   const g = walkDrawingOf(cells);
   // Each area's whole hatch is its own polygon; each holds a name, and every name is in one of them.
   const west = g.areas.filter((a) => a.fade === 0 && inPolygon(at(3, 4), a.shape));
@@ -153,7 +171,7 @@ test('tend walkability T68: a car area cut by the read\'s edge keeps the name\'s
   // Car ground to the read's north and east edges: what lies past them is not known, so the room keeps clear of them.
   const cells = field(12, 12, (di, dj) => (di >= 4 && dj >= 4 ? 'car' : 'foot'));
   const text = carTextOf(cells);
-  assert.ok(text.length >= 1);
+  assert.equal(text.length, 1);
   const room = roomM(cells);
   // Every name has the words' room of read car cells round it: the cells past the read's edge are not read.
   for (const p of text) assert.ok(roomRound(cells, p, room - 30), 'clear of the read\'s edge');
@@ -222,6 +240,7 @@ test('tend walkability T68: the name is the legend\'s words, in the hatch\'s sla
   const style = require('../map/fixtures/positron-fonts.json') as { fonts: string[] };
   for (const f of WALK_TEXT.layout['text-font']) assert.ok(style.fonts.includes(f), `${f} is one of the base style's fonts`);
   assert.equal(WALK_TEXT.layout['text-allow-overlap'], false, 'it gives way, never overlaps');
+  assert.deepEqual([...WALK_TEXT.layout['text-variable-anchor']].sort(), ['bottom', 'center', 'left', 'right', 'top'], 'tend walkability T68 ux 2: it may move aside to keep clear, as the storefront names do');
   assert.equal(WALK_TEXT.minzoom, CAR_LABEL.zoom - 1, 'from a zoom below walking zoom');
   // At its lowest zoom the room is half what it is at walking zoom, and still holds the words' half width (17 letters at
   // about 0.6 of the size each, and the halo).
@@ -254,4 +273,26 @@ test('tend walkability T68: both maps place the name from the walkability source
   assert.match(add, /WALK_TEXT\.layout/);
   assert.match(add, /paint: WALK_TEXT\.paint/);
   assert.match(add, /\}, firstSymbol$/);
+});
+
+test('tend walkability T68 ux 2: the map keeps the room of its controls and its edge from the name, while Walkability names something', () => {
+  // The ux-reviewer's ux 2 (Severity: medium), the proxy's one review fix: the only name in view sat under "Plan an
+  // outing". The storefront names' room (roomCells over the controls and the map's edge, audit 11) is kept from it too.
+  const cells: LngLat[] = [[-71.4, 41.82], [-71.39, 41.82]];
+  const fc = walkRoomGeoJSON(cells);
+  assert.equal(fc.features.length, 2);
+  for (const f of fc.features) {
+    assert.equal(f.geometry.type, 'Point');
+    assert.deepEqual(Object.keys(f.properties!), ['kind']);
+  }
+  assert.equal(WALK_ROOM.paint['text-opacity'], 0, 'invisible');
+  assert.equal(WALK_ROOM.layout['text-allow-overlap'], true, 'always placed');
+  assert.equal(WALK_ROOM.layout['text-ignore-placement'], false, 'so nothing placed after it overlaps it');
+  const MAP = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'components', 'map');
+  const web = readFileSync(join(MAP, 'WalkMap.web.tsx'), 'utf8');
+  const text = web.indexOf("id: 'walk-text'");
+  const room = web.indexOf("id: 'walk-room'");
+  assert.ok(text > 0 && room > text, 'web: the room\'s layer is added after the name\'s, so it is placed first');
+  assert.match(web.slice(room, web.indexOf(');', room)), /\}, firstSymbol$/, 'under the base labels, so they keep their places');
+  assert.match(web, /setData\('walk-room', walkRoomGeoJSON\(/, 'web: the room is sent');
 });
