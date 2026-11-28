@@ -171,7 +171,7 @@ async function run(h) {
     const ended = await text('[data-testid=card-line]');
     const map1 = await cardMap();
     const end1 = endOf(map1?.ends);
-    check(!!ended && !dayLong(ended) && map1?.links === 0 && end1 && distanceM(end1, corner) < 80,
+    check(!!ended && !dayLong(ended) && map1?.links === 0 && end1 && distanceM(end1, corner) < 30,
       `QE5: End it: the replay's card says the walk's own time ("${ended}"), its end mark where the walking stopped (${end1 ? Math.round(distanceM(end1, corner)) : '?'} m from the last corner), and no dotted hop (${map1?.links})`);
     await shot(pg, 'qe-ended-card');
 
@@ -212,7 +212,8 @@ async function run(h) {
     await pg.waitForTimeout(800);
     const row = await text('[data-testid=action-quiet-end]');
     const order = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=walk-actions] [data-testid^=action-]')].map((e) => e.getAttribute('data-testid')));
-    check(row.startsWith('End it where it went quiet') && /what came after it leaves the walk$/.test(row) && order.indexOf('action-quiet-end') === order.indexOf('action-rename') + 1 && order.indexOf('action-gps-log') === order.indexOf('action-quiet-end') + 1,
+    const rowOk = [row.includes('End it where it went quiet'), row.endsWith('what came after it leaves the walk'), order.indexOf('action-quiet-end') === order.indexOf('action-rename') + 1, order.indexOf('action-gps-log') === order.indexOf('action-quiet-end') + 1];
+    check(rowOk.every(Boolean),
       `QE7: a kept walk quiet at its end has "End it where it went quiet" in its More, between Rename and Share GPS log ("${row}", ${order.join(' ')})`);
     await shots('qe-more-row');
     await pg.click('[data-testid=action-quiet-end]');

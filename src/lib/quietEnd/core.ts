@@ -22,7 +22,9 @@ const SPOT_ACCURACY_TIMES = 3;
 /** This many fixes in a row beyond the reach are walking; a lone far fix is a jump (as `holdStill` reads a leave). */
 const LEAVE_FIXES = 3;
 /** The spot is the middle of the run's last fixes. */
-const SPOT_FIXES = 10;
+const SPOT_FIXES = 5;
+/** Once inside the reach, the walk stopped at the first fix this close to the spot (m), or within its own accuracy. */
+const STOPPED_M = 10;
 
 export interface QuietInput {
   /** The walk read as every trace is (`readTrace`, with its start, pauses and stills). */
@@ -55,9 +57,10 @@ const median = (xs: number[]) => {
 };
 
 /**
- * When the run arrived at the spot it ends on: the first fix within the spot's reach after the last few in a row beyond
- * it. A run that never leaves its own spot (the standing fixes after a web page's long break, a phone's day at one spot)
- * has no walking on: null.
+ * When the run arrived at the spot it ends on: after the last few fixes in a row beyond the spot's reach, the first fix
+ * close to the spot (within its accuracy, 10 m at least), so the last steps into it count as walked; else the first
+ * within the reach. A run that never leaves its own spot (the standing fixes after a web page's long break, a phone's day
+ * at one spot) has no walking on: null.
  */
 function arrivalOf(run: readonly TracePoint[]): number | null {
   const tail = run.slice(-SPOT_FIXES);
@@ -68,7 +71,11 @@ function arrivalOf(run: readonly TracePoint[]): number | null {
   for (let i = run.length - 1; i >= 0; i--) {
     if (distanceM(spot, [run[i].lon, run[i].lat]) > reach) {
       far++;
-      if (far >= LEAVE_FIXES) return run[i + LEAVE_FIXES].t;
+      if (far >= LEAVE_FIXES) {
+        const inside = run.slice(i + LEAVE_FIXES);
+        const close = Math.max(STOPPED_M, acc);
+        return (inside.find((p) => distanceM(spot, [p.lon, p.lat]) <= close) ?? inside[0]).t;
+      }
     } else far = 0;
   }
   return null;

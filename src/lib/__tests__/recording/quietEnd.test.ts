@@ -55,7 +55,7 @@ test('QE1: a web-shaped tail, one long break then standing fixes 400 m away, is 
   const tr = read([...walk, ...home]);
   const at = quietPoint({ tr, captures: [], pauses: [] });
   assert.ok(at != null, 'a point');
-  assert.ok(Math.abs(at - corner.t) <= MIN, `within a minute of the last corner (${(at - corner.t) / 1000} s)`);
+  assert.ok(Math.abs(at - corner.t) <= 15_000, `within seconds of the last corner (${(at - corner.t) / 1000} s)`);
   assert.equal(quietEndAt({ tr, captures: [], pauses: [] }, lastOf(home).t + 5000), at, 'quiet 30 min or more at the hold');
 });
 
@@ -67,7 +67,7 @@ test('QE1: a phone-shaped tail, two hours of a fix a second at the last corner, 
   const phone = quietPoint({ tr: read([...walk, ...stay]), captures: [], pauses: [] });
   const web = quietPoint({ tr: read([...walk, ...standing(corner.t + 20 * HOUR, 5 * MIN, 3200, 200, 1000, 12)]), captures: [], pauses: [] });
   assert.ok(phone != null && web != null);
-  assert.ok(Math.abs(phone - corner.t) <= MIN, `within a minute of the last corner (${(phone - corner.t) / 1000} s)`);
+  assert.ok(Math.abs(phone - corner.t) <= 15_000, `within seconds of the last corner (${(phone - corner.t) / 1000} s)`);
   assert.ok(Math.abs(phone - web) <= MIN, 'the phone and the web find the same point');
 });
 
