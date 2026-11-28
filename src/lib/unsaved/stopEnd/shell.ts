@@ -6,9 +6,14 @@ export interface StopEndDeps {
   gate: { underWay(): boolean; pin(): () => void };
   /** The one holder of unsaved captures (decision 0196). */
   unsaved: { heldFor(walkId: string): Unsaved[]; ended(walkId: string, only?: readonly string[]): Promise<void> };
-  /** The walk's end, with the empty-walk drop (`session.endWalk`). */
-  endWalk(walkId: string, o: { leaves: boolean }): Promise<{ dropped: boolean }>;
+  /** The walk's end, with the empty-walk drop (`session.endWalk`): at `endAt` when the walker chose End it (QE3). */
+  endWalk(walkId: string, o: { leaves: boolean; endAt?: number }): Promise<{ dropped: boolean }>;
+  /** Where the walk went quiet, when it has been quiet 30 min or more (`quietEnd.at`, decision 0272); none asks nothing. */
+  quietAt?(walkId: string): Promise<number | null>;
 }
+
+/** A Stop's answer to the quiet ask (QE3, QE6): `'keep'`, today's Stop exactly; a time, End it there. */
+export type QuietAnswer = 'keep' | number;
 
 /**
  * The end both Stops share once their own waits are over (tend tabs audit 42, decision 0227): what the walk holds is
@@ -19,14 +24,21 @@ export interface StopEndDeps {
 export function createStopEnd(d: StopEndDeps) {
   return async function stopEnd(
     walkId: string,
-    o: { leaves: boolean; warned: readonly string[]; going?: () => void },
-  ): Promise<{ warn: Unsaved[] } | { dropped: boolean }> {
+    o: { leaves: boolean; warned: readonly string[]; going?: () => void; quiet?: QuietAnswer },
+  ): Promise<{ warn: Unsaved[] } | { quiet: number } | { dropped: boolean }> {
     const held = d.unsaved.heldFor(walkId);
     if (stopWarns(held.map((x) => x.id), o.warned)) return { warn: held };
+    // A walk gone quiet asks once, before anything ends (QE3, QE4); a point that cannot be read asks nothing, so a Stop
+    // is never trapped by it. Answered, the Stop goes on: Keep it all as today (QE6), End it at the point.
+    if (o.quiet == null && d.quietAt) {
+      const at = await d.quietAt(walkId).catch(() => null);
+      if (at != null) return { quiet: at };
+    }
+    const endAt = typeof o.quiet === 'number' ? o.quiet : undefined;
     // Nothing awaited between the read and the pin: a save ending meanwhile cannot slip the walk into the drop.
     const release = d.gate.underWay() ? d.gate.pin() : null;
     o.going?.();
-    const { dropped } = await d.endWalk(walkId, { leaves: o.leaves }).finally(() => release?.());
+    const { dropped } = await d.endWalk(walkId, endAt == null ? { leaves: o.leaves } : { leaves: o.leaves, endAt }).finally(() => release?.());
     // Only once the walk has ended (unsaved-captures audit 4).
     await d.unsaved.ended(walkId, held.map((x) => x.id));
     return { dropped };

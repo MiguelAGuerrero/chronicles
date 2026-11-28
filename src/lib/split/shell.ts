@@ -2,6 +2,7 @@
 import type { PendingJob } from '../deletion/pending';
 import { pieceKey } from '../moment';
 import type { Ports } from '../ports/types';
+import { untilEnd } from '../quietEnd/core';
 import { splitPlace } from '../splitPlace';
 import { createStore, type Store } from '../store';
 import type { Moment } from '../types';
@@ -24,7 +25,9 @@ export function createSplit(p: Pick<Ports, 'db'>, deps: { schedule: (job: Pick<P
       if (i < 0) throw new Error('That is not part of this moment.');
       if (pieceId === m.id) throw new Error('A moment keeps its first capture.');
       const piece = m.pieces[i];
-      const walk = m.walk_id ? { fixes: await p.db.getPoints(m.walk_id), pauses: await p.db.getPauses(m.walk_id) } : null;
+      // On its walk up to the walk's end (QE5, decision 0272): never toward a reading after a walk ended where it went quiet.
+      const ended = m.walk_id ? ((await p.db.getWalk(m.walk_id))?.ended_at ?? null) : null;
+      const walk = m.walk_id ? { fixes: untilEnd(await p.db.getPoints(m.walk_id), ended), pauses: await p.db.getPauses(m.walk_id) } : null;
       const at = splitPlace(piece.t, walk, m);
       const own: Moment = { id: piece.id, walk_id: m.walk_id, t: piece.t, lat: at.lat, lon: at.lon, segment_id: null, pieces: [{ ...piece, moment_id: piece.id }] };
       store.set({ pending: [...store.get().pending.filter((x) => x.moment.id !== own.id), { from: m.id, moment: own }] });

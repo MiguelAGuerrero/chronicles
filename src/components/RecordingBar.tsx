@@ -1,6 +1,6 @@
 import type { Faced } from '../lib/moment';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, AppState, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { barCaptures } from '../lib/captureBand';
 import { chronicleSection } from '../lib/resurface/sectionStore';
@@ -12,6 +12,9 @@ import { memoGate } from '../lib/memoGate';
 import { unsaved } from '../lib/unsaved';
 import { barWarning } from '../lib/unsaved/core';
 import { stopEnd } from '../lib/unsaved/stopEnd';
+import type { QuietAnswer } from '../lib/unsaved/stopEnd/shell';
+import { KEEP_IT_ALL } from '../lib/quietEnd/core';
+import { QuietEndAsk } from './QuietEndAsk';
 import { barInSight, reminderHeld, reminderSeen, reminderSight, reminderText, UNSEEN, type ReminderSight } from '../lib/discovery/recall';
 import { handOnRecall, onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
@@ -291,8 +294,37 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     return () => window.removeEventListener('beforeunload', warn);
   }, [memoOn]);
 
+  // A held Stop on a walk gone quiet asks once, above the bar, in the walk screen's words (QE4, decision 0272); its answer
+  // is handed to the bar's end, which runs again.
+  const [quiet, setQuiet] = useState<{ at: number; now: number } | null>(null);
+  const answerRef = useRef<QuietAnswer | undefined>(undefined);
+  const asking = quiet != null;
+  useEffect(() => {
+    if (!asking) return;
+    const close = () => setQuiet(null);
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      close();
+      return true;
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopImmediatePropagation();
+      close();
+    };
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey, true);
+    return () => {
+      back.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey, true);
+    };
+  }, [asking]);
+  const closeAsk = () => {
+    if (asking) setQuiet(null);
+  };
+
   // The bar's end of the walk: run once per walk, however many holds ask for it (tend tabs audit 53).
   const endWalk = async () => {
+    const answer = answerRef.current;
+    answerRef.current = undefined;
     try {
       // Never under a memo recording, as Start (tabs audit 3); a memo still being saved after the wait is said once, and
       // the next hold goes through it, the memo saving into the ended walk (T35). The bar's photo is kept first, as on
@@ -309,10 +341,15 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       // Whatever of the walk is held, from any screen, read now, is said first; the bar has no Retry, so its words
       // promise none (UN5, UN6). The next hold lets go only what it warned of, files and all (UN8), and nothing still
       // being saved lets the walk be dropped as empty: the end both Stops share (tend tabs audit 42, decision 0227).
-      const r = await stopEnd(walk.id, { leaves: false, warned: warnedHeld.current });
+      const r = await stopEnd(walk.id, { leaves: false, warned: warnedHeld.current, quiet: answer });
       if ('warn' in r) {
         warnedHeld.current = r.warn.map((x) => x.id);
         setSaid({ text: barWarning(r.warn.length > 1), error: true });
+        return;
+      }
+      if ('quiet' in r) {
+        // Gone quiet 30 min or more: the card asks above the bar, and nothing has ended (QE4).
+        setQuiet({ at: r.quiet, now: Date.now() });
         return;
       }
       const { dropped } = r;
@@ -328,6 +365,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   };
 
   const stop = async () => {
+    // With the ask up, a hold on Stop closes it and ends nothing, as on the walk screen (forgotten-stop steward 4).
+    if (asking && answerRef.current === undefined) {
+      setQuiet(null);
+      return;
+    }
     if (barStopping(barStop.get(), walk.id, Date.now())) return;
     const mine = { walkId: walk.id, since: Date.now() };
     barStop.set(mine);
@@ -341,12 +383,25 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     }
   };
 
+  const answer = (a: QuietAnswer) => {
+    answerRef.current = a;
+    setQuiet(null);
+    void stop();
+  };
+
   const line = (now: number) => recordingLine({ startedAt, pauses, now, distanceM });
   const memo = (now: number) => memoLine({ startedAt: memoStartedAt ?? now, now, paused });
   const capturing = barCapturesOff({ capturing: cap.busy != null, stopping });
   return (
     <View>
-    {cap.discarded && !memoOn && !stopping && (
+    {quiet && (
+      // Above the bar, on the page's ground where the discarded memo's pill sits, in flow so it covers no control: the
+      // page's own capture row stays one tap above it (QE4; forgotten-stop steward 2).
+      <View style={styles.pillRow}>
+        <QuietEndAsk at={quiet.at} now={quiet.now} other={KEEP_IT_ALL} busy={stopping} style={styles.quietAsk} onEnd={() => answer(quiet.at)} onOther={() => answer('keep')} />
+      </View>
+    )}
+    {cap.discarded && !memoOn && !stopping && !quiet && (
       // The walk screen's pill, on the page's ground just above the bar, in flow so it covers no control (BC9); Undo and
       // Close, staying until used (tend tabs T61).
       <View style={styles.pillRow}>
@@ -401,7 +456,10 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           testID="recording-return"
           accessibilityRole="button"
           accessibilityHint={memoOn ? undefined : 'Returns to the walk'}
-          onPress={() => back(null)}
+          onPress={() => {
+            closeAsk();
+            back(null);
+          }}
           style={({ pressed }) => [
             styles.main,
             memoOn ? { gap: gaps.gap, paddingLeft: memoRow.left, paddingRight: memoRow.right } : { gap: gaps.gap, paddingRight: gaps.right },
@@ -446,7 +504,10 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             id="bar-photo"
             icon="camera"
             label={memoOn ? 'Add a photo to this memo' : 'Add to your walk: take a photo or video'}
-            onPress={() => void photo()}
+            onPress={() => {
+              closeAsk();
+              void photo();
+            }}
             spinning={cap.busy === 'photo'}
             disabled={capturing || cap.busy === 'voice'}
           />}
@@ -459,8 +520,14 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         ) : (
           <>
             {(showCaptures || cap.busy === 'voice') &&
-              <BarRound id="bar-voice" icon="mic" label="Add to your walk: record a voice memo" onPress={() => void startMemo()} spinning={cap.busy === 'voice'} disabled={capturing} />}
-            {showCaptures && <BarRound id="bar-note" icon="document-text" label="Add to your walk: write a note" onPress={() => setPage((p) => ({ key: (p?.key ?? 0) + 1 }))} disabled={capturing} />}
+              <BarRound id="bar-voice" icon="mic" label="Add to your walk: record a voice memo" onPress={() => {
+                closeAsk();
+                void startMemo();
+              }} spinning={cap.busy === 'voice'} disabled={capturing} />}
+            {showCaptures && <BarRound id="bar-note" icon="document-text" label="Add to your walk: write a note" onPress={() => {
+              closeAsk();
+              setPage((p) => ({ key: (p?.key ?? 0) + 1 }));
+            }} disabled={capturing} />}
           </>
         )}
         {/* Stop from the bar itself, held as on the walk screen: a way out even when the walk screen
@@ -472,7 +539,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           // Its 44 px circle holds the spinner alone; "Stopping…" stays its spoken name (fix walk-strip-buttons audit 6).
           quietWhilePending
           onHold={stop}
-          onTap={() => setSaid({ text: 'Hold to stop' })}
+          onTap={() => (asking ? setQuiet(null) : setSaid({ text: 'Hold to stop' }))}
           busy={stopping}
           disabled={stopping}
           style={styles.stop}
@@ -517,6 +584,8 @@ const styles = StyleSheet.create({
   saidRow: { maxWidth: 640, width: '100%', alignSelf: 'center', paddingHorizontal: 10, paddingTop: 4 },
   said: { color: '#ffffff', fontSize: 14, fontWeight: '600', lineHeight: 19 },
   pillRow: { flexDirection: 'row', justifyContent: 'flex-end', backgroundColor: theme.bg, paddingVertical: 6, paddingHorizontal: 10 },
+  // The quiet ask fills the row, as drawn (QE4).
+  quietAsk: { flex: 1, maxWidth: 560, marginHorizontal: 'auto' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingLeft: 14, paddingRight: 6 },
   pillText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   pillBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },

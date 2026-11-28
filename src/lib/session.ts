@@ -55,11 +55,13 @@ export function startWalk(): Promise<{ walk: Walk; warning?: string }> {
  * or an app killed mid-stop can never extend it. Streets are derived later,
  * behind the replay's first beat.
  */
-export function stopWalk(walkId: string): Promise<void> {
+export function stopWalk(walkId: string, endAt?: number): Promise<void> {
   if (!stopping) {
     stopping = (async () => {
       const at = Date.now();
-      await db.updateWalk(walkId, { ended_at: at, open: false });
+      // End it writes where the walk went quiet (QE5, decision 0272); a pause still open ends at the hold, and the time
+      // past the end counts nowhere (`pausedMs` clips at the end).
+      await db.updateWalk(walkId, { ended_at: endAt ?? at, open: false });
       await db.endPause(walkId, at);
       // The plan of a journey it carried goes first (OJ48), so a recorder that fails to stop leaves no town's name behind.
       await journeyPlans.clear().catch(() => {});
@@ -85,8 +87,8 @@ export function stopWalk(walkId: string): Promise<void> {
  * skipped and Undo is offered. `leaves` says the caller changes screen right after: that one route change must not
  * store the drop (EW8). A walk that could not be read stays and plays its replay (EW10).
  */
-export async function endWalk(walkId: string, o: { leaves: boolean }): Promise<{ dropped: boolean }> {
-  await stopWalk(walkId);
+export async function endWalk(walkId: string, o: { leaves: boolean; endAt?: number }): Promise<{ dropped: boolean }> {
+  await stopWalk(walkId, o.endAt);
   const dropped = await dropEmpty(walkId);
   if (dropped && o.leaves) deletions.holdNextFlush();
   return { dropped };

@@ -1,6 +1,7 @@
 // @layer shell
 import type { PendingJob } from '../deletion/pending';
 import type { Ports } from '../ports/types';
+import { untilEnd } from '../quietEnd/core';
 import { readTrace } from '../rides';
 import { isEmptyWalk, pausesKept } from './core';
 
@@ -32,7 +33,8 @@ export function createDropEmpty(p: Pick<Ports, 'db'>, deps: DropEmptyDeps) {
         p.db.getStills(walkId),
         p.db.getGapDecisions(walkId),
       ]);
-      const trace = readTrace(points, walk.started_at, pauses, stills);
+      // Up to its end (QE5, decision 0272).
+      const trace = readTrace(untilEnd(points, walk.ended_at), walk.started_at, pauses, stills);
       // A closed walk has its end; a pause open at Stop is not counted (EW5, decision 0220).
       const kept = pausesKept(pauses, walk.ended_at ?? Number.POSITIVE_INFINITY);
       if (!isEmptyWalk({ moments: moments.length, pauses: kept, stills: stills.length, fills: gaps.length, trace })) return false;

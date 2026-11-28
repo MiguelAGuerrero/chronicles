@@ -113,7 +113,7 @@ test('QE5: Where I\'ve been builds a kept walk\'s line up to its end', async () 
   assert.ok(east < -71.4 + 1000 * M_LON, `the line stops at the corner, not 3 km on (${((east + 71.4) / M_LON).toFixed(0)} m east)`);
 });
 
-test('QE5: the empty-walk drop reads a walk up to its end', { todo: 'test first' }, async () => {
+test('QE5: the empty-walk drop reads a walk up to its end', async () => {
   const p = fakePorts();
   // A minute standing before its end, then ten minutes walked after it, an hour on: what came after is not the walk.
   const stood = Array.from({ length: 13 }, (_, i) => fix(T0 + i * 5000, (i % 2) * 0.5));
@@ -141,7 +141,7 @@ function readers(): string[] {
   return out.sort();
 }
 
-test('QE5: every reader of a finished walk\'s trace reads it up to its end; only Share GPS log, the export bundle and the backup read it whole', { todo: 'test first' }, () => {
+test('QE5: every reader of a finished walk\'s trace reads it up to its end; only Share GPS log, the export bundle and the backup read it whole', () => {
   // Up to the end (`untilEnd`): the replay and the day, the summary, streets, areas and moments' places, Where I've been,
   // Plan an outing's "visited on foot", the empty-walk drop, a piece split out of its moment.
   const UNTIL_END = ['lib/summary.ts', 'lib/finish.ts', 'lib/pastLines/shell.ts', 'lib/outing/app.ts', 'lib/emptyWalk/shell.ts', 'lib/split/shell.ts', 'lib/quietEnd/shell.ts'];

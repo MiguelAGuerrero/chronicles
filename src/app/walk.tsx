@@ -68,6 +68,9 @@ import type { Units } from '../lib/units';
 import { formatRange } from '../lib/format';
 import { pauseWalk, restartRecording, resumeWalk } from '../lib/session';
 import { stopEnd } from '../lib/unsaved/stopEnd';
+import type { QuietAnswer } from '../lib/unsaved/stopEnd/shell';
+import { KEEP_IT_ALL } from '../lib/quietEnd/core';
+import { QuietEndAsk } from '../components/QuietEndAsk';
 import { formatDistance, formatDuration } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
@@ -154,7 +157,8 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
     <Ticking
       testID="walk-stats"
       style={styles.stats}
-      numberOfLines={ride ? 2 : 1}
+      // Two lines when a day-long time needs them, so Resume's and Stop's words stay whole at 320 (QE10).
+      numberOfLines={ride ? 3 : 2}
       // The same words the strip's spoken name holds (tend walk-screen audit 12).
       text={(now) => `${walkStripText({ elapsedMs: elapsed(now), distanceM, units })}${ride}`}
       label={(now) => `${formatDistance(distanceM)} walked in ${formatDuration(elapsed(now))}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
@@ -338,6 +342,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // Back and Escape go through the card (tend threads T56): a step back, or close.
   const threadCard = useRef<AddToThreadHandle>(null);
   const [stopping, setStopping] = useState(false);
+  // A held Stop on a walk gone quiet asks once (QE3, decision 0272): where it went quiet, and when the hold asked.
+  const [quiet, setQuiet] = useState<{ at: number; now: number } | null>(null);
   // Read after the camera answers, which a render's `stopping` cannot be: no editor opens while the walk stops (audit 3).
   const stoppingNow = useRef(false);
   const [fog, setFog] = useState<StreetSegment[]>([]);
@@ -1159,8 +1165,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
     return true;
   };
 
-  async function stop() {
+  async function stop(answer?: QuietAnswer) {
     if (!walk || stopping) return;
+    // With the ask up, a hold on the strip closes it and ends nothing (forgotten-stop steward 4).
+    if (quiet && answer == null) {
+      setQuiet(null);
+      return;
+    }
     setStopping(true);
     stoppingNow.current = true;
     // A photo's editor waiting on the memo opens no more: the replay comes (decision 0240's audits 3, 6; audit 20).
@@ -1191,10 +1202,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
           // ends without it (SA8, UN5); the next hold lets go what it warned of, files and all, once the walk has ended (UN8;
           // audit 4). A save still under way keeps the walk from the empty drop: the end both Stops share (tend tabs audit
           // 42, decision 0227). The walk stays on screen until the replay replaces it (the keeper hears it ended first).
-          const end = await stopEnd(walk.id, { leaves: true, warned: warnedHeld.current, going: () => setEnded(walk) });
+          const end = await stopEnd(walk.id, { leaves: true, warned: warnedHeld.current, going: () => setEnded(walk), quiet: answer });
           if ('warn' in end) {
             warnedHeld.current = end.warn.map((x) => x.id);
             setNotice({ message: stopWarning(end.warn.map((x) => x.kind)), tone: 'error', sticky: true });
+          } else if ('quiet' in end) {
+            // Gone quiet 30 min or more: the card asks, and nothing has ended (QE3). Its answer runs this Stop again.
+            setQuiet({ at: end.quiet, now: Date.now() });
           } else {
             const { dropped } = end;
             feedback('success');
@@ -1229,6 +1243,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   // The walk's options, raised or lowered by the strip's drag, a tap on its numbers or its … (decision 0220).
   function raiseOptions(u: boolean) {
+    if (quiet) {
+      setQuiet(null);
+      return;
+    }
     if (u) {
       setSpot(null);
       setMarkOpen(null);
@@ -1242,6 +1260,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   async function togglePause() {
     if (!walk || pausing) return;
+    // With the ask up, a tap on the strip closes it and does nothing else (forgotten-stop steward 4).
+    if (quiet) {
+      setQuiet(null);
+      return;
+    }
     setPausing(true);
     const failedWith = (e: unknown) => {
       const fail = startErrorFrom(e);
@@ -1303,6 +1326,31 @@ function WalkScreen(props: { onMinimize: () => void }) {
   async function discardVoice() {
     if ((await cap.discardVoice()) === 'discarded') AccessibilityInfo.announceForAccessibility('Voice memo discarded. Undo is available.');
   }
+
+  // The quiet ask: Back and Escape close only the card, and end nothing (forgotten-stop steward 4).
+  const asking = quiet != null;
+  useEffect(() => {
+    if (!asking) return;
+    const close = () => setQuiet(null);
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      close();
+      return true;
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopImmediatePropagation();
+      close();
+    };
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey, true);
+    return () => {
+      back.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey, true);
+    };
+  }, [asking]);
+  // A capture from the stack with the ask up closes it and captures in the same tap (forgotten-stop steward 2).
+  const closeAsk = () => {
+    if (asking) setQuiet(null);
+  };
 
   // While a memo records, Android's back button does nothing, and the web
   // warns before a reload or close; leaving would cut the memo short.
@@ -1854,6 +1902,30 @@ function WalkScreen(props: { onMinimize: () => void }) {
         )}
         {walk && !recordingVoice && !spot && !openMark && !options && !memory && <SpaceLine />}
       </View>
+      {quiet && (
+        <>
+          {/* A tap anywhere else (the map, the strip) closes the ask and ends nothing; the capture stack stays above it,
+              one tap (forgotten-stop steward 2, 4). */}
+          <Pressable testID="quiet-backdrop" style={StyleSheet.absoluteFill} onPress={() => setQuiet(null)} accessible={false} />
+          <QuietEndAsk
+            at={quiet.at}
+            now={quiet.now}
+            other={KEEP_IT_ALL}
+            busy={stopping}
+            // Above the strip, clear of the capture column (QE3, as drawn).
+            style={[styles.quietAsk, { left: at.sideInset, right: at.right + CAP + STACK_GAP, bottom: at.barTop + STACK_GAP }]}
+            onEnd={() => {
+              const point = quiet.at;
+              setQuiet(null);
+              void stop(point);
+            }}
+            onOther={() => {
+              setQuiet(null);
+              void stop('keep');
+            }}
+          />
+        </>
+      )}
       {/* The capture stack at the right edge (NR9): where it was on the ready screen. While recording,
           Save takes the mic's own place, so tapping the mic again saves; the camera keeps its own, and
           Discard, smaller, sits beside the timer, left of the stack (T44). It hides while a gap's way is drawn, so taps belong to the map (GW8); the pills stay,
@@ -1869,11 +1941,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
         disabled={stopping}
         hidden={isDrawing}
         // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
-        onPhoto={() => void photo(momentPill.edgeTarget())}
-        onVoice={() => void startVoice(momentPill.edgeTarget())}
+        onPhoto={() => {
+          closeAsk();
+          void photo(momentPill.edgeTarget());
+        }}
+        onVoice={() => {
+          closeAsk();
+          void startVoice(momentPill.edgeTarget());
+        }}
         onSave={saveVoice}
         onDiscard={discardVoice}
         onNote={() => {
+          closeAsk();
           openNote(momentPill.edgeTarget());
         }}
       />
@@ -1920,11 +1999,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
               accessibilityHint={paused ? undefined : 'Stops recording until you resume. Stop is offered while paused'}
               onPress={togglePause}
               disabled={pausing || stopping || !walk}
-              style={({ pressed }) => [styles.barBtn, narrow && styles.barBtnNarrow, paused && styles.resumeBtn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.barBtn, narrow && styles.barBtnNarrow, paused && !quiet && styles.resumeBtn, pressed && styles.pressed]}
             >
-              {/* Resume is the strip's one primary action while paused: the accent, as 0172 allows. */}
+              {/* Resume is the strip's one primary action while paused: the accent, as 0172 allows; not while the quiet
+                  ask shows, whose End it is then the one (forgotten-stop steward 4). */}
               {!paused && <Icon name="pause" size={narrow ? 16 : 18} color={theme.ink} />}
-              <Text style={[styles.barBtnText, narrow && styles.barBtnTextNarrow, paused && styles.resumeText]} numberOfLines={1} selectable={false}>
+              <Text style={[styles.barBtnText, narrow && styles.barBtnTextNarrow, paused && !quiet && styles.resumeText]} numberOfLines={1} selectable={false}>
                 {paused ? 'Resume' : 'Pause'}
               </Text>
             </Pressable>
@@ -1937,7 +2017,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 // name (fix walk-strip-buttons audits 2, 5).
                 quietWhilePending
                 onHold={stop}
-                onTap={() => setToast('Hold to stop the walk')}
+                onTap={() => (quiet ? setQuiet(null) : setToast('Hold to stop the walk'))}
                 busy={stopping}
                 disabled={!walk || pausing}
                 style={[styles.stopBtn, narrow && styles.barBtnNarrow]}
@@ -2486,7 +2566,7 @@ const styles = StyleSheet.create({
   barBtnTextNarrow: { fontSize: 14 },
   // Below 360, Pause's icon closer to its word and no side padding (the words are centred, so it shows only when tight), so
   // an hour-long walk's numbers leave every word whole (fix walk-strip-buttons audits 1, 7).
-  barBtnNarrow: { gap: 4, paddingHorizontal: 0 },
+  barBtnNarrow: { gap: 4, paddingHorizontal: 0, minWidth: 72 },
   // Resume, the one primary action while paused: solid accent, white word.
   resumeBtn: { backgroundColor: theme.accent },
   resumeText: { color: theme.accentInk },
@@ -2507,6 +2587,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,
   },
+  // The quiet ask above the strip (QE3): placed by the stack's geometry, over the map.
+  quietAsk: { position: 'absolute', maxWidth: 560 },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },

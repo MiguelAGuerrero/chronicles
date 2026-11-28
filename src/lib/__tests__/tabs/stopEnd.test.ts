@@ -94,7 +94,7 @@ async function quietWorld(point: number | null) {
   return { p, unsaved, stopEnd, ends, asked };
 }
 
-test('QE3: a Stop on a walk gone quiet returns its point and ends nothing; with no point it ends as today', { todo: 'test first' }, async () => {
+test('QE3: a Stop on a walk gone quiet returns its point and ends nothing; with no point it ends as today', async () => {
   const quiet = await quietWorld(T0 + 30_000);
   assert.deepEqual(await quiet.stopEnd('w', { leaves: true, warned: [] }), { quiet: T0 + 30_000 });
   assert.equal(quiet.ends.length, 0, 'nothing ended');
@@ -105,7 +105,7 @@ test('QE3: a Stop on a walk gone quiet returns its point and ends nothing; with 
   assert.deepEqual(none.ends, [{}]);
 });
 
-test('QE3: a held capture is warned of first, before the quiet ask (UN5)', { todo: 'test first' }, async () => {
+test('QE3: a held capture is warned of first, before the quiet ask (UN5)', async () => {
   const quiet = await quietWorld(T0 + 30_000);
   quiet.unsaved.hold({ kind: 'photo', walkId: 'w', stamp: { t: T0 }, uri: 'blob:p', ext: 'jpg', ms: 0, path: null, outOfSpace: false, said: false });
   const r = await quiet.stopEnd('w', { leaves: true, warned: [] });
@@ -115,7 +115,7 @@ test('QE3: a held capture is warned of first, before the quiet ask (UN5)', { tod
   assert.deepEqual(await quiet.stopEnd('w', { leaves: true, warned: 'warn' in r ? r.warn.map((x) => x.id) : [] }), { quiet: T0 + 30_000 });
 });
 
-test('QE6: Keep it all is today\'s Stop exactly: the walk ends at the hold, the point not read again', { todo: 'test first' }, async () => {
+test('QE6: Keep it all is today\'s Stop exactly: the walk ends at the hold, the point not read again', async () => {
   const quiet = await quietWorld(T0 + 30_000);
   assert.deepEqual(await quiet.stopEnd('w', { leaves: true, warned: [] }), { quiet: T0 + 30_000 }, 'asked first');
   const r = await quiet.stopEnd('w', { leaves: true, warned: [], quiet: 'keep' });
@@ -124,14 +124,14 @@ test('QE6: Keep it all is today\'s Stop exactly: the walk ends at the hold, the 
   assert.equal(quiet.asked.length, 1, 'the answer reads the point no more');
 });
 
-test('QE5: End it ends the walk at the point', { todo: 'test first' }, async () => {
+test('QE5: End it ends the walk at the point', async () => {
   const quiet = await quietWorld(T0 + 30_000);
   await quiet.stopEnd('w', { leaves: true, warned: [], quiet: T0 + 30_000 });
   assert.deepEqual(quiet.ends, [{ endAt: T0 + 30_000 }]);
   assert.equal((await quiet.p.db.getWalk('w'))?.ended_at, T0 + 30_000);
 });
 
-test('QE9: a point that cannot be read asks nothing: the Stop goes on as today', { todo: 'test first' }, async () => {
+test('QE9: a point that cannot be read asks nothing: the Stop goes on as today', async () => {
   const { gate, unsaved, dropEmpty, p } = await world();
   const stopEnd = createStopEnd({
     gate, unsaved,

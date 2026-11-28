@@ -109,7 +109,7 @@ async function run(h) {
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
     const corner = await walkOn();
-    check.todo((await leaveRunning()) === true, 'quietend: the walk is moved 20 hours back in storage');
+    check((await leaveRunning()) === true, 'quietend: the walk is moved 20 hours back in storage');
     await nextDay();
     if (await shown('[data-testid=walk-minimize]')) {
       // Reopened on Chronicle with the bar: back into the walk.
@@ -129,7 +129,7 @@ async function run(h) {
       };
       return { stats: (document.querySelector('[data-testid=walk-stats]')?.textContent || '').trim(), resume: word('resume-walk'), stop: word('stop') };
     });
-    check.todo(dayLong(strip.stats) && strip.resume?.whole && strip.stop?.whole && strip.resume.text === 'Resume',
+    check(dayLong(strip.stats) && strip.resume?.whole && strip.stop?.whole && strip.resume.text === 'Resume',
       `QE10: the paused strip's Resume and Stop stay whole at 320 px beside a day-long time (${JSON.stringify(strip)})`);
     await shot(pg, 'qe-paused-320');
     await pg.setViewportSize({ width: 390, height: 844 });
@@ -140,17 +140,17 @@ async function run(h) {
     await until(() => shown('[data-testid=quiet-ask]'), 15000);
     const line = await text('[data-testid=quiet-line]');
     const endLabel = await text('[data-testid=quiet-end]');
-    check.todo(quietWords.test(line) && /^End it at \d{1,2}:\d{2} [ap]m$/.test(endLabel) && (await text('[data-testid=quiet-other]')) === 'Keep it all' && new URL(pg.url()).pathname === `${BASE}/walk`,
+    check(quietWords.test(line) && /^End it at \d{1,2}:\d{2} [ap]m$/.test(endLabel) && (await text('[data-testid=quiet-other]')) === 'Keep it all' && new URL(pg.url()).pathname === `${BASE}/walk`,
       `QE3: Stop held on a walk quiet 30 min or more shows the card, its words and both buttons, and the walk is still open ("${line}", "${endLabel}")`);
     // forgotten-stop steward 4: End it is the only filled accent; a tap on the strip closes the card and ends nothing.
     const accents = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=resume-walk], [data-testid=quiet-end]')]
       .map((e) => ({ id: e.getAttribute('data-testid'), bg: getComputedStyle(e).backgroundColor })));
-    check.todo(accents.filter((a) => a.bg === 'rgb(194, 65, 12)').map((a) => a.id).join() === 'quiet-end',
+    check(accents.filter((a) => a.bg === 'rgb(194, 65, 12)').map((a) => a.id).join() === 'quiet-end',
       `forgotten-stop steward 4: while the card shows, End it is the screen's only filled accent (${JSON.stringify(accents)})`);
     await shots('qe-ask');
     await pg.click('[data-testid=resume-walk]');
     await pg.waitForTimeout(800);
-    check.todo(!(await shown('[data-testid=quiet-ask]')) && (await shown('[data-testid=resume-walk]')) && new URL(pg.url()).pathname === `${BASE}/walk`,
+    check(!(await shown('[data-testid=quiet-ask]')) && (await shown('[data-testid=resume-walk]')) && new URL(pg.url()).pathname === `${BASE}/walk`,
       'forgotten-stop steward 4: Resume under the ask closes it and ends nothing');
     // forgotten-stop steward 2: with the ask up, the camera opens in one tap.
     await hold('[data-testid=stop]');
@@ -159,7 +159,7 @@ async function run(h) {
     await pg.click('[data-testid=cap-photo]');
     const opened = await chooser;
     await pg.waitForTimeout(600);
-    check.todo(opened && !(await shown('[data-testid=quiet-ask]')), `forgotten-stop steward 2: with the ask up, the camera opens in one tap (camera ${opened})`);
+    check(opened && !(await shown('[data-testid=quiet-ask]')), `forgotten-stop steward 2: with the ask up, the camera opens in one tap (camera ${opened})`);
     await pg.keyboard.press('Escape').catch(() => {});
     await pg.waitForTimeout(800);
 
@@ -171,7 +171,7 @@ async function run(h) {
     const ended = await text('[data-testid=card-line]');
     const map1 = await cardMap();
     const end1 = endOf(map1?.ends);
-    check.todo(!!ended && !dayLong(ended) && map1?.links === 0 && end1 && distanceM(end1, corner) < 80,
+    check(!!ended && !dayLong(ended) && map1?.links === 0 && end1 && distanceM(end1, corner) < 80,
       `QE5: End it: the replay's card says the walk's own time ("${ended}"), its end mark where the walking stopped (${end1 ? Math.round(distanceM(end1, corner)) : '?'} m from the last corner), and no dotted hop (${map1?.links})`);
     await shot(pg, 'qe-ended-card');
 
@@ -181,7 +181,7 @@ async function run(h) {
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
     await walkOn();
-    check.todo((await leaveRunning()) === true, 'quietend: the second walk is moved 20 hours back in storage');
+    check((await leaveRunning()) === true, 'quietend: the second walk is moved 20 hours back in storage');
     await nextDay();
     if (await shown('[data-testid=walk-minimize]')) await pg.click('[data-testid=walk-minimize]');
     await pg.waitForTimeout(1200);
@@ -195,7 +195,7 @@ async function run(h) {
       const b = document.querySelector('[data-testid=recording-bar]')?.getBoundingClientRect();
       return a && b ? { askBottom: Math.round(a.bottom), barTop: Math.round(b.top) } : null;
     });
-    check.todo(quietWords.test(barLine) && (await text('[data-testid=quiet-other]')) === 'Keep it all' && barBox && barBox.askBottom <= barBox.barTop + 1,
+    check(quietWords.test(barLine) && (await text('[data-testid=quiet-other]')) === 'Keep it all' && barBox && barBox.askBottom <= barBox.barTop + 1,
       `QE4: the recording bar's held Stop asks the same, with the same words, above the bar ("${barLine}", ${JSON.stringify(barBox)})`);
     await shots('qe-bar-ask');
 
@@ -203,7 +203,7 @@ async function run(h) {
     await pg.click('[data-testid=quiet-other]');
     await toCard();
     const kept = await text('[data-testid=card-line]');
-    check.todo(dayLong(kept), `QE6: Keep it all is today's Stop exactly: the card says the day-long time ("${kept}")`);
+    check(dayLong(kept), `QE6: Keep it all is today's Stop exactly: the card says the day-long time ("${kept}")`);
 
     // QE7: its More (⋯) offers the same ask; End it; the row is gone after it.
     await pg.click('[data-testid=card-more]');
