@@ -79,7 +79,8 @@ How an area treats someone on foot, judged from how the ground is built and show
   hatch keeps its fade inside it; it rings a tile that could not be read as well as the read's end, with or without car ground.
   `walkDrawingOf` hands the map both, keyed on both (`carGroundOf` is unchanged: CG11's "no car cell draws nothing" is its own).
   The map draws it as `kind` 'read', the `walk-read` line: `WALK_READ`, the map's quiet grey (`BORDER.lined`, 3:1 on the land),
-  the hatch's line width, a dash and gap of one hatch spacing; a constant dash in line widths, so it holds at fractional zooms.
+  the hatch's line width, short even dashes (`DRAWING_DASH` doubled, 2.5 px on and off: a long dash in that grey read as a
+  town's border, tend walkability audit 1); a constant dash in line widths, so it holds at fractional zooms.
 - **Trap: a tile that could not be read, in the e2e,** is the scene's archive with that tile's bytes overwritten (not a tile)
   and Overpass answering a runtime error, both routed on the journey's own context (the harness is not the loop's to edit):
   the `headsup` journey's `t67-hole`.

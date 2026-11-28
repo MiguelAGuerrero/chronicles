@@ -255,6 +255,30 @@ async function run(h) {
   await shot(p5, 't67-layer-off');
   await c5.close();
 
+  // tend walkability audit 1 (T67 ux 1): with Town borders on as well, the read's edge (short even dashes) beside a Nearby
+  // towns line (solid), pictured at 390 and 320.
+  {
+    h.divisions.serve = true;
+    const { pg: p7, c: c7 } = await freshPage('t67-borders', { touch: true });
+    await c7.addInitScript(() => { window.__perf = {}; });
+    await c7.setGeolocation({ longitude: at(5, 0)[0], latitude: at(5, 0)[1], accuracy: 6 });
+    await p7.goto(h.exploreUrl);
+    await p7.waitForSelector('[data-testid=layers]', { timeout: 30000 });
+    await switchLayer(p7, 'walkability');
+    await switchLayer(p7, 'borders');
+    await p7.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '' && (document.querySelector('[data-borders]')?.getAttribute('data-borders') ?? '').includes('lined:'), null, { timeout: 45000 }).catch(() => {});
+    await p7.evaluate(([c, zz]) => window.__zoomTo(c, zz), [at(8, -8), 13.6]);
+    await p7.waitForTimeout(2500);
+    const both = await p7.evaluate(() => window.__renderedIn([[0, 0], [innerWidth, innerHeight]])).catch(() => []);
+    check(both.includes('walk-read:read') && both.includes('border-lined:'), `tend walkability audit 1, T67 ux 1: with Town borders on too, the read's edge and a Nearby towns line are both drawn, to be told apart (${both.filter((k) => /^(walk-read|border)/.test(k)).join(', ')})`);
+    await shot(p7, 't67-borders');
+    await p7.setViewportSize({ width: 320, height: 700 });
+    await p7.waitForTimeout(1500);
+    await shot(p7, 't67-borders-320');
+    await c7.close();
+    h.divisions.serve = false;
+  }
+
   // tend walkability T67: a tile that could not be read is ringed by the line too. The scene's archive with the tile north
   // of the start made unreadable (bytes that are not a tile) and Overpass busy for it, so nothing reads that tile.
   {

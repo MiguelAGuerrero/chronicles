@@ -916,13 +916,14 @@ export const WALK_STYLE: { car: HatchLook } = {
 };
 /**
  * The edge of what was read (T67, the owner's yes, 2026-11-27): a thin dashed line in the grey the map draws its quiet
- * lines in (`BORDER.lined`, 3:1 on the land), as thin as the hatch's lines, its dash and gap one hatch spacing (in line
- * widths). No fill, no number.
+ * lines in (`BORDER.lined`, 3:1 on the land), as thin as the hatch's lines. Its dashes are short and even, the map's own
+ * short dash at twice its length (2.5 px on, 2.5 off), so it is not taken for a town's border, which maps dash long
+ * (tend walkability audit 1, the ux-reviewer's ux 1). No fill, no number.
  */
 export const WALK_READ = {
   color: BORDER.lined,
   widthPx: WALK_STYLE.car.lineWidthPx,
-  dash: [(WALK_STYLE.car.spacingPx * 2) / 3 / WALK_STYLE.car.lineWidthPx, WALK_STYLE.car.spacingPx / 3 / WALK_STYLE.car.lineWidthPx],
+  dash: DRAWING_DASH.map((d) => d * 2) as readonly number[],
 } as const;
 /** The hatch and its edge sit under the base map's labels (walkability-car-ground audit 14); the web map finds its first symbol layer. */
 export const WALK_BELOW = BASE_FIRST_LABEL;

@@ -9,7 +9,7 @@ import { carGroundOf, readEdgeOf, walkDrawingOf } from '../../walk/carGround';
 import { cellBounds, cellIndexOf, type Cell } from '../../walk/cells';
 import type { CellBand } from '../../walk/form';
 import { LAYERS } from '../../layers/registry';
-import { BORDER, WALK_READ, WALK_STYLE, walkabilityGeoJSON, walkKind } from '../../../components/map/types';
+import { BORDER, DRAWING_DASH, WALK_READ, WALK_STYLE, walkabilityGeoJSON, walkKind } from '../../../components/map/types';
 import { contrast } from '../map/colourSight';
 
 // T67 (the owner's yes, in person, 2026-11-27: "T67-T69 walkability"): ground nobody read looked the same as plain
@@ -181,8 +181,17 @@ test('tend walkability T67: the line is thin, dashed, in the map\'s neutral grey
   for (const land of ['#f2f3f0', '#e4e3e2']) assert.ok(contrast(WALK_READ.color, land) >= 3, `${contrast(WALK_READ.color, land).toFixed(2)} on ${land}`);
   assert.equal(WALK_READ.widthPx, WALK_STYLE.car.lineWidthPx, 'as thin as the hatch\'s own lines');
   assert.equal(WALK_READ.dash.length, 2);
-  // Its dash and gap make one hatch spacing, in line widths.
-  assert.ok(Math.abs((WALK_READ.dash[0] + WALK_READ.dash[1]) * WALK_READ.widthPx - WALK_STYLE.car.spacingPx) < 1e-9);
+});
+
+test('tend walkability audit 1, tend walkability T67 ux 1: the read\'s edge is told from a Nearby towns line by more than its grey: short, even dashes', () => {
+  // The ux-reviewer's ux 1: in the Nearby towns grey, with long dashes, the edge read as a town's border (OSM Carto, Positron and
+  // Organic Maps dash their borders long). The proxy's ruling (decision 0157, 2026-11-28): keep the grey, dash it short and even.
+  const [on, gap] = WALK_READ.dash;
+  assert.equal(on, gap, 'even: as long on as off');
+  assert.ok(on * WALK_READ.widthPx <= 3, `short: ${(on * WALK_READ.widthPx).toFixed(1)} px on, no longer than 3 px`);
+  assert.ok(on * WALK_READ.widthPx >= 2, `still a dash, not a dot: ${(on * WALK_READ.widthPx).toFixed(1)} px on`);
+  assert.deepEqual([...WALK_READ.dash], DRAWING_DASH.map((d) => d * 2), 'the map\'s own short even dash, at twice its length');
+  assert.ok(WALK_READ.widthPx < BORDER.linedWidth, 'and thinner than a Nearby towns line, which stays solid');
 });
 
 test('tend walkability T67: both maps draw the line from the walkability source, dashed, under the base map\'s labels', () => {
