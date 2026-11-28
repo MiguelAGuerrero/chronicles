@@ -212,25 +212,25 @@ async function run(h) {
     await pg.waitForTimeout(800);
     const row = await text('[data-testid=action-quiet-end]');
     const order = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=walk-actions] [data-testid^=action-]')].map((e) => e.getAttribute('data-testid')));
-    check.todo(row.startsWith('End it where it went quiet') && /what came after it leaves the walk$/.test(row) && order.indexOf('action-quiet-end') === order.indexOf('action-rename') + 1 && order.indexOf('action-gps-log') === order.indexOf('action-quiet-end') + 1,
+    check(row.startsWith('End it where it went quiet') && /what came after it leaves the walk$/.test(row) && order.indexOf('action-quiet-end') === order.indexOf('action-rename') + 1 && order.indexOf('action-gps-log') === order.indexOf('action-quiet-end') + 1,
       `QE7: a kept walk quiet at its end has "End it where it went quiet" in its More, between Rename and Share GPS log ("${row}", ${order.join(' ')})`);
     await shots('qe-more-row');
     await pg.click('[data-testid=action-quiet-end]');
     await pg.waitForSelector('[data-testid=quiet-sheet]', { timeout: 5000 });
     await pg.waitForTimeout(600);
-    check.todo(quietWords.test(await text('[data-testid=quiet-line]')) && (await text('[data-testid=quiet-other]')) === 'Cancel' && /^End it at /.test(await text('[data-testid=quiet-end]')),
+    check(quietWords.test(await text('[data-testid=quiet-line]')) && (await text('[data-testid=quiet-other]')) === 'Cancel' && /^End it at /.test(await text('[data-testid=quiet-end]')),
       'QE7: the row asks with the same words and buttons, End it and Cancel');
     await shots('qe-more-ask');
     await pg.click('[data-testid=quiet-end]');
     await until(async () => !(await shown('[data-testid=walk-actions]')) && !dayLong(await text('[data-testid=card-line]')), 30000);
     const after = await text('[data-testid=card-line]');
     const map2 = await cardMap();
-    check.todo(!dayLong(after) && map2?.links === 0, `QE7: after End it from the More, the card says the walk's own time ("${after}") and no dotted hop (${map2?.links})`);
+    check(!dayLong(after) && map2?.links === 0, `QE7: after End it from the More, the card says the walk's own time ("${after}") and no dotted hop (${map2?.links})`);
     await shot(pg, 'qe-more-ended-card');
     await pg.click('[data-testid=card-more]');
     await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 5000 });
     await pg.waitForTimeout(1500);
-    check.todo(!(await shown('[data-testid=action-quiet-end]')), 'QE7: after it the row is gone');
+    check(!(await shown('[data-testid=action-quiet-end]')), 'QE7: after it the row is gone');
     await pg.click('[data-testid=actions-cancel]');
     await pg.waitForTimeout(800);
 
@@ -241,7 +241,7 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=walk-row]', { timeout: 15000 }).catch(() => {});
     await pg.waitForTimeout(1500);
     const rows = await pg.locator('[data-testid=walk-row]').allInnerTexts().catch(() => []);
-    check.todo(rows.length >= 2 && rows.every((r) => !dayLong(r)), `QE5: Chronicle's rows say the walks' own time (${JSON.stringify(rows.map((r) => r.replace(/\s+/g, ' ')))})`);
+    check(rows.length >= 2 && rows.every((r) => !dayLong(r)), `QE5: Chronicle's rows say the walks' own time (${JSON.stringify(rows.map((r) => r.replace(/\s+/g, ' ')))})`);
     await shot(pg, 'qe-chronicle-rows');
   } finally {
     await c.close();

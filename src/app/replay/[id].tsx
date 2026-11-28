@@ -919,6 +919,10 @@ export default function Replay() {
         onClose={() => setActionsOpen(false)}
         // A deleted walk has nothing left to replay; Undo shows on the home (D5).
         onDone={(kind) => kind === 'walk' && toChronicle()}
+        // Ended where it went quiet: already snapped again, so the card, the map and the end mark follow (QE7).
+        onEnded={() => {
+          void loadReplay(id).then((d) => d && setData(d), () => {});
+        }}
         // The card shows the new name at once, and the name beat's fields with it (QL23).
         onRenamed={(walkId, patch) => {
           setData((d) => (d && d.walk.id === walkId ? { ...d, walk: { ...d.walk, ...patch } } : d));

@@ -460,6 +460,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
       <WalkActions
         walkId={actionsFor}
         onClose={() => setActionsFor(null)}
+        // Ended where it went quiet: the rows read again, their time the walk's own, the map left where it is (QE7).
+        onEnded={() => quietLoad.current?.()}
         // The row, a place's walks and a day's timeline show the new name at once (QL23).
         onRenamed={(walkId, patch) =>
           setData((d) => d && { ...d, walks: d.walks.map((w) => (w.id === walkId ? { ...w, ...patch } : w)) })

@@ -6,7 +6,10 @@ import type { DeleteKind } from '../lib/deletion/core';
 import { EPILOGUE_MAX, renameChanged, renameFields, renamePatch, TITLE_MAX } from '../lib/rename';
 import { shareLogText, walkLogText } from '../lib/shareLog';
 import { suggestTitle } from '../lib/summary';
+import { quietEnd } from '../lib/quietEnd';
+import { QUIET_ROW, quietRowHint } from '../lib/quietEnd/core';
 import { ConfirmCard } from './ConfirmCard';
+import { QuietEndAsk } from './QuietEndAsk';
 import { Icon } from './icons';
 import { Modal } from './Modal';
 import { Button, theme } from './ui';
@@ -24,6 +27,8 @@ export function WalkActions(props: {
   onDone?: (kind: Extract<DeleteKind, 'walk' | 'media'>) => void;
   /** After a rename reached storage, so the screen shows it at once (QL23). */
   onRenamed?: (walkId: string, patch: RenamePatch) => void;
+  /** After a kept walk's end moved back to where it went quiet, read again (QE7): the screen reads the walk again. */
+  onEnded?: (walkId: string) => void;
 }) {
   const [plan, setPlan] = useState<WalkPlan | null>(null);
   const [failed, setFailed] = useState(false);
@@ -40,6 +45,11 @@ export function WalkActions(props: {
   // The title's Next goes on to the line (tend chronicle 5).
   const lineInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [logNote, setLogNote] = useState<string | null>(null);
+  // A kept walk gone quiet 30 min or more at its end (QE7, decision 0272): its point, read when the sheet opens, and the ask.
+  const [quiet, setQuiet] = useState<{ at: number; now: number } | null>(null);
+  const [quietAsking, setQuietAsking] = useState(false);
+  const [quietBusy, setQuietBusy] = useState(false);
+  const [quietError, setQuietError] = useState(false);
   const { walkId } = props;
 
   useEffect(() => {
@@ -55,7 +65,14 @@ export function WalkActions(props: {
         }, () => {});
       })
       .catch(() => live && setFailed(true));
+    quietEnd.at(walkId).then((at) => {
+      if (live && at != null) setQuiet({ at, now: Date.now() });
+    }, () => {});
     return () => {
+      setQuiet(null);
+      setQuietAsking(false);
+      setQuietBusy(false);
+      setQuietError(false);
       live = false;
       setPlan(null);
       setFailed(false);
@@ -85,7 +102,9 @@ export function WalkActions(props: {
   // that would store something new ask first, and Escape or a tap outside the ask keeps editing (tend chronicle 9;
   // decision 0172, O17). Cancel is a choice already made: it leaves at once.
   const close = () => {
-    if (asking) setAsking(null);
+    if (quietAsking) {
+      if (!quietBusy) setQuietAsking(false);
+    } else if (asking) setAsking(null);
     else if (renaming) {
       if (saving) return;
       if (discarding) setDiscarding(false);
@@ -143,6 +162,21 @@ export function WalkActions(props: {
       shown.current = false;
     };
   }, [walkId]);
+  // End it: the walk's end moved back to where it went quiet, then the screen reads it again (QE7).
+  const endQuiet = async () => {
+    if (!walkId || !quiet || quietBusy) return;
+    setQuietBusy(true);
+    setQuietError(false);
+    try {
+      await quietEnd.endAt(walkId, quiet.at);
+    } catch {
+      setQuietBusy(false);
+      setQuietError(true);
+      return;
+    }
+    props.onEnded?.(walkId);
+    props.onClose();
+  };
   const confirm = () => {
     if (!plan || !asking) return;
     if (asking === 'walk') deleteWalk(plan);
@@ -158,7 +192,7 @@ export function WalkActions(props: {
     }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.back}>
         <Pressable style={StyleSheet.absoluteFill} onPress={renaming ? close : props.onClose} accessible={false} />
-        {!asking && !renaming && (
+        {!asking && !renaming && !quietAsking && (
           <View style={styles.sheet} testID="walk-actions" accessibilityViewIsModal>
             {plan ? (
               <>
@@ -176,6 +210,22 @@ export function WalkActions(props: {
                     <Text style={styles.itemHint}>The title and its one line</Text>
                   </View>
                 </Pressable>
+                {quiet && (
+                  // Between Rename and Share GPS log, as drawn (QE7): a plain row, its hint when and what changes.
+                  <Pressable
+                    testID="action-quiet-end"
+                    accessibilityRole="button"
+                    accessibilityHint={quietRowHint(quiet.at, quiet.now)}
+                    onPress={() => setQuietAsking(true)}
+                    style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+                  >
+                    <Icon name="locate-outline" size={22} color={theme.ink} />
+                    <View style={styles.itemText}>
+                      <Text style={styles.itemLabel}>{QUIET_ROW}</Text>
+                      <Text style={styles.itemHint}>{quietRowHint(quiet.at, quiet.now)}</Text>
+                    </View>
+                  </Pressable>
+                )}
                 <Pressable
                   testID="action-gps-log"
                   accessibilityRole="button"
@@ -277,6 +327,13 @@ export function WalkActions(props: {
             )}
           </View>
         )}
+        {quietAsking && quiet && (
+          // The Stop's words and buttons, in the same sheet: End it, or Cancel (QE7).
+          <View style={styles.sheet} testID="quiet-sheet" accessibilityViewIsModal>
+            <QuietEndAsk at={quiet.at} now={quiet.now} other="Cancel" busy={quietBusy} style={styles.quietAsk} onEnd={() => void endQuiet()} onOther={() => setQuietAsking(false)} />
+            {quietError ? <Text style={styles.error} accessibilityRole="alert">Couldn’t change it. Try again.</Text> : null}
+          </View>
+        )}
         {asking && plan && (
           <ConfirmCard
             testID="confirm"
@@ -313,4 +370,6 @@ const styles = StyleSheet.create({
   askText: { fontSize: 16, color: theme.ink, textAlign: 'center' },
   askRow: { flexDirection: 'row', gap: 8 },
   flex: { flex: 1 },
+  // In the sheet, the ask lies flat on it.
+  quietAsk: { padding: 0, shadowOpacity: 0, elevation: 0, backgroundColor: 'transparent' },
 });
