@@ -58,6 +58,7 @@ const FEATURES = [
       'src/lib/shareLog/**',
       'src/lib/motionSource/**',
       'src/lib/recorder/**',
+      'src/lib/quietEnd/**',
     ],
     journeys: ['hidden', 'sensors'],
     specs: ['motion', 'concept'],
@@ -129,11 +130,11 @@ const FEATURES = [
       'src/lib/pauseReminder.ts',
       'src/lib/stackSlots.ts',
       'src/lib/ready/**',
-      'src/components/{Ticking,MomentBar,ConfirmCard,StartSettings,ui}.tsx',
+      'src/components/{Ticking,MomentBar,ConfirmCard,QuietEndAsk,StartSettings,ui}.tsx',
       'src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion,captureBus}.ts',
     ],
     journeys: ['ready', 'walk'],
-    specs: ['navigate-ready'],
+    specs: ['navigate-ready', 'forgotten-stop'],
   },
   {
     name: 'tabs',
@@ -627,6 +628,7 @@ const IN_PROGRESS = {
   'drive-in-the-outing': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'shop-facets': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
   'town-fixtures': { branch: 'claude/determined-wright-yg1fq9', since: '2026-11-26' },
+  'forgotten-stop': { branch: 'tend/inbox-20261128-0003', since: '2026-11-28' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
