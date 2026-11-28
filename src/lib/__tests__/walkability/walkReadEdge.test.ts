@@ -216,5 +216,19 @@ test('tend walkability T67: both maps draw the line from the walkability source,
 
 test('tend walkability T67: the layer\'s note says the dashed line is as far as it has read', () => {
   const note = LAYERS.find((l) => l.id === 'walkability')?.note ?? '';
-  assert.equal(note, 'From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels; the dashed line is as far as it has read.');
+  assert.equal(note, NOTE);
+});
+
+// T69 (the owner's yes, in person, 2026-11-27: "T67-T69 walkability"): since G5 the legend has one row, so nothing said
+// what plain ground means. The note says it in one sentence, with T67's unread ground in it, and the dashed line's
+// clause joins it, so the plain ground and the line that bounds the read are said together. Words only: no row, no number.
+const NOTE = 'From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels. Ground left plain is easy on foot, mixed, or not read yet; the dashed line is as far as it has read.';
+
+test('tend walkability T69: the layer\'s note says ground left plain is easy on foot, mixed, or not read yet', () => {
+  const w = LAYERS.find((l) => l.id === 'walkability');
+  const note = w?.note ?? '';
+  assert.equal(note, NOTE);
+  assert.match(note, /Ground left plain is easy on foot, mixed, or not read yet; the dashed line is as far as it has read\.$/);
+  assert.doesNotMatch(note, /\d/, 'no number');
+  assert.deepEqual(w?.legend.map((r) => r.key), ['car'], 'no new row');
 });

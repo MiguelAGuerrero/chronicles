@@ -419,7 +419,8 @@ time alone, the distance in its spoken name, with a chevron back to the walk at 
 - **Walkability** draws only the ground built around cars (streets far apart and busy): a soft slate hatch with a thin edge, its cells
   joined into rounded areas, fading out toward the edge of what was read; ground easy on foot is the plain map (decisions 0232, 0271). The
   edge of what was read, where the read ends and round a tile that could not be read, is a thin dashed grey line, and the layer's note says
-  so ("the dashed line is as far as it has read"; tend walkability T67), so ground nobody read is not taken for plain ground.
+  so ("the dashed line is as far as it has read"; tend walkability T67), so ground nobody read is not taken for plain ground; the note also
+  says what plain ground means ("Ground left plain is easy on foot, mixed, or not read yet"; tend walkability T69).
   Inside each car area larger than the screen at walking zoom, the map writes the legend's words once, at the area's heart, quietly, in
   slate at its own label size ("Built around cars"; one per area, none on a small area, never a number, kept clear of the map's controls
   and its edge; tend walkability T68), so a screen inside car ground with no edge in view can still say what the hatch is. While

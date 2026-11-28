@@ -64,6 +64,7 @@ async function run(h) {
   await shot(pg, 'walk-legend-open');
   const note = await pg.locator('[data-testid=layer-note-walkability]').innerText().catch(() => '');
   check(/the dashed line is as far as it has read\.$/.test(note.trim()) && !/\d/.test(note), `tend walkability T67: the layer's note says the dashed line is as far as it has read, with no number (${JSON.stringify(note)})`);
+  check(/Ground left plain is easy on foot, mixed, or not read yet; the dashed line is as far as it has read\.$/.test(note.trim()) && !/\d/.test(note), `tend walkability T69: the layer's note says ground left plain is easy on foot, mixed, or not read yet, with no number (${JSON.stringify(note)})`);
   await pg.locator('[data-testid=layer-note-walkability]').scrollIntoViewIfNeeded().catch(() => {});
   await pg.waitForTimeout(400);
   await shot(pg, 't67-legend-390');
