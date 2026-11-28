@@ -921,7 +921,12 @@ export default function Replay() {
         onDone={(kind) => kind === 'walk' && toChronicle()}
         // Ended where it went quiet: already snapped again, so the card, the map and the end mark follow (QE7).
         onEnded={() => {
-          void loadReplay(id).then((d) => d && setData(d), () => {});
+          void loadReplay(id).then((d) => {
+            if (!d) return;
+            setData(d);
+            // Framed again up to its new end (forgotten-stop audit 11).
+            setFitKey((k) => k + 1);
+          }, () => {});
         }}
         // The card shows the new name at once, and the name beat's fields with it (QL23).
         onRenamed={(walkId, patch) => {

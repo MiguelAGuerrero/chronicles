@@ -219,7 +219,7 @@ export function WalkActions(props: {
                     onPress={() => setQuietAsking(true)}
                     style={({ pressed }) => [styles.item, pressed && styles.pressed]}
                   >
-                    <Icon name="locate-outline" size={22} color={theme.ink} />
+                    <Icon name="radio-button-on-outline" size={22} color={theme.ink} />
                     <View style={styles.itemText}>
                       <Text style={styles.itemLabel}>{QUIET_ROW}</Text>
                       <Text style={styles.itemHint}>{quietRowHint(quiet.at, quiet.now)}</Text>
@@ -330,7 +330,7 @@ export function WalkActions(props: {
         {quietAsking && quiet && (
           // The Stop's words and buttons, in the same sheet: End it, or Cancel (QE7).
           <View style={styles.sheet} testID="quiet-sheet" accessibilityViewIsModal>
-            <QuietEndAsk at={quiet.at} now={quiet.now} other="Cancel" busy={quietEnding} style={styles.quietAsk} onEnd={() => void endQuiet()} onOther={() => setQuietAsking(false)} />
+            <QuietEndAsk at={quiet.at} now={quiet.now} other="Cancel" cancelLeads busy={quietEnding} style={styles.quietAsk} onEnd={() => void endQuiet()} onOther={() => setQuietAsking(false)} />
             {quietError ? <Text style={styles.error} accessibilityRole="alert">Couldn’t change it. Try again.</Text> : null}
           </View>
         )}

@@ -153,7 +153,7 @@ async function run(h) {
     check(accents.filter((a) => a.bg === 'rgb(194, 65, 12)').map((a) => a.id).join() === 'quiet-end',
       `forgotten-stop steward 4: while the card shows, End it is the screen's only filled accent (${JSON.stringify(accents)})`);
     // forgotten-stop audit 13: the walk screen's card is not modal to a screen reader: the capture stack stays reachable.
-    check.todo((await pg.locator('[data-testid=quiet-ask]').getAttribute('aria-modal')) == null,
+    check((await pg.locator('[data-testid=quiet-ask]').getAttribute('aria-modal')) == null,
       'forgotten-stop audit 13: the walk screen\'s quiet ask is not modal to the screen reader, the capture stack reachable');
     await shots('qe-ask');
     await pg.click('[data-testid=resume-walk]');
@@ -214,10 +214,14 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=bar-stop]', { timeout: 15000 });
     await hold('[data-testid=bar-stop]');
     await until(() => shown('[data-testid=quiet-ask]'), 15000);
+    // A tap on the page: on Memories it opens a new entry, which closes the ask; Done leaves the entry empty.
     await pg.mouse.click(200, 300);
     await pg.waitForTimeout(800);
-    const afterTap = !(await shown('[data-testid=quiet-ask]')) && (await shown('[data-testid=bar-stop]'));
-    check.todo(afterTab && afterTap, `forgotten-stop audit 14: with the bar's ask up, another tab or a tap on the page closes it and ends nothing (tab ${afterTab}, tap ${afterTap})`);
+    const afterTap = !(await shown('[data-testid=quiet-ask]'));
+    if (await pg.getByText('New entry', { exact: false }).filter({ visible: true }).count()) await pg.getByText('Done', { exact: true }).filter({ visible: true }).first().click().catch(() => {});
+    await pg.waitForSelector('[data-testid=bar-stop]', { timeout: 10000 }).catch(() => {});
+    await pg.waitForTimeout(800);
+    check(afterTab && afterTap, `forgotten-stop audit 14: with the bar's ask up, another tab or a tap on the page closes it and ends nothing (tab ${afterTab}, tap ${afterTap})`);
     await hold('[data-testid=bar-stop]');
     await until(() => shown('[data-testid=quiet-ask]'), 15000);
 
@@ -244,7 +248,7 @@ async function run(h) {
     await pg.waitForTimeout(600);
     // forgotten-stop audit 10: in a row, Cancel leads and End it trails, as the sheet's Delete confirm.
     const askOrder = await pg.evaluate(() => ['quiet-other', 'quiet-end'].map((id) => Math.round(document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect().left ?? -1)));
-    check.todo(askOrder[0] >= 0 && askOrder[0] < askOrder[1], `forgotten-stop audit 10: the More's ask puts Cancel leading and End it trailing in a row (${askOrder.join(', ')})`);
+    check(askOrder[0] >= 0 && askOrder[0] < askOrder[1], `forgotten-stop audit 10: the More's ask puts Cancel leading and End it trailing in a row (${askOrder.join(', ')})`);
     check(quietWords.test(await text('[data-testid=quiet-line]')) && (await text('[data-testid=quiet-other]')) === 'Cancel' && /^End it at /.test(await text('[data-testid=quiet-end]')),
       'QE7: the row asks with the same words and buttons, End it and Cancel');
     await shots('qe-more-ask');
@@ -255,7 +259,7 @@ async function run(h) {
     check(!dayLong(after) && map2?.links === 0, `QE7: after End it from the More, the card says the walk's own time ("${after}") and no dotted hop (${map2?.links})`);
     await pg.waitForTimeout(2500);
     const zoomAfter = await pg.evaluate(() => Number([...document.querySelectorAll('[data-zoom]')].find((e) => e.getBoundingClientRect().width > 0)?.getAttribute('data-zoom')));
-    check.todo(zoomAfter > zoomBefore + 0.3, `forgotten-stop audit 11: after End it from the More, the replay frames the walk up to its new end (zoom ${zoomBefore} to ${zoomAfter})`);
+    check(zoomAfter > zoomBefore + 0.3, `forgotten-stop audit 11: after End it from the More, the replay frames the walk up to its new end (zoom ${zoomBefore} to ${zoomAfter})`);
     await shot(pg, 'qe-more-ended-card');
     await pg.click('[data-testid=card-more]');
     await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 5000 });
@@ -300,7 +304,7 @@ async function run(h) {
     const askedAgain = await shown('[data-testid=quiet-ask]');
     await toCard();
     const kept3 = await text('[data-testid=card-kept]');
-    check.todo(closedByPhoto && !askedAgain && /photo/i.test(kept3),
+    check(closedByPhoto && !askedAgain && /photo/i.test(kept3),
       `forgotten-stop audit 5: a photo kept from the page with the bar's ask up closes it; the next hold ends the walk as today, the photo inside it (closed ${closedByPhoto}, asked again ${askedAgain}, "${kept3}")`);
   } finally {
     await c.close();

@@ -188,7 +188,7 @@ test('forgotten-stop audit 2: the quiet read takes the walk\'s kept gaps as walk
   assert.match(src, /withFilled\(/);
 });
 
-test('forgotten-stop audit 12: the More\'s End it row wears no glyph another control uses for Locate', { todo: 'test first' }, () => {
+test('forgotten-stop audit 12: the More\'s End it row wears no glyph another control uses for Locate', () => {
   const src = readFileSync(join(__dirname, '..', '..', '..', 'components', 'WalkActions.tsx'), 'utf8');
   const row = src.slice(src.indexOf('testID="action-quiet-end"'), src.indexOf('{QUIET_ROW}'));
   assert.match(row, /<Icon name="radio-button-on-outline"/, 'a ringed dot, as drawn');

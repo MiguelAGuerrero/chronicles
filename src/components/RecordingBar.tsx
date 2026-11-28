@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { barCaptures } from '../lib/captureBand';
+import { captureBus } from '../lib/captureBus';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { useStore } from '../lib/useStore';
 import { useKeyboardHeight } from '../lib/threads/useKeyboardHeight';
@@ -296,12 +297,26 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
 
   // A held Stop on a walk gone quiet asks once, above the bar, in the walk screen's words (QE4, decision 0272); its answer
   // is handed to the bar's end, which runs again.
-  const [quiet, setQuiet] = useState<{ at: number; now: number } | null>(null);
+  const [quiet, setQuiet] = useState<{ at: number; now: number; path: string } | null>(null);
   const answerRef = useRef<QuietAnswer | undefined>(undefined);
-  const asking = quiet != null;
+  // Another tab or screen closes it, ending nothing: it is asked only where it was held (forgotten-stop audit 14).
+  const asking = quiet != null && quiet.path === path;
   useEffect(() => {
     if (!asking) return;
     const close = () => setQuiet(null);
+    // A photo, a memo or a note kept into the walk from the page's own line closes it: the walk is no longer quiet there,
+    // and the next hold reads it again (forgotten-stop audit 5).
+    const unsubscribe = captureBus.subscribe(walk.id, {}, close);
+    // A tap on the page outside the card and the bar closes it, ending nothing; the tap goes on to what it pressed. On the
+    // click, once the press is over: closed on the pointer's down, the card's room went from under the page and moved the
+    // camera the finger was on (forgotten-stop audit 14). On a phone, another tab, Back or a capture close it.
+    const onDown = (e: Event) => {
+      const t = e.target as Node | null;
+      if (t && document.querySelector('[data-testid=quiet-ask]')?.contains(t)) return;
+      if (t && document.querySelector('[data-testid=recording-bar]')?.contains(t)) return;
+      close();
+    };
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('click', onDown, true);
     const hardware = BackHandler.addEventListener('hardwareBackPress', () => {
       close();
       return true;
@@ -314,9 +329,13 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey, true);
     return () => {
       hardware.remove();
-      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey, true);
+      unsubscribe();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.removeEventListener('keydown', onKey, true);
+        window.removeEventListener('click', onDown, true);
+      }
     };
-  }, [asking]);
+  }, [asking, walk.id]);
   const closeAsk = () => {
     if (asking) setQuiet(null);
   };
@@ -349,7 +368,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       }
       if ('quiet' in r) {
         // Gone quiet 30 min or more: the card asks above the bar, and nothing has ended (QE4).
-        setQuiet({ at: r.quiet, now: Date.now() });
+        setQuiet({ at: r.quiet, now: Date.now(), path });
         return;
       }
       const { dropped } = r;
@@ -389,14 +408,14 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const capturing = barCapturesOff({ capturing: cap.busy != null, stopping });
   return (
     <View>
-    {quiet && (
+    {quiet && asking && (
       // Above the bar, on the page's ground where the discarded memo's pill sits, in flow so it covers no control: the
       // page's own capture row stays one tap above it (QE4; forgotten-stop steward 2).
       <View style={styles.pillRow}>
         <QuietEndAsk at={quiet.at} now={quiet.now} other={KEEP_IT_ALL} busy={stopping} style={styles.quietAsk} onEnd={() => answer(quiet.at)} onOther={() => answer('keep')} />
       </View>
     )}
-    {cap.discarded && !memoOn && !stopping && !quiet && (
+    {cap.discarded && !memoOn && !stopping && !asking && (
       // The walk screen's pill, on the page's ground just above the bar, in flow so it covers no control (BC9); Undo and
       // Close, staying until used (tend tabs T61).
       <View style={styles.pillRow}>

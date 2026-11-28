@@ -21,6 +21,9 @@ export function QuietEndAsk(props: {
   other: string;
   onEnd: () => void;
   onOther: () => void;
+  /** The More's ask: in a row, Cancel leads and End it trails, as the same sheet's Delete confirm (`confirmActions`;
+   *  forgotten-stop audit 10). The Stop's ask keeps End it first, as drawn. Stacked, End it is on top either way. */
+  cancelLeads?: boolean;
   busy?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
@@ -37,11 +40,12 @@ export function QuietEndAsk(props: {
     <Button key="other" testID="quiet-other" variant="secondary" label={props.other} onPress={props.onOther} disabled={props.busy} style={[styles.other, !stacked && styles.flex]} />
   );
   return (
-    <View testID="quiet-ask" style={[styles.card, props.style]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} accessibilityViewIsModal accessibilityLiveRegion="polite">
+    // Not modal to a screen reader: on the walk screen the capture stack beside it stays one swipe away (forgotten-stop
+    // audit 13); the More's sheet around its ask is the modal one.
+    <View testID="quiet-ask" style={[styles.card, props.style]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} accessibilityLiveRegion="polite">
       <Text ref={lineRef} testID="quiet-line" style={styles.line} accessibilityRole="header">{quietLine(props.at, props.now)}</Text>
       <View style={stacked ? styles.stack : styles.row}>
-        {end}
-        {other}
+        {props.cancelLeads && !stacked ? [other, end] : [end, other]}
       </View>
     </View>
   );
