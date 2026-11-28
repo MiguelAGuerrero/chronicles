@@ -1,0 +1,185 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T76",
+        "--reason",
+        "the proxy's yes under 0157, 2026-11-28, built in tend explore T76: the cause is G17's front refusal, setRefused in readHere's off branch (src/app/(tabs)/explore.tsx:381), so with location refused Explore opens on the blocked card; the screen keeps decision 0172 (O6, O20) and YH4, and the qol checks follow it"
+      ],
+      "target": "sha256:6fea720e64f57716c9bf65f2ab81f0981760f6fee281505d39a0374202464a5e"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Explore: on a phone, blocked location leaves no Open Settings** (2026-11-28)\n  Area: explore. Seen: the diff review of `tend explore T76` (the auditor's 1, Nov 28), in the code, never run on a device: on iOS after a decline at Explore's first front, or after Android's \"Don't ask again\", `watchLocatePermission` (`src/lib/locate/permission.native.ts`) reads \"denied\" and `findYou` (`src/lib/atlas/findYou.ts`) gives `blocked`; `exploreBanner` then hides the quiet notice, the only thing on Explore that carries Open Settings (`locateNotice`, `src/lib/locate/notice.ts`), and the blocked card (`BLOCKED_LINE`, `src/app/(tabs)/explore.tsx`) has no button, so the phone's way to turn location on is not on the screen. Rests on: `specs/current-position/spec.md` YH4 (\"with Open Settings on a phone\") against tend explore audit 9 (the card \"muted, with no crosshair and no button\") and \"Card only on Explore\" (the owner, in person, Nov 14).\n  Recommended: on a phone the blocked card carries Open Settings under its line (`OPEN_SETTINGS_LABEL`, as the walk planner's `plan-position-settings` does in `src/components/planner/PlannerDrawer.tsx`); the web's card stays words only. /vision: aligned (Earn; upholds YH4: the way to turn location on is one tap away, said quietly in the card, never a dialog).\n  Also asked (the auditor's 6, the ux-reviewer's 2 and 7): with areas listed and the permission reading \"denied\", the edge Locate stays, as the code has it (`findYou` blocks only an empty card; once the notice is dismissed for the launch, its tap is the one way back to the words), or hides, as `.claude/rules/explore-atlas.md`, \"One way to find you\", says (\"While the permission reads \"denied\" location is blocked: no edge Locate either\"). Recommended: the code stays, and that rule line says \"with nothing listed\"; the loop never rewords a rule line, so the wording is the owner's.\n  Precedent: Apple Maps, an alert that location is off and \"follow the onscreen instructions to turn it on\"; Google Maps, \"In your browser, give Maps location permission\" (both verified, `docs/research/adjacent-apps.md`, \"Know where you are when a screen lists or plans from it\"). Mock-up: not needed (an existing button in an existing card, decision 0259).\n  Otherwise: on a phone the quiet notice with Open Settings shows over the blocked card (amending \"Card only on Explore\"), or leave it.\n",
+      "number": "T78"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Explore: with no position, the title's words** (2026-11-28)\n  Area: explore. Seen: the diff review of `tend explore T76` (the ux-reviewer's 1 and 3, the auditor's 7, Nov 28): with no fix and nothing listed (location refused at the front, or a Locate that timed out) the title reads \"Near you\" over \"Areas around you\" (pictures `qol-14-explore-locate-denied-390`, `-320`, `qol-15-explore-locate-timeout-390`, `-320`), since `exploreNamed` (`src/lib/locate/front.ts`) keeps \"Near you\" when no town is known; and at 320 px \"Around Cranston\" is cut to \"Around Cran…\" (`yh-refused-320`), the title taking one line there while a look's title takes two (`numberOfLines`, `src/app/(tabs)/explore.tsx`). Rests on: `specs/current-position/spec.md` YH5 (\"the title and the row say \"Around <town>\" … never near or around you\") against AT1's fallback; `.claude/rules/ui-patterns.md`, \"Nothing wraps on a 320 px phone\" (no content lost, WCAG 1.4.4).\n  Recommended: with no fix and no town, the title says \"Explore\" with no subtitle; \"Around <town>\" takes the two lines a look's title already takes, so the town's name is whole at 320 px. /vision: aligned (Earn; upholds YH5 and \"Restraint\": no words place you where the app did not read you).\n  Precedent: Google Maps shows a gray dot at the last location and says it cannot find you (verified, `docs/research/adjacent-apps.md`, \"Know where you are when a screen lists or plans from it\"); for a title with no position, none found. Mock-up: not needed (words, and an existing two-line title).\n  Otherwise: \"Near you\" kept with no subtitle, or leave it.\n",
+      "number": "T79"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [loop] Map: qol's loop walk finds no Pause on its replay (tend map audits 25, 26, 34)** (2026-11-28)\n  Area: map. Seen: `/tend inbox T76` ran `qol` to its end, the first run past `atlas-locate` since Nov 24: \"tend map audit 34: at Pause on the loop at 390, the dot never left the end; the tap is on Pause (null), Pause reads Play (\"\")\", \"tend map audit 26: at Pause at 390, with motion, the walker's dot and the end are both on the map and apart (held 0, end null, dot null …)\" and \"tend map audit 25: the loop walk: page.click: Timeout 30000ms exceeded\" (the click on `[data-testid=hold]`), 2 runs of 2 that reached it (`E2E_SOFT`), on an export of `f0a209c1`'s source (T76 changed no source); a third run stopped earlier, at a `waitForURL`, under the load of two runs at once. Green on Nov 24. Whether it is the replay journey's replay-ceremony reds (DEFERRED, the weekly full pass's item, its Nov 28 note) is not shown; the replay screen also changed with the forgotten stop (`3331723e`, `9ea43de5`); not bisected. Rests on: tend map audits 25, 26 and 34, shipped with their checks. A high, filed and not fixed: outside T76's cause.\n  Recommended: a run of the map area confirms it red at rest on both ends, bisects from the Nov 24 green, and brings back the replay's Pause and the loop's ends, or the checks follow the screen if the change was meant; one commit. /vision: no surface (a defect against shipped checks).\n  Precedent: none needed (a regression).\n  Otherwise: none; three shipped checks are red on `main`, and in a run that stops at its first failure nothing of `qol` after them runs.\n",
+      "number": "T80"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--after",
+        "\"Open in Maps\" wraps to two lines on Explore"
+      ],
+      "body": "- [loop] (low) The map's credits (i) looks about 24 px across in every picture of Explore; `.claude/rules/ui-patterns.md` asks 44 pt targets. `qol`'s \"tend map 3\" measures a 44 px target on Navigate and the walk screen, not on Explore. Fix: measure Explore's, and give it a 44 pt hit area if short. Test: `the map's info button on Explore has a 44 pt target` (the ux-reviewer's 9, tend explore T76's review, Nov 28; filed, not fixed: `check:tend` gives a T build whose commit changes only a journey no review fix, the proxy's ruling under 0157, 2026-11-28).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--after",
+        "\"Open in Maps\" wraps to two lines on Explore"
+      ],
+      "body": "- [loop] (low) With Locate timed out and nothing drawn, a scale bar (\"2,000 km\") stands over the blank world (`qol-15-explore-locate-timeout-390`, `-320`), where the refused state shows none (tend walk-screen audit 10). Fix: no scale bar while nothing is drawn. Test: `timeout with no fix, no scale bar over the blank world` (the ux-reviewer's 8, tend explore T76's review, Nov 28; filed, not fixed: `check:tend` gives a T build whose commit changes only a journey no review fix, the proxy's ruling under 0157, 2026-11-28).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--after",
+        "\"Open in Maps\" wraps to two lines on Explore"
+      ],
+      "body": "- [loop] (low) `qol`'s `qol-14-explore-allowed-390` and `-320` pictures are taken mid-read, 1500 ms after the site is allowed (the card \"Reading this area…\", \"You're here\" pale). Fix: wait for the selected tile's read before the shot. Test: `the allowed picture waits for the read` (the ux-reviewer's 6, tend explore T76's review, Nov 28; filed, not fixed: `check:tend` gives a T build whose commit changes only a journey no review fix, the proxy's ruling under 0157, 2026-11-28).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--after",
+        "\"Open in Maps\" wraps to two lines on Explore"
+      ],
+      "body": "- [loop] (low) Blocked, Walk here refused gives no visible answer: `exploreBanner` (`src/lib/atlas/findYou.ts`) hides any info-toned error while the card says location is blocked, Start's own refusal (`walkStart.error`) included. Fix: hide only the locate refusal (`locError?.refused`), never Start's. Test: `blocked, Walk here refused still shows Start's notice` (the auditor's 5, tend explore T76's review, Nov 28; filed, not fixed: `check:tend` gives a T build whose commit changes only a journey no review fix, the proxy's ruling under 0157, 2026-11-28).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--after",
+        "\"Open in Maps\" wraps to two lines on Explore"
+      ],
+      "body": "- [loop] (low) `qol`'s \"tend explore T76, tend explore audit 10\" check cannot fail on audit 10's half: the fix read once allowed clears the refusal's notice (`readHere`, `src/app/(tabs)/explore.tsx`) whether or not `refusalLifted` does, and the state audit 10 guarded, \"denied\" reset to ask, has no check. Fix: from the blocked card, `clearPermissions()`: the blocked card goes, Find me 1, the edge Locate 0, no notice. Test: `reset to ask after the block, Find me returns, no edge Locate, no notice` (the auditor's 4, tend explore T76's review, Nov 28; filed, not fixed: `check:tend` gives a T build whose commit changes only a journey no review fix, the proxy's ruling under 0157, 2026-11-28).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--after",
+        "\"Open in Maps\" wraps to two lines on Explore"
+      ],
+      "body": "- [loop] (medium) Explore's refusal by a Locate tap has no journey since `tend explore T76` (`qol`'s Explore branch no longer taps; the `onError` path in `src/app/(tabs)/explore.tsx` sets the refusal and says it). Fix: in `position` (`scripts/e2e/journeys/position.js`), after `yh-refused-dismissed`, tap the edge Locate: the notice comes back and the live region says the refusal. Test: `refused with a list, the edge Locate's tap brings the notice back and says it` (the auditor's 3, tend explore T76's review, Nov 28; filed, not fixed: `check:tend` gives a T build whose commit changes only a journey no review fix, the proxy's ruling under 0157, 2026-11-28).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Explore atlas",
+        "--after",
+        "\"Open in Maps\" wraps to two lines on Explore"
+      ],
+      "body": "- [loop] (medium) No journey checks O6's own state since `tend explore T76`: with no fix and no refusal, Find me in the empty card and no edge Locate (`qol`'s two checks that held it now check the blocked card and the read once allowed; only \"tend walk-screen 5\" checks Find me offered after a timeout, not the edge hidden). Fix: in `qol`'s Locate-timeout loop (`scripts/e2e/journeys/qol.js`), before the tap, check Find me 1 and the edge Locate 0. Test: `with no fix and no refusal, Find me in the card and no edge Locate` (the auditor's 2, tend explore T76's review, Nov 28; filed, not fixed: `check:tend` gives a T build whose commit changes only a journey no review fix, the proxy's ruling under 0157, 2026-11-28).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "What Explore says to a screen reader can differ"
+      ],
+      "body": "  Nov 28 (tend explore T76's review, the auditor's 8 and the ux-reviewer's 5): `qol`'s check \"tend map audit 12, tend explore T76\" (`scripts/e2e/journeys/qol.js`, near l.1816) now pins the live region's `LOCATION_OFF` words while the blocked card shows `BLOCKED_LINE`; it is the check this fix changes, to the card's words (`BLOCKED_WORDS`).\n",
+      "target": "sha256:ab345b8530350fd3282e373a4587ca065241a6fe7c6464a36807b2f7cafe7ad8"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "**Do:** with location never",
+        "--reason",
+        "stale since G17 (YH1): Explore asks as it opens, so no tap of Find me raises the prompt; tend explore T76's review, the auditor's 9, the proxy's ruling under 0157, 2026-11-28"
+      ],
+      "body": "- [ ] **Do:** with location never asked, open Explore with no fix and decline the prompt Explore raises as it opens; then turn location on for Chronicles in Settings and come back to the app. **Expect:** before the answer the empty card offers Find me and the map's edge has no Locate; after the decline, if the permission reads \"denied\" (iOS, or Android's \"Don't ask again\") the card says where to turn location on with neither Find me nor the edge Locate, and if it reads undecided (Android's first Deny) Find me is withheld and the edge Locate is the way; back from Settings with location on, the fix is read with no tap and the edge Locate is the way back to you: `watchLocatePermission` (`locate/permission.native.ts`) reads `getForegroundPermissionsAsync` again on each return to the front (`tend explore 8`, decision 0172, O6 and O20; since the current position, YH1 and YH4, Explore asks as it opens: `tend explore T76`).\n",
+      "target": "sha256:3bafec444dde7e87629f556ab06f77a4064f3db4fbb5e4f6a49ce5a0ec93f018"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "set",
+        "**Do:** on iOS and Android, with location never asked, open Explore with",
+        "--reason",
+        "stale since G17 (YH1): Explore asks as it opens, and back with location on the fix is read with no tap; tend explore T76's review, the auditor's 9, the proxy's ruling under 0157, 2026-11-28"
+      ],
+      "body": "- [ ] **Do:** on iOS and Android, with location never asked, open Explore with no fix and decline the prompt it raises as it opens; on Android decline once (\"Deny\") and then again (\"Don't ask again\"); on iOS also try with Location Services off for the whole phone; each time go to Settings, turn location on for Chronicles and come back. **Expect:** `watchLocatePermission` (`locate/permission.native.ts`) hears the change on the return to the front (`AppState` 'active'; whether iOS's own prompt toggles `AppState`, or iOS ends the app when a permission changes in Settings, is unknown): after Android's first Deny (`canAskAgain` true) the card withholds Find me and the edge Locate stays; once blocked (`canAskAgain` false, or iOS's denied) neither shows and the card says \"Location is turned off for Chronicles. Turn it on in Settings to see the areas around you.\", with no Open Settings (asked of the owner in the inbox, `tend explore T76`'s review); with Location Services off, whether `getForegroundPermissionsAsync` reads denied is unknown; back with location on, the notice goes and the fix is read with no tap (`tend explore audits 8-10`; the review of `/tend explore`, Nov 14, auditor's native list; since the current position Explore asks as it opens, YH1: `tend explore T76`).\n",
+      "target": "sha256:f6befa36e07b0d3c33cc22c26789ffe26884690b951775bb796ea75bd9528860"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on Android, with location never asked and no fix, open Explore and tap \"Deny\" at the prompt it raises; switch tabs and come back; then, from Find me or the edge Locate, deny again with \"Don't ask again\". **Expect:** after the first Deny (`canAskAgain` true, read as undecided) the card withholds Find me and the edge Locate is the one way, its tap asking again; after \"Don't ask again\" (read \"denied\") the card says \"Location is turned off for Chronicles. Turn it on in Settings to see the areas around you.\" with neither Find me nor the edge Locate (`locate/permission.native.ts`, `findYou`; the auditor, `tend explore T76`'s review, Nov 28).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** with Explore's card saying location is blocked, open Settings, allow location for Chronicles and come back to the app. **Expect:** one fix is read and framed once, with no flash of the notice: the return's read (`useAppReturn`) and the permission's own read start together, and the later ends the earlier (`readCtl`, `src/app/(tabs)/explore.tsx`) (the auditor, `tend explore T76`'s review, Nov 28).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on Android, with location never asked, open Explore and leave the system's permission dialog up for a few seconds before answering Allow. **Expect:** the answer lands: if Android reports the app going to the background and back around its dialog, the return's read does not end the read that asked (`useAppReturn`, `readHere`, `src/app/(tabs)/explore.tsx`), and the fix is read and framed (the auditor, `tend explore T76`'s review, Nov 28).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Explore atlas"
+      ],
+      "body": "- [ ] **Do:** on iOS, with location never asked, open Explore and leave the system's location prompt up for a few seconds before answering \"Allow While Using App\". **Expect:** the prompt makes the app `inactive`, not `background`, so no return read starts and the read that asked lands its fix (`useAppReturn`, `src/app/(tabs)/explore.tsx`); if iOS reports `background`, the answer still lands (the auditor, `tend explore T76`'s review, Nov 28).\n"
+    }
+  ]
+}
