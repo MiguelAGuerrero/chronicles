@@ -1,0 +1,181 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)",
+        "--new"
+      ],
+      "body": "- [loop] The bar's Show All keeps the list's scroll where the filtered list had it, while the View menu's All Items scrolls to the top (`MediaScreen.tsx`, `onShowAll` sets no `pending.current = 0` as `onShow` does): one job, two controls, two results (NN/g H4). Fix: `onShowAll` sets `pending.current = 0` before `gallery.setShow('all')`; test `tend gallery N: Show All scrolls as All Items does` (`/tend gallery`, Nov 28, the lens review's ux 3 and auditor 5; low)\n",
+      "intro": "What the first `/tend gallery` sweep (Nov 28) left for a later sweep of the gallery, each with its severity and the test its fix starts from. The gallery's older deferred items stay where they are (the \"Deferred (media gallery, decision 0139)\" and \"Fix gallery-header's audit, deferred\" bullets).\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] In the Aspect Ratio Grid a photo's letterbox is the tile's ground (`TILE_GROUND`, #ebe7df) and not the app's background (`98-gallery-aspect`; `GalleryTile.tsx` l.75, `PeriodBlock.tsx` l.54), where MG21 says each photo shows whole \"inside its square cell on the background\". Fix: the background when `fit === 'contain'` and a picture is drawn, the tile's ground for a glyph; test `tend gallery N: an aspect tile's letterbox is the app's background` (`/tend gallery`, Nov 28, the lens review's ux 4; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] `gallery.loadView()` runs on every show of Media, and a read that resolves after a pinch's or the menu's `setView` puts the older saved view back (`shell.ts` `loadView`; MG22). Fix: read the saved view once a run, or drop a read that a `setView` came after (a counter, as `load` has); test `tend gallery N: a view chosen while the saved one is read is kept` (`/tend gallery`, Nov 28, the lens review's auditor 4; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] A failed first read of the library leaves Media blank: the empty line shows only when `status === 'ready'`, so `failed` draws an empty list with no words (`MediaScreen.tsx`, `empty`; `shell.ts` `load`). Memories says \"Couldn’t read your moments.\" with Try again (`MemoriesScreen.tsx` l.440-445), the house's pattern. Fix: the same words and Try again on Media, its picture taken through a read that fails in the journey; test `tend gallery N: a failed first read says so with Try again` (`/tend gallery`, Nov 28, the lens review's auditor 6; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] Every Close of the viewer opened from Media reads the whole library again (`MediaScreen.tsx` `onClose` calls `gallery.load()`), and every `load` of a ready gallery sets the store once for nothing (`shell.ts` `load` sets `status` first), against `.claude/rules/performance.md` \"Refetch on focus only when something was written since the last read\". Fix: skip the status set when already ready; read again on Close only after a write in the viewer; test `tend gallery N: a load of a ready gallery notifies once` (`/tend gallery`, Nov 28, the lens review's auditor 8; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] Dead code in the gallery's shell: `gallery.reset` has no caller and `export type Gallery` no importer (`shell.ts`); remove both (cleanup; `/tend gallery`, Nov 28, the lens review's auditor 9; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] The Years, Months and Days segments are 40 pt targets inside a 2 pt padded track (`GalleryBar.tsx`, `segment: { minHeight: 40 }`), under `.claude/rules/ui-patterns.md` \"Targets 44 pt on iOS, 48 dp on Android\" (X0); `hitSlop` is not honoured on the web. Fix: `minHeight: 44` (the bar grows 4 px); test `tend gallery N: Years, Months and Days are each a 44 pt target` (`/tend gallery`, Nov 28, the run's lens 2 and the lens review's ux ruling 1; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] On Android the targets of Chronicle's section chips and the gallery's Years, Months and Days segments are under Material's 48 dp (`.claude/rules/ui-patterns.md` X0: \"Targets 44 pt on iOS, 48 dp on Android\"): both are sized for iOS (`SectionBar.tsx`, `GalleryBar.tsx`). Fix them together, by platform, with the chips' spacing item of \"Tabs and the recording bar\" in mind; test `tend gallery N: on Android the chips and the segments are 48 dp targets` (`/tend gallery`, Nov 28, the lens review's ux ruling 1; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] The shell test \"MG14: an older, slower read never overwrites a newer one\" cannot fail: the fake's reads never overlap, so removing `load`'s `mine !== reads` guard keeps it green (`src/lib/__tests__/gallery/shell.test.ts`). Fix: a `momentsBetween` that resolves out of order; test `tend gallery N: an older read resolving last is dropped` (`/tend gallery`, Nov 28, the lens review's auditor, Tests; low)\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [loop] At 320 px the View menu's Grid section (Square Photo Grid, Aspect Ratio Grid) is below the sheet's fold and reached only by scrolling the sheet (`99-gallery-menu-320`; `ViewMenu.tsx`, `maxHeight: '85%'`), with nothing that shows more is there. Measure first; a fix that regroups the menu is the owner's (`/tend gallery`, Nov 28, the lens review's auditor, UI; low)\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [ ] **Do:** on a development build with `globalThis.__perf = {}` set from the console, open Media on a library with a few hundred moments kept outside a walk, scroll it to the bottom and back. **Expect:** the streets of the days come in a few at a time, the scroll keeps up, and Media renders a handful of times per screen of days, never once per moment (Hermes; `tend gallery 4`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [ ] **Do:** stop a long walk and open Chronicle → Media at once, while the walk's derivation writes. **Expect:** the grid and the saved view (Sort, size, Grid) show within a moment, and the day headers' streets fill in after; nothing waits for the walk's writes to end (`getMeta` and `getSegmentsIn` behind the single write queue; `tend gallery 3`, `tend gallery 4`).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [ ] **Do:** in Media choose Months and tap a month of last year, on an iPhone and on Android. **Expect:** Days opens with that month's first day's header pinned at the top under the bar, its tiles below it, not under a header of another day (`initialScrollIndex` with sticky headers; MG16, MG19).\n"
+    },
+    {
+      "argv": [
+        "native",
+        "item",
+        "add",
+        "Media gallery (MG1-MG22, decision 0139)"
+      ],
+      "body": "- [ ] **Do:** set the largest text size, open a stacked moment from Media (and from Memories) in the viewer, and look at its info line over a portrait photo. **Expect:** the info line is whole on its own rows above the step buttons, the buttons on one row, the strip never covering Close or More (`tend gallery 2`).\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Gallery: at 320 a day's line can lose \", and outside a walk\"** (2026-11-28)\n  Area: gallery. Seen: `99-gallery-days-320` of the gallery journey: the day \"Thu, Nov 26\" reads \"An evening along the river past the North Hall Street market and the old docks, and outside…\": the place line's two lines (`HEADER_TYPE.lines`, `src/lib/gallery/layout.ts`; `numberOfLines`, `src/components/gallery/MediaScreen.tsx`) cut the clause that says some of the day's pictures were kept outside a walk, at the default text size (the lens review's steward 2 and ux 2, medium). The journey's check `tend gallery audit 1` names this line as filed every run. A first fix, `tend gallery 6` (a title cut to a character budget made from the width), was dropped before it shipped: it shortened a title that ended the line and fitted (the diff review's ux 1), cut \"Evening by the river\" to \"Evening…\" when the streets after it made the line long (the diff review's auditor 1), cut titles short of a whole word or of twelve characters (\"A walk to the castle\" at 12 gave \"A walk…\"; \"Saint-Germain-des-Prés and around\" at 20 gave \"Saint-Germain-des-P…\": auditor 3), and changed what MG6's \"each walk by its own title\" promises (auditor 4); its patch is kept for the build. Rests on: `specs/media-gallery/spec.md` MG6, \"moments outside a walk by their street once it is read\"; docs/VISION.md, Always, \"A moment carries its context\"; `.claude/rules/ui-patterns.md`, \"content must not be lost\".\n  Recommended: shorten a walk's title inside a day's line only when words follow it, to a whole-word prefix of at least twelve characters ending in \"…\", the overflow measured against the walks part and the clause after it only (never the streets' list), and never when the line ends on the title; and amend MG6 to say a walk's title may end in \"…\" in a day's line (its words and case as typed). Its tests hold the three failing inputs above. /vision: aligned (return; Always, \"A moment carries its context\": the clause stays; no count, nothing ranked).\n  Precedent: Apple Photos' Days view heads a day with its place names on one line, cut with an ellipsis at the end (from memory, unverified; not yet recorded); Day One's List view cuts an entry's preview at the end of its lines (from memory, unverified; not yet recorded); none found that cuts a name in the middle of a line to keep what follows.\n  Otherwise: let the clause lead the line (\"Outside a walk, and on <title>…\"), or leave it as it is.\n",
+      "number": "T73"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [owner] Gallery: a month of untitled walks with no area has no line** (2026-11-28)\n  Area: gallery. Seen: `galleryBlocks` (`src/lib/gallery/layout.ts`) gives a month or a year `line: null` when nothing is named and not every piece is loose, so a month whose only pieces are from walks with no title and no area read shows its title and cover with no line (`src/components/gallery/PeriodBlock.tsx`), while its spoken label says \"a morning walk\"; with also a loose moment with no street, \", and outside a walk\" is dropped with it (the lens review's steward 3 and auditor 7, low). Rests on: `specs/media-gallery/spec.md` MG19, \"with nothing to name, 'Not on a walk', never blank or guessed\", which would be false here; MG6 names such a walk \"A morning walk\".\n  Recommended: when nothing is named, the cover's place by MG6's rule (\"A morning walk\"), with \", and outside a walk\" when some pieces were kept outside a walk, never blank; amend MG19 to say so. /vision: aligned (return; Always, \"A moment carries its context\"; no count).\n  Questions the vision is silent on (the steward's): in a month's or year's line, may a walk's own title stand beside areas and streets as if it were a place (\"Alfama and An evening along the river…\"), or should a title be set apart so the line reads as where? And when every walk of a month is untitled with no area read, should its line name the walks by time of day (\"A morning walk\") as Days does?\n  Precedent: Apple Photos' Months view heads a month with place names or none at all (from memory, unverified; not yet recorded); none found for a month named by its walks.\n  Otherwise: leave the line blank, as built.\n",
+      "number": "T74"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [loop] Motion: a walk with the pocket alert on and Places off buzzes** (2026-11-28)\n  Area: motion. Seen: the weekly full pass of the gallery sweep (Nov 28): the `nudge` journey fails \"PA3, MD7: a walk with the pocket alert on and Places off never buzzes\", 2 runs of 2 on `main`'s own export (`13a11a2c`) and 2 of 2 on the sweep's head: two 50 ms taps about 150 ms apart, 9.7 s into the second walk (`[{\"t\":9722,\"p\":[50]},{\"t\":9915,\"p\":[50]}]`), a double-tap like the \"?\" alert's. Green in the full passes of Nov 16 and Nov 24 (`d595ae95`), so it landed on `main` since, among 162 commits under `src/` (walkability's car ground, the forgotten stop, the current position, hide a kind among them). Rests on: `specs/pocket-alert-nudge/spec.md` PA3 and MD7, shipped with their check. A high, filed here and not fixed: a change outside the gallery sweep's area, past its cap.\n  Recommended: a run of the motion area finds the commit (`npm run e2e:all -- --only nudge` on main's commits since `d595ae95`) and fixes what buzzes, or the journey if the second walk no longer starts with Places off; one commit, its test the journey's check. /vision: no surface (a defect against a shipped criterion).\n  Precedent: none needed (a regression).\n  Otherwise: none; a shipped criterion is red on `main`.\n",
+      "number": "T75"
+    },
+    {
+      "argv": [
+        "inbox",
+        "add"
+      ],
+      "body": "- **T? [loop] Explore: with no fix and location refused, neither Find me nor the edge Locate shows** (2026-11-28)\n  Area: explore. Seen: the weekly full pass of the gallery sweep (Nov 28): the `qol` journey fails \"tend explore 8: Explore at 390, with no fix, one way to find you: Find me in the card and no Locate at the map's edge\", 2 runs of 2 on `main`'s own export (`13a11a2c`) and 2 of 2 on the sweep's head, reading `{\"findMe\":0,\"edge\":0}`, then stops waiting for `atlas-locate`, so nothing after it in the journey runs. Not red on Nov 24. Since the current position (G17, YH1-YH7, decision 0275, Nov 27), Explore with no position lists the areas around the town it leads with (`src/app/(tabs)/explore.tsx`, `nameless`), so the card is not empty and `findYou` (`src/lib/atlas/findYou.ts`) gives no Find me; the edge Locate it then asks for is not found either. Rests on: `tend explore 8` (decision 0172, O6), \"one way to find you\", shipped with its check; G17's own criteria. A high, filed here and not fixed: a change outside the gallery sweep's area, past its cap, in a slice landed the day before.\n  Recommended: a run of the explore area reads G17's criteria beside tend explore 8 and gives Explore with no fix exactly one way to find you (Find me in the card while it lists around a town, or the edge Locate shown), then the check follows the screen; one commit. /vision: no surface (a defect against a shipped check); if G17's criteria and decision 0172 disagree, the owner's call.\n  Precedent: none needed (a regression).\n  Otherwise: none; a shipped check is red on `main` and stops the rest of the `qol` journey.\n",
+      "number": "T76"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "note",
+        "The weekly full pass on `d595ae95"
+      ],
+      "body": "  Nov 28 (the weekly full pass of the gallery sweep, on `5e73583a`, checked against `main`'s own export `13a11a2c`: each red 2 runs of 2 on the head and 2 of 2 on `main`, replay and drive 1 of 1 on `main`, so none is the sweep's): still red, replay's eighteen replay-ceremony checks (RC25, RC26, ui 1, 3, 5, 10, 12, 13, 14, at 390 and 320), placeoffer \"PO5\" (both checks), resurface \"audit 12\", where \"WB10\", gaps \"GW1\" and \"GW8\" (the run stops at `gap-keep`), chronicle \"the card keeps the place passed as a low, by name\" (no low on the card; `scripts/e2e/flaky.json` holds it as 1 of 1), atlas stopping at `look-cancel` (which also stops the full flow there, so its later journeys ran by name), scenic \"fix preview-clutter audit 1\" and drive stopping at `atlas-card`; new since Nov 24, filed in the inbox as T75 (nudge \"PA3, MD7\") and T76 (qol \"tend explore 8\"). Flaky (red in the pass, green alone): qol's \"map attribution\" and \"tend map audit 1, 2\", switches \"SS9\", placeoffer and small-places stopping at `layer-places`. Edit and reactions were green.\n",
+      "target": "sha256:979d3ee46d49fd59a39d640a6343d86a36778ea2be3181797f96301265c85a8b"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 28, `/tend` (a sweep; `tend next`'s rotation turn: gallery, never swept, Return) `--deploy=main --cap=6`, with the weekly full pass** (opened from `13a11a2c`; the proxy's calls under decision 0157, 2026-11-28, the owner having said \"Proceed autonomously\"; every lens 0-7 run).\n- `tend gallery 1`: the gallery journey pictures Days, the View menu, a kind chosen and Months at 320 px.\n- `tend gallery 2`: the shared viewer's info line has its own full-width row above the step buttons, never cut (it read \"…Alfam…\" from Media; Memories, a day and the replay get the same row).\n- `tend gallery 3`: a loose moment's street unknown at its first read is read again after its fix arrives or on a new open of Chronicle.\n- `tend gallery 4`: the streets of loose moments reach the store in batches (every 24 reads and at the end), not one render per street.\n- `tend gallery 5`: a View choice already made asks for no scroll, so Close on the viewer keeps the list where it was.\n- `tend gallery audit 1`: the 320 px check sees a line that ends in an ellipsis and names the filed ones every run.\n- Dropped before it shipped (the proxy's call): `tend gallery 6`, a day's walk title cut to a character budget so \", and outside a walk\" stays; the diff review showed it shortening titles that fitted and touching MG6's \"each walk by its own title\", so it went to the owner as T73.\n- Review: the lens pause (ux-reviewer, steward, auditor) fed the sweep; the diff round (auditor, ux-reviewer): 1 accepted (audit 1), 0 deferred, 0 rejected, and the dropped commit's four findings filed in T73.\n- Filed: T73 (a day's line can lose \", and outside a walk\" at 320) and T74 (a month of untitled walks with no area has no line), both `[owner]`; ten `[loop]` lows in DEFERRED's new \"Media gallery\" section; four NATIVE_UNVERIFIED items; two `[loop]` highs for main's new reds, T75 (nudge \"PA3, MD7\") and T76 (qol \"tend explore 8\"), not fixed here (outside the area, past the cap), and a note on the Nov 24 full pass's item. Lens 0: E-gallery-1 to 4 drafted, proposed, each met provisionally.\n- The weekly full pass on `5e73583a`: every journey once (the first `e2e:all` reached its two-hour limit after `stackjoin`, the rest ran by name; the full flow stops at atlas's `look-cancel`, its later journeys ran by name). Red, each 2 runs of 2 on the head and on main's own export `13a11a2c`, so none is the run's: atlas (`look-cancel`, the known flake), chronicle's low on the card (in `flaky.json`), gaps GW1 and GW8, nudge PA3/MD7 (new, T75), placeoffer PO5 (known), qol \"tend explore 8\" (new, T76), resurface audit 12, scenic preview-clutter audit 1, where WB10, replay's eighteen replay-ceremony checks (RC25, RC26 and ui 1, 3, 5, 10, 12-14), drive stopping at `atlas-card` (known). Flaky: qol's credits checks, switches SS9, placeoffer and small-places stopping at `layer-places`.\n- The balance reads outgrowing its base (seven of the eight areas swept twice or more are rough): no G filed; tend the rough areas and answer T70-T76 first. Nothing here has run on a phone; the viewer's change is native code never run on a device.\n"
+    }
+  ]
+}

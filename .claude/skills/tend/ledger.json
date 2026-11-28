@@ -1,26 +1,25 @@
 {
-  "lastT": 72,
+  "lastT": 76,
   "lastG": 19,
   "balance": {
-    "date": "2026-11-25",
+    "date": "2026-11-28",
     "days": 14,
     "slicesGrown": [
       "BC",
       "BK",
+      "BZ",
       "CA",
+      "CG",
       "CM",
       "CT",
-      "CX",
-      "DC",
       "DO",
       "EI",
       "EW",
-      "FL",
       "G",
       "GE",
       "GH",
       "GZ",
-      "HB",
+      "HK",
       "JN",
       "MA",
       "MC",
@@ -28,16 +27,13 @@
       "MP",
       "NF",
       "NI",
-      "NP",
-      "NY",
       "OJ",
       "OM",
-      "PC",
       "PL",
       "PO",
-      "PR",
       "PS",
       "QC",
+      "QE",
       "RC",
       "RE",
       "RL",
@@ -46,25 +42,25 @@
       "SF",
       "SG",
       "SP",
-      "SS",
       "SW",
-      "TC",
+      "TF",
       "TI",
-      "TX",
       "UN",
-      "VT",
       "WB",
       "WI",
-      "XS"
+      "XS",
+      "YH"
     ],
     "commits": {
-      "growth": 149,
-      "refinement": 878,
-      "other": 716
+      "growth": 110,
+      "refinement": 634,
+      "other": 593
     },
     "areas": {
       "rough": [
         "captures",
+        "chronicle",
+        "deletion",
         "explore",
         "map",
         "presence",
@@ -73,8 +69,6 @@
         "walk-screen"
       ],
       "settling": [
-        "chronicle",
-        "deletion",
         "navigation"
       ],
       "polished": [],
@@ -83,6 +77,7 @@
     "unseen": [
       "backup",
       "complexes",
+      "fixtures",
       "gallery",
       "gaps",
       "journal",
@@ -111,45 +106,44 @@
     ],
     "firstSweep": {
       "rough": [
+        "deletion",
         "replay"
       ],
-      "settling": [
-        "deletion"
-      ],
+      "settling": [],
       "polished": [],
       "resting": []
     },
     "states": {
       "navigation": "settling: one unrated [loop] item; its latest sweep was not whole",
       "replay": "rough: a change since its sweep added a screen or a control (d7d2a86, 678bfda, 3d7c93d)",
-      "walk-screen": "rough: a change since its sweep added a screen or a control (264773e, 5212633, 1b4d486, 0cee290)",
+      "walk-screen": "rough: a change since its sweep added a screen or a control (e2ef3fe, 85af994, 264773e, 5212633, 1b4d486, 0cee290)",
       "tabs": "rough: a change since its sweep added a screen or a control (0e9a2e0, 1b4d486)",
       "presence": "rough: two above low open (the latest sweep found no high and two medium, shipped no); waits on the owner: Open before the loop: \"`.claude/rules/presence.md` l.17 still says `ATLAS_CODE` (`a14.p4`)\"; its log line cannot show that what it shipped was above low",
       "explore": "rough: a change since its sweep added a screen or a control (db7c6ba, e51f4e9, d14f6fa)",
       "map": "rough: a change since its sweep added a screen or a control (b9fc26b)",
       "captures": "rough: a change since its sweep added a screen or a control (b97de33, 59f432c)",
-      "chronicle": "settling: its latest sweep was not whole",
-      "deletion": "settling: its latest sweep was not whole"
+      "chronicle": "rough: a change since its sweep added a screen or a control (3331723)",
+      "deletion": "rough: a change since its sweep added a screen or a control (3331723)"
     },
     "share": {
       "sweptTwice": 8,
-      "roughTwice": 6,
+      "roughTwice": 7,
       "line": "more than half of the areas swept twice or more, and more than three (ROUGH_SHARE 0.5, LIMITS.rough 3; decision 0250)"
     },
     "open": {
-      "openT": 1,
+      "openT": 3,
       "phoneT": 4,
-      "openG": 8,
-      "unansweredT": 1
+      "openG": 4,
+      "unansweredT": 3
     },
     "inbox": {
-      "items": 87,
-      "unanswered": 57,
+      "items": 89,
+      "unanswered": 62,
       "phone": 4,
       "bySection": {
         "From the journal and note pages `/fix` (2026-11-12, `specs/chronicle-journal/spec.md`, \"The line and the page\")": 3,
         "From the journal's audit (2026-11-12, `specs/chronicle-journal/spec.md`, Audit)": 6,
-        "From /tend": 5,
+        "From /tend": 7,
         "From the road engine's audit (2026-11-18)": 3,
         "From the outing journey's second audit (2026-11-18)": 1,
         "From the more-attractions audit (Nov 18)": 1,
@@ -158,20 +152,52 @@
         "From /fix carousel-snap-back": 1,
         "From /slice reaction-links": 1,
         "From /slice: the row under the line": 3,
-        "Next evolutions": 8,
-        "Open before the loop": 53
+        "Next evolutions": 4,
+        "Open before the loop": 57
       }
     },
     "unattributed": [
       "The \"Passing a place\" slider moved during a walk with Places off never reaches the walk's own `walk_pass`:",
       "The atlas journey stops at `look-cancel` (a 30 s click timeout after \"tend explore audit 22:",
-      "The mention picker still runs under the keyboard."
+      "The mention picker still runs under the keyboard.",
+      "Medium, engineering:"
     ],
-    "unrated": 43,
+    "unrated": 45,
     "reading": "outgrowing its base",
     "propose": false,
-    "why": "six of the eight areas swept twice or more are rough",
-    "evolve": null
+    "why": "seven of the eight areas swept twice or more are rough",
+    "evolve": null,
+    "answers": {
+      "days": 30,
+      "byClass": {
+        "G": {
+          "owner": 5,
+          "recommended": 4,
+          "other": 1,
+          "reshape": 0,
+          "no": 0
+        },
+        "T [owner]": {
+          "owner": 4,
+          "recommended": 4,
+          "other": 0,
+          "reshape": 0,
+          "no": 0
+        }
+      },
+      "proxy": {
+        "yeses": 0,
+        "unconfirmed": [],
+        "confirmed": 0
+      },
+      "unlogged": 70
+    },
+    "walks": {
+      "notes": [],
+      "last": null,
+      "gap": "2026-11-26",
+      "silence": null
+    }
   },
   "areas": {
     "chronicle": {
@@ -233,17 +259,23 @@
       "swept": "2026-11-18",
       "main": "c91583935de60c0433f938a35d35546dfb3469a3",
       "note": "No sweep (lenses 1-7 not run): aimed at the Deletion section's one [loop] item, \"Delete walk\" wrapping in the walk delete confirm's row at 320 px. Built tend deletion 1 (below 340 px the confirm stacks its actions, the confirm on top and Cancel beneath, as HIG Alerts and Material dialogs stack theirs; no words changed) and the review's U1 and U2 as tend deletion audit 3 (the row measured at 340 and 352 px; the threshold stays 340) and audit 4 (stacked, 12 px apart). Filed [owner] low: the destructive button's filled red in every confirm (U3). The HIG Alerts quote (U4) is in Last tend for docs/research."
+    },
+    "gallery": {
+      "swept": "2026-11-28",
+      "main": "13a11a2c21cef22907c64158289c58b949a421b9",
+      "note": "First sweep, whole (lenses 0-7), capped at 6: shipped tend gallery 1-5 (320 pictures; the shared viewer's info line on its own row; unknown streets read again; street reads batched; an unchanged View choice asks no scroll) and tend gallery audit 1; tend gallery 6 (a day's title clipped to a budget) dropped and filed as T73; T74 filed; ten [loop] lows in DEFERRED's Media gallery section; E-gallery-1 to 4 drafted. The weekly full pass: main's new reds filed as T75 and T76 (outside the area, past the cap).",
+      "state": "rough"
     }
   },
   "declined": [],
   "compass": {
-    "date": "2026-11-25",
+    "date": "2026-11-28",
     "runs": 12,
     "shares": {
-      "first": 0,
-      "second": 0
+      "first": null,
+      "second": null
     },
     "trend": "none",
-    "verdict": "too few refinement findings to say: 1 and 3 in the halves, 3 each at least"
+    "verdict": "too few refinement findings to say: 0 and 0 in the halves, 3 each at least"
   }
 }
