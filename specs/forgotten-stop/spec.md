@@ -187,4 +187,9 @@ app's db and cannot run under `npm test`.
 
 ## Record
 
-Built 2026-11-28 under `/tend inbox G16 yes`.
+Built 2026-11-28 under `/tend inbox G16 yes`: QE1-QE10, tests first (`check:test-first` 10 of 10), then the code; the
+journey `quietend` (23 checks), with `walk`, `tabs` and `launch`, green at the slice's head. The look checked against the
+mock-up at 390 and 320 (the proxy's ruling under 0157, 2026-11-28: conforms, the departures in decision 0276). The base it
+leaves (`node scripts/tend.js base --here walk-screen tabs replay recording`): walk-screen's reset gains this slice's own
+controls (e2ef3fe: the ask's buttons), nothing above low newly open; left tabs, replay and recording no rougher. Native
+has never run on a device (`docs/NATIVE_UNVERIFIED.md`, Recording and the background task).

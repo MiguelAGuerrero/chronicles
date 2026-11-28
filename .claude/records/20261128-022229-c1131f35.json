@@ -1,0 +1,20 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "slice",
+        "row",
+        "add"
+      ],
+      "body": "| A walk left running: Stop offers to end it where it went quiet (both held Stops ask on a walk quiet 30 min or more since its last walking on, ride, capture or Resume: \"This walk went quiet at 8:35 pm yesterday.\", End it at 8:35 pm or Keep it all; a kept walk's More (⋯) offers the same; End it moves the walk's end back, every finished walk read up to its end and the minute after, the readings kept; SNAP_RULES 10; QE1-QE10, decisions 0272, 0276; from G16) | built; native unverified | tests first, then the code, 2026-11-28 (`check:test-first` 10 of 10; the journey `quietend`, 23 checks) | `specs/forgotten-stop/spec.md` | the steward's plan review, 2026-11-28: steward 1-5 accepted, the proxy's calls under 0157 (decision 0276); the diff review (auditor, ux-reviewer, steward), 2026-11-28: 18 accepted as forgotten-stop audit 1-14 (the auditor's 2 high), 4 deferred (one [loop] low, three [owner] low), 0 rejected; the look ruled conforming (the proxy, 2026-11-28) |\n"
+    },
+    {
+      "argv": [
+        "inflight",
+        "remove",
+        "A walk left running: Stop offers to end it where it went quiet (the ask"
+      ],
+      "target": "sha256:9d399edf3e02a9a96f1fc111e6bf41bdd1b70a3c7f5a1c7c6a52ee668de64ca0"
+    }
+  ]
+}
