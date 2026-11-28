@@ -1,0 +1,48 @@
+{
+  "ops": [
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [owner] The Walkability note uses \"read\" three ways in two sentences (\"an area can read differently from how it feels\", \"not read yet\", \"as far as it has read\"), and its \"it\" never says what reads the ground (tend walkability T69, the ux-reviewer's ux 1; low, opinion; T67's clause already did). The words are the owner's approved shape, so a change is theirs (the proxy's ruling under decision 0157, 2026-11-28). Not built: \"the dashed line is as far as the map has read\" (`src/lib/layers/registry.ts`, the walkability note), tested as `tend walkability T69 ux 1: the note names what reads the ground`.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [owner] In the Walkability note's \"Ground left plain is easy on foot, mixed, or not read yet\", \"mixed\" alone can be taken for mixed-use (tend walkability T69, the ux-reviewer's ux 2; low, opinion). \"Mixed\" is the owner's approved word (T69's recommended shape), so a change is theirs (the proxy's ruling under decision 0157, 2026-11-28). Not built: \"in between\" in its place (`src/lib/layers/registry.ts`, the walkability note), tested as `tend walkability T69 ux 2: the note's middle word is not taken for mixed-use`.\n"
+    },
+    {
+      "argv": [
+        "deferred",
+        "item",
+        "add",
+        "Walkability (specs/walkability, decision 0093)"
+      ],
+      "body": "- [owner] The Walkability note says the map key third, after the data's credit and its caveat, so at 320 px the plain ground's sentence starts at the end of the note's third line (tend walkability T69, the ux-reviewer's ux 3; low, opinion; the `walkability` journey's `t67-legend-320` picture). The order is the owner's approved note with one sentence added, so a reorder is theirs (the proxy's ruling under decision 0157, 2026-11-28). Not built: the same words as key, caveat, credit (`src/lib/layers/registry.ts`, the walkability note; the journey's two note checks change with it), tested as `tend walkability T69 ux 3: the note says the key before the source`.\n"
+    },
+    {
+      "argv": [
+        "inbox",
+        "remove",
+        "T69",
+        "--reason",
+        "the owner's yes in person, 2026-11-27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\", built in tend walkability T69 (the dashed line's clause joined to the new sentence, the proxy's ruling under 0157, 2026-11-28)"
+      ],
+      "target": "sha256:a213656e2495af08820ecca897f8f4dd91fc98169c240f4fcd29df9c9ced2558"
+    },
+    {
+      "argv": [
+        "last-tend",
+        "set"
+      ],
+      "body": "**Nov 28, `/tend inbox T69 yes`: the Walkability note says what plain ground means** (opened from `7e2dae45`; T69, \"Walkability: the legend no longer says what plain ground means\", the owner's yes in person, Nov 27, \"G17 current position, G16 forgotten stop, T67-T69 walkability, TF27 follow-up\"; an inbox run, so lenses 1-7 were not run).\n- `tend walkability T69`: the Walkability layer's note gains one sentence, \"Ground left plain is easy on foot, mixed, or not read yet\", \"or not read yet\" joining it since T67's dashed line is built; T67's clause, its words unchanged, now ends that sentence (\"…how it feels. Ground left plain is easy on foot, mixed, or not read yet; the dashed line is as far as it has read.\"). Words only: no new row, no number, no swatch.\n- The proxy's calls under 0157, 2026-11-28 (the owner said \"Proceed autonomously\"): the clause's place, the serial comma and \"Ground left plain\" kept; the review's three lows deferred `[owner]`, since each changes or reorders the owner's approved words on opinion only.\n- Review, one round, the ux-reviewer (words only): 0 accepted, 3 deferred (ux 1 \"read\" used three ways, ux 2 \"mixed\" taken for mixed-use, ux 3 the key after the credit; each low, opinion), 0 rejected.\n- Filed: three `[owner]` lows in DEFERRED's walkability section. No inbox entry. Nothing here touched native code.\n- The owner's yeses of Nov 27 are now all built but the \"TF27 follow-up\", which waits on the owner's manual places build. T70, T71 and T72 (walkability) unanswered.\n- The balance reads outgrowing its base. Journeys: walkability, layers, headsup, launch, all green. The weekly full pass is due (`tend.js e2e-due`) and was not run here.\n"
+    }
+  ]
+}
