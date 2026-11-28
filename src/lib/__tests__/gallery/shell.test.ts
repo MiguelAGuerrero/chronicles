@@ -131,3 +131,18 @@ test('tend gallery 3: a street unknown at the first read is read again after a f
   assert.equal(g.store.get().streets.far, 'Elm Street', 'a new open reads a street that was unknown');
   assert.equal(g.store.get().streets.late, 'Hope Street', 'a known street is kept');
 });
+
+test('tend gallery 4: the streets of many loose moments reach the store in a bounded number of sets', async () => {
+  const p = fakePorts();
+  const g = createGallery(p);
+  await p.db.putSegments([HOPE]);
+  const ids = Array.from({ length: 30 }, (_, i) => `m${i}`);
+  for (const [i, id] of ids.entries()) await p.db.addMoment(moment(id, i + 1, i % 3 ? { lat: 38.71001, lon: -9.1395 } : {}));
+  await g.load();
+  let sets = 0;
+  const stop = g.store.subscribe(() => (sets += 1));
+  await g.streetsFor(ids);
+  stop();
+  assert.ok(sets <= 2, `${sets} sets for thirty streets`);
+  assert.equal(Object.values(g.store.get().streets).filter((s) => s === 'Hope Street').length, 20);
+});

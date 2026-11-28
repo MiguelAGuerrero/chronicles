@@ -32,6 +32,8 @@ const without = (streets: Record<string, string | null>, ids: string[]): Record<
 /** How far around a loose moment's fix its street is looked for, as Memories' context line does (MC1). */
 const READ_M = 45;
 const M_PER_DEG = 111_320;
+/** How many streets are read before they reach the store, at most (tend gallery 4). */
+const STREET_BATCH = 24;
 
 /**
  * Media gallery's shell (specs/media-gallery): it reads every moment and walk (rows, never media) each time Media is
@@ -114,6 +116,17 @@ export function createGallery(p: Pick<Ports, 'db'>) {
     async streetsFor(ids: string[]): Promise<void> {
       const todo = ids.filter((id) => !asked.has(id) && !(id in store.get().streets));
       for (const id of todo) asked.add(id);
+      // The streets read reach the store together, every STREET_BATCH reads and at the end: each set re-renders Media
+      // and works out its rows again over the library (tend gallery 4; performance.md, one state update).
+      let found: Record<string, string | null> = {};
+      let count = 0;
+      const flush = () => {
+        if (!count) return;
+        const add = found;
+        found = {};
+        count = 0;
+        store.set((s) => ({ ...s, streets: { ...s.streets, ...add } }));
+      };
       const readOne = async (id: string): Promise<void> => {
         const m = store.get().moments.find((x) => x.id === id);
         if (!m) return void asked.delete(id);
@@ -127,12 +140,15 @@ export function createGallery(p: Pick<Ports, 'db'>) {
             const segments = await p.db.getSegmentsIn([fix[0] - dLon, fix[1] - dLat, fix[0] + dLon, fix[1] + dLat]);
             name = streetAt(fix, segments, m.segment_id)?.name ?? null;
           }
-          store.set((s) => ({ ...s, streets: { ...s.streets, [id]: name } }));
+          found[id] = name;
+          count += 1;
+          if (count >= STREET_BATCH) flush();
         } catch {
           asked.delete(id);
         }
       };
       await Promise.all(todo.map((id) => (streetQueue = streetQueue.then(() => readOne(id)))));
+      flush();
     },
   };
 }
