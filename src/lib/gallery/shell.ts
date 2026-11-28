@@ -22,6 +22,13 @@ export interface GalleryState {
   view: GalleryView;
 }
 
+/** The streets without these moments' entries. */
+const without = (streets: Record<string, string | null>, ids: string[]): Record<string, string | null> => {
+  const out = { ...streets };
+  for (const id of ids) delete out[id];
+  return out;
+};
+
 /** How far around a loose moment's fix its street is looked for, as Memories' context line does (MC1). */
 const READ_M = 45;
 const M_PER_DEG = 111_320;
@@ -38,6 +45,8 @@ export function createGallery(p: Pick<Ports, 'db'>) {
   let saving: Promise<unknown> = Promise.resolve();
   let streetQueue: Promise<unknown> = Promise.resolve();
   const asked = new Set<string>();
+  // Moments read as "no street" for want of a fix: read again once a load brings their fix (tend gallery 3).
+  const noFix = new Set<string>();
   let lastVisit: number | null = null;
 
   return {
@@ -49,7 +58,12 @@ export function createGallery(p: Pick<Ports, 'db'>) {
       try {
         const [moments, walks] = await Promise.all([p.db.momentsBetween(0, Number.MAX_SAFE_INTEGER), p.db.listWalks()]);
         if (mine !== reads) return;
-        store.set((s) => ({ ...s, status: 'ready', moments: facedAll(moments), walks }));
+        const placed = moments.filter((m) => noFix.has(m.id) && m.lat != null && m.lon != null).map((m) => m.id);
+        for (const id of placed) {
+          noFix.delete(id);
+          asked.delete(id);
+        }
+        store.set((s) => ({ ...s, status: 'ready', moments: facedAll(moments), walks, streets: placed.length ? without(s.streets, placed) : s.streets }));
       } catch {
         if (mine === reads) store.set((s) => ({ ...s, status: s.status === 'ready' ? 'ready' : 'failed' }));
       }
@@ -81,7 +95,12 @@ export function createGallery(p: Pick<Ports, 'db'>) {
      * a new open of Chronicle, so the filter and the zoom go back (MG9); Memories and back is the same open.
      */
     opened(visit: number): void {
-      if (visit !== lastVisit) store.set((s) => ({ ...s, show: 'all', zoom: 'days' }));
+      if (visit !== lastVisit) {
+        // A street unknown at its read may have been read since (a later walk): a new open asks again (tend gallery 3).
+        const unknown = Object.keys(store.get().streets).filter((id) => store.get().streets[id] == null);
+        for (const id of unknown) asked.delete(id);
+        store.set((s) => ({ ...s, show: 'all', zoom: 'days', streets: unknown.length ? without(s.streets, unknown) : s.streets }));
+      }
       lastVisit = visit;
     },
     /** An edit saved in the viewer shows on its tile at once (MG14). */
@@ -101,6 +120,7 @@ export function createGallery(p: Pick<Ports, 'db'>) {
         const fix = m.lat != null && m.lon != null ? ([m.lon, m.lat] as [number, number]) : null;
         try {
           let name: string | null = null;
+          if (!fix) noFix.add(id);
           if (fix) {
             const dLon = READ_M / (M_PER_DEG * Math.max(0.05, Math.cos((fix[1] * Math.PI) / 180)));
             const dLat = READ_M / M_PER_DEG;

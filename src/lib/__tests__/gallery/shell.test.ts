@@ -101,3 +101,33 @@ test('MG6: a failed street read is asked again next time', async () => {
   assert.equal(g.store.get().streets.m, null);
 });
 
+
+const HOPE = { id: 's1', name: 'Hope Street', kind_detail: 'residential', length_m: 100, geometry: [[[-9.1400, 38.7100], [-9.1390, 38.7100]]] as [number, number][][], build: 'b' };
+
+test('tend gallery 3: a street unknown at the first read is read again after a fix or a new open', async () => {
+  const p = fakePorts();
+  const g = createGallery(p);
+  await p.db.putSegments([HOPE]);
+  // A: kept before its fix arrived; the fix lands after the first read.
+  await p.db.addMoment(moment('late', 1));
+  await g.load();
+  g.opened(0);
+  await g.streetsFor(['late']);
+  assert.equal(g.store.get().streets.late ?? null, null, 'no fix yet: no street');
+  await p.db.updateMoment('late', { lat: 38.71001, lon: -9.1395 });
+  await g.load();
+  await g.streetsFor(['late']);
+  assert.equal(g.store.get().streets.late, 'Hope Street', 'its fix arrived: read again');
+  // B: a place with no street read yet; a later walk reads its streets; a new open of Chronicle reads it again.
+  await p.db.addMoment(moment('far', 2, { lat: 38.75001, lon: -9.1395 }));
+  await g.load();
+  await g.streetsFor(['far']);
+  assert.equal(g.store.get().streets.far, null);
+  await p.db.putSegments([{ ...HOPE, id: 's2', name: 'Elm Street', geometry: [[[-9.1400, 38.7500], [-9.1390, 38.7500]]] }]);
+  await g.streetsFor(['far']);
+  assert.equal(g.store.get().streets.far, null, 'the same open: read once');
+  g.opened(1);
+  await g.streetsFor(['far']);
+  assert.equal(g.store.get().streets.far, 'Elm Street', 'a new open reads a street that was unknown');
+  assert.equal(g.store.get().streets.late, 'Hope Street', 'a known street is kept');
+});
