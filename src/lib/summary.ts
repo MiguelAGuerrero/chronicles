@@ -11,6 +11,7 @@ import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances, withFil
 import type { TimedRun } from './replay';
 import { walkBounds } from './finish';
 import { fillsOf, walkStretches, type Stretch } from './gaps';
+import { untilEnd } from './quietEnd/core';
 import type { Gap } from './gaps/infer';
 import type { LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
@@ -63,7 +64,8 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
   // Standstills are drawn and replayed as a still dot, not GPS jitter.
   const pauses = await db.getPauses(walkId);
   const stills = await db.getStills(walkId).catch(() => []);
-  const points = await db.getPoints(walkId);
+  // Up to its end: readings after a walk ended where it went quiet stay stored, never drawn (QE5, decision 0272).
+  const points = untilEnd(await db.getPoints(walkId), walk.ended_at);
   const plain = readTrace(points, walk.started_at, pauses, stills);
   // Filled and kept stretches are walked trace; offered ones are drawn apart, faint (G6, G11).
   const { stretches, gaps } = await walkStretches(walkId, plain, { read: !!opts.readGaps }).catch(() => ({ stretches: [] as Stretch[], gaps: [] as Gap[] }));

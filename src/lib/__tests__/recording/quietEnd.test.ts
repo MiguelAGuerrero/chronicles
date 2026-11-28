@@ -49,7 +49,7 @@ const lastOf = (ps: TracePoint[]) => ps[ps.length - 1];
 const walk = walking(T0, 10);
 const corner = lastOf(walk);
 
-test('QE1: a web-shaped tail, one long break then standing fixes 400 m away, is quiet from the last corner', { todo: 'test first' }, async () => {
+test('QE1: a web-shaped tail, one long break then standing fixes 400 m away, is quiet from the last corner', async () => {
   const { quietPoint, quietEndAt } = await mod();
   const home = standing(corner.t + 20 * HOUR, 5 * MIN, 3200, 200, 1000, 12);
   const tr = read([...walk, ...home]);
@@ -59,7 +59,7 @@ test('QE1: a web-shaped tail, one long break then standing fixes 400 m away, is 
   assert.equal(quietEndAt({ tr, captures: [], pauses: [] }, lastOf(home).t + 5000), at, 'quiet 30 min or more at the hold');
 });
 
-test('QE1: a phone-shaped tail, two hours of a fix a second at the last corner, a lone far fix among them, gives the same point', { todo: 'test first' }, async () => {
+test('QE1: a phone-shaped tail, two hours of a fix a second at the last corner, a lone far fix among them, gives the same point', async () => {
   const { quietPoint } = await mod();
   const stay = standing(corner.t + 1000, 2 * HOUR, (corner.lon - LON0) / M_LON, (corner.lat - LAT0) / M_LAT, 1000, 10);
   // One jump 120 m off, an hour in: a lone far fix is not walking on.
@@ -71,7 +71,7 @@ test('QE1: a phone-shaped tail, two hours of a fix a second at the last corner, 
   assert.ok(Math.abs(phone - web) <= MIN, 'the phone and the web find the same point');
 });
 
-test('QE2: a sit mid-walk followed by walking, a capture, a ride or a Resume is never the quiet end', { todo: 'test first' }, async () => {
+test('QE2: a sit mid-walk followed by walking, a capture, a ride or a Resume is never the quiet end', async () => {
   const { quietPoint, quietEndAt } = await mod();
   // Ten minutes, a 40-minute sit at the corner, ten more minutes on from there.
   const sit = standing(corner.t + 1000, 40 * MIN, (corner.lon - LON0) / M_LON, (corner.lat - LAT0) / M_LAT, 5000);
@@ -93,7 +93,7 @@ test('QE2: a sit mid-walk followed by walking, a capture, a ride or a Resume is 
   assert.ok((quietPoint({ tr, captures: [], pauses: [{ started_at: corner.t + 39 * MIN, ended_at: null }] }) ?? 0) < corner.t + MIN);
 });
 
-test('QE2: a slow walk (outAndBack, eastonSlow) is walking on to its end, never quiet', { todo: 'test first' }, async () => {
+test('QE2: a slow walk (outAndBack, eastonSlow) is walking on to its end, never quiet', async () => {
   const { quietPoint, quietEndAt } = await mod();
   const dir = __dirname;
   const out = JSON.parse(readFileSync(join(dir, 'outAndBack.json'), 'utf8')) as { points: Omit<TracePoint, 'walk_id'>[]; pauses: { started_at: number; ended_at: number }[] };
@@ -109,7 +109,7 @@ test('QE2: a slow walk (outAndBack, eastonSlow) is walking on to its end, never 
   }
 });
 
-test('QE3: quiet 30 min or more asks; 29 min does not', { todo: 'test first' }, async () => {
+test('QE3: quiet 30 min or more asks; 29 min does not', async () => {
   const { quietEndAt, QUIET_MS } = await mod();
   const tr = read(walk);
   assert.equal(QUIET_MS, 30 * MIN);
@@ -117,14 +117,14 @@ test('QE3: quiet 30 min or more asks; 29 min does not', { todo: 'test first' }, 
   assert.ok(quietEndAt({ tr, captures: [], pauses: [] }, corner.t + 31 * MIN) != null);
 });
 
-test('QE5: a walk is read up to its end, the end\'s own fix included; all of it while it has none', { todo: 'test first' }, async () => {
+test('QE5: a walk is read up to its end, the end\'s own fix included; all of it while it has none', async () => {
   const { untilEnd } = await mod();
   const pts = [...walk, ...standing(corner.t + 20 * HOUR, 8000, 3200, 200)];
   assert.deepEqual(untilEnd(pts, corner.t), walk);
   assert.equal(untilEnd(pts, null).length, pts.length);
 });
 
-test('QE9: the ask says a time of day, "yesterday" in lower case, no word for today, "on <day>" further back', { todo: 'test first' }, async () => {
+test('QE9: the ask says a time of day, "yesterday" in lower case, no word for today, "on <day>" further back', async () => {
   const { quietLine, endItLabel, quietRowHint, KEEP_IT_ALL, QUIET_ROW } = await mod();
   const at = new Date(2026, 10, 26, 20, 35).getTime();
   const nextDay = new Date(2026, 10, 27, 16, 36).getTime();
@@ -136,7 +136,7 @@ test('QE9: the ask says a time of day, "yesterday" in lower case, no word for to
   assert.equal(quietRowHint(at, nextDay), 'At 8:35 pm yesterday; what came after it leaves the walk');
 });
 
-test('forgotten-stop steward 5: a quiet point three days back reads "on <dayLabel>"', { todo: 'test first' }, async () => {
+test('forgotten-stop steward 5: a quiet point three days back reads "on <dayLabel>"', async () => {
   const { quietLine } = await mod();
   const { dayKey, dayLabel } = await import('../../days');
   const at = new Date(2026, 10, 24, 20, 35).getTime();
@@ -144,7 +144,7 @@ test('forgotten-stop steward 5: a quiet point three days back reads "on <dayLabe
   assert.equal(quietLine(at, now), `This walk went quiet at 8:35 pm on ${dayLabel(dayKey(at), now)}.`);
 });
 
-test('forgotten-stop steward 3: a 35-minute quiet end\'s hint names no unit of time', { todo: 'test first' }, async () => {
+test('forgotten-stop steward 3: a 35-minute quiet end\'s hint names no unit of time', async () => {
   const { quietRowHint, quietLine } = await mod();
   const at = new Date(2026, 10, 26, 20, 35).getTime();
   for (const s of [quietRowHint(at, at + 35 * MIN), quietLine(at, at + 35 * MIN), quietRowHint(at, at + 20 * HOUR)]) {

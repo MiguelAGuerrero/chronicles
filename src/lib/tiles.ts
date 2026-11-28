@@ -82,5 +82,6 @@ const STREET_CODE = '3';
  * 7: gaps are filled with the streets most likely walked (Filling gaps, G13).
  * 8: a settled spot never breaks the line (jitter 8), and every break is a gap however short (Nov 3).
  * 9: a spot held over a minute needs twice the move to read as walked through, so drift stays standing (jitter 2).
+ * 10: a walk is read up to its end; readings after it stay stored (a walk ended where it went quiet, QE5, QE8).
  */
-const SNAP_RULES = '9';
+const SNAP_RULES = '10';

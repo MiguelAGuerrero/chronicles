@@ -34,7 +34,7 @@ async function keptWhole(p: FakePorts, endedAt = stoppedAt) {
   await p.db.appendPoints([...walked, ...home]);
 }
 
-test('QE7: a kept walk quiet 30 min or more at its end has a point; End it moves its end back there, snaps it again, rebuilds its line and says it changed', { todo: 'test first' }, async () => {
+test('QE7: a kept walk quiet 30 min or more at its end has a point; End it moves its end back there, snaps it again, rebuilds its line and says it changed', async () => {
   const p = fakePorts({ now: stoppedAt + HOUR });
   await keptWhole(p);
   const calls: string[] = [];
@@ -51,7 +51,7 @@ test('QE7: a kept walk quiet 30 min or more at its end has a point; End it moves
   assert.equal(await q.at('w'), null, 'after it, no point: the row is gone');
 });
 
-test('QE7: End it moves an end only back, to the walk\'s own point read again, and never on an open walk', { todo: 'test first' }, async () => {
+test('QE7: End it moves an end only back, to the walk\'s own point read again, and never on an open walk', async () => {
   const p = fakePorts({ now: stoppedAt + HOUR });
   await keptWhole(p);
   const q = await shellOf(p);
@@ -62,7 +62,7 @@ test('QE7: End it moves an end only back, to the walk\'s own point read again, a
   await assert.rejects(q.endAt('w', at), 'not an open walk');
 });
 
-test('QE3: a walk still open reads its quiet up to now; a kept walk up to its own end', { todo: 'test first' }, async () => {
+test('QE3: a walk still open reads its quiet up to now; a kept walk up to its own end', async () => {
   const p = fakePorts({ now: corner.t + 29 * MIN });
   await p.db.createWalk({ id: 'w', started_at: T0, ended_at: null, title: null, epilogue: null, open: true, area: null, snapped_build: null });
   await p.db.appendPoints(walked);
@@ -72,7 +72,7 @@ test('QE3: a walk still open reads its quiet up to now; a kept walk up to its ow
   assert.ok((await q.at('w')) != null, '31 minutes: the ask');
 });
 
-test('QE8: no reading is deleted: after an end moved back, Share GPS log still holds the tail', { todo: 'test first' }, async () => {
+test('QE8: no reading is deleted: after an end moved back, Share GPS log still holds the tail', async () => {
   const p = fakePorts({ now: stoppedAt + HOUR });
   await keptWhole(p);
   const q = await shellOf(p);
@@ -84,12 +84,12 @@ test('QE8: no reading is deleted: after an end moved back, Share GPS log still h
   assert.ok(lines.length >= walked.length + home.length, `the log holds the tail too (${lines.length} lines)`);
 });
 
-test('QE8: SNAP_RULES is bumped so kept walks are read again', { todo: 'test first' }, () => {
+test('QE8: SNAP_RULES is bumped so kept walks are read again', () => {
   const src = readFileSync(join(__dirname, '..', '..', 'tiles.ts'), 'utf8');
   assert.match(src, /const SNAP_RULES = '10';/);
 });
 
-test('QE9: nothing is notified and nothing ends a walk by itself: reading a point writes nothing', { todo: 'test first' }, async () => {
+test('QE9: nothing is notified and nothing ends a walk by itself: reading a point writes nothing', async () => {
   const p = fakePorts({ now: stoppedAt + HOUR });
   await keptWhole(p);
   const q = await shellOf(p);
@@ -101,7 +101,7 @@ test('QE9: nothing is notified and nothing ends a walk by itself: reading a poin
   assert.equal((await p.db.getWalk('w'))?.ended_at, stoppedAt);
 });
 
-test('QE5: Where I\'ve been builds a kept walk\'s line up to its end', { todo: 'test first' }, async () => {
+test('QE5: Where I\'ve been builds a kept walk\'s line up to its end', async () => {
   const p = fakePorts();
   // Ended at the corner; the next day, a stretch walked 3 km on, kept in storage after the end.
   await p.db.createWalk({ id: 'w', started_at: T0, ended_at: corner.t, title: null, epilogue: null, open: false, area: null, snapped_build: 'b' });
@@ -157,12 +157,12 @@ test('QE5: every reader of a finished walk\'s trace reads it up to its end; only
   for (const f of OPEN) assert.match(src(f), /getOpenWalk|walk\.open|openWalk|walkId/, `${f} reads the open walk`);
 });
 
-test('forgotten-stop steward 1: an outing reads a walk ended where it went quiet up to its end', { todo: 'test first' }, () => {
+test('forgotten-stop steward 1: an outing reads a walk ended where it went quiet up to its end', () => {
   const src = readFileSync(join(__dirname, '..', '..', 'outing', 'app.ts'), 'utf8');
   assert.match(src, /readTrace\(withoutPauses\(untilEnd\(points, walk\.ended_at\), pauses\)/);
 });
 
-test('QE5: the replay and the snap read a walk up to its end', { todo: 'test first' }, () => {
+test('QE5: the replay and the snap read a walk up to its end', () => {
   const src = (f: string) => readFileSync(join(__dirname, '..', '..', f), 'utf8');
   assert.match(src('summary.ts'), /const points = untilEnd\(await db\.getPoints\(walkId\), walk\.ended_at\);/);
   assert.match(src('finish.ts'), /withoutPauses\(untilEnd\(await db\.getPoints\(walk\.id\), walk\.ended_at\), pauses\)/);

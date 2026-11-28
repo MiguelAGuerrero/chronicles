@@ -14,6 +14,7 @@ import { appBoundaries } from './areas/boundaries';
 import { hamletsFromTiles, placesFromTiles } from './areas/tilePlaces';
 import type { Area, WalkArea } from './areas/types';
 import { fillsOf, walkStretches } from './gaps';
+import { untilEnd } from './quietEnd/core';
 import { ensureTileBuild } from './tiles';
 import type { LngLat, Moment, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
@@ -60,7 +61,8 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   const build = await ensureTileBuild();
   const pauses = await db.getPauses(walk.id);
   const stills = await db.getStills(walk.id).catch(() => []);
-  const points = withoutPauses(await db.getPoints(walk.id), pauses);
+  // Up to its end (QE5): the summary, the streets, the areas and the moments' places read the walk as it was ended.
+  const points = withoutPauses(untilEnd(await db.getPoints(walk.id), walk.ended_at), pauses);
   // Gaps filled by themselves or kept are walked trace from here on (Filling gaps, G11).
   const plain = readTrace(points, walk.started_at, pauses, stills);
   const gaps = await walkStretches(walk.id, plain, { read: true }).catch(() => ({ stretches: [], unread: true }));

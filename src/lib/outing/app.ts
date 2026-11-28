@@ -14,6 +14,7 @@ import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
 import { ports } from '../ports';
 import { createOutingPrefs } from './prefs';
+import { untilEnd } from '../quietEnd/core';
 import { readTrace } from '../rides';
 import { createOutingService } from './service';
 import { placeCandidates } from './sources';
@@ -46,7 +47,8 @@ export const outingService = createOutingService({
       const walk = (await db.listWalks()).find((w) => w.id === id);
       if (!walk) return [];
       const [pauses, stills, points] = await Promise.all([db.getPauses(id), db.getStills(id).catch(() => []), db.getPoints(id)]);
-      return readTrace(withoutPauses(points, pauses), walk.started_at, pauses, stills).walked.map((f) => ({ lon: f.lon, lat: f.lat }));
+      // Up to its end: what came after a walk ended where it went quiet was not walked (QE5, forgotten-stop steward 1).
+      return readTrace(withoutPauses(untilEnd(points, walk.ended_at), pauses), walk.started_at, pauses, stills).walked.map((f) => ({ lon: f.lon, lat: f.lat }));
     },
     rangeM: async () => (await loadSettings()).rangeM,
   },

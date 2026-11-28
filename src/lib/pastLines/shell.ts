@@ -1,6 +1,7 @@
 // @layer shell
 import { fillsOf, gapsOf, stretchesFor } from '../gaps/infer';
 import type { Ports } from '../ports/types';
+import { untilEnd } from '../quietEnd/core';
 import { readTrace, withFilled } from '../rides';
 import { createStore, type Store } from '../store';
 import type { LngLat, Walk } from '../types';
@@ -37,7 +38,8 @@ export function createPastLines(p: Pick<Ports, 'db'>): PastLines {
       p.db.getStills(walk.id),
       p.db.getGapDecisions(walk.id),
     ]);
-    const plain = readTrace(points, walk.started_at, pauses, stills);
+    // Up to its end (QE5, decision 0272).
+    const plain = readTrace(untilEnd(points, walk.ended_at), walk.started_at, pauses, stills);
     // Only the gaps the walker kept: an inference is never stored, and would need tiles (WB7, WB17).
     const fills = fillsOf(stretchesFor(gapsOf(plain), [], decisions));
     const line = lineOf(walk.id, withFilled(plain, fills));
