@@ -8,7 +8,8 @@
 const SHIFT = 20 * 3600_000;
 
 async function run(h) {
-  const { url, navUrl, BASE, at, distanceM, check, shot, freshPage, toStop, tabTo } = h;
+  const { url, navUrl, BASE, at, distanceM, check, shot, freshPage, toStop, tabTo, scriptsDir } = h;
+  const photoFile = require('path').join(scriptsDir, 'fixtures', 'photo.jpg');
   const { c, pg } = await freshPage('quietend');
   const until = async (ok, ms) => {
     for (const end = Date.now() + ms; Date.now() < end; await pg.waitForTimeout(250)) if (await ok()) return true;
@@ -151,6 +152,9 @@ async function run(h) {
       .map((e) => ({ id: e.getAttribute('data-testid'), bg: getComputedStyle(e).backgroundColor })));
     check(accents.filter((a) => a.bg === 'rgb(194, 65, 12)').map((a) => a.id).join() === 'quiet-end',
       `forgotten-stop steward 4: while the card shows, End it is the screen's only filled accent (${JSON.stringify(accents)})`);
+    // forgotten-stop audit 13: the walk screen's card is not modal to a screen reader: the capture stack stays reachable.
+    check.todo((await pg.locator('[data-testid=quiet-ask]').getAttribute('aria-modal')) == null,
+      'forgotten-stop audit 13: the walk screen\'s quiet ask is not modal to the screen reader, the capture stack reachable');
     await shots('qe-ask');
     await pg.click('[data-testid=resume-walk]');
     await pg.waitForTimeout(800);
@@ -202,6 +206,20 @@ async function run(h) {
     check(quietWords.test(barLine) && (await text('[data-testid=quiet-other]')) === 'Keep it all' && barBox && barBox.askBottom <= barBox.barTop + 1,
       `QE4: the recording bar's held Stop asks the same, with the same words, above the bar ("${barLine}", ${JSON.stringify(barBox)})`);
     await shots('qe-bar-ask');
+    // forgotten-stop audit 14: another tab, or a tap on the page, closes the bar's ask and ends nothing.
+    await tabTo(pg, 'explore');
+    await pg.waitForTimeout(1500);
+    const afterTab = !(await shown('[data-testid=quiet-ask]')) && (await shown('[data-testid=bar-stop]'));
+    await tabTo(pg, 'chronicle', 'memories');
+    await pg.waitForSelector('[data-testid=bar-stop]', { timeout: 15000 });
+    await hold('[data-testid=bar-stop]');
+    await until(() => shown('[data-testid=quiet-ask]'), 15000);
+    await pg.mouse.click(200, 300);
+    await pg.waitForTimeout(800);
+    const afterTap = !(await shown('[data-testid=quiet-ask]')) && (await shown('[data-testid=bar-stop]'));
+    check.todo(afterTab && afterTap, `forgotten-stop audit 14: with the bar's ask up, another tab or a tap on the page closes it and ends nothing (tab ${afterTab}, tap ${afterTap})`);
+    await hold('[data-testid=bar-stop]');
+    await until(() => shown('[data-testid=quiet-ask]'), 15000);
 
     // QE6: Keep it all is today's Stop: the replay with the day-long time.
     await pg.click('[data-testid=quiet-other]');
@@ -220,9 +238,13 @@ async function run(h) {
     check(rowOk.every(Boolean),
       `QE7: a kept walk quiet at its end has "End it where it went quiet" in its More, between Rename and Share GPS log ("${row}", ${order.join(' ')})`);
     await shots('qe-more-row');
+    const zoomBefore = await pg.evaluate(() => Number([...document.querySelectorAll('[data-zoom]')].find((e) => e.getBoundingClientRect().width > 0)?.getAttribute('data-zoom')));
     await pg.click('[data-testid=action-quiet-end]');
     await pg.waitForSelector('[data-testid=quiet-sheet]', { timeout: 5000 });
     await pg.waitForTimeout(600);
+    // forgotten-stop audit 10: in a row, Cancel leads and End it trails, as the sheet's Delete confirm.
+    const askOrder = await pg.evaluate(() => ['quiet-other', 'quiet-end'].map((id) => Math.round(document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect().left ?? -1)));
+    check.todo(askOrder[0] >= 0 && askOrder[0] < askOrder[1], `forgotten-stop audit 10: the More's ask puts Cancel leading and End it trailing in a row (${askOrder.join(', ')})`);
     check(quietWords.test(await text('[data-testid=quiet-line]')) && (await text('[data-testid=quiet-other]')) === 'Cancel' && /^End it at /.test(await text('[data-testid=quiet-end]')),
       'QE7: the row asks with the same words and buttons, End it and Cancel');
     await shots('qe-more-ask');
@@ -231,6 +253,9 @@ async function run(h) {
     const after = await text('[data-testid=card-line]');
     const map2 = await cardMap();
     check(!dayLong(after) && map2?.links === 0, `QE7: after End it from the More, the card says the walk's own time ("${after}") and no dotted hop (${map2?.links})`);
+    await pg.waitForTimeout(2500);
+    const zoomAfter = await pg.evaluate(() => Number([...document.querySelectorAll('[data-zoom]')].find((e) => e.getBoundingClientRect().width > 0)?.getAttribute('data-zoom')));
+    check.todo(zoomAfter > zoomBefore + 0.3, `forgotten-stop audit 11: after End it from the More, the replay frames the walk up to its new end (zoom ${zoomBefore} to ${zoomAfter})`);
     await shot(pg, 'qe-more-ended-card');
     await pg.click('[data-testid=card-more]');
     await pg.waitForSelector('[data-testid=walk-actions]', { timeout: 5000 });
@@ -248,6 +273,35 @@ async function run(h) {
     const rows = await pg.locator('[data-testid=walk-row]').allInnerTexts().catch(() => []);
     check(rows.length >= 2 && rows.every((r) => !dayLong(r)), `QE5: Chronicle's rows say the walks' own time (${JSON.stringify(rows.map((r) => r.replace(/\s+/g, ' ')))})`);
     await shot(pg, 'qe-chronicle-rows');
+
+    // 3. A third walk, left the same way: with the bar's ask up, a photo from the page's own line closes the ask, and the
+    // photo is the walk's last activity, so the next hold ends it as today, the photo inside it (forgotten-stop audit 5).
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    await walkOn();
+    check((await leaveRunning()) === true, 'quietend: the third walk is moved 20 hours back in storage');
+    await nextDay();
+    if (await shown('[data-testid=walk-minimize]')) await pg.click('[data-testid=walk-minimize]');
+    await pg.waitForTimeout(1200);
+    await tabTo(pg, 'chronicle', 'memories');
+    await pg.waitForSelector('[data-testid=bar-stop]', { timeout: 15000 });
+    await hold('[data-testid=bar-stop]');
+    await until(() => shown('[data-testid=quiet-ask]'), 15000);
+    const [chooser3] = await Promise.all([pg.waitForEvent('filechooser', { timeout: 10000 }), pg.locator('[data-testid=band-photo]').filter({ visible: true }).first().click()]);
+    await chooser3.setFiles(photoFile);
+    await pg.waitForSelector('[data-testid=media-editor]', { timeout: 15000 }).catch(() => {});
+    await pg.click('[data-testid=edit-close]').catch(() => {});
+    await pg.waitForTimeout(2000);
+    const closedByPhoto = !(await shown('[data-testid=quiet-ask]'));
+    await hold('[data-testid=bar-stop]');
+    await pg.waitForTimeout(1500);
+    const askedAgain = await shown('[data-testid=quiet-ask]');
+    await toCard();
+    const kept3 = await text('[data-testid=card-kept]');
+    check.todo(closedByPhoto && !askedAgain && /photo/i.test(kept3),
+      `forgotten-stop audit 5: a photo kept from the page with the bar's ask up closes it; the next hold ends the walk as today, the photo inside it (closed ${closedByPhoto}, asked again ${askedAgain}, "${kept3}")`);
   } finally {
     await c.close();
   }

@@ -145,3 +145,50 @@ test('QE9: a point that cannot be read asks nothing: the Stop goes on as today',
   });
   assert.ok('dropped' in (await stopEnd('w', { leaves: false, warned: [] })));
 });
+
+test('forgotten-stop audit 3: a save failing during the quiet read keeps the walk from the empty drop', { todo: 'test first' }, async () => {
+  const { gate, unsaved, dropEmpty, p } = await world();
+  let fail!: () => void;
+  const save = new Promise<void>((_, rej) => (fail = () => rej(new Error('disk full')))).catch((e) => {
+    unsaved.hold({ kind: 'voice', walkId: 'w', stamp: { t: T0 }, uri: 'blob:m', ext: 'webm', ms: 3000, path: null, outOfSpace: false, said: false });
+    throw e;
+  });
+  gate.track(save);
+  const stopEnd = createStopEnd({
+    gate, unsaved,
+    endWalk: async (walkId: string) => {
+      await p.db.updateWalk(walkId, { ended_at: T0 + 60_000, open: false });
+      return { dropped: await dropEmpty(walkId) };
+    },
+    quietAt: async () => {
+      fail();
+      await tick();
+      await tick();
+      return null;
+    },
+  });
+  assert.deepEqual(await stopEnd('w', { leaves: false, warned: [] }), { dropped: false }, 'pinned before the read: the walk is kept');
+});
+
+test('forgotten-stop audit 5: End it at a Stop reads the point again and asks again when the walk moved on', { todo: 'test first' }, async () => {
+  let point: number | null = T0 + 30_000;
+  const { p, gate, unsaved, dropEmpty } = await world();
+  const ends: (number | undefined)[] = [];
+  const stopEnd = createStopEnd({
+    gate, unsaved,
+    endWalk: async (walkId: string, o: { leaves: boolean; endAt?: number }) => {
+      ends.push(o.endAt);
+      await p.db.updateWalk(walkId, { ended_at: o.endAt ?? T0 + 99_000, open: false });
+      return { dropped: await dropEmpty(walkId) };
+    },
+    quietAt: async () => point,
+  });
+  // A note kept with the ask up moved the point on: asked again with the new one, nothing ended.
+  point = T0 + 45_000;
+  assert.deepEqual(await stopEnd('w', { leaves: true, warned: [], quiet: T0 + 30_000 }), { quiet: T0 + 45_000 });
+  assert.equal(ends.length, 0);
+  // Walked on, no longer quiet at all: the Stop goes as Keep it all.
+  point = null;
+  assert.ok('dropped' in (await stopEnd('w', { leaves: true, warned: [], quiet: T0 + 45_000 })));
+  assert.deepEqual(ends, [undefined]);
+});

@@ -167,3 +167,30 @@ test('QE5: the replay and the snap read a walk up to its end', () => {
   assert.match(src('summary.ts'), /const points = untilEnd\(await db\.getPoints\(walkId\), walk\.ended_at\);/);
   assert.match(src('finish.ts'), /withoutPauses\(untilEnd\(await db\.getPoints\(walk\.id\), walk\.ended_at\), pauses\)/);
 });
+
+test('forgotten-stop audit 6: a walk ended at its Resume keeps its pause and is never dropped', { todo: 'test first' }, async () => {
+  const p = fakePorts();
+  // Standing a minute, paused, resumed, left: the quiet point is the Resume, and End it ends the walk there.
+  const stood = Array.from({ length: 13 }, (_, i) => fix(T0 + i * 5000, (i % 2) * 0.5));
+  const resume = T0 + 3 * MIN;
+  await p.db.createWalk({ id: 'w', started_at: T0, ended_at: resume, title: null, epilogue: null, open: false, area: null, snapped_build: null });
+  await p.db.appendPoints(stood);
+  await p.db.startPause('w', T0 + 2 * MIN);
+  await p.db.endPause('w', resume);
+  const { createDropEmpty } = await import('../../emptyWalk/shell');
+  const drop = createDropEmpty(p, { schedule: () => {} }) as (id: string, o?: { heldAt?: number }) => Promise<boolean>;
+  assert.equal(await drop('w', { heldAt: resume + 20 * HOUR }), false, 'a pause before the hold is kept: the walk stays');
+});
+
+test('forgotten-stop audit 2: the quiet read takes the walk\'s kept gaps as walked', { todo: 'test first' }, () => {
+  const src = readFileSync(join(__dirname, '..', '..', 'quietEnd', 'shell.ts'), 'utf8');
+  assert.match(src, /getGapDecisions\(/, 'reads the gaps the walker kept, never the network');
+  assert.match(src, /withFilled\(/);
+});
+
+test('forgotten-stop audit 12: the More\'s End it row wears no glyph another control uses for Locate', { todo: 'test first' }, () => {
+  const src = readFileSync(join(__dirname, '..', '..', '..', 'components', 'WalkActions.tsx'), 'utf8');
+  const row = src.slice(src.indexOf('testID="action-quiet-end"'), src.indexOf('{QUIET_ROW}'));
+  assert.match(row, /<Icon name="radio-button-on-outline"/, 'a ringed dot, as drawn');
+  assert.doesNotMatch(row, /locate-outline/);
+});

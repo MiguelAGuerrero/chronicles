@@ -153,3 +153,69 @@ test('forgotten-stop steward 3: a 35-minute quiet end\'s hint names no unit of t
     assert.equal(s.replace(/\d{1,2}:\d{2}/, '').match(/\d/), null, s);
   }
 });
+
+// The diff review (Nov 28): the auditor's findings on the quiet point, each a regression test before its fix.
+test('forgotten-stop audit 2: a 25-minute break crossing 2 km, then standing, is walking on, not quiet', { todo: 'test first' }, async () => {
+  const { quietPoint, quietEndAt } = await mod();
+  // The page frozen with the phone locked on the walk home: 25 min with no reading, then ten minutes standing 2 km on.
+  const homeT = corner.t + 25 * MIN;
+  const home = standing(homeT, 10 * MIN, 2400, 900, 5000, 10);
+  const tr = read([...walk, ...home]);
+  const at = quietPoint({ tr, captures: [], pauses: [] });
+  assert.ok(at != null && Math.abs(at - homeT) <= MIN, `arrived home is the point, not the last corner (${at == null ? 'none' : Math.round((at - corner.t) / MIN)} min after it)`);
+  assert.equal(quietEndAt({ tr, captures: [], pauses: [] }, lastOf(home).t + 5000), null, 'ten minutes standing: not quiet');
+});
+
+test('forgotten-stop audit 4: hours of 60 m indoor drift at the last corner read quiet from the corner', { todo: 'test first' }, async () => {
+  const { quietPoint, quietEndAt } = await mod();
+  const ce = (corner.lon - LON0) / M_LON;
+  const cn = (corner.lat - LAT0) / M_LAT;
+  // Three hours at a fix every 5 s, the reading creeping 0-60 m east of the corner (indoor drift, accuracy 10), and a
+  // slower sway of the same reach: neither is walking on.
+  const n = (3 * HOUR) / 5000;
+  const creep: TracePoint[] = [];
+  const sway: TracePoint[] = [];
+  for (let k = 1; k <= n; k++) {
+    const t = corner.t + k * 5000;
+    creep.push(fix(t, ce + 60 * (k / n) + ((k * 7) % 5) - 2, cn + ((k * 3) % 5) - 2, 10));
+    const off = 60 * Math.abs(Math.sin((k / 400) * Math.PI));
+    sway.push(fix(t, ce + off, cn + off / 2, 10));
+  }
+  const swayAt = quietPoint({ tr: read([...walk, ...sway]), captures: [], pauses: [] });
+  assert.ok(swayAt != null && Math.abs(swayAt - corner.t) <= 2 * MIN, `a sway: quiet from the corner (${swayAt == null ? 'none' : Math.round((swayAt - corner.t) / MIN)} min after it)`);
+  const drift = creep;
+  const tr = read([...walk, ...drift]);
+  const at = quietPoint({ tr, captures: [], pauses: [] });
+  assert.ok(at != null && Math.abs(at - corner.t) <= 2 * MIN, `quiet from the corner (${at == null ? 'none' : Math.round((at - corner.t) / MIN)} min after it)`);
+  assert.ok(quietEndAt({ tr, captures: [], pauses: [] }, lastOf(drift).t + 5000) != null, 'the hold asks');
+});
+
+test('forgotten-stop audit 7: a pause closed at the walk\'s end is no Resume', { todo: 'test first' }, async () => {
+  const { quietEndAt } = await mod();
+  const tr = read(walk);
+  const hold = corner.t + 20 * HOUR;
+  // Paused the next morning, then held Stop: the pause closed at the hold, the walk's end (Keep it all).
+  const pauses = [{ started_at: hold - MIN, ended_at: hold }];
+  const at = quietEndAt({ tr, captures: [], pauses }, hold);
+  assert.ok(at != null && Math.abs(at - corner.t) <= 15_000, 'still quiet from the corner');
+});
+
+test('forgotten-stop audit 9: readings in the minute after a walk\'s end are its own (the write before the recorder stops; a phone\'s clock ahead)', { todo: 'test first' }, async () => {
+  const { untilEnd } = await mod();
+  const end = corner.t;
+  const late = [fix(end + 2000, 400, 400), fix(end + 30_000, 401, 400)];
+  const next = fix(end + 20 * HOUR, 3200, 200);
+  assert.deepEqual(untilEnd([...walk, ...late, next], end), [...walk, ...late], 'within the trace\'s own break (60 s), kept; after it, cut');
+});
+
+test('forgotten-stop audit 1: below 360 px a time in hours draws the time over the distance; the strip\'s first line is still walkStripText\'s', { todo: 'test first' }, async () => {
+  const { walkStripLines, walkStripText } = (await import('../../readyNav')) as unknown as {
+    walkStripLines(o: { elapsedMs: number; distanceM: number; units: 'km'; narrow: boolean }): string;
+    walkStripText(o: { elapsedMs: number; distanceM: number; units: 'km' }): string;
+  };
+  const day = { elapsedMs: 20 * HOUR + MIN, distanceM: 174, units: 'km' as const };
+  assert.equal(walkStripLines({ ...day, narrow: true }), walkStripText(day).replace(' · ', '\n'));
+  assert.equal(walkStripLines({ ...day, narrow: false }), walkStripText(day));
+  const short = { elapsedMs: 65 * 1000, distanceM: 74, units: 'km' as const };
+  assert.equal(walkStripLines({ ...short, narrow: true }), walkStripText(short), 'minutes keep their one line');
+});
